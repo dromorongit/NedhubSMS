@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message History - Nedhub Bulk Messaging</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Nedhub</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">Overview</a></li>
+                    <li><a href="send-sms.html">Send SMS</a></li>
+                    <li><a href="contacts.html">Contacts</a></li>
+                    <li><a href="history.html" class="active">Message History</a></li>
+                    <li><a href="reports.html">Reports</a></li>
+                    <li><a href="settings.html">Settings</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-nav">
+                <div class="user-info">
+                    <span>Welcome, User</span>
+                </div>
+            </header>
+            <div class="dashboard-content">
+                <h2>Message History</h2>
+                <div class="history-header">
+                    <input type="text" placeholder="Search messages..." class="search-input">
+                </div>
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Recipient</th>
+                            <th>Message</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2023-01-01 12:00</td>
+                            <td>+233123456789</td>
+                            <td>Hello, this is a test message</td>
+                            <td><span class="status-badge delivered">Delivered</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

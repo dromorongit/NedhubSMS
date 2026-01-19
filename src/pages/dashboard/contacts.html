@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacts - Nedhub Bulk Messaging</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Nedhub</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">Overview</a></li>
+                    <li><a href="send-sms.html">Send SMS</a></li>
+                    <li><a href="contacts.html" class="active">Contacts</a></li>
+                    <li><a href="history.html">Message History</a></li>
+                    <li><a href="reports.html">Reports</a></li>
+                    <li><a href="settings.html">Settings</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-nav">
+                <div class="user-info">
+                    <span>Welcome, User</span>
+                </div>
+            </header>
+            <div class="dashboard-content">
+                <h2>Contacts</h2>
+                <div class="contacts-header">
+                    <button class="btn-primary" id="addContactBtn">Add Contact</button>
+                    <input type="text" placeholder="Search contacts..." class="search-input">
+                </div>
+                <table class="contacts-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Group</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>John Doe</td>
+                            <td>+233123456789</td>
+                            <td>Customers</td>
+                            <td><button class="btn-secondary">Edit</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

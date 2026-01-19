@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send SMS - Nedhub Bulk Messaging</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Nedhub</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">Overview</a></li>
+                    <li><a href="send-sms.html" class="active">Send SMS</a></li>
+                    <li><a href="contacts.html">Contacts</a></li>
+                    <li><a href="history.html">Message History</a></li>
+                    <li><a href="reports.html">Reports</a></li>
+                    <li><a href="settings.html">Settings</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-nav">
+                <div class="user-info">
+                    <span>Welcome, User</span>
+                </div>
+            </header>
+            <div class="dashboard-content">
+                <h2>Send SMS</h2>
+                <form id="sendSmsForm">
+                    <div class="form-group">
+                        <label for="senderId">Sender ID</label>
+                        <input type="text" id="senderId" name="senderId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipients">Recipients</label>
+                        <textarea id="recipients" name="recipients" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Message</label>
+                        <textarea id="message" name="message" rows="6" required></textarea>
+                        <div class="char-counter">Characters: <span id="charCount">0</span></div>
+                    </div>
+                    <button type="submit" class="btn-primary">Send SMS</button>
+                </form>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

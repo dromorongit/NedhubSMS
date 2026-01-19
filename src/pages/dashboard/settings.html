@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Nedhub Bulk Messaging</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Nedhub</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">Overview</a></li>
+                    <li><a href="send-sms.html">Send SMS</a></li>
+                    <li><a href="contacts.html">Contacts</a></li>
+                    <li><a href="history.html">Message History</a></li>
+                    <li><a href="reports.html">Reports</a></li>
+                    <li><a href="settings.html" class="active">Settings</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-nav">
+                <div class="user-info">
+                    <span>Welcome, User</span>
+                </div>
+            </header>
+            <div class="dashboard-content">
+                <h2>Settings</h2>
+                <div class="settings-section">
+                    <h3>Profile Settings</h3>
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Update Profile</button>
+                    </form>
+                </div>
+                <div class="settings-section">
+                    <h3>Sender ID Management</h3>
+                    <form id="senderIdForm">
+                        <div class="form-group">
+                            <label for="senderId">Default Sender ID</label>
+                            <input type="text" id="senderId" name="senderId" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Update Sender ID</button>
+                    </form>
+                </div>
+                <div class="settings-section">
+                    <h3>API Key</h3>
+                    <div class="api-key-display">
+                        <input type="text" value="your-api-key-here" readonly>
+                        <button class="btn-secondary">Regenerate</button>
+                    </div>
+                </div>
+                <button class="btn-danger" id="logoutBtn">Logout</button>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

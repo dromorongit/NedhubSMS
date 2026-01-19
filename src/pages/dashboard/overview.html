@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overview - Nedhub Bulk Messaging</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Nedhub</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html" class="active">Overview</a></li>
+                    <li><a href="send-sms.html">Send SMS</a></li>
+                    <li><a href="contacts.html">Contacts</a></li>
+                    <li><a href="history.html">Message History</a></li>
+                    <li><a href="reports.html">Reports</a></li>
+                    <li><a href="settings.html">Settings</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-nav">
+                <div class="user-info">
+                    <span>Welcome, User</span>
+                </div>
+            </header>
+            <div class="dashboard-content">
+                <h2>Overview</h2>
+                
+                <!-- Wallet Balance Card -->
+                <div class="wallet-card">
+                    <h3>Wallet Balance</h3>
+                    <div class="balance-display" id="walletBalance">
+                        <span class="balance-amount">0</span>
+                        <span class="balance-currency">credits</span>
+                    </div>
+                    <button class="btn-secondary" id="topupButton">Top Up</button>
+                </div>
+                
+                <!-- Low Balance Alert (hidden by default) -->
+                <div class="alert low-balance-alert" id="lowBalanceAlert" style="display: none;">
+                    <span>⚠️ Low balance! Please top up to continue sending SMS.</span>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>SMS Balance</h3>
+                        <p>1000</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Messages Sent</h3>
+                        <p>500</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Delivery Rate</h3>
+                        <p>98%</p>
+                    </div>
+                </div>
+                
+                <!-- Recent Transactions -->
+                <div class="transactions-section">
+                    <h3>Recent Transactions</h3>
+                    <table class="transactions-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsBody">
+                            <!-- Transactions will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="../../utils/api.js"></script>
+    <script>
+        // Load wallet balance and transactions on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Get wallet balance
+                const balanceResponse = await apiClient.getWalletBalance();
+                if (balanceResponse.data) {
+                    document.getElementById('walletBalance').querySelector('.balance-amount').textContent = balanceResponse.data.balance;
+                    
+                    // Show low balance alert if balance is low
+                    if (balanceResponse.data.balance < 100) {
+                        document.getElementById('lowBalanceAlert').style.display = 'block';
+                    }
+                }
+                
+                // Get recent transactions
+                const transactionsResponse = await apiClient.getTransactionHistory();
+                if (transactionsResponse.data && transactionsResponse.data.transactions) {
+                    const transactionsBody = document.getElementById('transactionsBody');
+                    transactionsBody.innerHTML = '';
+                    
+                    transactionsResponse.data.transactions.slice(0, 5).forEach(tx => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${new Date(tx.createdAt).toLocaleString()}</td>
+                            <td class="tx-type ${tx.type}">${tx.type}</td>
+                            <td>${tx.amount} credits</td>
+                            <td>${tx.description}</td>
+                        `;
+                        transactionsBody.appendChild(row);
+                    });
+                }
+                
+                // Handle top-up button click
+                document.getElementById('topupButton').addEventListener('click', () => {
+                    alert('Contact admin for wallet top-up');
+                });
+                
+            } catch (error) {
+                console.error('Error loading wallet data:', error);
+                // Show error to user
+                const errorRow = document.createElement('tr');
+                errorRow.innerHTML = '<td colspan="4" class="error">Failed to load wallet data</td>';
+                document.getElementById('transactionsBody').appendChild(errorRow);
+            }
+        });
+    </script>
+</body>
+</html>

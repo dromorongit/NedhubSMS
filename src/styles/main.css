@@ -1,0 +1,24 @@
+:root {
+    --primary-dark: #0B132B;
+    --accent-orange: #F77F00;
+    --neutral-white: #FFFFFF;
+    --neutral-gray: #F4F6F8;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--neutral-gray);
+    color: var(--primary-dark);
+    line-height: 1.6;
+}
+
+#app {
+    display: flex;
+    min-height: 100vh;
+}

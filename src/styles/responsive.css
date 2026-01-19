@@ -1,0 +1,57 @@
+/* Mobile-first responsive design */
+
+/* Base styles for mobile */
+.dashboard-layout {
+    flex-direction: column;
+}
+
+.sidebar {
+    width: 100%;
+}
+
+.sidebar-nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+.sidebar-nav li {
+    flex: 1 0 30%;
+    margin-bottom: 1rem;
+}
+
+/* Tablet styles */
+@media (min-width: 768px) {
+    .dashboard-layout {
+        flex-direction: row;
+    }
+
+    .sidebar {
+        width: 200px;
+    }
+
+    .sidebar-nav ul {
+        display: block;
+    }
+
+    .sidebar-nav li {
+        flex: none;
+        width: 100%;
+    }
+}
+
+/* Desktop styles */
+@media (min-width: 1024px) {
+    .sidebar {
+        width: 250px;
+    }
+}
+
+/* Large desktop styles */
+@media (min-width: 1440px) {
+    .dashboard-content {
+        max-width: 1440px;
+        margin: 0 auto;
+        width: 100%;
+    }
+}
