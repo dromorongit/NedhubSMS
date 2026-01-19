@@ -10,6 +10,7 @@ const walletRoutes = require('../../routes/wallet');
 const senderIdRoutes = require('../../routes/senderIds');
 const templateRoutes = require('../../routes/templates');
 const campaignRoutes = require('../../routes/campaigns');
+const adminRoutes = require('../../routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +29,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Admin rate limiting (stricter)
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50 // limit each IP to 50 requests per windowMs for admin routes
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/contacts', contactRoutes);
@@ -36,6 +43,7 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/sender-ids', senderIdRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/admin', adminLimiter, adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

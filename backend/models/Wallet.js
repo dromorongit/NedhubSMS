@@ -13,6 +13,10 @@ const walletSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Balance cannot be negative']
   },
+  frozen: {
+    type: Boolean,
+    default: false
+  },
   dailyLimit: {
     type: Number,
     default: 1000,

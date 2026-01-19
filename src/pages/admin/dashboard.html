@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Nedhub SMS</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/admin.css">
+    <link rel="stylesheet" href="../../styles/responsive.css">
+    <link rel="stylesheet" href="../../styles/animations.css">
+</head>
+<body>
+    <div id="admin-app">
+        <!-- Sidebar -->
+        <nav class="admin-sidebar">
+            <div class="sidebar-header">
+                <h2>Nedhub Admin</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="menu-item active" data-page="dashboard">
+                    <i class="icon-dashboard"></i>
+                    <span>Dashboard</span>
+                </li>
+                <li class="menu-item" data-page="users">
+                    <i class="icon-users"></i>
+                    <span>Users</span>
+                </li>
+                <li class="menu-item" data-page="wallets">
+                    <i class="icon-wallet"></i>
+                    <span>Wallets</span>
+                </li>
+                <li class="menu-item" data-page="sender-ids">
+                    <i class="icon-sender"></i>
+                    <span>Sender IDs</span>
+                </li>
+                <li class="menu-item" data-page="campaigns">
+                    <i class="icon-campaigns"></i>
+                    <span>Campaigns</span>
+                </li>
+                <li class="menu-item" data-page="system">
+                    <i class="icon-system"></i>
+                    <span>System</span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Topbar -->
+            <header class="admin-topbar">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle" id="sidebar-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                    <h1 id="page-title">Dashboard</h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="notifications">
+                        <button class="notification-btn">
+                            <i class="icon-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </button>
+                    </div>
+                    <div class="admin-profile">
+                        <span id="admin-name">Admin User</span>
+                        <button class="logout-btn" id="logout-btn">Logout</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="admin-content" id="admin-content">
+                <!-- Dashboard Content -->
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="icon-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-users">0</h3>
+                            <p>Total Users</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="icon-sms"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-sms">0</h3>
+                            <p>SMS Sent Today</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="icon-wallet"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-revenue">₵0.00</h3>
+                            <p>Revenue Today</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="icon-campaigns"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="active-campaigns">0</h3>
+                            <p>Active Campaigns</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="recent-activity">
+                    <h2>Recent Activity</h2>
+                    <div class="activity-list" id="activity-list">
+                        <!-- Activity items will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="confirmation-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Confirm Action</h3>
+            <p id="modal-message">Are you sure you want to proceed?</p>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="modal-cancel">Cancel</button>
+                <button class="btn-primary" id="modal-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../utils/auth.ts"></script>
+    <script src="../../utils/api.ts"></script>
+    <script src="../../utils/toast.ts"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
