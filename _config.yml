@@ -1,0 +1,36 @@
+# GitHub Pages configuration for Nedhub SMS Frontend
+# Since we're using .nojekyll, Jekyll won't process these files
+# This config is mainly for documentation purposes
+
+title: "Nedhub Bulk Messaging"
+description: "Enterprise-grade bulk SMS platform with admin controls"
+url: "https://dromorongit.github.io"
+baseurl: "/NedhubSMS"
+
+# Exclude backend and build artifacts (documentation only since .nojekyll disables Jekyll)
+exclude:
+  - backend/
+  - node_modules/
+  - .bundle/
+  - .sass-cache/
+  - .jekyll-cache/
+  - vendor/
+  - .vscode/
+  - .git/
+  - .gitignore
+  - package.json
+  - package-lock.json
+
+# Include only frontend files
+include:
+  - index.html
+  - src/
+  - _config.yml
+  - .nojekyll
+
+# Build settings (not used since .nojekyll disables Jekyll)
+markdown: kramdown
+highlighter: rouge
+
+# Collections (not used)
+collections: null
