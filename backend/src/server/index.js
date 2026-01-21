@@ -6,6 +6,7 @@ const { connectDB } = require('../../utils/database');
 const authRoutes = require('../../routes/auth');
 const contactRoutes = require('../../routes/contacts');
 const smsRoutes = require('../../routes/sms');
+const naloSmsRoutes = require('../../routes/naloSms');
 const walletRoutes = require('../../routes/wallet');
 const senderIdRoutes = require('../../routes/senderIds');
 const templateRoutes = require('../../routes/templates');
@@ -39,6 +40,7 @@ const adminLimiter = rateLimit({
 app.use('/api/auth', authRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/sms', smsRoutes);
+app.use('/api/sms', naloSmsRoutes); // Nalo SMS routes
 app.use('/api/wallet', walletRoutes);
 app.use('/api/sender-ids', senderIdRoutes);
 app.use('/api/templates', templateRoutes);
