@@ -6,6 +6,14 @@ backend/node_modules/
 backend/
 !backend/package.json
 !backend/.env
+!backend/package-lock.json
+!backend/src/
+!backend/routes/
+!backend/controllers/
+!backend/services/
+!backend/models/
+!backend/middleware/
+!backend/utils/
 
 # Build outputs
 dist/
