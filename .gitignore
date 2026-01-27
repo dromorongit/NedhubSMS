@@ -4,11 +4,8 @@ backend/node_modules/
 
 # Backend files (not needed for frontend deployment)
 backend/
-!backend/package.json
 !backend/.env
-!backend/package-lock.json
 !backend/src/
-!backend/server/
 !backend/routes/
 !backend/controllers/
 !backend/services/
