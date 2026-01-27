@@ -2,16 +2,8 @@
 node_modules/
 backend/node_modules/
 
-# Backend files (not needed for frontend deployment)
-backend/
-!backend/.env
-!backend/src/
-!backend/routes/
-!backend/controllers/
-!backend/services/
-!backend/models/
-!backend/middleware/
-!backend/utils/
+# Backend files - needed for Railway deployment
+# backend/ folder is NOT ignored
 
 # Build outputs
 dist/
