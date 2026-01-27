@@ -8,6 +8,7 @@ backend/
 !backend/.env
 !backend/package-lock.json
 !backend/src/
+!backend/server/
 !backend/routes/
 !backend/controllers/
 !backend/services/
