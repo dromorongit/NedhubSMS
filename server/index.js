@@ -19,8 +19,11 @@ const PORT = process.env.PORT || 3000;
 // Connect to MongoDB
 connectDB();
 
-// Middleware
-app.use(cors());
+// CORS configuration - allow requests from frontend
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://app.nedhubgh.com', 'http://app.nedhubgh.com'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Rate limiting
