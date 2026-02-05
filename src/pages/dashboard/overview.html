@@ -84,10 +84,64 @@
         </main>
     </div>
     
+    <!-- Top Up Modal -->
+    <div class="modal" id="topupModal">
+        <div class="modal-content">
+            <span class="close" id="closeTopupModal">&times;</span>
+            <h3>Top Up Wallet</h3>
+            <form id="topupForm">
+                <div class="form-group">
+                    <label for="topupAmount">Amount (GHS)</label>
+                    <input type="number" id="topupAmount" name="amount" min="1" step="0.01" required placeholder="Enter amount">
+                    <small>1 GHS = 100 credits</small>
+                </div>
+                <div class="form-group">
+                    <label for="topupDescription">Description (optional)</label>
+                    <input type="text" id="topupDescription" name="description" placeholder="e.g., Monthly top-up">
+                </div>
+                <button type="submit" class="btn-primary" id="topupSubmitBtn">Proceed to Payment</button>
+            </form>
+            <div id="topupError" class="error-message" style="display: none;"></div>
+        </div>
+    </div>
+    
     <script src="../../utils/api.js"></script>
     <script>
-        // Load wallet balance and transactions on page load
-        document.addEventListener('DOMContentLoaded', async () => {
+        // Check if this is a payment return page
+        const urlParams = new URLSearchParams(window.location.search);
+        if (window.location.pathname.includes('/payment/') || urlParams.has('reference')) {
+            handlePaymentReturn();
+        } else {
+            loadDashboard();
+        }
+        
+        async function handlePaymentReturn() {
+            const reference = urlParams.get('reference');
+            const status = urlParams.get('status');
+            
+            if (reference) {
+                try {
+                    const response = await apiClient.checkPaymentStatus(reference);
+                    if (response.data && response.data.status === 'paid') {
+                        showToast('Payment successful! Your wallet has been credited.', 'success');
+                        loadDashboard();
+                    } else if (response.data && response.data.status === 'failed') {
+                        showToast('Payment failed. Please try again.', 'error');
+                        loadDashboard();
+                    } else {
+                        showToast('Payment is being processed. Please wait...', 'info');
+                        setTimeout(() => loadDashboard(), 3000);
+                    }
+                } catch (error) {
+                    showToast('Error checking payment status', 'error');
+                }
+            }
+            
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
+        async function loadDashboard() {
             try {
                 // Get wallet balance
                 const balanceResponse = await apiClient.getWalletBalance();
@@ -118,11 +172,6 @@
                     });
                 }
                 
-                // Handle top-up button click
-                document.getElementById('topupButton').addEventListener('click', () => {
-                    alert('Contact admin for wallet top-up');
-                });
-                
             } catch (error) {
                 console.error('Error loading wallet data:', error);
                 // Show error to user
@@ -130,7 +179,96 @@
                 errorRow.innerHTML = '<td colspan="4" class="error">Failed to load wallet data</td>';
                 document.getElementById('transactionsBody').appendChild(errorRow);
             }
+        }
+        
+        // Handle top-up button click
+        document.getElementById('topupButton').addEventListener('click', () => {
+            document.getElementById('topupModal').style.display = 'block';
         });
+        
+        // Handle close modal
+        document.getElementById('closeTopupModal').addEventListener('click', () => {
+            document.getElementById('topupModal').style.display = 'none';
+            document.getElementById('topupError').style.display = 'none';
+        });
+        
+        // Handle form submission
+        document.getElementById('topupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const amount = document.getElementById('topupAmount').value;
+            const description = document.getElementById('topupDescription').value;
+            const submitBtn = document.getElementById('topupSubmitBtn');
+            const errorDiv = document.getElementById('topupError');
+            
+            // Reset error
+            errorDiv.style.display = 'none';
+            
+            // Disable button during processing
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
+            try {
+                const response = await apiClient.initiatePayment(amount, description);
+                
+                if (response.success && response.checkoutUrl) {
+                    // Close modal
+                    document.getElementById('topupModal').style.display = 'none';
+                    
+                    // Store reference for checking after redirect
+                    localStorage.setItem('pendingPaymentRef', response.clientReference);
+                    
+                    // Show info message
+                    showToast('Redirecting to payment...', 'info');
+                    
+                    // Redirect to Hubtel checkout
+                    setTimeout(() => {
+                        window.location.href = response.checkoutUrl;
+                    }, 1000);
+                } else {
+                    throw new Error(response.error || 'Failed to initiate payment');
+                }
+            } catch (error) {
+                errorDiv.textContent = error.message || 'An error occurred';
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Proceed to Payment';
+            }
+        });
+        
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 24px;
+                border-radius: 4px;
+                color: white;
+                font-weight: 500;
+                z-index: 1000;
+                animation: fadeIn 0.3s ease;
+                background-color: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+        
+        // Check for pending payment on page load
+        const pendingRef = localStorage.getItem('pendingPaymentRef');
+        if (pendingRef) {
+            // Clear immediately
+            localStorage.removeItem('pendingPaymentRef');
+            // Status will be checked via handlePaymentReturn if URL has reference
+        }
     </script>
 </body>
 </html>

@@ -12,6 +12,7 @@ const senderIdRoutes = require('../backend/routes/senderIds');
 const templateRoutes = require('../backend/routes/templates');
 const campaignRoutes = require('../backend/routes/campaigns');
 const adminRoutes = require('../backend/routes/admin');
+const paymentRoutes = require('../backend/routes/payments');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,6 +50,7 @@ app.use('/api/sender-ids', senderIdRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

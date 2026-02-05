@@ -97,6 +97,19 @@ class ApiClient {
   async getTransactionHistory() {
     return this.request('GET', '/wallet/transactions');
   }
+
+  // Payment endpoints
+  async initiatePayment(amount, description) {
+    return this.request('POST', '/payments/initiate', { amount, description });
+  }
+
+  async getPaymentHistory() {
+    return this.request('GET', '/payments/history');
+  }
+
+  async checkPaymentStatus(clientReference) {
+    return this.request('GET', `/payments/status/${clientReference}`);
+  }
 }
 
 // Singleton instance

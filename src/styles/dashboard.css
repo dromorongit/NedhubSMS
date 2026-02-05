@@ -235,3 +235,185 @@
     border-radius: 4px;
     cursor: pointer;
 }
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    right: 1rem;
+    top: 0.5rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #999;
+}
+
+.close:hover {
+    color: #333;
+}
+
+.modal-content h3 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-dark);
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.toast-success {
+    background-color: #28a745;
+}
+
+.toast-error {
+    background-color: #dc3545;
+}
+
+.toast-info {
+    background-color: #17a2b8;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Wallet Card */
+.wallet-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.wallet-card h3 {
+    color: white;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.balance-display {
+    margin-bottom: 1.5rem;
+}
+
+.balance-amount {
+    font-size: 3rem;
+    font-weight: bold;
+}
+
+.balance-currency {
+    font-size: 1.5rem;
+    margin-left: 0.5rem;
+    opacity: 0.8;
+}
+
+.wallet-card .btn-secondary {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.wallet-card .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Alert Styles */
+.alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+}
+
+.low-balance-alert {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+}
+
+/* Transaction Table */
+.transactions-section {
+    margin-top: 2rem;
+}
+
+.transactions-section h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-dark);
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--neutral-white);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.transactions-table th {
+    padding: 1rem;
+    text-align: left;
+    background-color: var(--primary-dark);
+    color: var(--neutral-white);
+}
+
+.transactions-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.tx-type.credit {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.tx-type.debit {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.transactions-table .error {
+    color: #dc3545;
+}

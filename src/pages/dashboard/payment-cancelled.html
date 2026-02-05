@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Cancelled - Nedhub Bulk Messaging</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+    <style>
+        .payment-status {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .payment-status .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .payment-status .icon.warning {
+            color: #ffc107;
+        }
+        .payment-status h2 {
+            color: #ffc107;
+            margin-bottom: 10px;
+        }
+        .payment-status p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .info-message {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+        .action-buttons {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">Overview</a></li>
+                    <li><a href="send-sms.html">Send SMS</a></li>
+                    <li><a href="contacts.html">Contacts</a></li>
+                    <li><a href="history.html">Message History</a></li>
+                    <li><a href="reports.html">Reports</a></li>
+                    <li><a href="settings.html">Settings</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-nav">
+                <div class="user-info">
+                    <span>Welcome, User</span>
+                </div>
+            </header>
+            <div class="dashboard-content">
+                <div class="payment-status">
+                    <div class="icon warning">!</div>
+                    <h2>Payment Cancelled</h2>
+                    <p>You cancelled the payment process. No charges were made.</p>
+                    
+                    <div class="info-message">
+                        You can try again whenever you're ready.
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <a href="overview.html" class="btn-primary">Return to Dashboard</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                window.history.replaceState({}, document.title, 'payment-cancelled.html');
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

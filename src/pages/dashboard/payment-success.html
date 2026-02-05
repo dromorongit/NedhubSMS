@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - Nedhub Bulk Messaging</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+    <style>
+        .payment-status {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .payment-status .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .payment-status .icon.success {
+            color: #28a745;
+        }
+        .payment-status h2 {
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        .payment-status p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .payment-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+        .payment-details p {
+            margin: 10px 0;
+        }
+        .payment-details strong {
+            display: inline-block;
+            width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">Overview</a></li>
+                    <li><a href="send-sms.html">Send SMS</a></li>
+                    <li><a href="contacts.html">Contacts</a></li>
+                    <li><a href="history.html">Message History</a></li>
+                    <li><a href="reports.html">Reports</a></li>
+                    <li><a href="settings.html">Settings</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-nav">
+                <div class="user-info">
+                    <span>Welcome, User</span>
+                </div>
+            </header>
+            <div class="dashboard-content">
+                <div class="payment-status">
+                    <div class="icon success">✓</div>
+                    <h2>Payment Successful!</h2>
+                    <p>Your wallet has been credited successfully.</p>
+                    
+                    <div class="payment-details" id="paymentDetails">
+                        <p><strong>Reference:</strong> <span id="ref">Loading...</span></p>
+                        <p><strong>Amount:</strong> <span id="amount">Loading...</span></p>
+                        <p><strong>Date:</strong> <span id="date">Loading...</span></p>
+                    </div>
+                    
+                    <a href="overview.html" class="btn-primary">Return to Dashboard</a>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="../../utils/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reference = urlParams.get('reference');
+            
+            if (reference) {
+                document.getElementById('ref').textContent = reference;
+                
+                try {
+                    const response = await apiClient.checkPaymentStatus(reference);
+                    if (response.data) {
+                        document.getElementById('amount').textContent = `${response.data.currency || 'GHS'} ${response.data.amount || 0}`;
+                        document.getElementById('date').textContent = new Date().toLocaleString();
+                    }
+                } catch (error) {
+                    console.error('Error fetching payment details:', error);
+                }
+            }
+            
+            // Clean URL after 3 seconds
+            setTimeout(() => {
+                window.history.replaceState({}, document.title, 'payment-success.html');
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
