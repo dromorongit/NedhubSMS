@@ -7,11 +7,34 @@
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link rel="stylesheet" href="../../styles/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="dashboard-layout">
-        <aside class="sidebar">
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="mobile-logo">
+            <div class="mobile-user-info">
+                <div class="user-avatar" id="mobileUserAvatar">U</div>
+                <button class="hamburger-btn" id="hamburgerBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
             </div>
@@ -255,6 +278,9 @@
                 return;
             }
 
+            // Initialize mobile menu
+            initMobileMenu();
+
             // Load user profile first
             await loadUserProfile();
 
@@ -307,10 +333,42 @@
             const userNameEl = document.getElementById('userName');
             const welcomeTitleEl = document.getElementById('welcomeTitle');
             const userAvatarEl = document.getElementById('userAvatar');
+            const mobileUserAvatarEl = document.getElementById('mobileUserAvatar');
             
             if (userNameEl) userNameEl.textContent = firstName;
             if (welcomeTitleEl) welcomeTitleEl.textContent = `Welcome back, ${firstName}!`;
-            if (userAvatarEl) userAvatarEl.textContent = firstName.charAt((0) || 'U').toUpperCase();
+            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+            if (mobileUserAvatarEl) mobileUserAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+        }
+        
+        // Mobile hamburger menu
+        function initMobileMenu() {
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (hamburgerBtn && sidebar) {
+                hamburgerBtn.addEventListener('click', () => {
+                    hamburgerBtn.classList.toggle('active');
+                    sidebar.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                });
+                
+                overlay.addEventListener('click', () => {
+                    hamburgerBtn.classList.remove('active');
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                });
+                
+                // Close sidebar when clicking a link
+                sidebar.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', () => {
+                        hamburgerBtn.classList.remove('active');
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                    });
+                });
+            }
         }
 
         async function handlePaymentReturn() {

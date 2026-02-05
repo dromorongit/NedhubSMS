@@ -31,6 +31,19 @@ app.use(express.json());
 // Serve static files from src directory
 app.use(express.static(path.join(__dirname, '../src')));
 
+// Payment page routes (for Hubtel return URLs)
+app.get('/payment/success', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/payment-success.html'));
+});
+
+app.get('/payment/cancelled', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/payment-cancelled.html'));
+});
+
+app.get('/payment/error', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/payment-error.html'));
+});
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,

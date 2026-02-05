@@ -7,39 +7,9 @@
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
-    <style>
-        .payment-status {
-            text-align: center;
-            padding: 60px 20px;
-        }
-        .payment-status .icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-        }
-        .payment-status .icon.warning {
-            color: #ffc107;
-        }
-        .payment-status h2 {
-            color: #ffc107;
-            margin-bottom: 10px;
-        }
-        .payment-status p {
-            color: #666;
-            margin-bottom: 30px;
-        }
-        .info-message {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            color: #856404;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 20px auto;
-            max-width: 400px;
-        }
-        .action-buttons {
-            margin-top: 30px;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="../../utils/api.js"></script>
+    <script src="../../utils/toast.js"></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -61,33 +31,209 @@
         <main class="main-content">
             <header class="top-nav">
                 <div class="user-info">
-                    <span>Welcome, User</span>
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
                 </div>
             </header>
             <div class="dashboard-content">
-                <div class="payment-status">
-                    <div class="icon warning">!</div>
+                <div class="welcome-section">
                     <h2>Payment Cancelled</h2>
+                    <p class="welcome-subtitle">You cancelled the payment process.</p>
+                </div>
+
+                <!-- Cancelled Card -->
+                <div class="payment-result-card cancelled">
+                    <div class="result-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                    </div>
+                    <h3>Payment Cancelled</h3>
                     <p>You cancelled the payment process. No charges were made.</p>
                     
-                    <div class="info-message">
-                        You can try again whenever you're ready.
+                    <div class="info-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span>You can try again whenever you're ready.</span>
+                    </div>
+
+                    <div class="result-actions">
+                        <a href="overview.html" class="btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                            Go to Dashboard
+                        </a>
                     </div>
                     
-                    <div class="action-buttons">
-                        <a href="overview.html" class="btn-primary">Return to Dashboard</a>
-                    </div>
+                    <p class="redirect-msg">Redirecting to dashboard in <span id="countdown">3</span> seconds...</p>
                 </div>
             </div>
         </main>
     </div>
-    
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                window.history.replaceState({}, document.title, 'payment-cancelled.html');
-            }, 3000);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadUserProfile();
+            handlePaymentCancelled();
         });
+
+        async function loadUserProfile() {
+            try {
+                const response = await window.apiClient.getUserProfile();
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    document.getElementById('userName').textContent = firstName;
+                    document.getElementById('userAvatar').textContent = firstName.charAt(0).toUpperCase();
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+
+        function handlePaymentCancelled() {
+            // Show warning toast
+            showToast('Payment was cancelled. No charges were made.', 'warning');
+
+            // Countdown and redirect
+            let countdown = 3;
+            const countdownEl = document.getElementById('countdown');
+            
+            const interval = setInterval(() => {
+                countdown--;
+                countdownEl.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    window.location.href = 'overview.html';
+                }
+            }, 1000);
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '../auth/login.html';
+        }
     </script>
+
+    <style>
+        .payment-result-card {
+            background-color: var(--neutral-white);
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+            margin: 2rem auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .payment-result-card.cancelled {
+            border-top: 4px solid #ff9800;
+        }
+
+        .result-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        }
+
+        .result-icon svg {
+            width: 40px;
+            height: 40px;
+            color: #ff9800;
+        }
+
+        .payment-result-card h3 {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .payment-result-card > p {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            background-color: #fff3e0;
+            border: 1px solid #ffcc80;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #e65100;
+            font-size: 0.95rem;
+        }
+
+        .info-box svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .result-actions {
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2rem;
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(247, 127, 0, 0.3);
+        }
+
+        .btn-primary svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .redirect-msg {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .redirect-msg span {
+            color: var(--accent-orange);
+            font-weight: 600;
+        }
+    </style>
 </body>
 </html>
