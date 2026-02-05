@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { hashPassword, comparePassword, generateToken, verifyToken } = require('../utils/auth');
+const { generateToken, verifyToken } = require('../utils/auth');
 const { authenticate } = require('../middleware/auth');
 const User = require('../models/User');
 const validator = require('validator');
@@ -24,19 +24,18 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findByEmail(email);
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Hash password and create user
-    const passwordHash = await hashPassword(password);
-    const userId = await User.create(name, email, passwordHash);
+    // Create user (password will be hashed by Mongoose pre-save hook)
+    const user = await User.create({ name, email, password });
 
     // Generate JWT token
-    const token = generateToken(userId, 'user');
+    const token = generateToken(user._id, 'user');
 
-    res.status(201).json({ token, userId });
+    res.status(201).json({ token, userId: user._id });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
@@ -54,21 +53,21 @@ router.post('/login', async (req, res) => {
     }
 
     // Check if user exists
-    const user = await User.findByEmail(email);
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Compare passwords
-    const isMatch = await comparePassword(password, user.password_hash);
+    const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Generate JWT token
-    const token = generateToken(user.id, user.role);
+    const token = generateToken(user._id, user.role);
 
-    res.json({ token, userId: user.id, role: user.role });
+    res.json({ token, userId: user._id, role: user.role });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
