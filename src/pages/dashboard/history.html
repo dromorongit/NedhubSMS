@@ -6,6 +6,7 @@
     <title>Message History - Nedhub Bulk Messaging</title>
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
+    <script src="../../utils/api.js" defer></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -56,5 +57,50 @@
             </div>
         </main>
     </div>
+    <script>
+        async function loadMessageHistory() {
+            try {
+                const result = await window.apiClient.getMessageHistory();
+                if (result.error) {
+                    console.error(result.error);
+                    return;
+                }
+                
+                const messages = result.data || [];
+                const tbody = document.querySelector('.history-table tbody');
+                tbody.innerHTML = '';
+                
+                if (messages.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No messages found</td></tr>';
+                    return;
+                }
+                
+                messages.forEach(msg => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${new Date(msg.createdAt).toLocaleString()}</td>
+                        <td>${msg.recipient}</td>
+                        <td>${msg.message.substring(0, 50)}${msg.message.length > 50 ? '...' : ''}</td>
+                        <td><span class="status-badge ${msg.status}">${msg.status}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading message history:', error);
+            }
+        }
+        
+        // Search functionality
+        document.querySelector('.search-input').addEventListener('input', function() {
+            // Simple client-side filtering
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.history-table tbody tr').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+        
+        loadMessageHistory();
+    </script>
 </body>
 </html>

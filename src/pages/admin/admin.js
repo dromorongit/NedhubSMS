@@ -1,35 +1,5 @@
 // Admin Panel JavaScript
-const API_BASE_URL = 'http://localhost:3000/api';
-
-async function apiCall(endpoint, method = 'GET', data = null) {
-    const token = localStorage.getItem('authToken');
-    const headers = {
-        'Content-Type': 'application/json'
-    };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method,
-            headers,
-            body: data ? JSON.stringify(data) : null
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'API call failed');
-        }
-
-        return result;
-    } catch (error) {
-        console.error('API call error:', error);
-        throw error;
-    }
-}
+// Using shared api.js
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeAdminPanel();
@@ -40,7 +10,7 @@ let currentUser = null;
 
 async function initializeAdminPanel() {
     // Check authentication and role
-    const token = localStorage.getItem('token');
+    const token = window.apiClient.getToken();
     if (!token) {
         window.location.href = '../auth/login.html';
         return;
@@ -48,17 +18,13 @@ async function initializeAdminPanel() {
 
     try {
         // Verify admin access
-        const response = await fetch('/api/auth/verify', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+        const response = await window.apiClient.request('GET', '/auth/verify');
 
-        if (!response.ok) {
+        if (response.error) {
             throw new Error('Authentication failed');
         }
 
-        const userData = await response.json();
+        const userData = response.data;
         currentUser = userData.user;
 
         if (!['admin', 'super_admin'].includes(currentUser.role)) {
@@ -214,22 +180,22 @@ async function loadDashboardContent() {
 async function loadDashboardData() {
     try {
         // Load SMS traffic data
-        const trafficResponse = await apiCall('/api/admin/sms-traffic');
-        if (trafficResponse) {
-            document.getElementById('total-sms').textContent = trafficResponse.totalVolume;
-            document.getElementById('total-revenue').textContent = `₵${trafficResponse.totalCost.toFixed(2)}`;
+        const trafficResponse = await window.apiClient.request('GET', '/admin/sms-traffic');
+        if (trafficResponse.data) {
+            document.getElementById('total-sms').textContent = trafficResponse.data.totalVolume;
+            document.getElementById('total-revenue').textContent = `₵${trafficResponse.data.totalCost.toFixed(2)}`;
         }
 
         // Load users count
-        const usersResponse = await apiCall('/api/admin/users?limit=1');
-        if (usersResponse) {
-            document.getElementById('total-users').textContent = usersResponse.total;
+        const usersResponse = await window.apiClient.request('GET', '/admin/users?limit=1');
+        if (usersResponse.data) {
+            document.getElementById('total-users').textContent = usersResponse.data.total;
         }
 
         // Load campaigns count
-        const campaignsResponse = await apiCall('/api/admin/campaigns?status=scheduled&limit=1');
-        if (campaignsResponse) {
-            document.getElementById('active-campaigns').textContent = campaignsResponse.total;
+        const campaignsResponse = await window.apiClient.request('GET', '/admin/campaigns?status=scheduled&limit=1');
+        if (campaignsResponse.data) {
+            document.getElementById('active-campaigns').textContent = campaignsResponse.data.total;
         }
     } catch (error) {
         console.error('Failed to load dashboard data:', error);
@@ -298,10 +264,10 @@ async function loadUsers(page = 1) {
             ...(status && { status })
         });
 
-        const response = await apiCall(`/api/admin/users?${params}`);
-        if (response) {
-            renderUsersTable(response.users);
-            renderPagination(response, 'users-pagination', loadUsers);
+        const response = await window.apiClient.request('GET', `/admin/users?${params}`);
+        if (response.data) {
+            renderUsersTable(response.data.users);
+            renderPagination(response.data, 'users-pagination', loadUsers);
         }
     } catch (error) {
         console.error('Failed to load users:', error);
@@ -331,7 +297,7 @@ function renderUsersTable(users) {
 async function suspendUser(userId) {
     if (await confirmAction('Are you sure you want to suspend this user?')) {
         try {
-            await apiCall(`/api/admin/users/${userId}/status`, 'PATCH', { status: 'suspended' });
+            await window.apiClient.request('PATCH', `/admin/users/${userId}/status`, { status: 'suspended' });
             showToast('User suspended successfully', 'success');
             loadUsers();
         } catch (error) {
@@ -343,7 +309,7 @@ async function suspendUser(userId) {
 async function activateUser(userId) {
     if (await confirmAction('Are you sure you want to activate this user?')) {
         try {
-            await apiCall(`/api/admin/users/${userId}/status`, 'PATCH', { status: 'active' });
+            await window.apiClient.request('PATCH', `/admin/users/${userId}/status`, { status: 'active' });
             showToast('User activated successfully', 'success');
             loadUsers();
         } catch (error) {
@@ -394,10 +360,10 @@ async function loadWallets(page = 1) {
             ...(search && { search })
         });
 
-        const response = await apiCall(`/api/admin/wallets?${params}`);
-        if (response) {
-            renderWalletsTable(response.wallets);
-            renderPagination(response, 'wallets-pagination', loadWallets);
+        const response = await window.apiClient.request('GET', `/admin/wallets?${params}`);
+        if (response.data) {
+            renderWalletsTable(response.data.wallets);
+            renderPagination(response.data, 'wallets-pagination', loadWallets);
         }
     } catch (error) {
         console.error('Failed to load wallets:', error);
@@ -427,7 +393,7 @@ function renderWalletsTable(wallets) {
 async function freezeWallet(walletId) {
     if (await confirmAction('Are you sure you want to freeze this wallet?')) {
         try {
-            await apiCall(`/api/admin/wallets/${walletId}`, 'PATCH', { frozen: true });
+            await window.apiClient.request('PATCH', `/admin/wallets/${walletId}`, { frozen: true });
             showToast('Wallet frozen successfully', 'success');
             loadWallets();
         } catch (error) {
@@ -439,7 +405,7 @@ async function freezeWallet(walletId) {
 async function unfreezeWallet(walletId) {
     if (await confirmAction('Are you sure you want to unfreeze this wallet?')) {
         try {
-            await apiCall(`/api/admin/wallets/${walletId}`, 'PATCH', { frozen: false });
+            await window.apiClient.request('PATCH', `/admin/wallets/${walletId}`, { frozen: false });
             showToast('Wallet unfrozen successfully', 'success');
             loadWallets();
         } catch (error) {
@@ -454,11 +420,11 @@ async function adjustBalance(walletId) {
         if (await confirmAction(`Are you sure you want to adjust the balance by ₵${amount}?`)) {
             try {
                 // First get current balance
-                const wallets = await apiCall('/api/admin/wallets');
-                const wallet = wallets.wallets.find(w => w._id === walletId);
+                const wallets = await window.apiClient.request('GET', '/admin/wallets');
+                const wallet = wallets.data.wallets.find(w => w._id === walletId);
                 const newBalance = wallet.balance + parseFloat(amount);
 
-                await apiCall(`/api/admin/wallets/${walletId}`, 'PATCH', { balance: newBalance });
+                await window.apiClient.request('PATCH', `/admin/wallets/${walletId}`, { balance: newBalance });
                 showToast('Balance adjusted successfully', 'success');
                 loadWallets();
             } catch (error) {
@@ -515,10 +481,10 @@ async function loadSenderIds(page = 1) {
             ...(status && { status })
         });
 
-        const response = await apiCall(`/api/admin/sender-ids?${params}`);
-        if (response) {
-            renderSenderIdsTable(response.senderIds);
-            renderPagination(response, 'sender-ids-pagination', loadSenderIds);
+        const response = await window.apiClient.request('GET', `/admin/sender-ids?${params}`);
+        if (response.data) {
+            renderSenderIdsTable(response.data.senderIds);
+            renderPagination(response.data, 'sender-ids-pagination', loadSenderIds);
         }
     } catch (error) {
         console.error('Failed to load sender IDs:', error);
@@ -547,7 +513,7 @@ function renderSenderIdsTable(senderIds) {
 async function approveSenderId(senderId) {
     if (await confirmAction('Are you sure you want to approve this Sender ID?')) {
         try {
-            await apiCall(`/api/admin/sender-ids/${senderId}`, 'PATCH', { status: 'approved' });
+            await window.apiClient.request('PATCH', `/admin/sender-ids/${senderId}`, { status: 'approved' });
             showToast('Sender ID approved successfully', 'success');
             loadSenderIds();
         } catch (error) {
@@ -561,7 +527,7 @@ async function rejectSenderId(senderId) {
     if (remarks !== null) {
         if (await confirmAction('Are you sure you want to reject this Sender ID?')) {
             try {
-                await apiCall(`/api/admin/sender-ids/${senderId}`, 'PATCH', { status: 'rejected', remarks });
+                await window.apiClient.request('PATCH', `/admin/sender-ids/${senderId}`, { status: 'rejected', remarks });
                 showToast('Sender ID rejected successfully', 'success');
                 loadSenderIds();
             } catch (error) {
@@ -620,10 +586,10 @@ async function loadCampaigns(page = 1) {
             ...(status && { status })
         });
 
-        const response = await apiCall(`/api/admin/campaigns?${params}`);
-        if (response) {
-            renderCampaignsTable(response.campaigns);
-            renderPagination(response, 'campaigns-pagination', loadCampaigns);
+        const response = await window.apiClient.request('GET', `/admin/campaigns?${params}`);
+        if (response.data) {
+            renderCampaignsTable(response.data.campaigns);
+            renderPagination(response.data, 'campaigns-pagination', loadCampaigns);
         }
     } catch (error) {
         console.error('Failed to load campaigns:', error);
@@ -718,7 +684,7 @@ function toggleSidebar() {
 }
 
 async function handleLogout() {
-    localStorage.removeItem('token');
+    window.apiClient.clearToken();
     window.location.href = '../auth/login.html';
 }
 

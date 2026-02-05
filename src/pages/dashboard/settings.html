@@ -6,6 +6,7 @@
     <title>Settings - Nedhub Bulk Messaging</title>
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
+    <script src="../../utils/api.js" defer></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -67,5 +68,24 @@
             </div>
         </main>
     </div>
+    <script>
+        // Profile form handler
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            alert('Profile update functionality would go here');
+        });
+        
+        // Sender ID form handler
+        document.getElementById('senderIdForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            alert('Sender ID update functionality would go here');
+        });
+        
+        // Logout handler
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            window.apiClient.clearToken();
+            window.location.href = '../auth/login.html';
+        });
+    </script>
 </body>
 </html>

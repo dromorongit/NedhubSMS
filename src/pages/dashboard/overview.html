@@ -121,7 +121,7 @@
             
             if (reference) {
                 try {
-                    const response = await apiClient.checkPaymentStatus(reference);
+                    const response = await window.apiClient.checkPaymentStatus(reference);
                     if (response.data && response.data.status === 'paid') {
                         showToast('Payment successful! Your wallet has been credited.', 'success');
                         loadDashboard();
@@ -144,7 +144,7 @@
         async function loadDashboard() {
             try {
                 // Get wallet balance
-                const balanceResponse = await apiClient.getWalletBalance();
+                const balanceResponse = await window.apiClient.getWalletBalance();
                 if (balanceResponse.data) {
                     document.getElementById('walletBalance').querySelector('.balance-amount').textContent = balanceResponse.data.balance;
                     
@@ -155,7 +155,7 @@
                 }
                 
                 // Get recent transactions
-                const transactionsResponse = await apiClient.getTransactionHistory();
+                const transactionsResponse = await window.apiClient.getTransactionHistory();
                 if (transactionsResponse.data && transactionsResponse.data.transactions) {
                     const transactionsBody = document.getElementById('transactionsBody');
                     transactionsBody.innerHTML = '';
@@ -209,7 +209,7 @@
             submitBtn.textContent = 'Processing...';
             
             try {
-                const response = await apiClient.initiatePayment(amount, description);
+                const response = await window.apiClient.initiatePayment(amount, description);
                 
                 if (response.success && response.checkoutUrl) {
                     // Close modal

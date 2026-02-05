@@ -63,6 +63,14 @@ class ApiClient {
     return this.request('POST', '/auth/login', { email, password });
   }
 
+  async forgotPassword(email) {
+    return this.request('POST', '/auth/forgot-password', { email });
+  }
+
+  async resetPassword(token, newPassword) {
+    return this.request('POST', '/auth/reset-password', { token, newPassword });
+  }
+
   // Contact endpoints
   async createContact(name, phoneNumber, groupName) {
     return this.request('POST', '/contacts', { name, phoneNumber, groupName });
@@ -78,6 +86,57 @@ class ApiClient {
 
   async deleteContact(id) {
     return this.request('DELETE', `/contacts/${id}`);
+  }
+
+  // Template endpoints
+  async getTemplates() {
+    return this.request('GET', '/templates');
+  }
+
+  async getTemplate(id) {
+    return this.request('GET', `/templates/${id}`);
+  }
+
+  async createTemplate(data) {
+    return this.request('POST', '/templates', data);
+  }
+
+  async updateTemplate(id, data) {
+    return this.request('PUT', `/templates/${id}`, data);
+  }
+
+  async deleteTemplate(id) {
+    return this.request('DELETE', `/templates/${id}`);
+  }
+
+  // Campaign endpoints
+  async getCampaigns() {
+    return this.request('GET', '/campaigns');
+  }
+
+  async createCampaign(data) {
+    return this.request('POST', '/campaigns', data);
+  }
+
+  async getCampaign(id) {
+    return this.request('GET', `/campaigns/${id}`);
+  }
+
+  async updateCampaign(id, data) {
+    return this.request('PUT', `/campaigns/${id}`, data);
+  }
+
+  async deleteCampaign(id) {
+    return this.request('DELETE', `/campaigns/${id}`);
+  }
+
+  // Sender ID endpoints
+  async getSenderIds() {
+    return this.request('GET', '/sender-ids');
+  }
+
+  async createSenderId(senderId) {
+    return this.request('POST', '/sender-ids', { senderId });
   }
 
   // SMS endpoints

@@ -6,6 +6,7 @@
     <title>Login - Nedhub Bulk Messaging</title>
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/auth.css">
+    <script src="../../utils/api.js" defer></script>
 </head>
 <body>
     <div class="auth-container">
@@ -32,5 +33,37 @@
             </p>
         </div>
     </div>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            
+            // Disable button during request
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+            
+            try {
+                const result = await window.apiClient.login(email, password);
+                
+                if (result.error) {
+                    alert(result.error);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Sign In';
+                } else {
+                    // Login successful - store token and redirect
+                    window.apiClient.setToken(result.data.token);
+                    window.location.href = '../dashboard/overview.html';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('An error occurred. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
+        });
+    </script>
 </body>
 </html>

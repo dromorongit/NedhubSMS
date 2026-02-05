@@ -121,7 +121,7 @@
                 document.getElementById('paymentDetails').style.display = 'block';
                 
                 try {
-                    const response = await apiClient.checkPaymentStatus(reference);
+                    const response = await window.apiClient.checkPaymentStatus(reference);
                     if (response.data) {
                         document.getElementById('amount').textContent = (response.data.currency || 'GHS') + ' ' + (response.data.amount || 0);
                         document.getElementById('date').textContent = new Date().toLocaleString();
