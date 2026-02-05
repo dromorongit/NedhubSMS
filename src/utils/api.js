@@ -71,6 +71,10 @@ class ApiClient {
     return this.request('POST', '/auth/reset-password', { token, newPassword });
   }
 
+  async getUserProfile() {
+    return this.request('GET', '/auth/me');
+  }
+
   // Contact endpoints
   async createContact(name, phoneNumber, groupName) {
     return this.request('POST', '/contacts', { name, phoneNumber, groupName });

@@ -1,21 +1,33 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
-const { 
-  getWalletBalance, 
-  creditWallet, 
-  getTransactionHistory 
+const {
+  getWalletBalance,
+  creditWallet,
+  getTransactionHistory
 } = require('../utils/billing');
+const Message = require('../models/Message');
 
-// Get wallet balance
+// Get wallet balance with SMS credits
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const balance = await getWalletBalance(userId);
-    
-    res.json({ 
+
+    // Get message stats
+    const messages = await Message.findByUserId(userId);
+    const totalSent = messages.length;
+    const delivered = messages.filter(m => m.status === 'delivered').length;
+    const deliveryRate = totalSent > 0 ? Math.round((delivered / totalSent) * 100) : 0;
+
+    res.json({
       balance,
+      smsBalance: balance, // SMS credits = wallet balance
       currency: 'credits',
+      stats: {
+        totalSent,
+        deliveryRate
+      },
       message: 'Wallet balance retrieved successfully'
     });
   } catch (error) {

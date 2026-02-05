@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="dashboard-layout">
@@ -16,110 +17,307 @@
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="overview.html" class="active">Overview</a></li>
-                    <li><a href="send-sms.html">Send SMS</a></li>
-                    <li><a href="contacts.html">Contacts</a></li>
-                    <li><a href="history.html">Message History</a></li>
-                    <li><a href="reports.html">Reports</a></li>
-                    <li><a href="settings.html">Settings</a></li>
+                    <li><a href="overview.html" class="active">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Overview</span>
+                    </a></li>
+                    <li><a href="send-sms.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        <span>Send SMS</span>
+                    </a></li>
+                    <li><a href="contacts.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Contacts</span>
+                    </a></li>
+                    <li><a href="history.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Message History</span>
+                    </a></li>
+                    <li><a href="reports.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Reports</span>
+                    </a></li>
+                    <li><a href="settings.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </a></li>
                 </ul>
             </nav>
         </aside>
         <main class="main-content">
             <header class="top-nav">
                 <div class="user-info">
-                    <span>Welcome, User</span>
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
                 </div>
             </header>
             <div class="dashboard-content">
-                <h2>Overview</h2>
-                
+                <div class="welcome-section">
+                    <h2 id="welcomeTitle">Welcome!</h2>
+                    <p class="welcome-subtitle">Here's what's happening with your account today.</p>
+                </div>
+
                 <!-- Wallet Balance Card -->
                 <div class="wallet-card">
-                    <h3>Wallet Balance</h3>
-                    <div class="balance-display" id="walletBalance">
-                        <span class="balance-amount">0</span>
+                    <div class="wallet-header">
+                        <div class="wallet-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div class="wallet-info">
+                            <h3>Wallet Balance</h3>
+                            <p class="wallet-subtitle">Available SMS Credits</p>
+                        </div>
+                    </div>
+                    <div class="balance-display">
+                        <span class="balance-amount" id="walletBalanceAmount">0</span>
                         <span class="balance-currency">credits</span>
                     </div>
-                    <button class="btn-secondary" id="topupButton">Top Up</button>
+                    <button class="btn-topup" id="topupButton">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        Top Up
+                    </button>
                 </div>
-                
+
                 <!-- Low Balance Alert (hidden by default) -->
                 <div class="alert low-balance-alert" id="lowBalanceAlert" style="display: none;">
-                    <span>⚠️ Low balance! Please top up to continue sending SMS.</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span>Low balance! Please top up to continue sending SMS.</span>
                 </div>
-                
+
+                <!-- Stats Grid -->
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <h3>SMS Balance</h3>
-                        <p>1000</p>
+                        <div class="stat-icon sms-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>SMS Balance</h3>
+                            <p class="stat-value" id="smsBalance">0</p>
+                            <span class="stat-label">credits available</span>
+                        </div>
                     </div>
                     <div class="stat-card">
-                        <h3>Messages Sent</h3>
-                        <p>500</p>
+                        <div class="stat-icon sent-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Messages Sent</h3>
+                            <p class="stat-value" id="messagesSent">0</p>
+                            <span class="stat-label">total messages</span>
+                        </div>
                     </div>
                     <div class="stat-card">
-                        <h3>Delivery Rate</h3>
-                        <p>98%</p>
+                        <div class="stat-icon delivery-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Delivery Rate</h3>
+                            <p class="stat-value" id="deliveryRate">0%</p>
+                            <span class="stat-label">successfully delivered</span>
+                        </div>
                     </div>
                 </div>
-                
+
                 <!-- Recent Transactions -->
                 <div class="transactions-section">
-                    <h3>Recent Transactions</h3>
-                    <table class="transactions-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Amount</th>
-                                <th>Description</th>
-                            </tr>
-                        </thead>
-                        <tbody id="transactionsBody">
-                            <!-- Transactions will be loaded here -->
-                        </tbody>
-                    </table>
+                    <div class="section-header">
+                        <h3>Recent Transactions</h3>
+                        <a href="history.html" class="view-all">View All</a>
+                    </div>
+                    <div class="table-container">
+                        <table class="transactions-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsBody">
+                                <!-- Transactions will be loaded here -->
+                            </tbody>
+                        </table>
+                        <div class="loading-spinner" id="loadingSpinner">
+                            <div class="spinner"></div>
+                            <p>Loading transactions...</p>
+                        </div>
+                        <div class="empty-state" id="emptyState" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                            <p>No transactions yet</p>
+                            <span>Your wallet transactions will appear here</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
-    
+
     <!-- Top Up Modal -->
     <div class="modal" id="topupModal">
         <div class="modal-content">
-            <span class="close" id="closeTopupModal">&times;</span>
-            <h3>Top Up Wallet</h3>
+            <button class="modal-close" id="closeTopupModal">&times;</button>
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                </div>
+                <h3>Top Up Wallet</h3>
+                <p>Add credits to your wallet to send SMS</p>
+            </div>
             <form id="topupForm">
                 <div class="form-group">
                     <label for="topupAmount">Amount (GHS)</label>
-                    <input type="number" id="topupAmount" name="amount" min="1" step="0.01" required placeholder="Enter amount">
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₵</span>
+                        <input type="number" id="topupAmount" name="amount" min="1" step="0.01" required placeholder="Enter amount">
+                    </div>
                     <small>1 GHS = 100 credits</small>
                 </div>
                 <div class="form-group">
                     <label for="topupDescription">Description (optional)</label>
                     <input type="text" id="topupDescription" name="description" placeholder="e.g., Monthly top-up">
                 </div>
-                <button type="submit" class="btn-primary" id="topupSubmitBtn">Proceed to Payment</button>
+                <button type="submit" class="btn-primary" id="topupSubmitBtn">
+                    <span>Proceed to Payment</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
             </form>
             <div id="topupError" class="error-message" style="display: none;"></div>
         </div>
     </div>
-    
+
     <script src="../../utils/api.js"></script>
+    <script src="../../utils/toast.js"></script>
     <script>
-        // Check if this is a payment return page
-        const urlParams = new URLSearchParams(window.location.search);
-        if (window.location.pathname.includes('/payment/') || urlParams.has('reference')) {
-            handlePaymentReturn();
-        } else {
-            loadDashboard();
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthAndLoad();
+        });
+
+        async function checkAuthAndLoad() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            // Load user profile first
+            await loadUserProfile();
+
+            // Check if this is a payment return page
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('reference')) {
+                handlePaymentReturn();
+            } else {
+                loadDashboard();
+            }
         }
-        
+
+        async function loadUserProfile() {
+            try {
+                const response = await window.apiClient.getUserProfile();
+                if (response.error) {
+                    console.error('Error loading user profile:', response.error);
+                    // Use stored name if available
+                    useStoredUserName();
+                    return;
+                }
+                
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    updateUserDisplay(firstName);
+                    
+                    // Store full name for later use
+                    localStorage.setItem('userName', user.name);
+                } else {
+                    useStoredUserName();
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                useStoredUserName();
+            }
+        }
+
+        function useStoredUserName() {
+            const storedName = localStorage.getItem('userName');
+            if (storedName) {
+                const firstName = storedName.split(' ')[0];
+                updateUserDisplay(firstName);
+            } else {
+                updateUserDisplay('User');
+            }
+        }
+
+        function updateUserDisplay(firstName) {
+            const userNameEl = document.getElementById('userName');
+            const welcomeTitleEl = document.getElementById('welcomeTitle');
+            const userAvatarEl = document.getElementById('userAvatar');
+            
+            if (userNameEl) userNameEl.textContent = firstName;
+            if (welcomeTitleEl) welcomeTitleEl.textContent = `Welcome back, ${firstName}!`;
+            if (userAvatarEl) userAvatarEl.textContent = firstName.charAt((0) || 'U').toUpperCase();
+        }
+
         async function handlePaymentReturn() {
+            const urlParams = new URLSearchParams(window.location.search);
             const reference = urlParams.get('reference');
             const status = urlParams.get('status');
-            
+
             if (reference) {
                 try {
                     const response = await window.apiClient.checkPaymentStatus(reference);
@@ -137,62 +335,131 @@
                     showToast('Error checking payment status', 'error');
                 }
             }
-            
+
             // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname);
         }
-        
+
         async function loadDashboard() {
             try {
-                // Get wallet balance
+                // Get wallet balance with stats
                 const balanceResponse = await window.apiClient.getWalletBalance();
+                
+                if (balanceResponse.error) {
+                    console.error('Error loading wallet balance:', balanceResponse.error);
+                    // Keep default values (0) if API fails
+                    return;
+                }
+                
                 if (balanceResponse.data) {
-                    document.getElementById('walletBalance').querySelector('.balance-amount').textContent = balanceResponse.data.balance;
+                    const data = balanceResponse.data;
                     
-                    // Show low balance alert if balance is low
-                    if (balanceResponse.data.balance < 100) {
-                        document.getElementById('lowBalanceAlert').style.display = 'block';
+                    // Update wallet balance
+                    const walletBalanceEl = document.getElementById('walletBalanceAmount');
+                    if (walletBalanceEl) {
+                        walletBalanceEl.textContent = (data.balance || 0).toLocaleString();
+                    }
+                    
+                    // Update stats - ensure we use actual data, not hardcoded values
+                    const smsBalanceEl = document.getElementById('smsBalance');
+                    if (smsBalanceEl) {
+                        smsBalanceEl.textContent = (data.smsBalance || 0).toLocaleString();
+                    }
+                    
+                    const messagesSentEl = document.getElementById('messagesSent');
+                    if (messagesSentEl) {
+                        messagesSentEl.textContent = (data.stats?.totalSent || 0).toLocaleString();
+                    }
+                    
+                    const deliveryRateEl = document.getElementById('deliveryRate');
+                    if (deliveryRateEl) {
+                        deliveryRateEl.textContent = (data.stats?.deliveryRate || 0) + '%';
+                    }
+                    
+                    // Show low balance alert if balance is low (less than 100 credits)
+                    const lowBalanceAlert = document.getElementById('lowBalanceAlert');
+                    if (lowBalanceAlert && (data.balance || 0) < 100) {
+                        lowBalanceAlert.style.display = 'flex';
                     }
                 }
                 
                 // Get recent transactions
-                const transactionsResponse = await window.apiClient.getTransactionHistory();
-                if (transactionsResponse.data && transactionsResponse.data.transactions) {
-                    const transactionsBody = document.getElementById('transactionsBody');
-                    transactionsBody.innerHTML = '';
-                    
-                    transactionsResponse.data.transactions.slice(0, 5).forEach(tx => {
+                await loadTransactions();
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        async function loadTransactions() {
+            const spinner = document.getElementById('loadingSpinner');
+            const emptyState = document.getElementById('emptyState');
+            const tbody = document.getElementById('transactionsBody');
+            
+            if (!tbody) return;
+            
+            try {
+                spinner.style.display = 'flex';
+                tbody.innerHTML = '';
+                
+                const response = await window.apiClient.getTransactionHistory();
+                
+                spinner.style.display = 'none';
+                
+                if (response.error) {
+                    console.error('Error loading transactions:', response.error);
+                    tbody.innerHTML = '<tr><td colspan="4" class="error">Failed to load transactions</td></tr>';
+                    return;
+                }
+                
+                if (response.data && response.data.transactions && response.data.transactions.length > 0) {
+                    response.data.transactions.slice(0, 5).forEach(tx => {
                         const row = document.createElement('tr');
+                        const date = tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : '-';
+                        const type = tx.type ? tx.type.charAt(0).toUpperCase() + tx.type.slice(1) : '-';
+                        const amount = tx.amount ? (tx.type === 'credit' ? '+' : '-') + tx.amount : '-';
+                        const description = tx.description || '-';
+                        
                         row.innerHTML = `
-                            <td>${new Date(tx.createdAt).toLocaleString()}</td>
-                            <td class="tx-type ${tx.type}">${tx.type}</td>
-                            <td>${tx.amount} credits</td>
-                            <td>${tx.description}</td>
+                            <td>${date}</td>
+                            <td><span class="tx-type ${tx.type}">${type}</span></td>
+                            <td class="${tx.type === 'credit' ? 'text-success' : 'text-danger'}">${amount}</td>
+                            <td>${description}</td>
                         `;
-                        transactionsBody.appendChild(row);
+                        tbody.appendChild(row);
                     });
+                } else {
+                    emptyState.style.display = 'flex';
                 }
                 
             } catch (error) {
-                console.error('Error loading wallet data:', error);
-                // Show error to user
-                const errorRow = document.createElement('tr');
-                errorRow.innerHTML = '<td colspan="4" class="error">Failed to load wallet data</td>';
-                document.getElementById('transactionsBody').appendChild(errorRow);
+                spinner.style.display = 'none';
+                console.error('Error loading transactions:', error);
+                tbody.innerHTML = '<tr><td colspan="4" class="error">Failed to load transactions</td></tr>';
             }
         }
-        
+
         // Handle top-up button click
         document.getElementById('topupButton').addEventListener('click', () => {
-            document.getElementById('topupModal').style.display = 'block';
+            document.getElementById('topupModal').style.display = 'flex';
+            document.getElementById('topupModal').classList.add('active');
         });
-        
+
         // Handle close modal
         document.getElementById('closeTopupModal').addEventListener('click', () => {
             document.getElementById('topupModal').style.display = 'none';
+            document.getElementById('topupModal').classList.remove('active');
             document.getElementById('topupError').style.display = 'none';
         });
-        
+
+        // Close modal on backdrop click
+        document.getElementById('topupModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('topupModal')) {
+                document.getElementById('topupModal').style.display = 'none';
+                document.getElementById('topupModal').classList.remove('active');
+            }
+        });
+
         // Handle form submission
         document.getElementById('topupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -202,73 +469,38 @@
             const submitBtn = document.getElementById('topupSubmitBtn');
             const errorDiv = document.getElementById('topupError');
             
-            // Reset error
-            errorDiv.style.display = 'none';
-            
-            // Disable button during processing
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Processing...';
+            submitBtn.innerHTML = '<span>Processing...</span>';
+            errorDiv.style.display = 'none';
             
             try {
                 const response = await window.apiClient.initiatePayment(amount, description);
                 
-                if (response.success && response.checkoutUrl) {
-                    // Close modal
-                    document.getElementById('topupModal').style.display = 'none';
-                    
-                    // Store reference for checking after redirect
-                    localStorage.setItem('pendingPaymentRef', response.clientReference);
-                    
-                    // Show info message
-                    showToast('Redirecting to payment...', 'info');
-                    
-                    // Redirect to Hubtel checkout
-                    setTimeout(() => {
-                        window.location.href = response.checkoutUrl;
-                    }, 1000);
+                if (response.error) {
+                    errorDiv.textContent = response.error;
+                    errorDiv.style.display = 'block';
+                } else if (response.data && response.data.checkoutUrl) {
+                    // Redirect to payment
+                    window.location.href = response.data.checkoutUrl;
                 } else {
-                    throw new Error(response.error || 'Failed to initiate payment');
+                    showToast('Payment initiated successfully', 'success');
+                    document.getElementById('topupModal').style.display = 'none';
                 }
             } catch (error) {
-                errorDiv.textContent = error.message || 'An error occurred';
+                errorDiv.textContent = 'An error occurred. Please try again.';
                 errorDiv.style.display = 'block';
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Proceed to Payment';
+                submitBtn.innerHTML = '<span>Proceed to Payment</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
         });
-        
-        // Toast notification function
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.textContent = message;
-            toast.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                padding: 12px 24px;
-                border-radius: 4px;
-                color: white;
-                font-weight: 500;
-                z-index: 1000;
-                animation: fadeIn 0.3s ease;
-                background-color: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
-            `;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 5000);
-        }
-        
-        // Check for pending payment on page load
-        const pendingRef = localStorage.getItem('pendingPaymentRef');
-        if (pendingRef) {
-            // Clear immediately
-            localStorage.removeItem('pendingPaymentRef');
-            // Status will be checked via handlePaymentReturn if URL has reference
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '../auth/login.html';
         }
     </script>
 </body>
