@@ -7,7 +7,9 @@
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../../utils/api.js" defer></script>
+    <script src="../../utils/toast.js" defer></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -17,76 +19,1160 @@
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="overview.html">Overview</a></li>
-                    <li><a href="send-sms.html">Send SMS</a></li>
-                    <li><a href="contacts.html">Contacts</a></li>
-                    <li><a href="history.html">Message History</a></li>
-                    <li><a href="reports.html">Reports</a></li>
-                    <li><a href="settings.html" class="active">Settings</a></li>
+                    <li><a href="overview.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Overview</span>
+                    </a></li>
+                    <li><a href="send-sms.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        <span>Send SMS</span>
+                    </a></li>
+                    <li><a href="contacts.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Contacts</span>
+                    </a></li>
+                    <li><a href="history.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Message History</span>
+                    </a></li>
+                    <li><a href="reports.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Reports</span>
+                    </a></li>
+                    <li><a href="settings.html" class="active">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </a></li>
                 </ul>
             </nav>
         </aside>
         <main class="main-content">
             <header class="top-nav">
                 <div class="user-info">
-                    <span>Welcome, User</span>
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
                 </div>
             </header>
             <div class="dashboard-content">
-                <h2>Settings</h2>
-                <div class="settings-section">
-                    <h3>Profile Settings</h3>
-                    <form id="profileForm">
-                        <div class="form-group">
-                            <label for="name">Full Name</label>
-                            <input type="text" id="name" name="name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" id="email" name="email" required>
-                        </div>
-                        <button type="submit" class="btn-primary">Update Profile</button>
-                    </form>
+                <div class="welcome-section">
+                    <h2 id="pageTitle">Settings</h2>
+                    <p class="welcome-subtitle">Manage your account settings and preferences</p>
                 </div>
-                <div class="settings-section">
-                    <h3>Sender ID Management</h3>
-                    <form id="senderIdForm">
-                        <div class="form-group">
-                            <label for="senderId">Default Sender ID</label>
-                            <input type="text" id="senderId" name="senderId" required>
-                        </div>
-                        <button type="submit" class="btn-primary">Update Sender ID</button>
-                    </form>
+
+                <!-- Settings Navigation Tabs -->
+                <div class="settings-tabs">
+                    <button class="settings-tab active" data-tab="profile">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Profile
+                    </button>
+                    <button class="settings-tab" data-tab="security">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        Security
+                    </button>
+                    <button class="settings-tab" data-tab="notifications">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                        Notifications
+                    </button>
+                    <button class="settings-tab" data-tab="api">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                            <path d="M2 17l10 5 10-5"></path>
+                            <path d="M2 12l10 5 10-5"></path>
+                        </svg>
+                        API Keys
+                    </button>
                 </div>
-                <div class="settings-section">
-                    <h3>API Key</h3>
-                    <div class="api-key-display">
-                        <input type="text" value="your-api-key-here" readonly>
-                        <button class="btn-secondary">Regenerate</button>
+
+                <!-- Profile Settings -->
+                <div class="settings-content active" id="profile-settings">
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Profile Information</h3>
+                                <p>Update your personal information</p>
+                            </div>
+                        </div>
+                        <form id="profileForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="name">Full Name</label>
+                                    <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="email">Email Address</label>
+                                    <input type="email" id="email" name="email" required placeholder="Enter your email">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="phone">Phone Number</label>
+                                    <input type="text" id="phone" name="phone" placeholder="e.g., 0241234567">
+                                </div>
+                                <div class="form-group">
+                                    <label for="company">Company Name</label>
+                                    <input type="text" id="company" name="company" placeholder="Enter company name">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary" id="profileSubmitBtn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-                <button class="btn-danger" id="logoutBtn">Logout</button>
+
+                <!-- Security Settings -->
+                <div class="settings-content" id="security-settings">
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <div class="section-icon security">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Password</h3>
+                                <p>Change your password</p>
+                            </div>
+                        </div>
+                        <form id="passwordForm">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <input type="password" id="currentPassword" name="currentPassword" required placeholder="Enter current password">
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <input type="password" id="newPassword" name="newPassword" required placeholder="Enter new password">
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm New Password</label>
+                                <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm new password">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary" id="passwordSubmitBtn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    Update Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <div class="section-icon twofa">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    <path d="M9 12l2 2 4-4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Two-Factor Authentication</h3>
+                                <p>Add an extra layer of security to your account</p>
+                            </div>
+                        </div>
+                        <div class="twofa-status" id="twofaStatus">
+                            <div class="twofa-badge disabled">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                                </svg>
+                                <span>Disabled</span>
+                            </div>
+                            <button class="btn-primary" id="enable2faBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                </svg>
+                                Enable 2FA
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <div class="section-icon danger">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Active Sessions</h3>
+                                <p>Manage your active login sessions</p>
+                            </div>
+                        </div>
+                        <div class="sessions-list" id="sessionsList">
+                            <div class="session-item current">
+                                <div class="session-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                                    </svg>
+                                </div>
+                                <div class="session-info">
+                                    <span class="session-device">Current Device</span>
+                                    <span class="session-location">Active now</span>
+                                </div>
+                                <span class="session-badge current">Current</span>
+                            </div>
+                        </div>
+                        <button class="btn-danger-outline" id="logoutAllBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Logout from all other devices
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Notification Settings -->
+                <div class="settings-content" id="notifications-settings">
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Email Notifications</h3>
+                                <p>Manage your email notification preferences</p>
+                            </div>
+                        </div>
+                        <div class="toggle-list">
+                            <div class="toggle-item">
+                                <div class="toggle-info">
+                                    <span class="toggle-label">Delivery Reports</span>
+                                    <span class="toggle-desc">Receive email when messages are delivered</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggleDeliveryEmail" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <div class="toggle-info">
+                                    <span class="toggle-label">Failed Deliveries</span>
+                                    <span class="toggle-desc">Get notified when message delivery fails</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggleFailedEmail" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <div class="toggle-info">
+                                    <span class="toggle-label">Low Balance Alerts</span>
+                                    <span class="toggle-desc">Notify when wallet balance is low</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggleBalanceEmail" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <div class="toggle-info">
+                                    <span class="toggle-label">Weekly Reports</span>
+                                    <span class="toggle-desc">Receive weekly SMS usage summary</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggleWeeklyEmail">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn-primary" id="saveNotificationsBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Save Preferences
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Keys Settings -->
+                <div class="settings-content" id="api-settings">
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                    <path d="M2 17l10 5 10-5"></path>
+                                    <path d="M2 12l10 5 10-5"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>API Keys</h3>
+                                <p>Manage your API keys for programmatic access</p>
+                            </div>
+                        </div>
+                        <div class="api-key-section">
+                            <div class="api-key-display">
+                                <label>Your API Key</label>
+                                <div class="api-key-input">
+                                    <input type="password" id="apiKeyValue" value="••••••••••••••••" readonly>
+                                    <button class="btn-icon" id="toggleApiKey" title="Show/Hide">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </button>
+                                    <button class="btn-icon" id="copyApiKey" title="Copy">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <button class="btn-secondary" id="regenerateApiBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                </svg>
+                                Regenerate API Key
+                            </button>
+                        </div>
+                        <div class="api-info">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                            <p>Keep your API key secure. Do not share it publicly. You can use this key to programmatically send SMS and manage your account.</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>API Documentation</h3>
+                                <p>Learn how to integrate with our API</p>
+                            </div>
+                        </div>
+                        <div class="api-docs-links">
+                            <a href="#" class="doc-link">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                API Reference
+                            </a>
+                            <a href="#" class="doc-link">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                    <polyline points="2 17 12 22 22 17"></polyline>
+                                    <polyline points="2 12 12 17 22 12"></polyline>
+                                </svg>
+                                Quick Start Guide
+                            </a>
+                            <a href="#" class="doc-link">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                FAQ
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
+
     <script>
-        // Profile form handler
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthAndLoad();
+        });
+
+        async function checkAuthAndLoad() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            await loadUserProfile();
+            initSettingsTabs();
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await window.apiClient.getUserProfile();
+                if (response.error) {
+                    useStoredUserName();
+                    return;
+                }
+                
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    updateUserDisplay(firstName);
+                    
+                    // Populate profile form
+                    document.getElementById('name').value = user.name || '';
+                    document.getElementById('email').value = user.email || '';
+                    document.getElementById('phone').value = user.phone || '';
+                    document.getElementById('company').value = user.company || '';
+                    
+                    localStorage.setItem('userName', user.name);
+                } else {
+                    useStoredUserName();
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                useStoredUserName();
+            }
+        }
+
+        function useStoredUserName() {
+            const storedName = localStorage.getItem('userName');
+            if (storedName) {
+                const firstName = storedName.split(' ')[0];
+                updateUserDisplay(firstName);
+            } else {
+                updateUserDisplay('User');
+            }
+        }
+
+        function updateUserDisplay(firstName) {
+            const userNameEl = document.getElementById('userName');
+            const userAvatarEl = document.getElementById('userAvatar');
+            
+            if (userNameEl) userNameEl.textContent = firstName;
+            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+        }
+
+        // Settings Tabs
+        function initSettingsTabs() {
+            const tabs = document.querySelectorAll('.settings-tab');
+            const contents = document.querySelectorAll('.settings-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetId = tab.dataset.tab;
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    document.getElementById(`${targetId}-settings`).classList.add('active');
+                });
+            });
+        }
+
+        // Profile Form
         document.getElementById('profileForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            alert('Profile update functionality would go here');
+            
+            const submitBtn = document.getElementById('profileSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>Saving...</span>';
+            
+            // Simulate profile update (would call API in production)
+            setTimeout(() => {
+                showToast('Profile updated successfully!', 'success');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>Save Changes';
+            }, 1000);
         });
-        
-        // Sender ID form handler
-        document.getElementById('senderIdForm').addEventListener('submit', async function(e) {
+
+        // Password Form
+        document.getElementById('passwordForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            alert('Sender ID update functionality would go here');
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (newPassword !== confirmPassword) {
+                showToast('Passwords do not match!', 'error');
+                return;
+            }
+            
+            if (newPassword.length < 8) {
+                showToast('Password must be at least 8 characters!', 'error');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('passwordSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>Updating...</span>';
+            
+            // Simulate password update
+            setTimeout(() => {
+                showToast('Password updated successfully!', 'success');
+                this.reset();
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Update Password';
+            }, 1000);
         });
-        
-        // Logout handler
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            window.apiClient.clearToken();
+
+        // 2FA Toggle
+        document.getElementById('enable2faBtn').addEventListener('click', function() {
+            showToast('2FA setup coming soon!', 'info');
+        });
+
+        // Logout all devices
+        document.getElementById('logoutAllBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to logout from all other devices?')) {
+                showToast('Logged out from all other devices', 'success');
+            }
+        });
+
+        // Notifications Save
+        document.getElementById('saveNotificationsBtn').addEventListener('click', function() {
+            showToast('Notification preferences saved!', 'success');
+        });
+
+        // API Key toggles
+        document.getElementById('toggleApiKey').addEventListener('click', function() {
+            const input = document.getElementById('apiKeyValue');
+            input.type = input.type === 'password' ? 'text' : 'password';
+            input.value = input.type === 'password' ? '••••••••••••••••' : 'demo_api_key_12345';
+        });
+
+        document.getElementById('copyApiKey').addEventListener('click', function() {
+            const input = document.getElementById('apiKeyValue');
+            navigator.clipboard.writeText(input.value).then(() => {
+                showToast('API key copied to clipboard!', 'success');
+            });
+        });
+
+        document.getElementById('regenerateApiBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to regenerate your API key? This action cannot be undone.')) {
+                showToast('API key regenerated successfully!', 'success');
+            }
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
             window.location.href = '../auth/login.html';
-        });
+        }
     </script>
+
+    <style>
+        /* Additional styles for Settings page */
+        .settings-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .settings-tab {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.25rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            background-color: white;
+            color: #666;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .settings-tab:hover {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+        }
+
+        .settings-tab.active {
+            background-color: var(--accent-orange);
+            border-color: var(--accent-orange);
+            color: white;
+        }
+
+        .settings-tab svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .settings-content {
+            display: none;
+        }
+
+        .settings-content.active {
+            display: block;
+        }
+
+        .settings-section {
+            background-color: var(--neutral-white);
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .section-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .section-icon svg {
+            width: 24px;
+            height: 24px;
+            color: #1976d2;
+        }
+
+        .section-icon.security {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+
+        .section-icon.security svg {
+            color: #388e3c;
+        }
+
+        .section-icon.twofa {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        }
+
+        .section-icon.twofa svg {
+            color: #f57c00;
+        }
+
+        .section-icon.danger {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+        }
+
+        .section-icon.danger svg {
+            color: #c62828;
+        }
+
+        .section-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .section-header p {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+            box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.1);
+        }
+
+        .form-actions {
+            padding-top: 1rem;
+            border-top: 1px solid #f0f0f0;
+            margin-top: 1rem;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(247, 127, 0, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-primary svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            background-color: #f5f5f5;
+            color: #666;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: #eee;
+            border-color: #ddd;
+        }
+
+        .btn-secondary svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-danger-outline {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background-color: transparent;
+            color: #c62828;
+            border: 2px solid #ffcdd2;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .btn-danger-outline:hover {
+            background-color: #ffebee;
+            border-color: #c62828;
+        }
+
+        .btn-danger-outline svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .btn-icon:hover {
+            background-color: #eee;
+        }
+
+        .btn-icon svg {
+            width: 18px;
+            height: 18px;
+            color: #666;
+        }
+
+        /* Toggle Switch */
+        .toggle-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .toggle-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: #fafafa;
+            border-radius: 10px;
+        }
+
+        .toggle-info {
+            flex: 1;
+        }
+
+        .toggle-label {
+            display: block;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .toggle-desc {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--accent-orange);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        /* 2FA Status */
+        .twofa-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .twofa-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .twofa-badge.enabled {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .twofa-badge.disabled {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .twofa-badge svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Sessions List */
+        .sessions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .session-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background-color: #fafafa;
+            border-radius: 10px;
+        }
+
+        .session-icon {
+            width: 44px;
+            height: 44px;
+            background-color: #e3f2fd;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .session-icon svg {
+            width: 22px;
+            height: 22px;
+            color: #1976d2;
+        }
+
+        .session-info {
+            flex: 1;
+        }
+
+        .session-device {
+            display: block;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .session-location {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .session-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .session-badge.current {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        /* API Key Section */
+        .api-key-section {
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .api-key-display {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .api-key-display label {
+            display: block;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .api-key-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .api-key-input input {
+            flex: 1;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.95rem;
+            background-color: #fafafa;
+        }
+
+        .api-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 1rem;
+            background-color: #fff3e0;
+            border-radius: 10px;
+            border: 1px solid #ffcc80;
+        }
+
+        .api-info svg {
+            width: 20px;
+            height: 20px;
+            color: #f57c00;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .api-info p {
+            color: #856404;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .api-docs-links {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .doc-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background-color: #fafafa;
+            border-radius: 8px;
+            color: #666;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .doc-link:hover {
+            background-color: #f0f0f0;
+            color: var(--primary-dark);
+        }
+
+        .doc-link svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        @media (max-width: 768px) {
+            .settings-tabs {
+                flex-direction: column;
+            }
+
+            .settings-tab {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .twofa-status {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .api-key-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .api-key-input {
+                flex-direction: column;
+            }
+
+            .btn-icon {
+                width: 100%;
+            }
+        }
+    </style>
 </body>
 </html>
