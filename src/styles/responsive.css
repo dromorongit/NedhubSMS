@@ -142,7 +142,7 @@
 /* Main content adjustments for mobile */
 .main-content {
     width: 100%;
-    min-height: 100vh;
+    min-height: auto;
 }
 
 .top-nav {
@@ -150,7 +150,7 @@
 }
 
 .dashboard-content {
-    padding: 1.25rem;
+    padding: 1rem;
     width: 100%;
     box-sizing: border-box;
 }
