@@ -7,7 +7,9 @@
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../../utils/api.js" defer></script>
+    <script src="../../utils/toast.js" defer></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -17,91 +19,737 @@
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="overview.html">Overview</a></li>
-                    <li><a href="send-sms.html">Send SMS</a></li>
-                    <li><a href="contacts.html">Contacts</a></li>
-                    <li><a href="history.html" class="active">Message History</a></li>
-                    <li><a href="reports.html">Reports</a></li>
-                    <li><a href="settings.html">Settings</a></li>
+                    <li><a href="overview.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Overview</span>
+                    </a></li>
+                    <li><a href="send-sms.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        <span>Send SMS</span>
+                    </a></li>
+                    <li><a href="contacts.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Contacts</span>
+                    </a></li>
+                    <li><a href="history.html" class="active">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Message History</span>
+                    </a></li>
+                    <li><a href="reports.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Reports</span>
+                    </a></li>
+                    <li><a href="settings.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </a></li>
                 </ul>
             </nav>
         </aside>
         <main class="main-content">
             <header class="top-nav">
                 <div class="user-info">
-                    <span>Welcome, User</span>
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
                 </div>
             </header>
             <div class="dashboard-content">
-                <h2>Message History</h2>
-                <div class="history-header">
-                    <input type="text" placeholder="Search messages..." class="search-input">
+                <div class="welcome-section">
+                    <h2 id="pageTitle">Message History</h2>
+                    <p class="welcome-subtitle">View all your sent messages and their delivery status</p>
                 </div>
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Recipient</th>
-                            <th>Message</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>2023-01-01 12:00</td>
-                            <td>+233123456789</td>
-                            <td>Hello, this is a test message</td>
-                            <td><span class="status-badge delivered">Delivered</span></td>
-                        </tr>
-                    </tbody>
-                </table>
+
+                <!-- Stats Row -->
+                <div class="history-stats">
+                    <div class="stat-mini">
+                        <div class="stat-mini-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-mini-content">
+                            <span class="stat-mini-value" id="totalMessages">0</span>
+                            <span class="stat-mini-label">Total Messages</span>
+                        </div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-icon delivered">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-mini-content">
+                            <span class="stat-mini-value" id="deliveredCount">0</span>
+                            <span class="stat-mini-label">Delivered</span>
+                        </div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-icon pending">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-mini-content">
+                            <span class="stat-mini-value" id="pendingCount">0</span>
+                            <span class="stat-mini-label">Pending</span>
+                        </div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-icon failed">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                        <div class="stat-mini-content">
+                            <span class="stat-mini-value" id="failedCount">0</span>
+                            <span class="stat-mini-label">Failed</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions Bar -->
+                <div class="actions-bar">
+                    <div class="search-wrapper">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="searchInput" placeholder="Search by recipient, message, or status...">
+                    </div>
+                    <div class="filter-wrapper">
+                        <select id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="sent">Sent</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                    <div class="filter-wrapper">
+                        <select id="dateFilter">
+                            <option value="">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Messages Table Card -->
+                <div class="history-card">
+                    <div class="table-container">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Sender ID</th>
+                                    <th>Recipient</th>
+                                    <th>Message</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="messagesBody">
+                                <!-- Messages will be loaded here -->
+                            </tbody>
+                        </table>
+                        <div class="loading-spinner" id="loadingSpinner">
+                            <div class="spinner"></div>
+                            <p>Loading message history...</p>
+                        </div>
+                        <div class="empty-state" id="emptyState" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                            </svg>
+                            <p>No messages yet</p>
+                            <span>Your sent messages will appear here</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
+
+    <!-- Message Detail Modal -->
+    <div class="modal" id="messageModal">
+        <div class="modal-content modal-large">
+            <button class="modal-close" id="closeMessageModal">&times;</button>
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                    </svg>
+                </div>
+                <h3>Message Details</h3>
+            </div>
+            <div class="message-detail-content" id="messageDetailContent">
+                <!-- Message details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
     <script>
-        async function loadMessageHistory() {
+        let messages = [];
+        let filteredMessages = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthAndLoad();
+        });
+
+        async function checkAuthAndLoad() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            await loadUserProfile();
+            await loadMessageHistory();
+        }
+
+        async function loadUserProfile() {
             try {
-                const result = await window.apiClient.getMessageHistory();
-                if (result.error) {
-                    console.error(result.error);
+                const response = await window.apiClient.getUserProfile();
+                if (response.error) {
+                    useStoredUserName();
                     return;
                 }
                 
-                const messages = result.data || [];
-                const tbody = document.querySelector('.history-table tbody');
-                tbody.innerHTML = '';
-                
-                if (messages.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No messages found</td></tr>';
-                    return;
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    updateUserDisplay(firstName);
+                    localStorage.setItem('userName', user.name);
+                } else {
+                    useStoredUserName();
                 }
-                
-                messages.forEach(msg => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${new Date(msg.createdAt).toLocaleString()}</td>
-                        <td>${msg.recipient}</td>
-                        <td>${msg.message.substring(0, 50)}${msg.message.length > 50 ? '...' : ''}</td>
-                        <td><span class="status-badge ${msg.status}">${msg.status}</span></td>
-                    `;
-                    tbody.appendChild(row);
-                });
             } catch (error) {
-                console.error('Error loading message history:', error);
+                console.error('Error loading user profile:', error);
+                useStoredUserName();
             }
         }
-        
-        // Search functionality
-        document.querySelector('.search-input').addEventListener('input', function() {
-            // Simple client-side filtering
-            const searchTerm = this.value.toLowerCase();
-            document.querySelectorAll('.history-table tbody tr').forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
+
+        function useStoredUserName() {
+            const storedName = localStorage.getItem('userName');
+            if (storedName) {
+                const firstName = storedName.split(' ')[0];
+                updateUserDisplay(firstName);
+            } else {
+                updateUserDisplay('User');
+            }
+        }
+
+        function updateUserDisplay(firstName) {
+            const userNameEl = document.getElementById('userName');
+            const userAvatarEl = document.getElementById('userAvatar');
+            
+            if (userNameEl) userNameEl.textContent = firstName;
+            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+        }
+
+        async function loadMessageHistory() {
+            const spinner = document.getElementById('loadingSpinner');
+            const emptyState = document.getElementById('emptyState');
+            const tbody = document.getElementById('messagesBody');
+            const totalMessagesEl = document.getElementById('totalMessages');
+            const deliveredCountEl = document.getElementById('deliveredCount');
+            const pendingCountEl = document.getElementById('pendingCount');
+            const failedCountEl = document.getElementById('failedCount');
+            
+            if (!tbody) return;
+            
+            try {
+                spinner.style.display = 'flex';
+                tbody.innerHTML = '';
+                
+                const result = await window.apiClient.getMessageHistory();
+                
+                spinner.style.display = 'none';
+                
+                if (result.error) {
+                    console.error(result.error);
+                    tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load message history</td></tr>';
+                    return;
+                }
+                
+                messages = result.data || [];
+                filteredMessages = [...messages];
+                
+                // Update stats
+                if (totalMessagesEl) totalMessagesEl.textContent = messages.length;
+                if (deliveredCountEl) deliveredCountEl.textContent = messages.filter(m => m.status === 'delivered').length;
+                if (pendingCountEl) pendingCountEl.textContent = messages.filter(m => m.status === 'pending' || m.status === 'sent').length;
+                if (failedCountEl) failedCountEl.textContent = messages.filter(m => m.status === 'failed').length;
+                
+                if (messages.length > 0) {
+                    renderMessages(messages);
+                } else {
+                    emptyState.style.display = 'flex';
+                }
+            } catch (error) {
+                spinner.style.display = 'none';
+                console.error('Error loading message history:', error);
+                tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load message history</td></tr>';
+            }
+        }
+
+        function renderMessages(messagesToRender) {
+            const tbody = document.getElementById('messagesBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            if (messagesToRender.length === 0) {
+                emptyState.style.display = 'flex';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            messagesToRender.forEach(msg => {
+                const row = document.createElement('tr');
+                const date = msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '-';
+                const messagePreview = msg.message ? msg.message.substring(0, 60) + (msg.message.length > 60 ? '...' : '') : '-';
+                
+                row.innerHTML = `
+                    <td class="message-date">${date}</td>
+                    <td class="message-sender">${msg.senderId || '-'}</td>
+                    <td class="message-recipient">${msg.recipient || '-'}</td>
+                    <td class="message-text">${messagePreview}</td>
+                    <td><span class="status-badge ${getStatusClass(msg.status)}">${formatStatus(msg.status)}</span></td>
+                `;
+                tbody.appendChild(row);
             });
+        }
+
+        function getStatusClass(status) {
+            switch (status?.toLowerCase()) {
+                case 'delivered':
+                    return 'delivered';
+                case 'sent':
+                    return 'sent';
+                case 'pending':
+                    return 'pending';
+                case 'failed':
+                    return 'failed';
+                default:
+                    return 'pending';
+            }
+        }
+
+        function formatStatus(status) {
+            if (!status) return 'Unknown';
+            return status.charAt(0).toUpperCase() + status.slice(1);
+        }
+
+        // Search and filter functionality
+        document.getElementById('searchInput').addEventListener('input', function() {
+            filterMessages();
         });
-        
-        loadMessageHistory();
+
+        document.getElementById('statusFilter').addEventListener('change', function() {
+            filterMessages();
+        });
+
+        document.getElementById('dateFilter').addEventListener('change', function() {
+            filterMessages();
+        });
+
+        function filterMessages() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const now = new Date();
+            
+            filteredMessages = messages.filter(msg => {
+                // Search filter
+                const matchesSearch = 
+                    (msg.recipient && msg.recipient.toLowerCase().includes(searchTerm)) ||
+                    (msg.message && msg.message.toLowerCase().includes(searchTerm)) ||
+                    (msg.senderId && msg.senderId.toLowerCase().includes(searchTerm)) ||
+                    (msg.status && msg.status.toLowerCase().includes(searchTerm));
+                
+                // Status filter
+                const matchesStatus = !statusFilter || msg.status?.toLowerCase() === statusFilter;
+                
+                // Date filter
+                let matchesDate = true;
+                if (dateFilter && msg.createdAt) {
+                    const msgDate = new Date(msg.createdAt);
+                    if (dateFilter === 'today') {
+                        matchesDate = msgDate.toDateString() === now.toDateString();
+                    } else if (dateFilter === 'week') {
+                        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        matchesDate = msgDate >= weekAgo;
+                    } else if (dateFilter === 'month') {
+                        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                        matchesDate = msgDate >= monthAgo;
+                    }
+                }
+                
+                return matchesSearch && matchesStatus && matchesDate;
+            });
+            
+            renderMessages(filteredMessages);
+        }
+
+        // Modal handlers
+        document.getElementById('closeMessageModal').addEventListener('click', () => {
+            document.getElementById('messageModal').style.display = 'none';
+        });
+
+        document.getElementById('messageModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('messageModal')) {
+                document.getElementById('messageModal').style.display = 'none';
+            }
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '../auth/login.html';
+        }
     </script>
+
+    <style>
+        /* Additional styles for History page */
+        .history-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-mini {
+            background-color: var(--neutral-white);
+            padding: 1.25rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .stat-mini-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-mini-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .stat-mini-icon {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        }
+
+        .stat-mini-icon svg {
+            color: #1976d2;
+        }
+
+        .stat-mini-icon.delivered {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+
+        .stat-mini-icon.delivered svg {
+            color: #388e3c;
+        }
+
+        .stat-mini-icon.pending {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        }
+
+        .stat-mini-icon.pending svg {
+            color: #f57c00;
+        }
+
+        .stat-mini-icon.failed {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+        }
+
+        .stat-mini-icon.failed svg {
+            color: #c62828;
+        }
+
+        .stat-mini-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-mini-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .stat-mini-label {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .actions-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-wrapper svg {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: #999;
+        }
+
+        .search-wrapper input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 2.75rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            background-color: var(--neutral-white);
+            transition: all 0.3s ease;
+        }
+
+        .search-wrapper input:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+            box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.1);
+        }
+
+        .filter-wrapper select {
+            padding: 0.875rem 1rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            background-color: var(--neutral-white);
+            min-width: 140px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-wrapper select:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+        }
+
+        .history-card {
+            background-color: var(--neutral-white);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            background-color: #fafafa;
+            color: #666;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .history-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f8f8f8;
+            color: #444;
+            font-size: 0.95rem;
+        }
+
+        .history-table tbody tr {
+            transition: background-color 0.3s ease;
+        }
+
+        .history-table tbody tr:hover {
+            background-color: #fafafa;
+        }
+
+        .message-date {
+            white-space: nowrap;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .message-sender {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+        }
+
+        .message-recipient {
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .message-text {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 0.35rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .status-badge.delivered {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-badge.sent {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status-badge.pending {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-badge.failed {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        /* Modal styles */
+        .modal-large {
+            max-width: 600px;
+        }
+
+        .message-detail-content {
+            padding: 1rem 0;
+        }
+
+        .detail-row {
+            display: flex;
+            padding: 1rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            width: 120px;
+            font-weight: 600;
+            color: #666;
+            flex-shrink: 0;
+        }
+
+        .detail-value {
+            flex: 1;
+            color: var(--primary-dark);
+            word-break: break-word;
+        }
+
+        .detail-value.message-full {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .actions-bar {
+                flex-direction: column;
+            }
+
+            .search-wrapper {
+                min-width: 100%;
+            }
+
+            .filter-wrapper {
+                width: 100%;
+            }
+
+            .filter-wrapper select {
+                width: 100%;
+            }
+
+            .history-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .detail-row {
+                flex-direction: column;
+            }
+
+            .detail-label {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
 </body>
 </html>
