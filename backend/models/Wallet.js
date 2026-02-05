@@ -57,6 +57,50 @@ walletSchema.pre('save', function(next) {
   next();
 });
 
+// Static method to find wallet by user ID
+walletSchema.statics.findByUserId = function(userId) {
+  return this.findOne({ userId: userId });
+};
+
+// Static method to get balance
+walletSchema.statics.getBalance = async function(userId) {
+  const wallet = await this.findOne({ userId: userId });
+  return wallet ? wallet.balance : 0;
+};
+
+// Static method to credit wallet
+walletSchema.statics.credit = async function(userId, amount, description, adminId) {
+  let wallet = await this.findOne({ userId: userId });
+  
+  if (!wallet) {
+    // Create wallet if doesn't exist
+    wallet = await this.create({ userId, balance: amount });
+  } else {
+    wallet.balance += amount;
+    await wallet.save();
+  }
+  
+  return wallet;
+};
+
+// Static method to debit wallet
+walletSchema.statics.debit = async function(userId, amount, description) {
+  const wallet = await this.findOne({ userId: userId });
+  
+  if (!wallet) {
+    throw new Error('Wallet not found');
+  }
+  
+  if (wallet.balance < amount) {
+    throw new Error('Insufficient balance');
+  }
+  
+  wallet.balance -= amount;
+  await wallet.save();
+  
+  return wallet;
+};
+
 // Method to check if daily limit is reached
 walletSchema.methods.checkDailyLimit = function() {
   const now = new Date();
