@@ -29,4 +29,19 @@ const messageSchema = new mongoose.Schema({
   }
 });
 
+// Static method to find messages by user ID
+messageSchema.statics.findByUserId = function(userId) {
+  return this.find({ userId: userId }).sort({ createdAt: -1 });
+};
+
+// Static method to find message by ID
+messageSchema.statics.findById = function(id) {
+  return this.findOne({ _id: id });
+};
+
+// Static method to update message status
+messageSchema.statics.updateStatus = function(id, status) {
+  return this.findByIdAndUpdate(id, { status }, { new: true });
+};
+
 module.exports = mongoose.model('Message', messageSchema);
