@@ -116,8 +116,4 @@ class ApiClient {
 const apiClient = new ApiClient();
 
 // Make available globally for frontend use
-if (typeof window !== 'undefined') {
-  window.apiClient = apiClient;
-}
-
-module.exports = apiClient;
+window.apiClient = apiClient;

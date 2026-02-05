@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 const { connectDB } = require('../backend/utils/database');
 const authRoutes = require('../backend/routes/auth');
 const contactRoutes = require('../backend/routes/contacts');
@@ -26,6 +27,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Serve static files from src directory
+app.use(express.static(path.join(__dirname, '../src')));
 
 // Rate limiting
 const limiter = rateLimit({
