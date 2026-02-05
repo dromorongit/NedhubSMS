@@ -762,11 +762,12 @@
     }
 
     .dashboard-content {
-        padding: 1rem;
+        padding: 0;
     }
 
     .wallet-card {
         padding: 1.5rem;
+        border-radius: 0;
     }
 
     .balance-amount {
@@ -779,9 +780,19 @@
 
     .stat-card {
         padding: 1.25rem;
+        border-radius: 0;
     }
 
     .stat-value {
         font-size: 1.75rem;
+    }
+
+    .welcome-section {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .welcome-section h2 {
+        font-size: 1.25rem;
     }
 }

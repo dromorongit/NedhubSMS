@@ -150,17 +150,18 @@
 }
 
 .dashboard-content {
-    padding: 1rem;
+    padding: 0;
     width: 100%;
     box-sizing: border-box;
 }
 
 .welcome-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
 }
 
 .welcome-section h2 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
 }
 
 .welcome-subtitle {
