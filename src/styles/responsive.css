@@ -143,6 +143,7 @@
 .main-content {
     width: 100%;
     min-height: auto;
+    padding-top: 70px; /* Account for mobile header height */
 }
 
 .top-nav {
@@ -244,6 +245,10 @@ body {
         padding: 2rem;
     }
 
+    .main-content {
+        padding-top: 0; /* Remove mobile header padding */
+    }
+
     .stats-grid {
         grid-template-columns: repeat(2, 1fr) !important;
     }
@@ -257,6 +262,10 @@ body {
 
     .dashboard-content {
         padding: 2.5rem;
+    }
+
+    .main-content {
+        padding-top: 0; /* Remove mobile header padding */
     }
 
     .stats-grid {
