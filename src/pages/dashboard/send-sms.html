@@ -7,7 +7,9 @@
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../../utils/api.js" defer></script>
+    <script src="../../utils/toast.js" defer></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -17,77 +19,593 @@
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="overview.html">Overview</a></li>
-                    <li><a href="send-sms.html" class="active">Send SMS</a></li>
-                    <li><a href="contacts.html">Contacts</a></li>
-                    <li><a href="history.html">Message History</a></li>
-                    <li><a href="reports.html">Reports</a></li>
-                    <li><a href="settings.html">Settings</a></li>
+                    <li><a href="overview.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Overview</span>
+                    </a></li>
+                    <li><a href="send-sms.html" class="active">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        <span>Send SMS</span>
+                    </a></li>
+                    <li><a href="contacts.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Contacts</span>
+                    </a></li>
+                    <li><a href="history.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Message History</span>
+                    </a></li>
+                    <li><a href="reports.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Reports</span>
+                    </a></li>
+                    <li><a href="settings.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </a></li>
                 </ul>
             </nav>
         </aside>
         <main class="main-content">
             <header class="top-nav">
                 <div class="user-info">
-                    <span>Welcome, User</span>
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
                 </div>
             </header>
             <div class="dashboard-content">
-                <h2>Send SMS</h2>
-                <form id="sendSmsForm">
-                    <div class="form-group">
-                        <label for="senderId">Sender ID</label>
-                        <input type="text" id="senderId" name="senderId" required>
+                <div class="welcome-section">
+                    <h2 id="pageTitle">Send SMS</h2>
+                    <p class="welcome-subtitle">Compose and send bulk SMS messages to your contacts</p>
+                </div>
+
+                <!-- Low Balance Alert -->
+                <div class="alert low-balance-alert" id="lowBalanceAlert" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span id="lowBalanceMessage">Low balance! Please top up to send SMS.</span>
+                </div>
+
+                <!-- SMS Form Card -->
+                <div class="sms-form-card">
+                    <form id="sendSmsForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="senderId">Sender ID</label>
+                                <select id="senderId" name="senderId" required>
+                                    <option value="">Select Sender ID</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recipients">Recipients</label>
+                            <div class="recipient-input-wrapper">
+                                <textarea id="recipients" name="recipients" rows="4" required placeholder="Enter phone numbers separated by commas (e.g., 0241234567, 0271234567)"></textarea>
+                            </div>
+                            <div class="form-hint">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                <span>Or select from <a href="contacts.html">your contacts</a></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <div class="message-input-wrapper">
+                                <textarea id="message" name="message" rows="8" required placeholder="Type your message here..."></textarea>
+                            </div>
+                            <div class="char-counter-wrapper">
+                                <div class="char-counter">
+                                    <span class="char-count-label">Characters:</span>
+                                    <span class="char-count-value" id="charCount">0</span>
+                                </div>
+                                <div class="sms-counter">
+                                    <span class="sms-count-label">Estimated SMS:</span>
+                                    <span class="sms-count-value" id="smsCount">1</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" id="previewBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                Preview
+                            </button>
+                            <button type="submit" class="btn-primary" id="sendBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                                </svg>
+                                Send SMS
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Quick Tips Card -->
+                <div class="tips-card">
+                    <div class="tips-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <h3>Quick Tips</h3>
                     </div>
-                    <div class="form-group">
-                        <label for="recipients">Recipients</label>
-                        <textarea id="recipients" name="recipients" rows="4" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="message">Message</label>
-                        <textarea id="message" name="message" rows="6" required></textarea>
-                        <div class="char-counter">Characters: <span id="charCount">0</span></div>
-                    </div>
-                    <button type="submit" class="btn-primary">Send SMS</button>
-                </form>
+                    <ul class="tips-list">
+                        <li>Use a recognized Sender ID for better delivery rates</li>
+                        <li>Keep messages under 160 characters for single SMS</li>
+                        <li>Longer messages are split into multiple SMS segments</li>
+                        <li>1 credit = 1 SMS segment</li>
+                    </ul>
+                </div>
             </div>
         </main>
     </div>
+
     <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthAndLoad();
+        });
+
+        async function checkAuthAndLoad() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            await loadUserProfile();
+            await loadSenderIds();
+            await checkBalance();
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await window.apiClient.getUserProfile();
+                if (response.error) {
+                    useStoredUserName();
+                    return;
+                }
+                
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    updateUserDisplay(firstName);
+                    localStorage.setItem('userName', user.name);
+                } else {
+                    useStoredUserName();
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                useStoredUserName();
+            }
+        }
+
+        function useStoredUserName() {
+            const storedName = localStorage.getItem('userName');
+            if (storedName) {
+                const firstName = storedName.split(' ')[0];
+                updateUserDisplay(firstName);
+            } else {
+                updateUserDisplay('User');
+            }
+        }
+
+        function updateUserDisplay(firstName) {
+            const userNameEl = document.getElementById('userName');
+            const userAvatarEl = document.getElementById('userAvatar');
+            
+            if (userNameEl) userNameEl.textContent = firstName;
+            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+        }
+
+        async function loadSenderIds() {
+            try {
+                const response = await window.apiClient.getSenderIds();
+                if (response.error) {
+                    console.error('Error loading sender IDs:', response.error);
+                    return;
+                }
+                
+                const select = document.getElementById('senderId');
+                if (response.data && response.data.senderIds && response.data.senderIds.length > 0) {
+                    response.data.senderIds.forEach(senderId => {
+                        const option = document.createElement('option');
+                        option.value = senderId.senderId;
+                        option.textContent = senderId.senderId;
+                        if (senderId.status === 'approved') {
+                            select.appendChild(option);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading sender IDs:', error);
+            }
+        }
+
+        async function checkBalance() {
+            try {
+                const response = await window.apiClient.getWalletBalance();
+                if (response.error) {
+                    return;
+                }
+                
+                if (response.data && response.data.balance < 100) {
+                    const lowBalanceAlert = document.getElementById('lowBalanceAlert');
+                    if (lowBalanceAlert) {
+                        lowBalanceAlert.style.display = 'flex';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking balance:', error);
+            }
+        }
+
+        // Character and SMS counter
+        document.getElementById('message').addEventListener('input', function() {
+            const charCount = this.value.length;
+            const smsCount = Math.ceil(charCount / 160) || 1;
+            
+            document.getElementById('charCount').textContent = charCount;
+            document.getElementById('smsCount').textContent = smsCount;
+        });
+
+        // Handle form submission
         document.getElementById('sendSmsForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const senderId = document.getElementById('senderId').value;
-            const recipients = document.getElementById('recipients').value.split(',').map(r => r.trim());
+            const recipientsInput = document.getElementById('recipients').value;
             const message = document.getElementById('message').value;
-            const submitBtn = this.querySelector('button[type="submit"]');
+            const submitBtn = document.getElementById('sendBtn');
+            
+            // Parse recipients (comma or newline separated)
+            const recipients = recipientsInput.split(/[,\n]+/)
+                .map(r => r.trim())
+                .filter(r => r.length > 0);
+            
+            if (recipients.length === 0) {
+                showToast('Please enter at least one recipient', 'error');
+                return;
+            }
+            
+            if (!senderId) {
+                showToast('Please select a Sender ID', 'error');
+                return;
+            }
             
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending...';
+            submitBtn.innerHTML = '<span>Sending...</span>';
             
             try {
                 const result = await window.apiClient.sendSMS(senderId, recipients, message);
                 
                 if (result.error) {
-                    alert(result.error);
+                    showToast(result.error, 'error');
                 } else {
-                    alert('SMS sent successfully!');
+                    showToast('SMS sent successfully!', 'success');
                     this.reset();
                     document.getElementById('charCount').textContent = '0';
+                    document.getElementById('smsCount').textContent = '1';
                 }
             } catch (error) {
                 console.error('SMS error:', error);
-                alert('An error occurred. Please try again.');
+                showToast('An error occurred. Please try again.', 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Send SMS';
+                submitBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>Send SMS';
             }
         });
-        
-        // Character counter
-        document.getElementById('message').addEventListener('input', function() {
-            document.getElementById('charCount').textContent = this.value.length;
+
+        // Preview button
+        document.getElementById('previewBtn').addEventListener('click', function() {
+            const message = document.getElementById('message').value;
+            if (message) {
+                showToast(`Message preview: ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`, 'info');
+            } else {
+                showToast('Please enter a message to preview', 'warning');
+            }
         });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '../auth/login.html';
+        }
     </script>
+
+    <style>
+        /* Additional styles for SMS form page */
+        .sms-form-card {
+            background-color: var(--neutral-white);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 0.9rem;
+        }
+
+        .form-group select,
+        .form-group textarea,
+        .form-group input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background-color: #fafafa;
+        }
+
+        .form-group select:focus,
+        .form-group textarea:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+            box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.1);
+            background-color: white;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-hint {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            color: #666;
+            font-size: 0.875rem;
+        }
+
+        .form-hint svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .form-hint a {
+            color: var(--accent-orange);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .form-hint a:hover {
+            text-decoration: underline;
+        }
+
+        .char-counter-wrapper {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .char-counter,
+        .sms-counter {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .char-count-label,
+        .sms-count-label {
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .char-count-value,
+        .sms-count-value {
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 0.95rem;
+        }
+
+        .char-count-value.warning {
+            color: #f57c00;
+        }
+
+        .char-count-value.danger {
+            color: #c62828;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            background-color: #f5f5f5;
+            color: #666;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: #eee;
+            border-color: #ddd;
+            color: var(--primary-dark);
+        }
+
+        .btn-secondary svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2rem;
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(247, 127, 0, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(247, 127, 0, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-primary svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Tips Card */
+        .tips-card {
+            background-color: var(--neutral-white);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem 1.75rem;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .tips-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .tips-header svg {
+            width: 22px;
+            height: 22px;
+            color: var(--accent-orange);
+        }
+
+        .tips-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .tips-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tips-list li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .tips-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #4caf50;
+            font-weight: 600;
+        }
+
+        .tips-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .btn-secondary,
+            .btn-primary {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .char-counter-wrapper {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
 </body>
 </html>
