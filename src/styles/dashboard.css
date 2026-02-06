@@ -26,6 +26,7 @@
     max-width: 160px;
     height: auto;
     display: inline-block;
+    filter: brightness(0) invert(1);
 }
 
 .sidebar-header h1 {
