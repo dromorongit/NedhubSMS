@@ -80,7 +80,7 @@
                         </a>
                     </div>
                     
-                    <p class="redirect-msg">Redirecting to dashboard in <span id="countdown">3</span> seconds...</p>
+                    <p class="redirect-msg">Redirecting to dashboard in <span id="countdown">10</span> seconds...</p>
                 </div>
             </div>
         </main>
@@ -95,6 +95,13 @@
         async function loadUserProfile() {
             try {
                 const response = await window.apiClient.getUserProfile();
+                if (response.error) {
+                    console.error('Error loading profile:', response.error);
+                    // Don't redirect to login on payment success page - just show default name
+                    document.getElementById('userName').textContent = 'User';
+                    document.getElementById('userAvatar').textContent = 'U';
+                    return;
+                }
                 if (response.data && response.data.user) {
                     const user = response.data.user;
                     const firstName = user.name ? user.name.split(' ')[0] : 'User';
@@ -103,6 +110,9 @@
                 }
             } catch (error) {
                 console.error('Error loading profile:', error);
+                // Don't redirect to login on payment success page
+                document.getElementById('userName').textContent = 'User';
+                document.getElementById('userAvatar').textContent = 'U';
             }
         }
 
@@ -126,8 +136,8 @@
             // Show success toast
             showToast('Payment successful! Your wallet has been credited.', 'success');
 
-            // Countdown and redirect
-            let countdown = 3;
+            // Countdown and redirect to overview
+            let countdown = 10;
             const countdownEl = document.getElementById('countdown');
             
             const interval = setInterval(() => {
