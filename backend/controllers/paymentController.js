@@ -74,13 +74,18 @@ const initiatePayment = async (req, res) => {
     payment.status = 'processing';
     await payment.save();
 
-    // Return checkout URL to frontend for redirect
-    res.status(200).json({
+    // Prepare response
+    const responseData = {
       success: true,
       clientReference: payment.clientReference,
       checkoutUrl: hubtelResult.checkoutUrl,
       message: 'Payment initiated successfully. Redirecting to checkout...'
-    });
+    };
+
+    console.log('[Payment] Sending response to frontend:', JSON.stringify(responseData, null, 2));
+
+    // Return checkout URL to frontend for redirect
+    res.status(200).json(responseData);
 
   } catch (error) {
     console.error('[Payment] Initiate error:', error);

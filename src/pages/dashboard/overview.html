@@ -477,19 +477,31 @@
             errorDiv.style.display = 'none';
             
             try {
+                console.log('[Payment] Initiating payment for amount:', amount);
                 const response = await window.apiClient.initiatePayment(amount, description);
                 
+                console.log('[Payment] Response:', response);
+                
                 if (response.error) {
+                    console.error('[Payment] Error:', response.error);
                     errorDiv.textContent = response.error;
                     errorDiv.style.display = 'block';
                 } else if (response.data && response.data.checkoutUrl) {
                     // Redirect to payment
+                    console.log('[Payment] Redirecting to:', response.data.checkoutUrl);
                     window.location.href = response.data.checkoutUrl;
-                } else {
+                } else if (response.data && response.data.clientReference) {
+                    // Fallback: show message if no checkoutUrl
+                    console.log('[Payment] No checkoutUrl, showing success message');
                     showToast('Payment initiated successfully', 'success');
                     document.getElementById('topupModal').style.display = 'none';
+                } else {
+                    console.error('[Payment] Unexpected response:', response);
+                    errorDiv.textContent = 'An unexpected error occurred. Please try again.';
+                    errorDiv.style.display = 'block';
                 }
             } catch (error) {
+                console.error('[Payment] Exception:', error);
                 errorDiv.textContent = 'An error occurred. Please try again.';
                 errorDiv.style.display = 'block';
             } finally {

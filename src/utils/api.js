@@ -35,6 +35,8 @@ class ApiClient {
     }
 
     try {
+      console.log(`[API] ${method} ${url}`);
+      
       const response = await fetch(url, {
         method,
         headers,
@@ -43,6 +45,7 @@ class ApiClient {
 
       // Handle 401 Unauthorized - redirect to login
       if (response.status === 401) {
+        console.log('[API] 401 Unauthorized - redirecting to login');
         this.clearToken();
         // Check if we're on a dashboard page
         if (window.location.pathname.includes('/pages/dashboard/')) {
@@ -53,16 +56,19 @@ class ApiClient {
         return { error: 'Session expired. Please login again.' };
       }
 
+      console.log(`[API] Response status: ${response.status}`);
+      
       const result = await response.json();
+      console.log(`[API] Response data:`, result);
 
       if (!response.ok) {
-        return { error: result.error || 'Request failed' };
+        return { error: result.error || 'Request failed', status: response.status };
       }
 
       return { data: result };
     } catch (error) {
-      console.error('API request error:', error);
-      return { error: 'Network error' };
+      console.error('[API] Request error:', error);
+      return { error: 'Network error: ' + error.message };
     }
   }
 

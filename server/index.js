@@ -18,6 +18,9 @@ const paymentRoutes = require('../backend/routes/payments');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy - needed for express-rate-limit to work correctly with Railway's reverse proxy
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 
@@ -47,10 +50,14 @@ app.get('/payment/error', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/payment-error.html'));
 });
 
-// Rate limiting
+// Rate limiting with trust proxy for X-Forwarded-For header
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
+  trustProxy: true,
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for'] || req.ip;
+  }
 });
 app.use(limiter);
 
