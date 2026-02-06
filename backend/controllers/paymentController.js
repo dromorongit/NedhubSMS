@@ -74,6 +74,8 @@ const initiatePayment = async (req, res) => {
     payment.status = 'processing';
     await payment.save();
 
+    console.log('[Payment] Hubtel result:', JSON.stringify(hubtelResult, null, 2));
+
     // Prepare response
     const responseData = {
       success: true,

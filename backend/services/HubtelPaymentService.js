@@ -118,6 +118,8 @@ class HubtelPaymentService {
         throw new Error(`Hubtel error: ${response.data.responseDescription || response.data.message || 'Unknown error'}`);
       }
 
+      console.log('[Hubtel] Extracted checkoutUrl:', response.data.checkoutUrl);
+
       return {
         success: true,
         checkoutId: response.data.checkoutId,
