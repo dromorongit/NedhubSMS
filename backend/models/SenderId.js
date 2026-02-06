@@ -15,6 +15,19 @@ const senderIdSchema = new mongoose.Schema({
       'Sender ID must be alphanumeric and 1-11 characters'
     ]
   },
+  documentType: {
+    type: String,
+    enum: ['ghana_card', 'business_registration', 'passport'],
+    required: [true, 'Document type is required']
+  },
+  documentUrl: {
+    type: String,
+    required: [true, 'Document upload is required']
+  },
+  documentName: {
+    type: String,
+    required: [true, 'Document name is required']
+  },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],

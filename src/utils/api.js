@@ -139,8 +139,35 @@ class ApiClient {
     return this.request('GET', '/sender-ids');
   }
 
-  async createSenderId(senderId) {
-    return this.request('POST', '/sender-ids', { senderId });
+  async createSenderId(senderId, documentType, documentFile) {
+    const url = `${API_BASE_URL}/sender-ids`;
+    const token = this.getToken();
+
+    const formData = new FormData();
+    formData.append('senderId', senderId);
+    formData.append('documentType', documentType);
+    formData.append('document', documentFile);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { error: result.error || 'Request failed' };
+      }
+
+      return { data: result };
+    } catch (error) {
+      console.error('API request error:', error);
+      return { error: 'Network error' };
+    }
   }
 
   // SMS endpoints

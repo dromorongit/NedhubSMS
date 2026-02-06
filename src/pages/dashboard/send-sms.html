@@ -89,7 +89,7 @@
                 </div>
 
                 <!-- Low Balance Alert -->
-                <div class="alert" id="low low-balance-alertBalanceAlert" style="display: none;">
+                <div class="alert" id="lowBalanceAlert" style="display: none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -116,7 +116,7 @@
                                         Create New
                                     </button>
                                 </div>
-                                <p class="sender-id-note" id="senderIdNote" style="display: none;">Your Sender ID is pending approval from Nalo Solutions</p>
+                                <p class="sender-id-note" id="senderIdNote" style="display: none;">Your Sender ID is pending approval</p>
                             </div>
                         </div>
 
@@ -212,13 +212,37 @@
                     <small>Must be 1-11 characters, alphanumeric only. This ID will be unique to your account.</small>
                 </div>
                 
+                <div class="form-group">
+                    <label for="documentType">Document Type</label>
+                    <select id="documentType" name="documentType" required>
+                        <option value="">Select document type</option>
+                        <option value="ghana_card">Ghana Card</option>
+                        <option value="business_registration">Business Registration Certificate</option>
+                        <option value="passport">Passport</option>
+                    </select>
+                    <small>You must upload one of these documents as proof of identity</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="documentUpload">Upload Document</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="documentUpload" name="document" accept=".jpg,.jpeg,.png,.pdf" required>
+                        <small>Accepted formats: JPG, PNG, PDF (Max 5MB)</small>
+                    </div>
+                    <div class="file-preview" id="filePreview" style="display: none;">
+                        <span class="file-name" id="fileName"></span>
+                        <button type="button" class="remove-file" onclick="removeFile()">×</button>
+                    </div>
+                </div>
+                
                 <div class="sender-id-requirements">
                     <h4>Requirements:</h4>
                     <ul>
                         <li>1-11 characters long</li>
                         <li>Alphanumeric (letters and numbers only)</li>
                         <li>Must be unique across all users</li>
-                        <li>Will be submitted to Nalo Solutions for approval</li>
+                        <li>Must upload a valid ID document</li>
+                        <li>Will be submitted for approval</li>
                     </ul>
                 </div>
                 
@@ -359,6 +383,8 @@
                     const statusClass = sid.status === 'approved' ? 'status-approved' : 
                                         sid.status === 'pending' ? 'status-pending' : 'status-rejected';
                     const statusText = sid.status.charAt(0).toUpperCase() + sid.status.slice(1);
+                    const docTypeLabel = sid.documentType === 'ghana_card' ? 'Ghana Card' : 
+                                        sid.documentType === 'business_registration' ? 'Business Registration' : 'Passport';
                     
                     html += `
                         <div class="senderid-item ${statusClass}">
@@ -366,6 +392,7 @@
                                 <span class="senderid-name">${sid.senderId}</span>
                                 <span class="senderid-status ${statusClass}">${statusText}</span>
                             </div>
+                            <p class="senderid-doc">Document: ${docTypeLabel}</p>
                             ${sid.remarks ? `<p class="senderid-remarks">${sid.remarks}</p>` : ''}
                             <span class="senderid-date">Created: ${new Date(sid.createdAt).toLocaleDateString()}</span>
                         </div>
@@ -398,12 +425,50 @@
             }
         });
 
+        // File upload preview
+        document.getElementById('documentUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('filePreview');
+            const fileName = document.getElementById('fileName');
+            const fileInput = this;
+            
+            if (file) {
+                // Check file size (5MB max)
+                if (file.size > 5 * 1024 * 1024) {
+                    showToast('File size must be less than 5MB', 'error');
+                    fileInput.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+                
+                // Check file type
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+                if (!allowedTypes.includes(file.type)) {
+                    showToast('Invalid file type. Please upload JPG, PNG, or PDF files.', 'error');
+                    fileInput.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+                
+                fileName.textContent = file.name;
+                preview.style.display = 'flex';
+            }
+        });
+
+        // Remove file
+        function removeFile() {
+            document.getElementById('documentUpload').value = '';
+            document.getElementById('filePreview').style.display = 'none';
+        }
+
         // Handle create sender ID form submission
         document.getElementById('createSenderIdForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const senderIdInput = document.getElementById('newSenderId');
             const senderId = senderIdInput.value.trim().toUpperCase();
+            const documentType = document.getElementById('documentType').value;
+            const documentFile = document.getElementById('documentUpload').files[0];
             const submitBtn = document.getElementById('submitSenderIdBtn');
             
             // Validate: 1-11 alphanumeric characters
@@ -412,17 +477,32 @@
                 return;
             }
             
+            // Validate document type
+            if (!documentType) {
+                showToast('Please select a document type', 'error');
+                return;
+            }
+            
+            // Validate file upload
+            if (!documentFile) {
+                showToast('Please upload a document', 'error');
+                return;
+            }
+            
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span>Submitting...</span>';
             
             try {
-                const result = await window.apiClient.createSenderId(senderId);
+                const result = await window.apiClient.createSenderId(senderId, documentType, documentFile);
                 
                 if (result.error) {
                     showToast(result.error, 'error');
                 } else {
-                    showToast('Sender ID submitted successfully! It will be reviewed by Nalo Solutions.', 'success');
+                    showToast('Sender ID submitted successfully! It will be reviewed for approval.', 'success');
                     senderIdInput.value = '';
+                    document.getElementById('documentType').value = '';
+                    document.getElementById('documentUpload').value = '';
+                    document.getElementById('filePreview').style.display = 'none';
                     loadAllSenderIdsForModal();
                     loadSenderIds();
                 }
@@ -559,7 +639,7 @@
 
         .form-group select,
         .form-group textarea,
-        .form-group input {
+        .form-group input[type="text"] {
             width: 100%;
             padding: 0.875rem 1rem;
             border: 2px solid #e8e8e8;
@@ -572,7 +652,7 @@
 
         .form-group select:focus,
         .form-group textarea:focus,
-        .form-group input:focus {
+        .form-group input[type="text"]:focus {
             outline: none;
             border-color: var(--accent-orange);
             box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.1);
@@ -848,6 +928,58 @@
             color: var(--accent-orange);
         }
 
+        .file-upload-wrapper {
+            position: relative;
+        }
+
+        .file-upload-wrapper input[type="file"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px dashed #e8e8e8;
+            border-radius: 10px;
+            background-color: #fafafa;
+            cursor: pointer;
+        }
+
+        .file-upload-wrapper input[type="file"]:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+            border-style: solid;
+        }
+
+        .file-preview {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+        }
+
+        .file-name {
+            flex: 1;
+            font-size: 0.875rem;
+            color: #2e7d32;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .remove-file {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #666;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .remove-file:hover {
+            color: #c62828;
+        }
+
         .user-senderids-section {
             margin-top: 2rem;
             padding-top: 1.5rem;
@@ -918,6 +1050,12 @@
         .senderid-status.status-rejected {
             background-color: #ffebee;
             color: #c62828;
+        }
+
+        .senderid-doc {
+            font-size: 0.85rem;
+            color: #666;
+            margin: 0.5rem 0;
         }
 
         .senderid-remarks {
