@@ -112,6 +112,8 @@ const handleHubtelCallback = async (req, res) => {
     // Extract key fields from callback - Hubtel sends data in different formats
     const clientReference = callbackData.clientReference 
       || callbackData.ClientReference 
+      || callbackData.Data?.ClientReference
+      || callbackData.data?.clientReference
       || callbackData.PaymentDetails?.Data?.ClientReference
       || callbackData.paymentDetails?.data?.clientReference;
     const responseCode = callbackData.responseCode || callbackData.ResponseCode;
