@@ -723,7 +723,7 @@
     background: linear-gradient(135deg, #0288d1 0%, #01579b 100%);
 }
 
-/* Responsive Design */
+/* Responsive Design - Desktop layout */
 @media (max-width: 1024px) {
     .sidebar {
         width: 80px;
@@ -749,50 +749,5 @@
 
     .main-content {
         margin-left: 80px;
-    }
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        display: none;
-    }
-
-    .main-content {
-        margin-left: 0;
-    }
-
-    .dashboard-content {
-        padding: 0;
-    }
-
-    .wallet-card {
-        padding: 1.5rem;
-        border-radius: 0;
-    }
-
-    .balance-amount {
-        font-size: 2.25rem;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .stat-card {
-        padding: 1.25rem;
-        border-radius: 0;
-    }
-
-    .stat-value {
-        font-size: 1.75rem;
-    }
-
-    .welcome-section {
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .welcome-section h2 {
-        font-size: 1.25rem;
     }
 }
