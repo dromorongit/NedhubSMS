@@ -113,17 +113,20 @@ class HubtelPaymentService {
 
       console.log(`[Hubtel] Initiate response:`, JSON.stringify(response.data, null, 2));
 
+      // Hubtel returns data nested under 'data' property
+      const hubtelData = response.data.data || response.data;
+      
       // Validate Hubtel response
       if (response.data.responseCode !== '0000') {
         throw new Error(`Hubtel error: ${response.data.responseDescription || response.data.message || 'Unknown error'}`);
       }
 
-      console.log('[Hubtel] Extracted checkoutUrl:', response.data.checkoutUrl);
+      console.log('[Hubtel] Extracted checkoutUrl:', hubtelData.checkoutUrl);
 
       return {
         success: true,
-        checkoutId: response.data.checkoutId,
-        checkoutUrl: response.data.checkoutUrl,
+        checkoutId: hubtelData.checkoutId,
+        checkoutUrl: hubtelData.checkoutUrl,
         clientReference: clientReference,
         message: 'Payment initiated successfully'
       };
@@ -171,7 +174,8 @@ class HubtelPaymentService {
       console.log(`[Hubtel] Status response:`, JSON.stringify(response.data, null, 2));
 
       // Parse response based on Hubtel's status format
-      const statusData = response.data;
+      // Handle both nested and flat response structures
+      const statusData = response.data.data || response.data;
       
       return {
         success: true,
