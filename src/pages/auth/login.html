@@ -17,6 +17,17 @@
             </div>
             <h1>Welcome Back</h1>
             <p>Sign in to your Nedhub account</p>
+            
+            <!-- Session expired message -->
+            <div class="alert-session-expired" id="sessionExpiredAlert" style="display: none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>Your session has expired. Please sign in again.</span>
+            </div>
+            
             <form id="loginForm">
                 <div class="form-group">
                     <label for="email">Email</label>
@@ -35,6 +46,17 @@
         </div>
     </div>
     <script>
+        // Check for session expired query parameter
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('session') === 'expired') {
+                const alertEl = document.getElementById('sessionExpiredAlert');
+                if (alertEl) {
+                    alertEl.style.display = 'flex';
+                }
+            }
+        });
+    
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             

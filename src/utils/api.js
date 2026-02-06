@@ -41,6 +41,18 @@ class ApiClient {
         body: data ? JSON.stringify(data) : undefined
       });
 
+      // Handle 401 Unauthorized - redirect to login
+      if (response.status === 401) {
+        this.clearToken();
+        // Check if we're on a dashboard page
+        if (window.location.pathname.includes('/pages/dashboard/')) {
+          window.location.href = '../auth/login.html?session=expired';
+        } else {
+          window.location.href = '../auth/login.html';
+        }
+        return { error: 'Session expired. Please login again.' };
+      }
+
       const result = await response.json();
 
       if (!response.ok) {
@@ -156,6 +168,17 @@ class ApiClient {
         },
         body: formData
       });
+
+      // Handle 401 Unauthorized - redirect to login
+      if (response.status === 401) {
+        this.clearToken();
+        if (window.location.pathname.includes('/pages/dashboard/')) {
+          window.location.href = '../auth/login.html?session=expired';
+        } else {
+          window.location.href = '../auth/login.html';
+        }
+        return { error: 'Session expired. Please login again.' };
+      }
 
       const result = await response.json();
 

@@ -33,7 +33,7 @@
     text-align: center;
 }
 
-.auth-card p {
+.auth-card > p {
     margin-bottom: 1.5rem;
     color: #666;
 }
@@ -86,4 +86,24 @@
 
 .auth-footer a:hover {
     text-decoration: underline;
+}
+
+/* Session expired alert */
+.alert-session-expired {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: #fff9e6;
+    border: 1px solid #ffd54f;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    color: #856404;
+    font-size: 0.9rem;
+}
+
+.alert-session-expired svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
 }
