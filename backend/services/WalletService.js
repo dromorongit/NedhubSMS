@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const { Wallet } = require('../models/Wallet');
-const { Transaction } = require('../models/Transaction');
+const Wallet = require('../models/Wallet');
+const Transaction = require('../models/Transaction');
 
 /**
  * WalletService
