@@ -375,6 +375,8 @@ const getPaymentHistory = async (req, res) => {
   }
 };
 
+const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || 'https://app.nedhubgh.com';
+
 /**
  * Handle payment return (user redirected back after payment)
  * GET /api/payments/return
@@ -384,29 +386,29 @@ const handlePaymentReturn = async (req, res) => {
     const { clientReference, status } = req.query;
 
     if (!clientReference) {
-      return res.redirect('/payment/error?message=missing_reference');
+      return res.redirect(`${FRONTEND_BASE_URL}/pages/dashboard/payment-error.html?message=missing_reference`);
     }
 
     // Find payment
     const payment = await Payment.findOne({ clientReference });
 
     if (!payment) {
-      return res.redirect('/payment/error?message=payment_not_found');
+      return res.redirect(`${FRONTEND_BASE_URL}/pages/dashboard/payment-error.html?message=payment_not_found`);
     }
 
     // Redirect based on payment status
     if (payment.status === 'paid') {
-      return res.redirect('/payment/success?reference=' + clientReference);
+      return res.redirect(`${FRONTEND_BASE_URL}/pages/dashboard/payment-success.html?reference=` + clientReference);
     } else if (payment.status === 'failed') {
-      return res.redirect('/payment/error?reference=' + clientReference + '&message=payment_failed');
+      return res.redirect(`${FRONTEND_BASE_URL}/pages/dashboard/payment-error.html?reference=` + clientReference + '&message=payment_failed');
     } else {
       // Payment still pending - user may have closed the browser
-      return res.redirect('/payment/pending?reference=' + clientReference);
+      return res.redirect(`${FRONTEND_BASE_URL}/pages/dashboard/payment-pending.html?reference=` + clientReference);
     }
 
   } catch (error) {
     console.error('[Payment] Return handler error:', error);
-    res.redirect('/payment/error?message=internal_error');
+    res.redirect(`${FRONTEND_BASE_URL}/pages/dashboard/payment-error.html?message=internal_error`);
   }
 };
 
@@ -425,7 +427,7 @@ const handlePaymentCancelled = async (req, res) => {
     );
   }
 
-  res.redirect('/payment/cancelled');
+  res.redirect(`${FRONTEND_BASE_URL}/pages/dashboard/payment-cancelled.html`);
 };
 
 /**
