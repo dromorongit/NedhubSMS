@@ -79,7 +79,7 @@ const paymentSchema = new mongoose.Schema({
 // Compound index for efficient querying
 paymentSchema.index({ userId: 1, createdAt: -1 });
 paymentSchema.index({ status: 1, createdAt: -1 });
-paymentSchema.index({ hubtelCheckoutId: 1 });
+// hubtelCheckoutId is sparse and not frequently queried, no index needed
 
 // Static method to find payment by clientReference
 paymentSchema.statics.findByClientReference = function(clientReference) {
