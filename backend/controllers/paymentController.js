@@ -109,8 +109,11 @@ const handleHubtelCallback = async (req, res) => {
 
     console.log('[Payment] Hubtel callback received:', JSON.stringify(callbackData, null, 2));
 
-    // Extract key fields from callback
-    const clientReference = callbackData.clientReference || callbackData.ClientReference;
+    // Extract key fields from callback - Hubtel sends data in different formats
+    const clientReference = callbackData.clientReference 
+      || callbackData.ClientReference 
+      || callbackData.PaymentDetails?.Data?.ClientReference
+      || callbackData.paymentDetails?.data?.clientReference;
     const responseCode = callbackData.responseCode || callbackData.ResponseCode;
     const status = callbackData.status || callbackData.Status;
     const transactionId = callbackData.transactionId || callbackData.POS_SALES_ID;
@@ -118,12 +121,15 @@ const handleHubtelCallback = async (req, res) => {
 
     // Validate required fields
     if (!clientReference) {
-      console.error('[Payment] Callback missing clientReference');
+      console.error('[Payment] Callback missing clientReference, looking for it in nested structures');
+      console.error('[Payment] Available fields:', Object.keys(callbackData));
       return res.status(400).json({ 
         success: false, 
         error: 'Missing clientReference' 
       });
     }
+
+    console.log('[Payment] Extracted clientReference:', clientReference);
 
     // Find the payment record
     const payment = await Payment.findOne({ clientReference });
@@ -151,7 +157,7 @@ const handleHubtelCallback = async (req, res) => {
 
     // Verify payment success
     // Hubtel success criteria: responseCode === '0000' or status === 'Success'
-    const isSuccess = responseCode === '0000' || status === 'Success' || status === 'SUCCESS';
+    const isSuccess = responseCode === '0000' || status === 'Success' || status === 'SUCCESS' || status === 'success';
 
     if (isSuccess) {
       // Payment successful
