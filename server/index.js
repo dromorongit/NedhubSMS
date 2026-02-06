@@ -50,6 +50,31 @@ app.get('/payment/error', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/payment-error.html'));
 });
 
+// Auth page routes
+app.get('/auth/login', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/login.html'));
+});
+
+app.get('/auth/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/login.html'));
+});
+
+app.get('/auth/register', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/register.html'));
+});
+
+app.get('/auth/register.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/register.html'));
+});
+
+app.get('/auth/forgot-password', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/forgot-password.html'));
+});
+
+app.get('/auth/forgot-password.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/forgot-password.html'));
+});
+
 // Rate limiting with trust proxy for X-Forwarded-For header
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
