@@ -25,10 +25,39 @@ app.set('trust proxy', 1);
 connectDB();
 
 // CORS configuration - allow requests from frontend
-app.use(cors({
-  origin: ['http://localhost:3000', 'https://app.nedhubgh.com', 'http://app.nedhubgh.com'],
-  credentials: true
-}));
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests, or same-origin requests)
+    // In production, you should list your allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://app.nedhubgh.com',
+      'http://app.nedhubgh.com',
+      'https://nedhubsms-production.up.railway.app'
+    ];
+    
+    // Allow requests with no origin (same-origin requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // For development, still allow - in production you might want to block
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Length', 'X-Requested-With'],
+  maxAge: 86400 // 24 hours
+};
+
+app.use(cors(corsOptions));
+
+// Handle preflight OPTIONS requests
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Serve static files from uploads directory

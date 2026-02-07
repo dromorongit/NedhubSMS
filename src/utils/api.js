@@ -40,7 +40,8 @@ class ApiClient {
       const response = await fetch(url, {
         method,
         headers,
-        body: data ? JSON.stringify(data) : undefined
+        body: data ? JSON.stringify(data) : undefined,
+        credentials: 'include' // Required for CORS with credentials
       });
 
       // Handle 401 Unauthorized - redirect to login
@@ -172,7 +173,8 @@ class ApiClient {
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        body: formData
+        body: formData,
+        credentials: 'include' // Required for CORS with credentials
       });
 
       // Handle 401 Unauthorized - redirect to login
