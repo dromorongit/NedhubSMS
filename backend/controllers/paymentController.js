@@ -60,15 +60,13 @@ const initiatePayment = async (req, res) => {
     await payment.save();
     console.log(`[Payment] Created pending payment: ${clientReference}`);
 
-    // Build return URL with frontend origin
-    let returnUrl = hubtelService.returnUrl;
+    // Build return URL pointing to Railway backend
+    const backendUrl = process.env.BACKEND_URL || 'https://nedhubsms-production.up.railway.app';
+    let returnUrl = `${backendUrl}/payment/return`;
+    
+    // Add frontend origin as parameter so we can redirect back to correct frontend
     if (frontendOrigin) {
-      try {
-        const origin = new URL(frontendOrigin).origin;
-        returnUrl = `${origin}/payment/return?frontend=${encodeURIComponent(frontendOrigin)}`;
-      } catch (e) {
-        console.warn('[Payment] Invalid frontendOrigin, using default returnUrl');
-      }
+      returnUrl += `?frontend=${encodeURIComponent(frontendOrigin)}`;
     }
 
     // Initiate payment with Hubtel
@@ -399,7 +397,7 @@ const handlePaymentReturn = async (req, res) => {
     const reference = clientReference || checkoutid;
 
     if (!reference) {
-      return res.redirect(`/pages/dashboard/payment-error.html?message=missing_reference`);
+      return res.redirect(`/src/pages/dashboard/payment-error.html?message=missing_reference`);
     }
 
     // Find payment by clientReference or checkoutId
@@ -412,24 +410,24 @@ const handlePaymentReturn = async (req, res) => {
 
     if (!payment) {
       console.log(`[Payment] Payment not found for reference: ${reference}`);
-      return res.redirect(`/pages/dashboard/payment-error.html?message=payment_not_found`);
+      return res.redirect(`/src/pages/dashboard/payment-error.html?message=payment_not_found`);
     }
 
     // Redirect based on payment status
     if (payment.status === 'paid') {
-      // Use frontend parameter if available, otherwise use relative path
+      // Use frontend parameter if provided to redirect back to GitHub Pages
       if (frontend) {
         try {
           const frontendUrl = new URL(frontend);
-          return res.redirect(`${frontendUrl.origin}/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
+          return res.redirect(`${frontendUrl.origin}/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
         } catch (e) {
           // Invalid frontend URL, use relative path
-          return res.redirect(`/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
+          return res.redirect(`/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
         }
       }
-      return res.redirect(`/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
+      return res.redirect(`/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
     } else if (payment.status === 'failed') {
-      return res.redirect(`/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
+      return res.redirect(`/src/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
     } else {
       // Payment still pending - check with Hubtel as fallback
       try {
@@ -456,30 +454,30 @@ const handlePaymentReturn = async (req, res) => {
           if (frontend) {
             try {
               const frontendUrl = new URL(frontend);
-              return res.redirect(`${frontendUrl.origin}/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
+              return res.redirect(`${frontendUrl.origin}/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
             } catch (e) {
-              return res.redirect(`/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
+              return res.redirect(`/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
             }
           }
-          return res.redirect(`/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
+          return res.redirect(`/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
         } else if (hubtelStatus.status === 'failed') {
           payment.status = 'failed';
           payment.callbackVerified = true;
           payment.failureReason = hubtelStatus.message;
           await payment.save();
-          return res.redirect(`/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
+          return res.redirect(`/src/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
         }
       } catch (hubtelError) {
         console.error('[Payment] Hubtel status check error in return handler:', hubtelError);
       }
       
       // Payment still pending, redirect to pending page
-      return res.redirect(`/pages/dashboard/payment-pending.html?reference=${payment.clientReference}`);
+      return res.redirect(`/src/pages/dashboard/payment-pending.html?reference=${payment.clientReference}`);
     }
 
   } catch (error) {
     console.error('[Payment] Return handler error:', error);
-    res.redirect(`/pages/dashboard/payment-error.html?message=internal_error`);
+    res.redirect(`/src/pages/dashboard/payment-error.html?message=internal_error`);
   }
 };
 
