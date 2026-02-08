@@ -1,6 +1,7 @@
 const HubtelPaymentService = require('../services/HubtelPaymentService');
 const WalletService = require('../services/WalletService');
 const Payment = require('../models/Payment');
+const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 
 const hubtelService = new HubtelPaymentService();
@@ -109,6 +110,41 @@ const initiatePayment = async (req, res) => {
 };
 
 /**
+ * Helper function to credit wallet if not already credited
+ * @param {Object} payment - Payment document
+ * @returns {boolean} - True if wallet was credited, false if already credited
+ */
+async function creditWalletIfNeeded(payment) {
+  const creditsToAdd = Math.floor(payment.amount * CREDITS_PER_GHS);
+  
+  // Check if wallet was already credited for this payment
+  const existingTransaction = await Transaction.findOne({ 
+    reference: `PAYMENT-${payment.clientReference}` 
+  });
+  
+  if (existingTransaction) {
+    console.log(`[Payment] Wallet already credited for: ${payment.clientReference}`);
+    return false;
+  }
+  
+  // Credit the wallet
+  try {
+    await walletService.creditWalletWithReference(
+      payment.userId,
+      creditsToAdd,
+      `Wallet top-up via Hubtel (${payment.amount} GHS)`,
+      `PAYMENT-${payment.clientReference}`,
+      null
+    );
+    console.log(`[Payment] Wallet credited: ${payment.userId}, credits: ${creditsToAdd}`);
+    return true;
+  } catch (walletError) {
+    console.error('[Payment] Failed to credit wallet:', walletError);
+    throw walletError;
+  }
+}
+
+/**
  * Handle Hubtel payment callback
  * POST /api/payments/hubtel/callback
  * This endpoint receives payment results from Hubtel
@@ -183,28 +219,13 @@ const handleHubtelCallback = async (req, res) => {
       payment.paidAt = new Date();
       await payment.save();
 
-      // Calculate credits to add (1 GHS = 100 credits)
-      const creditsToAdd = Math.floor(payment.amount * CREDITS_PER_GHS);
-
       // Credit user's wallet
       try {
-        await walletService.creditWalletWithReference(
-          payment.userId,
-          creditsToAdd,
-          `Wallet top-up via Hubtel (${payment.amount} GHS)`,
-          `PAYMENT-${payment.clientReference}`,
-          null
-        );
-
-        console.log(`[Payment] Wallet credited: ${payment.userId}, credits: ${creditsToAdd}`);
-
-        // Create audit log (optional)
-        // await AuditLog.create({ ... });
-
+        await creditWalletIfNeeded(payment);
       } catch (walletError) {
         console.error('[Payment] Failed to credit wallet:', walletError);
         // Payment is still recorded as paid, but wallet credit failed
-        // Implement retry mechanism or admin alert here
+        // The checkPaymentStatus endpoint will retry on next call
       }
 
       // Return success to Hubtel
@@ -264,8 +285,14 @@ const checkPaymentStatus = async (req, res) => {
       });
     }
 
-    // If payment is already confirmed in our system, return cached status
-    if (payment.callbackVerified || payment.status === 'paid' || payment.status === 'failed') {
+    // If payment is already confirmed as paid, ensure wallet is credited
+    if (payment.status === 'paid') {
+      try {
+        await creditWalletIfNeeded(payment);
+      } catch (walletError) {
+        console.error('[Payment] Wallet credit failed for paid payment:', walletError);
+      }
+      
       return res.status(200).json({
         success: true,
         clientReference: payment.clientReference,
@@ -273,7 +300,19 @@ const checkPaymentStatus = async (req, res) => {
         amount: payment.amount,
         currency: payment.currency,
         paidAt: payment.paidAt,
-        message: payment.status === 'paid' ? 'Payment successful' : 'Payment failed'
+        message: 'Payment successful'
+      });
+    }
+
+    // If payment is already confirmed as failed
+    if (payment.status === 'failed') {
+      return res.status(200).json({
+        success: true,
+        clientReference: payment.clientReference,
+        status: payment.status,
+        amount: payment.amount,
+        currency: payment.currency,
+        message: 'Payment failed'
       });
     }
 
@@ -289,16 +328,9 @@ const checkPaymentStatus = async (req, res) => {
         payment.paidAt = new Date();
         payment.callbackVerified = true;
         await payment.save();
-
+        
         // Credit wallet
-        const creditsToAdd = Math.floor(payment.amount * CREDITS_PER_GHS);
-        await walletService.creditWalletWithReference(
-          payment.userId,
-          creditsToAdd,
-          `Wallet top-up via Hubtel (${payment.amount} GHS)`,
-          `PAYMENT-${payment.clientReference}`,
-          null
-        );
+        await creditWalletIfNeeded(payment);
 
       } else if (hubtelStatus.status === 'failed') {
         payment.status = 'failed';
@@ -441,15 +473,8 @@ const handlePaymentReturn = async (req, res) => {
           payment.paidAt = new Date();
           await payment.save();
           
-          // Credit wallet
-          const creditsToAdd = Math.floor(payment.amount * CREDITS_PER_GHS);
-          await walletService.creditWalletWithReference(
-            payment.userId,
-            creditsToAdd,
-            `Wallet top-up via Hubtel (${payment.amount} GHS)`,
-            `PAYMENT-${payment.clientReference}`,
-            null
-          );
+          // Credit wallet using helper function
+          await creditWalletIfNeeded(payment);
           
           if (frontend) {
             try {
