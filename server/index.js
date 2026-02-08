@@ -79,6 +79,12 @@ app.get('/payment/error', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/payment-error.html'));
 });
 
+// Hubtel payment return handler (no /api prefix)
+app.get('/payment/return', async (req, res) => {
+    const paymentController = require('../backend/controllers/paymentController');
+    await paymentController.handlePaymentReturn(req, res);
+});
+
 // Auth page routes
 app.get('/auth/login', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/auth/login.html'));

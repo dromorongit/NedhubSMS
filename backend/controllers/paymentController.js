@@ -65,7 +65,7 @@ const initiatePayment = async (req, res) => {
     if (frontendOrigin) {
       try {
         const origin = new URL(frontendOrigin).origin;
-        returnUrl = `${origin}/api/payments/return?frontend=${encodeURIComponent(frontendOrigin)}`;
+        returnUrl = `${origin}/payment/return?frontend=${encodeURIComponent(frontendOrigin)}`;
       } catch (e) {
         console.warn('[Payment] Invalid frontendOrigin, using default returnUrl');
       }
