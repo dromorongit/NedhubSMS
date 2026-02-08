@@ -104,6 +104,43 @@ app.get('/auth/forgot-password.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/auth/forgot-password.html'));
 });
 
+// Dashboard page routes
+app.get('/overview.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/overview.html'));
+});
+
+app.get('/campaigns.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/campaigns.html'));
+});
+
+app.get('/contacts.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/contacts.html'));
+});
+
+app.get('/history.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/history.html'));
+});
+
+app.get('/reports.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/reports.html'));
+});
+
+app.get('/send-sms.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/send-sms.html'));
+});
+
+app.get('/settings.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/settings.html'));
+});
+
+app.get('/templates.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/templates.html'));
+});
+
+app.get('/admin/dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/admin/dashboard.html'));
+});
+
 // Rate limiting with trust proxy for X-Forwarded-For header
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
