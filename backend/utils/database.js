@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 
+// Set strictQuery option to avoid deprecation warning in Mongoose 7
+mongoose.set('strictQuery', false);
+
 const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/nedhub_bulk_messaging';
