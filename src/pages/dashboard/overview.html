@@ -478,7 +478,11 @@
             
             try {
                 console.log('[Payment] Initiating payment for amount:', amount);
-                const response = await window.apiClient.initiatePayment(amount, description);
+                
+                // Get the frontend origin for redirect after payment
+                const frontendOrigin = window.location.origin;
+                
+                const response = await window.apiClient.initiatePayment(amount, description, frontendOrigin);
                 
                 console.log('[Payment] Response:', response);
                 

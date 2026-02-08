@@ -54,6 +54,7 @@ class HubtelPaymentService {
    * @param {string} paymentData.clientReference - Unique transaction reference
    * @param {string} paymentData.customerEmail - Customer email (optional)
    * @param {string} paymentData.customerPhone - Customer phone (optional)
+   * @param {string} paymentData.returnUrl - Custom return URL (optional)
    * @returns {Object} - Hubtel API response with checkout URL
    */
   async initiatePayment(paymentData) {
@@ -62,7 +63,8 @@ class HubtelPaymentService {
       description,
       clientReference,
       customerEmail,
-      customerPhone
+      customerPhone,
+      returnUrl
     } = paymentData;
 
     // Validate required fields
@@ -84,11 +86,21 @@ class HubtelPaymentService {
       totalAmount: parseFloat(amount).toFixed(2),
       description: description.substring(0, 500), // Hubtel limit
       callbackUrl: this.callbackUrl,
-      returnUrl: this.returnUrl,
-      cancellationUrl: this.cancellationUrl,
       merchantAccountNumber: this.merchantAccountNumber,
       clientReference: clientReference
     };
+
+    // Use custom returnUrl if provided, otherwise use environment variable
+    if (returnUrl) {
+      payload.returnUrl = returnUrl;
+    } else if (this.returnUrl) {
+      payload.returnUrl = this.returnUrl;
+    }
+    
+    // Add cancellation URL if available
+    if (this.cancellationUrl) {
+      payload.cancellationUrl = this.cancellationUrl;
+    }
 
     // Add optional fields if provided
     if (customerEmail) {

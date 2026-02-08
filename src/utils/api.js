@@ -220,8 +220,8 @@ class ApiClient {
   }
 
   // Payment endpoints
-  async initiatePayment(amount, description) {
-    return this.request('POST', '/payments/initiate', { amount, description });
+  async initiatePayment(amount, description, frontendOrigin = null) {
+    return this.request('POST', '/payments/initiate', { amount, description, frontendOrigin });
   }
 
   async getPaymentHistory() {
