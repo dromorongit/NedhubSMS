@@ -375,7 +375,7 @@ const getPaymentHistory = async (req, res) => {
   }
 };
 
-const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || 'https://app.nedhubgh.com';
+const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || 'https://nedhubsms-production.up.railway.app';
 
 /**
  * Handle payment return (user redirected back after payment)
