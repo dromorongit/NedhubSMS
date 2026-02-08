@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const Wallet = require('../models/Wallet');
 const Message = require('../models/Message');
+const Transaction = require('../models/Transaction');
 
 // Get wallet balance with SMS credits
 router.get('/', authenticate, async (req, res) => {
@@ -59,12 +60,36 @@ router.post('/topup', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// Get transaction history (placeholder - implement with Transaction model if needed)
+// Get transaction history
 router.get('/transactions', authenticate, async (req, res) => {
   try {
-    // Return empty transactions for now
+    const userId = req.user.userId;
+    const { page = 1, limit = 20 } = req.query;
+    
+    const transactions = await Transaction.find({ userId })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+    
+    const total = await Transaction.countDocuments({ userId });
+
     res.json({ 
-      transactions: [],
+      transactions: transactions.map(tx => ({
+        id: tx._id,
+        type: tx.type,
+        amount: tx.amount,
+        description: tx.description,
+        reference: tx.reference,
+        balanceBefore: tx.balanceBefore,
+        balanceAfter: tx.balanceAfter,
+        createdAt: tx.createdAt
+      })),
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      },
       message: 'Transaction history retrieved successfully'
     });
   } catch (error) {
