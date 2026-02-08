@@ -22,7 +22,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url('https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=1200&q=80');
+    background-image: url('https://images.unsplash.com/photo-1592496001020-d31bd830651f?w=1200&q=85');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -34,7 +34,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.9) 50%, rgba(15, 52, 96, 0.85) 100%);
+    background: linear-gradient(135deg, rgba(255, 127, 0, 0.85) 0%, rgba(229, 106, 0, 0.75) 100%);
 }
 
 .auth-image-content {
@@ -50,9 +50,9 @@
 }
 
 .brand-logo .logo-img {
-    max-width: 200px;
+    max-width: 220px;
     height: auto;
-    filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3));
+    filter: brightness(0) invert(1) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.4));
 }
 
 .auth-image-content h1 {
@@ -60,23 +60,21 @@
     font-weight: 700;
     margin-bottom: 1.5rem;
     line-height: 1.2;
-    background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .auth-image-content p {
     font-size: 1.125rem;
     line-height: 1.8;
-    opacity: 0.85;
+    opacity: 0.95;
     margin-bottom: 3rem;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
 }
 
 .feature-icons {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
 .feature-icon-item {
@@ -84,21 +82,22 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.5rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
 }
 
 .feature-icon-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.25);
     transform: translateX(10px);
 }
 
 .feature-icon-item svg {
     width: 28px;
     height: 28px;
-    stroke: #ff7f00;
+    stroke: white;
     stroke-width: 2;
     fill: none;
     flex-shrink: 0;
@@ -107,7 +106,7 @@
 .feature-icon-item span {
     font-size: 1rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
+    color: white;
 }
 
 /* Right Side - Form Section */
