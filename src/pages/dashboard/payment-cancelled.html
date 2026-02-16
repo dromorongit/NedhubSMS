@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link rel="stylesheet" href="../../styles/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../../utils/api.js"></script>
     <script src="../../utils/toast.js"></script>
@@ -30,6 +31,12 @@
         </aside>
         <main class="main-content">
             <header class="top-nav">
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <span class="mobile-header-title">Payment</span>
                 <div class="user-info">
                     <div class="user-avatar" id="userAvatar">U</div>
                     <span id="userName">Loading...</span>
@@ -42,6 +49,8 @@
                     </button>
                 </div>
             </header>
+            <!-- Sidebar Overlay -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
             <div class="dashboard-content">
                 <div class="welcome-section">
                     <h2>Payment Cancelled</h2>
@@ -163,6 +172,47 @@
             localStorage.removeItem('userEmail');
             window.location.href = '../auth/login.html';
         }
+
+        // Mobile sidebar functionality
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+            hamburgerBtn.classList.toggle('active');
+            document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+            hamburgerBtn.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        if (hamburgerBtn) {
+            hamburgerBtn.addEventListener('click', toggleSidebar);
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', closeSidebar);
+        }
+
+        document.querySelectorAll('.sidebar-nav a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) {
+                    closeSidebar();
+                }
+            });
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                closeSidebar();
+            }
+        });
     </script>
 
     <style>
