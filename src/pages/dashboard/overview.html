@@ -16,6 +16,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
             </div>
             <nav class="sidebar-nav">
                 <ul>
@@ -535,6 +536,7 @@
             const hamburgerBtn = document.getElementById('hamburgerBtn');
             const sidebar = document.getElementById('sidebar');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
 
             function toggleSidebar() {
                 sidebar.classList.toggle('active');
@@ -554,6 +556,10 @@
 
             if (hamburgerBtn) {
                 hamburgerBtn.addEventListener('click', toggleSidebar);
+            }
+
+            if (sidebarCloseBtn) {
+                sidebarCloseBtn.addEventListener('click', closeSidebar);
             }
 
             if (sidebarOverlay) {
