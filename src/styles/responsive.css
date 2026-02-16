@@ -15,14 +15,14 @@
     
     /* Mobile-specific spacing */
     --spacing-xs: 0.5rem;
-    --spacing-sm: 1rem;
-    --spacing-md: 1.5rem;
-    --spacing-lg: 2rem;
+    --spacing-sm: 0.75rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
     
     /* Sidebar dimensions */
     --sidebar-width: 260px;
     --sidebar-collapsed: 0px;
-    --topnav-height: 70px;
+    --topnav-height: 60px;
     
     /* Touch target size */
     --touch-target-min: 44px;
@@ -30,6 +30,12 @@
     /* Transitions */
     --transition-fast: 0.2s ease;
     --transition-normal: 0.3s ease;
+}
+
+/* Prevent horizontal scroll on mobile */
+html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
 }
 
 /* ============================================
@@ -215,10 +221,14 @@ body .main-content {
     margin-left: 0 !important;
     margin-top: var(--topnav-height);
     min-height: calc(100vh - var(--topnav-height));
+    overflow-x: hidden;
+    width: 100%;
 }
 
 body .dashboard-content {
     padding: var(--spacing-sm) !important;
+    overflow-x: hidden;
+    max-width: 100%;
 }
 
 /* ============================================
@@ -259,6 +269,19 @@ body .dashboard-content {
     grid-template-columns: 1fr !important;
     gap: var(--spacing-sm) !important;
     margin-bottom: var(--spacing-md) !important;
+    overflow-x: hidden;
+}
+
+/* Contacts stats - Single column on mobile */
+.contacts-stats {
+    grid-template-columns: 1fr !important;
+    gap: var(--spacing-sm) !important;
+}
+
+/* History stats - Single column on mobile */
+.history-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--spacing-sm) !important;
 }
 
 .stat-card {
@@ -302,11 +325,13 @@ body .dashboard-content {
 .table-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    max-width: 100%;
 }
 
 .transactions-table,
 .contacts-table {
-    min-width: 500px;
+    min-width: 100%;
+    max-width: 100%;
 }
 
 .transactions-table th,
@@ -715,7 +740,7 @@ body .dashboard-content {
     /* Tables can scroll horizontally */
     body .transactions-table,
     body .contacts-table {
-        min-width: 600px;
+        min-width: 100%;
     }
     
     /* Forms */
