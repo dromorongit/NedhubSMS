@@ -111,8 +111,20 @@ class HubtelPaymentService {
     }
 
     try {
-      console.log(`[Hubtel] Initiating payment for clientReference: ${clientReference}`);
-      console.log(`[Hubtel] Payload:`, JSON.stringify(payload, null, 2));
+      const timestamp = new Date().toISOString();
+      
+      console.log(JSON.stringify({
+        label: 'HUBTEL_INITIATE_RESPONSE',
+        timestamp: timestamp,
+        clientReference: clientReference,
+        initiatingPayment: true,
+        payload: {
+          totalAmount: payload.totalAmount,
+          description: payload.description,
+          merchantAccountNumber: payload.merchantAccountNumber,
+          clientReference: payload.clientReference
+        }
+      }, null, 2));
 
       // Make POST request to Hubtel initiate endpoint
       const response = await axios.post(this.initiateEndpoint, payload, {
@@ -123,18 +135,28 @@ class HubtelPaymentService {
         timeout: 30000 // 30 second timeout
       });
 
-      console.log(`[Hubtel] Initiate response:`, JSON.stringify(response.data, null, 2));
-
-      // Hubtel returns data nested under 'data' property
-      const hubtelData = response.data.data || response.data;
+      // Extract response data
+      const fullResponseBody = response.data;
+      const hubtelData = fullResponseBody.data || fullResponseBody;
+      
+      // Structured logging for HUBTEL_INITIATE_RESPONSE - response data
+      console.log(JSON.stringify({
+        label: 'HUBTEL_INITIATE_RESPONSE',
+        timestamp: new Date().toISOString(),
+        clientReference: clientReference,
+        responseCode: fullResponseBody.responseCode,
+        status: hubtelData.status || (fullResponseBody.responseCode === '0000' ? 'Success' : 'Failed'),
+        checkoutId: hubtelData.checkoutId,
+        checkoutUrl: hubtelData.checkoutUrl,
+        fullResponseBody: fullResponseBody
+      }, null, 2));
       
       // Validate Hubtel response
-      if (response.data.responseCode !== '0000') {
-        throw new Error(`Hubtel error: ${response.data.responseDescription || response.data.message || 'Unknown error'}`);
+      if (fullResponseBody.responseCode !== '0000') {
+        throw new Error(`Hubtel error: ${fullResponseBody.responseDescription || fullResponseBody.message || 'Unknown error'}`);
       }
 
-      console.log('[Hubtel] Extracted checkoutUrl:', hubtelData.checkoutUrl);
-
+      // Return success response
       return {
         success: true,
         checkoutId: hubtelData.checkoutId,
@@ -144,10 +166,28 @@ class HubtelPaymentService {
       };
 
     } catch (error) {
-      console.error('[Hubtel] Initiate payment error:', error.message);
+      // Structured error logging with sanitization
+      console.error(JSON.stringify({
+        label: 'HUBTEL_INITIATE_ERROR',
+        timestamp: new Date().toISOString(),
+        clientReference: clientReference,
+        error: error.message,
+        errorStack: error.stack
+      }, null, 2));
       
       if (error.response) {
-        console.error('[Hubtel] Response data:', error.response.data);
+        // Sanitize sensitive data from error response
+        const sanitizedResponse = JSON.parse(JSON.stringify(error.response.data));
+        delete sanitizedResponse.access_token;
+        delete sanitizedResponse.token;
+        delete sanitizedResponse.clientSecret;
+        console.error(JSON.stringify({
+          label: 'HUBTEL_INITIATE_ERROR_RESPONSE',
+          timestamp: new Date().toISOString(),
+          clientReference: clientReference,
+          status: error.response.status,
+          sanitizedResponseData: sanitizedResponse
+        }, null, 2));
       }
 
       throw new Error(`Failed to initiate payment: ${error.message}`);
@@ -170,7 +210,13 @@ class HubtelPaymentService {
     }
 
     try {
-      console.log(`[Hubtel] Checking status for clientReference: ${clientReference}`);
+      // Structured logging for HUBTEL_STATUS_CHECK_RESPONSE - initiating
+      console.log(JSON.stringify({
+        label: 'HUBTEL_STATUS_CHECK_RESPONSE',
+        timestamp: new Date().toISOString(),
+        clientReference: clientReference,
+        checkingStatus: true
+      }, null, 2));
 
       // Hubtel status endpoint format
       const statusUrl = `${this.statusEndpoint}/${clientReference}/status`;
@@ -183,11 +229,21 @@ class HubtelPaymentService {
         timeout: 30000
       });
 
-      console.log(`[Hubtel] Status response:`, JSON.stringify(response.data, null, 2));
+      // Extract full response body
+      const fullResponseBody = response.data;
+      const statusData = fullResponseBody.data || fullResponseBody;
 
-      // Parse response based on Hubtel's status format
-      // Handle both nested and flat response structures
-      const statusData = response.data.data || response.data;
+      // Structured logging for HUBTEL_STATUS_CHECK_RESPONSE - response data
+      console.log(JSON.stringify({
+        label: 'HUBTEL_STATUS_CHECK_RESPONSE',
+        timestamp: new Date().toISOString(),
+        clientReference: clientReference,
+        responseCode: statusData.ResponseCode || statusData.responseCode,
+        status: statusData.status,
+        transactionId: statusData.transactionId || statusData.POS_SALES_ID,
+        amount: statusData.amount || statusData.totalAmount,
+        fullResponseBody: fullResponseBody
+      }, null, 2));
       
       return {
         success: true,
@@ -201,10 +257,28 @@ class HubtelPaymentService {
       };
 
     } catch (error) {
-      console.error('[Hubtel] Check status error:', error.message);
+      // Structured error logging
+      console.error(JSON.stringify({
+        label: 'HUBTEL_STATUS_CHECK_ERROR',
+        timestamp: new Date().toISOString(),
+        clientReference: clientReference,
+        error: error.message,
+        errorStack: error.stack
+      }, null, 2));
       
       if (error.response) {
-        console.error('[Hubtel] Response data:', error.response.data);
+        // Sanitize sensitive data from error response
+        const sanitizedResponse = JSON.parse(JSON.stringify(error.response.data));
+        delete sanitizedResponse.access_token;
+        delete sanitizedResponse.token;
+        delete sanitizedResponse.clientSecret;
+        console.error(JSON.stringify({
+          label: 'HUBTEL_STATUS_CHECK_ERROR_RESPONSE',
+          timestamp: new Date().toISOString(),
+          clientReference: clientReference,
+          status: error.response.status,
+          sanitizedResponseData: sanitizedResponse
+        }, null, 2));
       }
 
       throw new Error(`Failed to check transaction status: ${error.message}`);

@@ -153,7 +153,18 @@ const handleHubtelCallback = async (req, res) => {
   try {
     const callbackData = req.body;
 
-    console.log('[Payment] Hubtel callback received:', JSON.stringify(callbackData, null, 2));
+    // Structured logging for HUBTEL_CALLBACK_RECEIVED
+    console.log(JSON.stringify({
+      label: 'HUBTEL_CALLBACK_RECEIVED',
+      timestamp: new Date().toISOString(),
+      fullRequestBody: callbackData,
+      // Extract key fields for structured logging
+      ResponseCode: callbackData.responseCode || callbackData.ResponseCode,
+      Status: callbackData.status || callbackData.Status,
+      ClientReference: callbackData.clientReference || callbackData.ClientReference || callbackData.Data?.ClientReference || callbackData.data?.clientReference,
+      Amount: callbackData.amount || callbackData.Amount || callbackData.Data?.Amount,
+      PaymentDetails: callbackData.PaymentDetails || callbackData.paymentDetails
+    }, null, 2));
 
     // Extract key fields from callback - Hubtel sends data in different formats
     const clientReference = callbackData.clientReference 
@@ -209,7 +220,16 @@ const handleHubtelCallback = async (req, res) => {
 
     if (isSuccess) {
       // Payment successful
-      console.log(`[Payment] Payment successful: ${clientReference}`);
+      console.log(JSON.stringify({
+        label: 'HUBTEL_CALLBACK_SUCCESS',
+        timestamp: new Date().toISOString(),
+        clientReference: clientReference,
+        responseCode: responseCode,
+        status: status,
+        transactionId: transactionId,
+        paymentMethod: paymentMethod,
+        message: 'Payment processed successfully'
+      }, null, 2));
 
       // Mark payment as paid
       payment.status = 'paid';
@@ -236,7 +256,15 @@ const handleHubtelCallback = async (req, res) => {
 
     } else {
       // Payment failed
-      console.log(`[Payment] Payment failed: ${clientReference}, responseCode: ${responseCode}`);
+      console.log(JSON.stringify({
+        label: 'HUBTEL_CALLBACK_FAILED',
+        timestamp: new Date().toISOString(),
+        clientReference: clientReference,
+        responseCode: responseCode,
+        status: status,
+        failureReason: callbackData.responseDescription || callbackData.statusDescription || 'Payment failed',
+        message: 'Payment failed'
+      }, null, 2));
 
       payment.status = 'failed';
       payment.callbackVerified = true;
@@ -251,7 +279,14 @@ const handleHubtelCallback = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('[Payment] Callback error:', error);
+    // Structured error logging
+    console.error(JSON.stringify({
+      label: 'HUBTEL_CALLBACK_ERROR',
+      timestamp: new Date().toISOString(),
+      error: error.message,
+      errorStack: error.stack
+    }, null, 2));
+    
     // Return 200 to prevent Hubtel from retrying
     res.status(200).json({ 
       success: false, 
