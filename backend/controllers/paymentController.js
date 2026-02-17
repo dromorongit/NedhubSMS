@@ -322,6 +322,14 @@ const checkPaymentStatus = async (req, res) => {
 
     // If payment is already confirmed as paid, ensure wallet is credited
     if (payment.status === 'paid') {
+      console.log(JSON.stringify({
+        label: 'HUBTEL_PAYMENT_STATUS_VERIFIED',
+        timestamp: new Date().toISOString(),
+        clientReference: payment.clientReference,
+        status: payment.status,
+        message: 'Payment already confirmed via callback, skipping status check'
+      }, null, 2));
+      
       try {
         await creditWalletIfNeeded(payment);
       } catch (walletError) {
@@ -352,6 +360,14 @@ const checkPaymentStatus = async (req, res) => {
     }
 
     // If not verified, check with Hubtel as fallback
+    console.log(JSON.stringify({
+      label: 'HUBTEL_STATUS_CHECK_INITIATED',
+      timestamp: new Date().toISOString(),
+      clientReference: clientReference,
+      currentPaymentStatus: payment.status,
+      reason: 'Payment not confirmed, checking with Hubtel'
+    }, null, 2));
+    
     try {
       const hubtelStatus = await hubtelService.checkTransactionStatus(clientReference);
 
@@ -497,6 +513,14 @@ const handlePaymentReturn = async (req, res) => {
       return res.redirect(`/src/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
     } else {
       // Payment still pending - check with Hubtel as fallback
+      console.log(JSON.stringify({
+        label: 'HUBTEL_STATUS_CHECK_INITIATED',
+        timestamp: new Date().toISOString(),
+        clientReference: payment.clientReference,
+        currentPaymentStatus: payment.status,
+        reason: 'Payment still pending after return, checking with Hubtel'
+      }, null, 2));
+      
       try {
         const hubtelStatus = await hubtelService.checkTransactionStatus(payment.clientReference);
         if (hubtelStatus.status === 'paid') {
