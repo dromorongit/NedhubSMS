@@ -111,6 +111,49 @@ class ApiClient {
     return this.request('DELETE', `/contacts/${id}`);
   }
 
+  async importContacts(file, groupName = '') {
+    const url = `${API_BASE_URL}/contacts/import`;
+    const token = this.getToken();
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (groupName) {
+      formData.append('groupName', groupName);
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (response.status === 401) {
+        this.clearToken();
+        if (window.location.pathname.includes('/pages/dashboard/')) {
+          window.location.href = '../auth/login.html?session=expired';
+        } else {
+          window.location.href = '../auth/login.html';
+        }
+        return { error: 'Session expired. Please login again.' };
+      }
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { error: result.error || 'Import failed' };
+      }
+
+      return { data: result };
+    } catch (error) {
+      console.error('Import contacts error:', error);
+      return { error: 'Network error: ' + error.message };
+    }
+  }
+
   // Template endpoints
   async getTemplates() {
     return this.request('GET', '/templates');

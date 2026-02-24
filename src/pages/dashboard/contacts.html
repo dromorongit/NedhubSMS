@@ -145,6 +145,14 @@
                         </svg>
                         Add Contact
                     </button>
+                    <button class="btn-secondary" id="importContactsBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Import Contacts
+                    </button>
                 </div>
 
                 <!-- Contacts Table Card -->
@@ -243,6 +251,67 @@
                     Delete
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Import Contacts Modal -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeImportModal">&times;</button>
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <h3>Import Contacts</h3>
+                <p>Upload a file to import contacts. Supported formats: CSV, XLS, XLSX, VCF, TXT</p>
+            </div>
+            <form id="importForm">
+                <div class="form-group">
+                    <label>Select File</label>
+                    <div class="file-upload-wrapper" id="fileUploadWrapper">
+                        <input type="file" id="contactFile" name="file" accept=".csv,.xls,.xlsx,.vcf,.txt" required>
+                        <div class="file-upload-content" id="fileUploadContent">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span>Click to browse or drag and drop</span>
+                            <small>Supported: CSV, XLS, XLSX, VCF, TXT</small>
+                        </div>
+                        <div class="file-info" id="fileInfo" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <span id="fileName"></span>
+                            <button type="button" class="remove-file" id="removeFile">&times;</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="importGroupName">Group Name (optional)</label>
+                    <input type="text" id="importGroupName" name="groupName" placeholder="e.g., Imported Contacts">
+                </div>
+                <button type="submit" class="btn-primary" id="importSubmitBtn">
+                    <span>Import Contacts</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+            </form>
+            <div id="importProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p id="importStatus">Processing...</p>
+            </div>
+            <div id="importResult" style="display: none;"></div>
+            <div id="importError" class="error-message" style="display: none;"></div>
         </div>
     </div>
 
@@ -548,6 +617,104 @@
             } finally {
                 deleteBtn.disabled = false;
                 deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>Delete';
+            }
+        });
+
+        // Import contacts modal
+        document.getElementById('importContactsBtn').addEventListener('click', () => {
+            document.getElementById('importModal').style.display = 'flex';
+            document.getElementById('importForm').reset();
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('fileUploadContent').style.display = 'flex';
+            document.getElementById('importProgress').style.display = 'none';
+            document.getElementById('importResult').style.display = 'none';
+            document.getElementById('importError').style.display = 'none';
+        });
+
+        document.getElementById('closeImportModal').addEventListener('click', () => {
+            document.getElementById('importModal').style.display = 'none';
+        });
+
+        document.getElementById('importModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('importModal')) {
+                document.getElementById('importModal').style.display = 'none';
+            }
+        });
+
+        // File input change
+        document.getElementById('contactFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('fileUploadContent').style.display = 'none';
+                document.getElementById('fileInfo').style.display = 'flex';
+                document.getElementById('fileName').textContent = file.name;
+            }
+        });
+
+        // Remove file
+        document.getElementById('removeFile').addEventListener('click', function() {
+            document.getElementById('contactFile').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('fileUploadContent').style.display = 'flex';
+        });
+
+        // Import form submission
+        document.getElementById('importForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('contactFile');
+            const groupName = document.getElementById('importGroupName').value;
+            const submitBtn = document.getElementById('importSubmitBtn');
+            const errorDiv = document.getElementById('importError');
+            const progressDiv = document.getElementById('importProgress');
+            const resultDiv = document.getElementById('importResult');
+            
+            if (!fileInput.files[0]) {
+                errorDiv.textContent = 'Please select a file';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>Importing...</span>';
+            errorDiv.style.display = 'none';
+            resultDiv.style.display = 'none';
+            progressDiv.style.display = 'block';
+            
+            try {
+                const result = await window.apiClient.importContacts(fileInput.files[0], groupName);
+                
+                progressDiv.style.display = 'none';
+                
+                if (result.error) {
+                    errorDiv.textContent = result.error;
+                    errorDiv.style.display = 'block';
+                } else {
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `<div class="success-message">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        <div>
+                            <strong>Import Successful!</strong>
+                            <p>${result.data.imported} contacts imported successfully${result.data.duplicates > 0 ? ', ' + result.data.duplicates + ' duplicates skipped' : ''}</p>
+                        </div>
+                    </div>`;
+                    showToast(result.data.imported + ' contacts imported successfully!', 'success');
+                    setTimeout(() => {
+                        document.getElementById('importModal').style.display = 'none';
+                        loadContacts();
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                progressDiv.style.display = 'none';
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Import Contacts</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
             }
         });
 
@@ -943,7 +1110,7 @@
                 width: 100%;
             }
 
-            .btn-primary {
+            .btn-primary, .btn-secondary {
                 width: 100%;
                 justify-content: center;
             }
@@ -952,6 +1119,173 @@
                 display: block;
                 overflow-x: auto;
             }
+        }
+
+        /* File Upload Styles */
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
+            color: var(--primary-dark);
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #d0d0d0 0%, #b8b8b8 100%);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .file-upload-wrapper {
+            position: relative;
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #fafafa;
+        }
+
+        .file-upload-wrapper:hover {
+            border-color: var(--accent-orange);
+            background-color: #fff5f0;
+        }
+
+        .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-upload-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-upload-content svg {
+            width: 48px;
+            height: 48px;
+            color: #999;
+        }
+
+        .file-upload-content span {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .file-upload-content small {
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            border: 1px solid #c8e6c9;
+        }
+
+        .file-info svg {
+            width: 24px;
+            height: 24px;
+            color: #4caf50;
+        }
+
+        .file-info span {
+            flex: 1;
+            color: #2e7d32;
+            font-weight: 500;
+        }
+
+        .remove-file {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: #ffebee;
+            color: #c62828;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .remove-file:hover {
+            background: #ffcdd2;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-orange) 0%, #ff9800 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        #importProgress p {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .success-message {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            border: 1px solid #c8e6c9;
+        }
+
+        .success-message svg {
+            width: 40px;
+            height: 40px;
+            color: #4caf50;
+            flex-shrink: 0;
+        }
+
+        .success-message strong {
+            color: #2e7d32;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .success-message p {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0;
         }
     </style>
 </body>
