@@ -143,8 +143,8 @@ app.get('/templates.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/templates.html'));
 });
 
-app.get('/admin/dashboard.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../src/pages/admin/dashboard.html'));
+app.get('/admin/admin.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/admin/admin.html'));
 });
 
 // Rate limiting with trust proxy for X-Forwarded-For header
