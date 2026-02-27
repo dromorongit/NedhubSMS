@@ -34,7 +34,7 @@ async function loadInitialView() {
 
         // Check if admin and redirect to admin panel
         if (user.role === 'admin' || user.role === 'super_admin') {
-            window.location.href = 'src/pages/admin/dashboard.html';
+            window.location.href = 'src/pages/admin/admin.html';
             return;
         }
 

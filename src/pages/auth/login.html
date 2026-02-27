@@ -209,7 +209,13 @@
                 } else {
                     // Login successful - store token and redirect
                     window.apiClient.setToken(result.data.token);
-                    window.location.href = '../dashboard/overview.html';
+                    
+                    // Check user role and redirect accordingly
+                    if (result.data.user && (result.data.user.role === 'admin' || result.data.user.role === 'super_admin')) {
+                        window.location.href = '../admin/admin.html';
+                    } else {
+                        window.location.href = '../dashboard/overview.html';
+                    }
                 }
             } catch (error) {
                 console.error('Login error:', error);

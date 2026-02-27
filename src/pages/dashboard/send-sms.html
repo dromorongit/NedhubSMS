@@ -341,6 +341,7 @@
                 const select = document.getElementById('senderId');
                 const senderIdNote = document.getElementById('senderIdNote');
                 let hasApproved = false;
+                let hasPending = false;
                 
                 // Clear existing options except the first one
                 while (select.options.length > 1) {
@@ -356,12 +357,14 @@
                         if (senderId.status === 'approved') {
                             select.appendChild(option);
                             hasApproved = true;
+                        } else if (senderId.status === 'pending') {
+                            hasPending = true;
                         }
                     });
                 }
                 
-                // Show note if no approved sender IDs
-                if (!hasApproved) {
+                // Show note only if there's a pending sender ID waiting for approval
+                if (hasPending) {
                     senderIdNote.style.display = 'block';
                 } else {
                     senderIdNote.style.display = 'none';
