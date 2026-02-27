@@ -14,6 +14,7 @@ const templateRoutes = require('../backend/routes/templates');
 const campaignRoutes = require('../backend/routes/campaigns');
 const adminRoutes = require('../backend/routes/admin');
 const paymentRoutes = require('../backend/routes/payments');
+const seedRoutes = require('../backend/routes/seed');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -175,6 +176,7 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/seed', seedRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
