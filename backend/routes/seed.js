@@ -17,7 +17,9 @@ router.post('/admin', async (req, res) => {
     const existingAdmin = await User.findOne({ email: adminEmail });
     
     if (existingAdmin) {
-      // Update role to super_admin
+      // Update role and password
+      const salt = await bcrypt.genSalt(10);
+      existingAdmin.password = await bcrypt.hash(adminPassword, salt);
       existingAdmin.role = 'super_admin';
       existingAdmin.status = 'active';
       await existingAdmin.save();
