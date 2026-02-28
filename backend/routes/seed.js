@@ -21,12 +21,8 @@ router.post('/admin', async (req, res) => {
     if (existingAdmin) {
       console.log('[SEED] Admin exists, ID:', existingAdmin._id, 'Current role:', existingAdmin.role);
       
-      // Update role and password
-      const salt = await bcrypt.genSalt(10);
-      const newHashedPassword = await bcrypt.hash(adminPassword, salt);
-      console.log('[SEED] New password hash:', newHashedPassword);
-      
-      existingAdmin.password = newHashedPassword;
+      // Update role - let the pre-save hook hash the password
+      existingAdmin.password = adminPassword; // Plain password - will be hashed by pre-save hook
       existingAdmin.role = 'super_admin';
       existingAdmin.status = 'active';
       await existingAdmin.save();
@@ -40,16 +36,11 @@ router.post('/admin', async (req, res) => {
 
     console.log('[SEED] Admin does not exist, creating new user');
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(adminPassword, salt);
-    console.log('[SEED] Created password hash:', hashedPassword);
-
-    // Create new admin user
+    // Let the User model's pre-save hook handle password hashing
     const adminUser = new User({
       name: adminName,
       email: adminEmail,
-      password: hashedPassword,
+      password: adminPassword, // Plain password - will be hashed by pre-save hook
       role: 'super_admin',
       status: 'active'
     });
