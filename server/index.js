@@ -148,6 +148,10 @@ app.get('/admin/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/admin/admin.html'));
 });
 
+app.get('/admin/admin.js', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/admin/admin.js'));
+});
+
 // Rate limiting with trust proxy for X-Forwarded-For header
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
