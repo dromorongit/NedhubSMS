@@ -2,6 +2,7 @@
 // Using shared api.js
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Admin panel initializing...');
     initializeAdminPanel();
 });
 
@@ -50,12 +51,16 @@ async function initializeAdminPanel() {
 }
 
 function initializeNavigation() {
+    console.log('Initializing navigation...');
     const menuItems = document.querySelectorAll('.menu-item');
+    console.log('Menu items found:', menuItems.length);
+    
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const logoutBtn = document.getElementById('logout-btn');
 
     menuItems.forEach(item => {
         item.addEventListener('click', () => {
+            console.log('Menu item clicked:', item.dataset.page);
             const page = item.dataset.page;
             navigateToPage(page);
         });
