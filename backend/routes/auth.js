@@ -46,26 +46,36 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    console.log('[AUTH] Login attempt for email:', email);
 
     // Validate input
     if (!email || !password) {
+      console.log('[AUTH] Missing email or password');
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('[AUTH] User not found:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    console.log('[AUTH] User found:', user._id, 'Role:', user.role);
+    
     // Compare passwords
     const isMatch = await user.matchPassword(password);
+    console.log('[AUTH] Password match result:', isMatch);
+    
     if (!isMatch) {
+      console.log('[AUTH] Password mismatch for user:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Generate JWT token
     const token = generateToken(user._id, user.role);
+    console.log('[AUTH] Login successful for:', email, 'Role:', user.role);
 
     res.json({ 
       token, 
@@ -79,7 +89,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
+    console.error('[AUTH] Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
