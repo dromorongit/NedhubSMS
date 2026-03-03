@@ -24,6 +24,11 @@ const walletSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  migrationFlag: {
+    type: Boolean,
+    default: false,
+    description: 'Indicates wallet has been migrated from credits to GHS'
+  },
   dailyLimit: {
     type: Number,
     default: 1000,
