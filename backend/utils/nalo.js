@@ -18,7 +18,8 @@ const sendSMS = async (senderId, recipients, message) => {
       message: message
     };
     
-    console.log('[Nalo API] Sending SMS with payload:', JSON.stringify(payload));
+    console.log('[Nalo API] URL:', `${NALO_API_URL}/send`);
+    console.log('[Nalo API] Payload:', JSON.stringify(payload));
     
     const response = await axios.post(`${NALO_API_URL}/send`, payload, {
       headers: {
@@ -26,11 +27,27 @@ const sendSMS = async (senderId, recipients, message) => {
       }
     });
     
-    console.log('[Nalo API] Response:', response.data);
-    return response.data;
+    console.log('[Nalo API] Response status:', response.status);
+    console.log('[Nalo API] Response data:', response.data);
+    
+    // Check for Nalo success status
+    if (response.data.status === '1701') {
+      return response.data;
+    } else {
+      // Nalo returned an error
+      console.error('[Nalo API] Error:', response.data.error_message || response.data);
+      throw new Error(response.data.error_message || 'Nalo API error: ' + JSON.stringify(response.data));
+    }
   } catch (error) {
-    console.error('Nalo SMS API error:', error.response?.data || error.message);
-    throw new Error('Failed to send SMS via Nalo API');
+    console.error('[Nalo SMS API Error] Full error:', error.message);
+    console.error('[Nalo SMS API Error] Response:', error.response?.data);
+    console.error('[Nalo SMS API Error] Status:', error.response?.status);
+    
+    // If we have a response from Nalo, include that in the error message
+    if (error.response?.data) {
+      throw new Error(`Nalo API error: ${JSON.stringify(error.response.data)}`);
+    }
+    throw new Error('Failed to send SMS via Nalo API: ' + error.message);
   }
 };
 
@@ -44,13 +61,11 @@ const checkBalance = async () => {
     return response.data.balance;
   } catch (error) {
     // If balance check fails, log but don't fail the SMS send
-    // The actual SMS send will fail if there's no credit
-    console.error('Nalo balance check error:', error.response?.data || error.message);
+    console.error('[Nalo balance check error]:', error.response?.data || error.message);
     
     // Return a default high balance to allow SMS sending
-    // The SMS API will reject if there's insufficient credit
-    console.warn('Nalo balance check unavailable, assuming sufficient credit');
-    return 1000; // Assume sufficient balance - SMS API will reject if insufficient
+    console.warn('[Nalo] Balance check unavailable, assuming sufficient credit');
+    return 1000;
   }
 };
 
