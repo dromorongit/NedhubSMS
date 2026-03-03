@@ -3,6 +3,7 @@ const SmsMessage = require('../models/SmsMessage');
 const WalletService = require('./WalletService');
 const CostCalculatorService = require('./CostCalculatorService');
 const FinancialSummary = require('../models/FinancialSummary');
+const SenderId = require('../models/SenderId');
 
 class NaloSmsService {
   constructor() {
@@ -41,6 +42,16 @@ class NaloSmsService {
     const { userId, msisdn, senderId, message, recipientsCount = 1 } = request;
 
     try {
+      // Step 0: Verify sender ID is approved for this user
+      const senderIdDoc = await SenderId.findOne({ userId, senderId });
+      if (!senderIdDoc || !senderIdDoc.isApproved()) {
+        return {
+          success: false,
+          error: 'Sender ID is not approved. Please wait for admin approval.',
+          code: 'SENDER_ID_NOT_APPROVED'
+        };
+      }
+
       // Step 1: Calculate financial breakdown
       const financialBreakdown = await CostCalculatorService.calculateFinancialBreakdown(
         userId,
