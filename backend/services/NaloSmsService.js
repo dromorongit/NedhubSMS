@@ -4,12 +4,13 @@ const WalletService = require('./WalletService');
 const CostCalculatorService = require('./CostCalculatorService');
 const FinancialSummary = require('../models/FinancialSummary');
 const SenderId = require('../models/SenderId');
+const Wallet = require('../models/Wallet');
 
 class NaloSmsService {
   constructor() {
     this.apiKey = process.env.NALO_API_KEY;
-    this.resellerPrefix = process.env.NALO_RESELLER_PREFIX || '';
-    this.baseUrl = 'https://sms.nalosolutions.com/smsbackend';
+    this.baseUrl = 'https://sms.nalosolutions.com';
+    this.endpoint = '/smsbackend/Resl_Nalo/send-message/';
 
     if (!this.apiKey) {
       throw new Error('NALO_API_KEY environment variable is required');
@@ -17,32 +18,121 @@ class NaloSmsService {
   }
 
   /**
-   * Validate phone number format (local or international)
+   * Convert phone number to Ghana format (233XXXXXXXXX)
+   */
+  formatPhoneNumber(msisdn) {
+    if (!msisdn) return null;
+    
+    // Remove any spaces, dashes, plus signs
+    let cleaned = msisdn.replace(/[\s\-+]/g, '');
+    
+    // If starts with 0, replace with 233
+    if (cleaned.startsWith('0')) {
+      cleaned = '233' + cleaned.substring(1);
+    }
+    
+    // If doesn't start with 233, add it
+    if (!cleaned.startsWith('233')) {
+      cleaned = '233' + cleaned;
+    }
+    
+    return cleaned;
+  }
+
+  /**
+   * Validate phone number format (Ghana format: 233XXXXXXXXX)
    */
   validateMsisdn(msisdn) {
-    // Allow local format (e.g., 0712345678) or international (e.g., +254712345678)
-    const localRegex = /^0[17]\d{8}$/; // Kenyan local format
-    const internationalRegex = /^\+254[17]\d{8}$/; // International format
-    return localRegex.test(msisdn) || internationalRegex.test(msisdn);
+    const formatted = this.formatPhoneNumber(msisdn);
+    const ghanaRegex = /^233[0-9]{9}$/;
+    return ghanaRegex.test(formatted);
   }
 
   /**
    * Validate sender ID
    */
   validateSenderId(senderId) {
-    // Max 11 characters, alphanumeric
     return /^[a-zA-Z0-9]{1,11}$/.test(senderId);
   }
 
   /**
+   * Parse Nalo response - handles both JSON and pipe-delimited string
+   */
+  parseNaloResponse(responseData) {
+    // If it's already an object, return it
+    if (typeof responseData === 'object') {
+      return responseData;
+    }
+    
+    // If it's a string, try to parse
+    if (typeof responseData === 'string') {
+      // Check if it's pipe-delimited (e.g., "1701|123456")
+      if (responseData.includes('|')) {
+        const parts = responseData.split('|');
+        return {
+          status: parts[0],
+          message_id: parts[1] || null,
+          error_message: parts[2] || null
+        };
+      }
+      
+      // Try JSON parsing
+      try {
+        return JSON.parse(responseData);
+      } catch (e) {
+        // Return as-is
+        return { status: responseData };
+      }
+    }
+    
+    return { status: 'unknown' };
+  }
+
+  /**
+   * Refund wallet after failed SMS
+   */
+  async refundWallet(userId, amount, description) {
+    try {
+      await Wallet.findOneAndUpdate(
+        { userId },
+        { 
+          $inc: { balance: amount },
+          $set: { updatedAt: new Date() }
+        }
+      );
+      console.log(`[NaloSmsService] Wallet refunded: ${amount} GHS for user ${userId}`);
+    } catch (error) {
+      console.error('[NaloSmsService] Wallet refund failed:', error.message);
+    }
+  }
+
+  /**
    * Send SMS using Nalo API with full financial tracking
-   * This is the main method that integrates wallet deduction and financial logging
    */
   async sendSmsWithFinancialTracking(request) {
     const { userId, msisdn, senderId, message, recipientsCount = 1 } = request;
 
     try {
-      // Step 0: Verify sender ID is approved for this user
+      // Validate phone number
+      const formattedMsisdn = this.formatPhoneNumber(msisdn);
+      if (!this.validateMsisdn(msisdn)) {
+        return {
+          success: false,
+          error: 'Invalid phone number format. Use Ghana format: 233XXXXXXXXX',
+          code: 'INVALID_PHONE_NUMBER'
+        };
+      }
+
+      // Validate sender ID
+      if (!this.validateSenderId(senderId)) {
+        return {
+          success: false,
+          error: 'Invalid sender ID: must be alphanumeric, max 11 characters',
+          code: 'INVALID_SENDER_ID'
+        };
+      }
+
+      // Verify sender ID is approved
       const senderIdDoc = await SenderId.findOne({ userId, senderId });
       if (!senderIdDoc || !senderIdDoc.isApproved()) {
         return {
@@ -52,7 +142,7 @@ class NaloSmsService {
         };
       }
 
-      // Step 1: Calculate financial breakdown
+      // Calculate financial breakdown
       const financialBreakdown = await CostCalculatorService.calculateFinancialBreakdown(
         userId,
         message,
@@ -61,7 +151,7 @@ class NaloSmsService {
 
       console.log('[NaloSmsService] Financial breakdown:', JSON.stringify(financialBreakdown));
 
-      // Step 2: Check wallet balance
+      // Check wallet balance
       const hasSufficientBalance = await WalletService.hasSufficientBalance(
         userId,
         financialBreakdown.totalChargedToUser
@@ -76,7 +166,7 @@ class NaloSmsService {
         };
       }
 
-      // Step 3: Atomically deduct from wallet
+      // Deduct from wallet FIRST (wallet protection rule)
       const deductionResult = await WalletService.deductGhsForSms(
         userId,
         financialBreakdown,
@@ -85,12 +175,11 @@ class NaloSmsService {
 
       console.log('[NaloSmsService] Wallet deducted:', deductionResult.amountDeducted);
 
-      // Step 4: Send SMS via Nalo API
+      // Send SMS via Nalo API
       const payload = {
-        api_key: this.apiKey,
-        reseller_prefix: this.resellerPrefix,
+        key: this.apiKey,
+        msisdn: formattedMsisdn,
         sender_id: senderId,
-        msisdn: msisdn,
         message: message.trim()
       };
 
@@ -98,71 +187,92 @@ class NaloSmsService {
       let smsStatus = 'pending';
       let errorCode = null;
       let errorMessage = null;
+      let jobId = null;
 
       try {
-        const response = await axios.post(`${this.baseUrl}/send`, payload, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        console.log('[NaloSmsService] Sending to:', `${this.baseUrl}${this.endpoint}`);
+        console.log('[NaloSmsService] Payload:', { ...payload, key: '***' }); // Hide API key in logs
 
-        naloResponse = response.data;
-        smsStatus = naloResponse.status === '1701' ? 'sent' : 'failed';
-        errorCode = naloResponse.error_code;
-        errorMessage = naloResponse.error_message;
+        const response = await axios.post(
+          `${this.baseUrl}${this.endpoint}`,
+          payload,
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 15000,
+            validateStatus: (status) => status === 200
+          }
+        );
+
+        console.log('[NaloSmsService] Raw response:', response.data);
+        
+        naloResponse = this.parseNaloResponse(response.data);
+        console.log('[NaloSmsService] Parsed response:', naloResponse);
+
+        // Check for success (1701)
+        if (naloResponse.status === '1701') {
+          smsStatus = 'sent';
+          jobId = naloResponse.message_id || naloResponse.job_id || `nalo-${Date.now()}`;
+        } else {
+          smsStatus = 'failed';
+          errorCode = naloResponse.status;
+          errorMessage = naloResponse.error_message || this.mapErrorCode(naloResponse.status);
+          
+          // Refund wallet on failure
+          await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
+        }
 
       } catch (apiError) {
         console.error('[NaloSmsService] API Error:', apiError.message);
         smsStatus = 'failed';
         errorMessage = apiError.message;
-        naloResponse = { error: apiError.message };
+        
+        // Refund wallet on API error
+        await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund');
       }
 
-      // Step 5: Create SMS record with financial fields
-      const smsMessage = {
+      // Create SMS record
+      const smsMessageData = {
         userId: userId,
-        msisdn: msisdn,
+        msisdn: formattedMsisdn,
         senderId: senderId,
         message: message.trim(),
         provider: 'nalo',
-        jobId: naloResponse?.message_id || `local-${Date.now()}`,
+        jobId: jobId || `failed-${Date.now()}`,
         status: smsStatus,
         errorCode: errorCode,
         errorMessage: errorMessage,
-        // Financial tracking fields
         sellPricePerSms: financialBreakdown.sellPricePerSms,
         providerCostPerSms: financialBreakdown.providerCostPerSms,
         segments: financialBreakdown.segments,
         recipientsCount: recipientsCount,
-        totalChargedToUser: financialBreakdown.totalChargedToUser,
+        totalChargedToUser: smsStatus === 'sent' ? financialBreakdown.totalChargedToUser : 0,
         totalCostToProvider: financialBreakdown.totalCostToProvider,
-        profitAmount: financialBreakdown.profitAmount
+        profitAmount: smsStatus === 'sent' ? financialBreakdown.profitAmount : 0
       };
 
-      const savedMessage = await SmsMessage.create(smsMessage);
+      const savedMessage = await SmsMessage.create(smsMessageData);
 
-      // Step 6: Update monthly financial summary
-      try {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        
-        await FinancialSummary.addTransaction(
-          'monthly',
-          startOfMonth,
-          userId,
-          financialBreakdown.totalChargedToUser,
-          financialBreakdown.totalCostToProvider,
-          0, // gatewayFee (0 for SMS sending)
-          1, // smsCount
-          recipientsCount,
-          financialBreakdown.segments
-        );
-      } catch (summaryError) {
-        console.error('[NaloSmsService] Error updating financial summary:', summaryError.message);
-        // Don't fail the SMS send if summary update fails
-      }
-
+      // Update monthly financial summary only on success
       if (smsStatus === 'sent') {
+        try {
+          const now = new Date();
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          
+          await FinancialSummary.addTransaction(
+            'monthly',
+            startOfMonth,
+            userId,
+            financialBreakdown.totalChargedToUser,
+            financialBreakdown.totalCostToProvider,
+            0,
+            1,
+            recipientsCount,
+            financialBreakdown.segments
+          );
+        } catch (summaryError) {
+          console.error('[NaloSmsService] Error updating financial summary:', summaryError.message);
+        }
+
         return {
           success: true,
           messageId: savedMessage._id.toString(),
@@ -177,9 +287,9 @@ class NaloSmsService {
       } else {
         return {
           success: false,
-          error: errorMessage || this.mapErrorCode(errorCode),
+          error: errorMessage,
           messageId: savedMessage._id.toString(),
-          code: 'SMS_SEND_FAILED'
+          code: errorCode || 'SMS_SEND_FAILED'
         };
       }
 
@@ -194,84 +304,6 @@ class NaloSmsService {
   }
 
   /**
-   * Send SMS using Nalo API (legacy method without financial tracking)
-   * @deprecated Use sendSmsWithFinancialTracking instead
-   */
-  async sendSms(request) {
-    try {
-      const { userId, msisdn, senderId, message } = request;
-
-      // Validate inputs
-      if (!msisdn || !this.validateMsisdn(msisdn)) {
-        throw new Error('Invalid MSISDN format');
-      }
-
-      if (!senderId || !this.validateSenderId(senderId)) {
-        throw new Error('Invalid sender ID: must be alphanumeric, max 11 characters');
-      }
-
-      if (!message || message.trim().length === 0) {
-        throw new Error('Message cannot be empty');
-      }
-
-      // Prepare payload
-      const payload = {
-        api_key: this.apiKey,
-        reseller_prefix: this.resellerPrefix,
-        sender_id: senderId,
-        msisdn: msisdn,
-        message: message.trim()
-      };
-
-      // Send request to Nalo API
-      const response = await axios.post(`${this.baseUrl}/send`, payload, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const naloResponse = response.data;
-
-      // Create SMS record
-      const smsMessage = {
-        userId: userId,
-        msisdn: msisdn,
-        senderId: senderId,
-        message: message.trim(),
-        provider: 'nalo',
-        jobId: naloResponse.message_id,
-        status: naloResponse.status === '1701' ? 'sent' : 'failed',
-        errorCode: naloResponse.error_code,
-        errorMessage: naloResponse.error_message
-      };
-
-      const savedMessage = await SmsMessage.create(smsMessage);
-
-      if (naloResponse.status === '1701') {
-        return { success: true, messageId: savedMessage._id.toString() };
-      } else {
-        return { success: false, error: this.mapErrorCode(naloResponse.error_code || naloResponse.status) };
-      }
-
-    } catch (error) {
-      console.error('Nalo SMS send error:', error.message);
-
-      // Still log the attempt
-      await SmsMessage.create({
-        userId: request.userId,
-        msisdn: request.msisdn,
-        senderId: request.senderId,
-        message: request.message.trim(),
-        provider: 'nalo',
-        status: 'failed',
-        errorMessage: error.message
-      });
-
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
    * Handle delivery report callback from Nalo
    */
   async handleDeliveryReport(payload) {
@@ -282,14 +314,12 @@ class NaloSmsService {
         throw new Error('Missing job_id in callback payload');
       }
 
-      // Find the SMS message by jobId
       const smsMessage = await SmsMessage.findOne({ jobId: job_id });
       if (!smsMessage) {
         throw new Error(`SMS message with job_id ${job_id} not found`);
       }
 
-      // Update status
-      let updateData = { status: 'delivered' }; // Default to delivered
+      let updateData = { status: 'delivered' };
 
       if (status === 'delivered' || status === 'DELIVERED') {
         updateData.status = 'delivered';
@@ -318,9 +348,10 @@ class NaloSmsService {
       '1701': 'Success',
       '1702': 'Missing parameters',
       '1703': 'Authentication failed',
-      '1706': 'Invalid destination',
+      '1706': 'Invalid destination number',
       '1707': 'Invalid sender ID',
-      '1025': 'Insufficient balance'
+      '1025': 'Insufficient credit at provider',
+      '1710': 'Internal provider error'
     };
 
     return errorMap[code] || `Unknown error: ${code}`;
