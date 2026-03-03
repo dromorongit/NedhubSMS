@@ -144,6 +144,20 @@ async function migrateWalletToGhs() {
     console.log(`[Migration]   - Wallets migrated: ${migratedCount}`);
     console.log(`[Migration]   - Wallets skipped (already migrated): ${skippedCount}`);
     console.log(`[Migration]   - Wallets failed: ${failedCount}`);
+    
+    // Also migrate transactions to GHS
+    console.log('\n[Migration] Migrating transactions...');
+    const transactions = await Transaction.find({});
+    let txMigrated = 0;
+    for (const tx of transactions) {
+      // Convert transaction amounts
+      tx.amount = Math.round((tx.amount / 100) * 100) / 100;
+      tx.balanceBefore = Math.round((tx.balanceBefore / 100) * 100) / 100;
+      tx.balanceAfter = Math.round((tx.balanceAfter / 100) * 100) / 100;
+      await tx.save();
+      txMigrated++;
+    }
+    console.log(`[Migration]   - Transactions migrated: ${txMigrated}`);
     console.log('[Migration] ======================================');
     
     // Mark migration as completed
