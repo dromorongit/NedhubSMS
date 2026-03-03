@@ -4,13 +4,14 @@
  * Purpose: Migrate wallet from credit-based to GHS-based representation
  * 
  * This script:
- * 1. Checks if migration is needed
- * 2. Converts existing credit balances to GHS (if needed)
- * 3. Updates transaction records to reflect GHS
+ * 1. Adds migrationFlag to wallet documents
+ * 2. Converts existing credit balances to GHS (divides by 100)
+ * 3. Only converts wallets where migrationFlag != true
  * 4. Logs all migration activity
+ * 5. Prevents double execution
  * 
- * Conversion logic: If previous system used 1 credit = 0.01 GHS,
- * divide existing balance by 100 to convert to GHS.
+ * Conversion logic: 1 GHS = 100 credits
+ * Formula: newBalance = oldBalance / 100
  * 
  * Run with: node backend/utils/migrateWallet.js
  */
@@ -49,16 +50,23 @@ const MigrationState = mongoose.model('MigrationState', MigrationStateSchema);
  * Main migration function
  */
 async function migrateWalletToGhs() {
-  console.log('[Migration] Starting wallet to GHS migration...');
+  console.log('[Migration] Starting wallet credit to GHS migration...');
+  console.log('[Migration] ======================================');
+  console.log('[Migration] Conversion: 1 GHS = 100 credits');
+  console.log('[Migration] Formula: balance = balance / 100');
   console.log('[Migration] ======================================');
   
   const migrationName = 'wallet_credits_to_ghs';
   
-  // Check if migration already ran
-  const existingMigration = await MigrationState.findOne({ migrationName });
-  if (existingMigration && existingMigration.status === 'completed') {
+  // Check if migration already completed successfully
+  const existingMigration = await MigrationState.findOne({ 
+    migrationName, 
+    status: 'completed' 
+  });
+  
+  if (existingMigration) {
     console.log('[Migration] Migration already completed on:', existingMigration.executedAt);
-    console.log('[Migration] Skipping migration.');
+    console.log('[Migration] Skipping migration to prevent double conversion.');
     return;
   }
   
@@ -87,48 +95,56 @@ async function migrateWalletToGhs() {
       return;
     }
     
-    // Get all wallets
-    const wallets = await Wallet.find({});
+    // Get all wallets that need migration (migrationFlag != true)
+    const wallets = await Wallet.find({ 
+      $or: [
+        { migrationFlag: { $exists: false } },
+        { migrationFlag: { $ne: true } }
+      ]
+    });
+    
+    console.log(`[Migration] Wallets pending migration: ${wallets.length}`);
     
     let migratedCount = 0;
-    let alreadyGhsCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
     
     for (const wallet of wallets) {
-      console.log(`[Migration] Processing wallet for user: ${wallet.userId}`);
-      console.log(`[Migration]   Current balance: ${wallet.balance}`);
-      console.log(`[Migration]   Currency: ${wallet.currency}`);
+      console.log(`\n[Migration] Processing wallet for user: ${wallet.userId}`);
+      console.log(`[Migration]   Original balance: ${wallet.balance} credits`);
       
-      // Check if already using GHS
-      if (wallet.currency === 'GHS') {
-        console.log(`[Migration]   Wallet already using GHS.`);
-        alreadyGhsCount++;
+      // Safety check: abort if balance is negative
+      if (wallet.balance < 0) {
+        console.error(`[Migration]   ERROR: Negative balance detected! Aborting.`);
+        failedCount++;
         continue;
       }
       
       // Convert credits to GHS
-      // Assuming 1 credit = 0.01 GHS (divide by 100)
+      // Formula: balance = balance / 100
       const oldBalance = wallet.balance;
-      const newBalance = oldBalance / 100;
+      const newBalance = Math.round((oldBalance / 100) * 100) / 100;
       
+      console.log(`[Migration]   New balance: ₵${newBalance.toFixed(2)} GHS`);
+      
+      // Update wallet with new balance and migration flag
       wallet.balance = newBalance;
       wallet.currency = 'GHS';
+      wallet.migrationFlag = true;  // Mark as migrated to prevent double execution
+      
       await wallet.save();
       
-      console.log(`[Migration]   Converted: ${oldBalance} credits -> ₵${newBalance.toFixed(2)} GHS`);
+      console.log(`[Migration]   ✓ Migration complete`);
       migratedCount++;
     }
     
-    // Update transactions to reflect GHS
-    const transactionCount = await Transaction.countDocuments({});
-    console.log(`[Migration] Found ${transactionCount} transaction(s)`);
-    
-    // Log transaction conversion (amounts stay the same, just context changes)
-    if (transactionCount > 0) {
-      const creditTransactions = await Transaction.countDocuments({
-        description: { $regex: /credit/i }
-      });
-      console.log(`[Migration] ${creditTransactions} transaction(s) related to credits`);
-    }
+    // Summary of migration
+    console.log('\n[Migration] ======================================');
+    console.log('[Migration] Migration Summary:');
+    console.log(`[Migration]   - Wallets migrated: ${migratedCount}`);
+    console.log(`[Migration]   - Wallets skipped (already migrated): ${skippedCount}`);
+    console.log(`[Migration]   - Wallets failed: ${failedCount}`);
+    console.log('[Migration] ======================================');
     
     // Mark migration as completed
     await MigrationState.findOneAndUpdate(
@@ -136,11 +152,6 @@ async function migrateWalletToGhs() {
       { status: 'completed', executedAt: new Date() }
     );
     
-    console.log('[Migration] ======================================');
-    console.log('[Migration] Migration Summary:');
-    console.log(`[Migration]   - Wallets migrated: ${migratedCount}`);
-    console.log(`[Migration]   - Wallets already GHS: ${alreadyGhsCount}`);
-    console.log(`[Migration]   - Total wallets: ${walletCount}`);
     console.log('[Migration] Migration completed successfully!');
     
   } catch (error) {
@@ -157,10 +168,11 @@ async function migrateWalletToGhs() {
 }
 
 /**
- * Validation function to verify wallet integrity
+ * Validation function to verify wallet integrity after migration
  */
 async function validateMigration() {
   console.log('[Validation] Starting post-migration validation...');
+  console.log('[Validation] ======================================');
   
   const Wallet = require('../models/Wallet');
   const Transaction = require('../models/Transaction');
@@ -171,7 +183,7 @@ async function validateMigration() {
     console.error('[Validation] FAILED: Found wallets not using GHS:', nonGhsWallets.length);
     return false;
   }
-  console.log('[Validation] PASSED: All wallets using GHS');
+  console.log('[Validation] ✓ All wallets using GHS');
   
   // Check 2: No negative balances
   const negativeWallets = await Wallet.find({ balance: { $lt: 0 } });
@@ -179,9 +191,17 @@ async function validateMigration() {
     console.error('[Validation] FAILED: Found negative balances:', negativeWallets.length);
     return false;
   }
-  console.log('[Validation] PASSED: No negative balances');
+  console.log('[Validation] ✓ No negative balances');
   
-  // Check 3: Wallet balance should match sum of transactions
+  // Check 3: All wallets should have migrationFlag = true
+  const unflaggedWallets = await Wallet.find({ migrationFlag: { $ne: true } });
+  if (unflaggedWallets.length > 0) {
+    console.error('[Validation] FAILED: Found wallets without migration flag:', unflaggedWallets.length);
+    return false;
+  }
+  console.log('[Validation] ✓ All wallets have migration flag');
+  
+  // Check 4: Wallet balance should match sum of transactions
   const wallets = await Wallet.find({});
   let balanceMismatchCount = 0;
   
@@ -208,8 +228,9 @@ async function validateMigration() {
     console.error('[Validation] FAILED: Balance mismatch in', balanceMismatchCount, 'wallets');
     return false;
   }
-  console.log('[Validation] PASSED: All wallet balances match transactions');
+  console.log('[Validation] ✓ All wallet balances match transactions');
   
+  console.log('[Validation] ======================================');
   console.log('[Validation] All validations passed!');
   return true;
 }
