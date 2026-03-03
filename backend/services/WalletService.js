@@ -102,13 +102,13 @@ class WalletService {
   }
 
   /**
-   * Deduct credits from wallet for SMS sending with financial tracking
+   * Deduct GHS from wallet for SMS sending with financial tracking
    * @param {string} userId - User ID
    * @param {Object} financialBreakdown - Financial breakdown from CostCalculatorService
    * @param {string} description - Transaction description
    * @returns {Object} - Deduct result with updated balance and transaction
    */
-  async deductCreditsForSms(userId, financialBreakdown, description) {
+  async deductGhsForSms(userId, financialBreakdown, description) {
     const { totalChargedToUser, segments, recipientsCount } = financialBreakdown;
     
     // Get current wallet
@@ -156,7 +156,7 @@ class WalletService {
     
     await transaction.save();
     
-    console.log(`[WalletService] SMS credits deducted: ${userId}, amount: ${totalChargedToUser}, segments: ${segments}, new balance: ${balanceBefore - totalChargedToUser}`);
+    console.log(`[WalletService] SMS GHS deducted: ${userId}, amount: ${totalChargedToUser}, segments: ${segments}, new balance: ${balanceBefore - totalChargedToUser}`);
     
     return {
       success: true,

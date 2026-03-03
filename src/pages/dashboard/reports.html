@@ -151,9 +151,9 @@
                             </svg>
                         </div>
                         <div class="stat-content">
-                            <h3>Credits Used</h3>
+                            <h3>Messages Sent</h3>
                             <p class="stat-value" id="creditsUsed">0</p>
-                            <span class="stat-label">total credits</span>
+                            <span class="stat-label">this month</span>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -338,7 +338,7 @@
             document.getElementById('totalSent').textContent = totalSent.toLocaleString();
             document.getElementById('deliveryRate').textContent = deliveryRate + '%';
             document.getElementById('creditsUsed').textContent = totalSent.toLocaleString();
-            document.getElementById('estCost').textContent = 'GHS ' + (totalSent * 0.01).toFixed(2);
+            document.getElementById('estCost').textContent = '₵ ' + (financialSummary.totalRevenue || 0).toFixed(2);
 
             // Update delivery chart legend
             document.getElementById('deliveredCount').textContent = delivered;

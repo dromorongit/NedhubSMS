@@ -25,12 +25,12 @@ router.post('/send', authenticate, async (req, res) => {
     // Calculate SMS cost
     const cost = calculateSMSCost(message, recipients.length);
 
-    // Check wallet balance and deduct credits
+    // Check wallet balance and deduct GHS
     try {
       await deductCredits(userId, cost, `SMS send: ${recipients.length} recipients`);
     } catch (error) {
       if (error.message === 'Insufficient balance') {
-        return res.status(402).json({ error: 'Insufficient SMS credits' });
+        return res.status(402).json({ error: 'Insufficient wallet balance' });
       }
       if (error.message === 'Daily SMS limit reached') {
         return res.status(429).json({ error: 'Daily SMS limit reached' });

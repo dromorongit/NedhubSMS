@@ -5,7 +5,7 @@ const Wallet = require('../models/Wallet');
 const Message = require('../models/Message');
 const Transaction = require('../models/Transaction');
 
-// Get wallet balance with SMS credits
+// Get wallet balance with SMS balance
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -22,8 +22,7 @@ router.get('/', authenticate, async (req, res) => {
 
     res.json({
       balance,
-      smsBalance: balance,
-      currency: 'credits',
+      currency: 'GHS',
       stats: {
         totalSent,
         deliveryRate

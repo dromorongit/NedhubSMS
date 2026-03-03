@@ -66,7 +66,7 @@ class NaloSmsService {
       }
 
       // Step 3: Atomically deduct from wallet
-      const deductionResult = await WalletService.deductCreditsForSms(
+      const deductionResult = await WalletService.deductGhsForSms(
         userId,
         financialBreakdown,
         `SMS to ${recipientsCount} recipient(s), ${financialBreakdown.segments} segment(s)`
@@ -309,7 +309,7 @@ class NaloSmsService {
       '1703': 'Authentication failed',
       '1706': 'Invalid destination',
       '1707': 'Invalid sender ID',
-      '1025': 'Insufficient credit'
+      '1025': 'Insufficient balance'
     };
 
     return errorMap[code] || `Unknown error: ${code}`;
