@@ -5,7 +5,7 @@ const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 
 const hubtelService = new HubtelPaymentService();
-const walletService = new WalletService();
+const walletService = WalletService;
 
 // Credit to GHS conversion rate (1 GHS = 100 credits)
 const CREDITS_PER_GHS = 100;
