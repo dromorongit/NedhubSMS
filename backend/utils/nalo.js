@@ -1,18 +1,32 @@
 const axios = require('axios');
 
 const NALO_API_KEY = process.env.NALO_API_KEY;
+const NALO_RESELLER_PREFIX = process.env.NALO_RESELLER_PREFIX || '';
 // Use the same base URL as NaloSmsService
 const NALO_API_URL = process.env.NALO_API_URL || 'https://sms.nalosolutions.com/smsbackend';
 
 const sendSMS = async (senderId, recipients, message) => {
   try {
-    const response = await axios.post(`${NALO_API_URL}/send`, {
+    // Handle both single recipient and array of recipients
+    const msisdn = Array.isArray(recipients) ? recipients[0] : recipients;
+    
+    const payload = {
       api_key: NALO_API_KEY,
+      reseller_prefix: NALO_RESELLER_PREFIX,
       sender_id: senderId,
-      recipients: recipients,
+      msisdn: msisdn,
       message: message
+    };
+    
+    console.log('[Nalo API] Sending SMS with payload:', JSON.stringify(payload));
+    
+    const response = await axios.post(`${NALO_API_URL}/send`, payload, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
     
+    console.log('[Nalo API] Response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Nalo SMS API error:', error.response?.data || error.message);
