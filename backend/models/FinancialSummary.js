@@ -146,7 +146,7 @@ financialSummarySchema.statics.addTransaction = async function(
   smsCount = 0,
   recipientsCount = 0,
   segments = 0
-) => {
+) {
   const summary = await this.getOrCreateSummary(period, periodStart, userId);
   
   summary.totalSmsSent += smsCount;
