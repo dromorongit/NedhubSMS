@@ -61,6 +61,7 @@ body {
     max-width: 180px;
     height: auto;
     display: inline-block;
+    filter: brightness(0) invert(1); /* Makes logo white */
 }
 
 .sidebar-header h2 {
