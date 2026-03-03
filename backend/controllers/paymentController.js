@@ -7,9 +7,6 @@ const User = require('../models/User');
 const hubtelService = new HubtelPaymentService();
 const walletService = WalletService;
 
-// Credit to GHS conversion rate (1 GHS = 100 credits)
-const CREDITS_PER_GHS = 100;
-
 // Gateway fee configuration (percentage)
 // Hubtel typically charges 1.5% for mobile money, 2.5% for cards
 const GATEWAY_FEE_RATES = {
@@ -133,8 +130,6 @@ const initiatePayment = async (req, res) => {
  * @returns {boolean} - True if wallet was credited, false if already credited
  */
 async function creditWalletIfNeeded(payment) {
-  const creditsToAdd = Math.floor(payment.amount * CREDITS_PER_GHS);
-  
   // Check if wallet was already credited for this payment
   const existingTransaction = await Transaction.findOne({ 
     reference: `PAYMENT-${payment.clientReference}` 
@@ -156,16 +151,16 @@ async function creditWalletIfNeeded(payment) {
   payment.grossAmountPaid = payment.amount;
   await payment.save();
   
-  // Credit the wallet with the full gross amount (gateway fees absorbed by platform)
+  // Credit the wallet with the GHS amount directly (gateway fees absorbed by platform)
   try {
     await walletService.creditWalletWithReference(
       payment.userId,
-      creditsToAdd,
+      payment.amount, // Credit directly in GHS
       `Wallet top-up via Hubtel (${payment.amount} GHS)`,
       `PAYMENT-${payment.clientReference}`,
       null
     );
-    console.log(`[Payment] Wallet credited: ${payment.userId}, credits: ${creditsToAdd}, gatewayFee: ${estimatedGatewayFee.toFixed(2)} GHS`);
+    console.log(`[Payment] Wallet credited: ${payment.userId}, amount: ${payment.amount} GHS, gatewayFee: ${estimatedGatewayFee.toFixed(2)} GHS`);
     return true;
   } catch (walletError) {
     console.error('[Payment] Failed to credit wallet:', walletError);

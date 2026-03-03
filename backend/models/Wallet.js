@@ -11,7 +11,14 @@ const walletSchema = new mongoose.Schema({
     type: Number,
     required: true,
     default: 0,
-    min: [0, 'Balance cannot be negative']
+    min: [0, 'Balance cannot be negative'],
+    description: 'Wallet balance in GHS'
+  },
+  currency: {
+    type: String,
+    default: 'GHS',
+    enum: ['GHS'],
+    description: 'Currency code - Ghana Cedis'
   },
   frozen: {
     type: Boolean,
@@ -20,22 +27,26 @@ const walletSchema = new mongoose.Schema({
   dailyLimit: {
     type: Number,
     default: 1000,
-    min: [0, 'Daily limit cannot be negative']
+    min: [0, 'Daily limit cannot be negative'],
+    description: 'Daily SMS limit (number of SMS)'
   },
   monthlyLimit: {
     type: Number,
     default: 10000,
-    min: [0, 'Monthly limit cannot be negative']
+    min: [0, 'Monthly limit cannot be negative'],
+    description: 'Monthly SMS limit (number of SMS)'
   },
   dailyUsage: {
     type: Number,
     default: 0,
-    min: [0, 'Daily usage cannot be negative']
+    min: [0, 'Daily usage cannot be negative'],
+    description: 'SMS sent today'
   },
   monthlyUsage: {
     type: Number,
     default: 0,
-    min: [0, 'Monthly usage cannot be negative']
+    min: [0, 'Monthly usage cannot be negative'],
+    description: 'SMS sent this month'
   },
   lastReset: {
     type: Date,
