@@ -10,6 +10,24 @@ const walletService = new WalletService();
 // Credit to GHS conversion rate (1 GHS = 100 credits)
 const CREDITS_PER_GHS = 100;
 
+// Gateway fee configuration (percentage)
+// Hubtel typically charges 1.5% for mobile money, 2.5% for cards
+const GATEWAY_FEE_RATES = {
+  mobile_money: 0.015,  // 1.5%
+  bank_card: 0.025,     // 2.5%
+  hubtel_wallet: 0.01,  // 1%
+  ghqr: 0.015,         // 1.5%
+  unknown: 0.02        // 2% default
+};
+
+// Calculate gateway fee based on payment method and amount
+function calculateGatewayFee(paymentMethod, amount) {
+  const rate = GATEWAY_FEE_RATES[paymentMethod] || GATEWAY_FEE_RATES.unknown;
+  const fee = amount * rate;
+  // Hubtel has minimum fees, ensure we don't go below
+  return Math.max(fee, 0.50); // Minimum 0.50 GHS fee
+}
+
 /**
  * Initiate a payment for wallet top-up
  * POST /api/payments/initiate
@@ -127,7 +145,18 @@ async function creditWalletIfNeeded(payment) {
     return false;
   }
   
-  // Credit the wallet
+  // Calculate gateway fee (estimate based on amount)
+  // In production, this would come from actual Hubtel response
+  const estimatedGatewayFee = calculateGatewayFee(payment.paymentMethod || 'unknown', payment.amount);
+  const netAmount = payment.amount - estimatedGatewayFee;
+  
+  // Update payment with gateway fee information
+  payment.gatewayFeeEstimated = estimatedGatewayFee;
+  payment.netAmountReceived = netAmount;
+  payment.grossAmountPaid = payment.amount;
+  await payment.save();
+  
+  // Credit the wallet with the full gross amount (gateway fees absorbed by platform)
   try {
     await walletService.creditWalletWithReference(
       payment.userId,
@@ -136,7 +165,7 @@ async function creditWalletIfNeeded(payment) {
       `PAYMENT-${payment.clientReference}`,
       null
     );
-    console.log(`[Payment] Wallet credited: ${payment.userId}, credits: ${creditsToAdd}`);
+    console.log(`[Payment] Wallet credited: ${payment.userId}, credits: ${creditsToAdd}, gatewayFee: ${estimatedGatewayFee.toFixed(2)} GHS`);
     return true;
   } catch (walletError) {
     console.error('[Payment] Failed to credit wallet:', walletError);

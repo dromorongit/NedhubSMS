@@ -1,5 +1,8 @@
 const axios = require('axios');
 const SmsMessage = require('../models/SmsMessage');
+const WalletService = require('./WalletService');
+const CostCalculatorService = require('./CostCalculatorService');
+const FinancialSummary = require('../models/FinancialSummary');
 
 class NaloSmsService {
   constructor() {
@@ -31,7 +34,157 @@ class NaloSmsService {
   }
 
   /**
-   * Send SMS using Nalo API
+   * Send SMS using Nalo API with full financial tracking
+   * This is the main method that integrates wallet deduction and financial logging
+   */
+  async sendSmsWithFinancialTracking(request) {
+    const { userId, msisdn, senderId, message, recipientsCount = 1 } = request;
+
+    try {
+      // Step 1: Calculate financial breakdown
+      const financialBreakdown = await CostCalculatorService.calculateFinancialBreakdown(
+        userId,
+        message,
+        recipientsCount
+      );
+
+      console.log('[NaloSmsService] Financial breakdown:', JSON.stringify(financialBreakdown));
+
+      // Step 2: Check wallet balance
+      const hasSufficientBalance = await WalletService.hasSufficientBalance(
+        userId,
+        financialBreakdown.totalChargedToUser
+      );
+
+      if (!hasSufficientBalance) {
+        return {
+          success: false,
+          error: 'Insufficient wallet balance',
+          required: financialBreakdown.totalChargedToUser,
+          code: 'INSUFFICIENT_BALANCE'
+        };
+      }
+
+      // Step 3: Atomically deduct from wallet
+      const deductionResult = await WalletService.deductCreditsForSms(
+        userId,
+        financialBreakdown,
+        `SMS to ${recipientsCount} recipient(s), ${financialBreakdown.segments} segment(s)`
+      );
+
+      console.log('[NaloSmsService] Wallet deducted:', deductionResult.amountDeducted);
+
+      // Step 4: Send SMS via Nalo API
+      const payload = {
+        api_key: this.apiKey,
+        reseller_prefix: this.resellerPrefix,
+        sender_id: senderId,
+        msisdn: msisdn,
+        message: message.trim()
+      };
+
+      let naloResponse;
+      let smsStatus = 'pending';
+      let errorCode = null;
+      let errorMessage = null;
+
+      try {
+        const response = await axios.post(`${this.baseUrl}/send`, payload, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        naloResponse = response.data;
+        smsStatus = naloResponse.status === '1701' ? 'sent' : 'failed';
+        errorCode = naloResponse.error_code;
+        errorMessage = naloResponse.error_message;
+
+      } catch (apiError) {
+        console.error('[NaloSmsService] API Error:', apiError.message);
+        smsStatus = 'failed';
+        errorMessage = apiError.message;
+        naloResponse = { error: apiError.message };
+      }
+
+      // Step 5: Create SMS record with financial fields
+      const smsMessage = {
+        userId: userId,
+        msisdn: msisdn,
+        senderId: senderId,
+        message: message.trim(),
+        provider: 'nalo',
+        jobId: naloResponse?.message_id || `local-${Date.now()}`,
+        status: smsStatus,
+        errorCode: errorCode,
+        errorMessage: errorMessage,
+        // Financial tracking fields
+        sellPricePerSms: financialBreakdown.sellPricePerSms,
+        providerCostPerSms: financialBreakdown.providerCostPerSms,
+        segments: financialBreakdown.segments,
+        recipientsCount: recipientsCount,
+        totalChargedToUser: financialBreakdown.totalChargedToUser,
+        totalCostToProvider: financialBreakdown.totalCostToProvider,
+        profitAmount: financialBreakdown.profitAmount
+      };
+
+      const savedMessage = await SmsMessage.create(smsMessage);
+
+      // Step 6: Update monthly financial summary
+      try {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        
+        await FinancialSummary.addTransaction(
+          'monthly',
+          startOfMonth,
+          userId,
+          financialBreakdown.totalChargedToUser,
+          financialBreakdown.totalCostToProvider,
+          0, // gatewayFee (0 for SMS sending)
+          1, // smsCount
+          recipientsCount,
+          financialBreakdown.segments
+        );
+      } catch (summaryError) {
+        console.error('[NaloSmsService] Error updating financial summary:', summaryError.message);
+        // Don't fail the SMS send if summary update fails
+      }
+
+      if (smsStatus === 'sent') {
+        return {
+          success: true,
+          messageId: savedMessage._id.toString(),
+          jobId: savedMessage.jobId,
+          financial: {
+            charged: financialBreakdown.totalChargedToUser,
+            cost: financialBreakdown.totalCostToProvider,
+            profit: financialBreakdown.profitAmount,
+            segments: financialBreakdown.segments
+          }
+        };
+      } else {
+        return {
+          success: false,
+          error: errorMessage || this.mapErrorCode(errorCode),
+          messageId: savedMessage._id.toString(),
+          code: 'SMS_SEND_FAILED'
+        };
+      }
+
+    } catch (error) {
+      console.error('[NaloSmsService] Error:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        code: 'INTERNAL_ERROR'
+      };
+    }
+  }
+
+  /**
+   * Send SMS using Nalo API (legacy method without financial tracking)
+   * @deprecated Use sendSmsWithFinancialTracking instead
    */
   async sendSms(request) {
     try {

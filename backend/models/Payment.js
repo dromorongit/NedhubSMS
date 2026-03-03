@@ -68,6 +68,25 @@ const paymentSchema = new mongoose.Schema({
   failureReason: {
     type: String
   },
+  // Financial tracking fields for gateway fees
+  gatewayFeeEstimated: {
+    type: Number,
+    default: 0,
+    min: 0,
+    description: 'Estimated gateway fee for this transaction'
+  },
+  netAmountReceived: {
+    type: Number,
+    default: 0,
+    min: 0,
+    description: 'Net amount received after gateway fees (credited to wallet)'
+  },
+  grossAmountPaid: {
+    type: Number,
+    default: 0,
+    min: 0,
+    description: 'Gross amount paid by customer before fees'
+  },
   metadata: {
     type: mongoose.Schema.Types.Mixed,
     default: {}

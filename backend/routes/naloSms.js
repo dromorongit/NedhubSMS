@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
-const { sendSms } = require('../controllers/naloSmsController');
+const { sendSms, sendBulkSms } = require('../controllers/naloSmsController');
 const { handleDeliveryReport } = require('../controllers/naloCallbackController');
 
-// Send SMS using Nalo API Key
+// Send single SMS using Nalo API with financial tracking
 router.post('/send', authenticate, sendSms);
+
+// Send bulk SMS with financial tracking
+router.post('/send-bulk', authenticate, sendBulkSms);
 
 // Receive Nalo delivery reports
 router.post('/callback/nalo', handleDeliveryReport);
