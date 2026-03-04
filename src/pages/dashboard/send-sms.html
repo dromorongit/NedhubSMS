@@ -134,6 +134,31 @@
                             <div class="recipient-input-wrapper">
                                 <textarea id="recipients" name="recipients" rows="4" required placeholder="Enter phone numbers separated by commas (e.g., 0241234567, 0271234567)"></textarea>
                             </div>
+                            
+                            <!-- File Upload Section -->
+                            <div class="file-upload-section">
+                                <label for="contactFile" class="file-upload-label">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    <span>Upload contact file</span>
+                                </label>
+                                <input type="file" id="contactFile" accept=".csv,.txt,.xlsx,.xls" style="display: none;">
+                                <div class="file-upload-info">
+                                    <small>Supported formats: CSV, TXT, Excel (.xlsx, .xls)</small>
+                                </div>
+                                <div class="file-preview-list" id="filePreviewList" style="display: none;">
+                                    <div class="file-preview-item">
+                                        <span class="file-icon">📄</span>
+                                        <span class="file-name" id="uploadedFileName"></span>
+                                        <span class="file-count" id="uploadedFileCount"></span>
+                                        <button type="button" class="remove-file-btn" onclick="removeUploadedFile()">×</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="form-hint">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -554,6 +579,89 @@
             document.getElementById('smsCount').textContent = smsCount;
         });
 
+        // Handle file upload for contacts
+        let uploadedRecipients = [];
+        
+        document.getElementById('contactFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const fileName = file.name.toLowerCase();
+            const validExtensions = ['.csv', '.txt', '.xlsx', '.xls'];
+            const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+            
+            if (!isValid) {
+                showToast('Invalid file type. Please upload CSV, TXT, or Excel files.', 'error');
+                this.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const content = event.target.result;
+                    let phoneNumbers = [];
+                    
+                    if (fileName.endsWith('.csv') || fileName.endsWith('.txt')) {
+                        // Parse CSV or plain text
+                        const lines = content.split(/[\r\n]+/);
+                        lines.forEach(line => {
+                            // Extract phone numbers from line
+                            const matches = line.match(/(\d{9,15})/g);
+                            if (matches) {
+                                phoneNumbers.push(...matches);
+                            }
+                        });
+                    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                        showToast('Excel file parsing is limited. Please use CSV or TXT format for best results.', 'info');
+                        // For Excel, we'd need a library - suggest CSV
+                        return;
+                    }
+                    
+                    // Clean and format phone numbers
+                    phoneNumbers = phoneNumbers.map(num => {
+                        // Remove any non-digit characters except leading 0
+                        let cleaned = num.replace(/[^0-9]/g, '');
+                        // Keep leading 0 if present
+                        if (cleaned.startsWith('0')) {
+                            return cleaned;
+                        }
+                        return cleaned;
+                    }).filter(num => num.length >= 9 && num.length <= 15);
+                    
+                    // Remove duplicates
+                    phoneNumbers = [...new Set(phoneNumbers)];
+                    
+                    if (phoneNumbers.length === 0) {
+                        showToast('No valid phone numbers found in file', 'error');
+                        return;
+                    }
+                    
+                    uploadedRecipients = phoneNumbers;
+                    
+                    // Update UI
+                    document.getElementById('uploadedFileName').textContent = file.name;
+                    document.getElementById('uploadedFileCount').textContent = `(${phoneNumbers.length} numbers)`;
+                    document.getElementById('filePreviewList').style.display = 'block';
+                    
+                    showToast(`Loaded ${phoneNumbers.length} contacts from file`, 'success');
+                    
+                } catch (error) {
+                    console.error('Error parsing file:', error);
+                    showToast('Error parsing file. Please check the format.', 'error');
+                }
+            };
+            
+            reader.readAsText(file);
+        });
+
+        // Remove uploaded file
+        function removeUploadedFile() {
+            document.getElementById('contactFile').value = '';
+            document.getElementById('filePreviewList').style.display = 'none';
+            uploadedRecipients = [];
+        }
+
         // Handle form submission
         document.getElementById('sendSmsForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -563,13 +671,22 @@
             const message = document.getElementById('message').value;
             const submitBtn = document.getElementById('sendBtn');
             
-            // Parse recipients (comma or newline separated)
-            const recipients = recipientsInput.split(/[,\n]+/)
+            // Parse recipients from text input (comma or newline separated)
+            const textRecipients = recipientsInput.split(/[,\n]+/)
                 .map(r => r.trim())
                 .filter(r => r.length > 0);
             
+            // Combine text recipients and uploaded file recipients
+            let recipients = [...textRecipients];
+            if (uploadedRecipients.length > 0) {
+                recipients = [...recipients, ...uploadedRecipients];
+            }
+            
+            // Remove duplicates
+            recipients = [...new Set(recipients)];
+            
             if (recipients.length === 0) {
-                showToast('Please enter at least one recipient', 'error');
+                showToast('Please enter at least one recipient or upload a contact file', 'error');
                 return;
             }
             
@@ -589,6 +706,9 @@
                 } else {
                     showToast('SMS sent successfully!', 'success');
                     this.reset();
+                    // Reset file upload
+                    uploadedRecipients = [];
+                    document.getElementById('filePreviewList').style.display = 'none';
                     document.getElementById('charCount').textContent = '0';
                     document.getElementById('smsCount').textContent = '1';
                 }
@@ -1174,6 +1294,92 @@
                 width: 100%;
                 justify-content: center;
             }
+        }
+
+        /* File Upload Section */
+        .file-upload-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #fafafa;
+            border: 2px dashed #e0e0e0;
+            border-radius: 10px;
+        }
+
+        .file-upload-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background-color: var(--primary-dark);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload-label:hover {
+            background-color: #1a2540;
+            transform: translateY(-1px);
+        }
+
+        .file-upload-label svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .file-upload-info {
+            margin-top: 0.75rem;
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .file-preview-list {
+            margin-top: 1rem;
+        }
+
+        .file-preview-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .file-icon {
+            font-size: 1.25rem;
+        }
+
+        .file-name {
+            flex: 1;
+            font-size: 0.9rem;
+            color: #2e7d32;
+            font-weight: 500;
+        }
+
+        .file-count {
+            font-size: 0.85rem;
+            color: #666;
+            background-color: rgba(255,255,255,0.7);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .remove-file-btn {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #666;
+            cursor: pointer;
+            padding: 0 0.25rem;
+            line-height: 1;
+        }
+
+        .remove-file-btn:hover {
+            color: #c62828;
         }
     </style>
 </body>
