@@ -52,13 +52,13 @@ router.post('/send', authenticate, async (req, res) => {
     const naloResponse = await sendSMS(senderId, recipients, message);
 
     // Log message in database (legacy Message model)
-    const messageId = await Message.create(
+    const messageId = await Message.create({
       userId,
       senderId,
-      message,
-      JSON.stringify(recipients),
-      'sent'
-    );
+      messageBody: message,
+      recipients,
+      status: 'sent'
+    });
 
     res.json({
       messageId,
