@@ -329,16 +329,28 @@
 
             // Calculate stats
             const totalSent = filteredMessages.length;
-            const delivered = filteredMessages.filter(m => m.status === 'delivered').length;
-            const pending = filteredMessages.filter(m => m.status === 'pending' || m.status === 'sent').length;
+            // Count delivered (including 'sent' as successfully sent to carrier)
+            const delivered = filteredMessages.filter(m => m.status === 'delivered' || m.status === 'sent').length;
+            const pending = filteredMessages.filter(m => m.status === 'pending').length;
             const failed = filteredMessages.filter(m => m.status === 'failed').length;
             const deliveryRate = totalSent > 0 ? Math.round((delivered / totalSent) * 100) : 0;
+
+            // Calculate estimated cost based on actual messages stored
+            let totalCharacters = 0;
+            filteredMessages.forEach(msg => {
+                if (msg.message) {
+                    totalCharacters += msg.message.length;
+                }
+            });
+            // Rough estimate: 1 segment per 160 characters, cost is GHS 0.05 per segment
+            const totalSegments = Math.ceil(totalCharacters / 160);
+            const estimatedCost = totalSegments * 0.05;
 
             // Update stat cards
             document.getElementById('totalSent').textContent = totalSent.toLocaleString();
             document.getElementById('deliveryRate').textContent = deliveryRate + '%';
             document.getElementById('creditsUsed').textContent = totalSent.toLocaleString();
-            document.getElementById('estCost').textContent = '₵ ' + (financialSummary.totalRevenue || 0).toFixed(2);
+            document.getElementById('estCost').textContent = '₵ ' + estimatedCost.toFixed(2);
 
             // Update delivery chart legend
             document.getElementById('deliveredCount').textContent = delivered;
@@ -499,6 +511,15 @@
             });
         });
 
+        function getFilteredMessages() {
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - selectedRange);
+            return messages.filter(msg => {
+                if (!msg.createdAt) return false;
+                return new Date(msg.createdAt) >= cutoffDate;
+            });
+        }
+
         // Logout function
         function logout() {
             localStorage.removeItem('authToken');
@@ -558,16 +579,11 @@
         // Handle window resize
         window.addEventListener('resize', () => {
             if (messages.length > 0) {
-                const cutoffDate = new Date();
-                cutoffDate.setDate(cutoffDate.getDate() - selectedRange);
-                const filteredMessages = messages.filter(msg => {
-                    if (!msg.createdAt) return false;
-                    return new Date(msg.createdAt) >= cutoffDate;
-                });
+                const filteredMessages = getFilteredMessages();
                 drawUsageChart(filteredMessages);
                 
-                const delivered = filteredMessages.filter(m => m.status === 'delivered').length;
-                const pending = filteredMessages.filter(m => m.status === 'pending' || m.status === 'sent').length;
+                const delivered = filteredMessages.filter(m => m.status === 'delivered' || m.status === 'sent').length;
+                const pending = filteredMessages.filter(m => m.status === 'pending').length;
                 const failed = filteredMessages.filter(m => m.status === 'failed').length;
                 drawDeliveryChart(delivered, pending, failed);
             }
