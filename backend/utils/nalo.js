@@ -28,8 +28,16 @@ const formatPhoneNumber = (msisdn) => {
 
 const sendSMS = async (senderId, recipients, message) => {
   try {
-    // Handle both single recipient and array of recipients
-    const msisdn = Array.isArray(recipients) ? recipients[0] : recipients;
+    // Handle both single recipient (string) and array of recipients
+    let msisdn;
+    if (Array.isArray(recipients)) {
+      // If array, use the first recipient (for backward compatibility)
+      // The caller should loop through recipients for bulk sends
+      msisdn = recipients[0];
+    } else {
+      msisdn = recipients;
+    }
+    
     const formattedMsisdn = formatPhoneNumber(msisdn);
     
     const payload = {

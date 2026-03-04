@@ -7,7 +7,7 @@ const Message = require('../models/Message');
 const SmsMessage = require('../models/SmsMessage');
 const validator = require('validator');
 
-// Send SMS
+// Send SMS (handles both single and multiple recipients)
 router.post('/send', authenticate, async (req, res) => {
   try {
     const { senderId, recipients, message } = req.body;
@@ -48,23 +48,42 @@ router.post('/send', authenticate, async (req, res) => {
       return res.status(402).json({ error: 'Insufficient SMS balance with provider' });
     }
 
-    // Send SMS via Nalo API
-    const naloResponse = await sendSMS(senderId, recipients, message);
+    // Send SMS to ALL recipients (not just the first one)
+    const results = [];
+    let successCount = 0;
+    let failedCount = 0;
 
-    // Log message in database (legacy Message model)
-    const messageId = await Message.create({
-      userId,
-      senderId,
-      messageBody: message,
-      recipients,
-      status: 'sent'
-    });
+    for (const recipient of recipients) {
+      try {
+        const naloResponse = await sendSMS(senderId, recipient, message);
+        
+        // Log message in database for each recipient
+        await Message.create({
+          userId,
+          senderId,
+          messageBody: message,
+          recipients: [recipient],
+          status: 'sent'
+        });
+        
+        results.push({ recipient, success: true, response: naloResponse });
+        successCount++;
+      } catch (error) {
+        results.push({ recipient, success: false, error: error.message });
+        failedCount++;
+      }
+    }
 
     res.json({
-      messageId,
-      naloResponse,
+      success: failedCount === 0,
+      summary: {
+        total: recipients.length,
+        success: successCount,
+        failed: failedCount
+      },
+      results,
       cost,
-      message: 'SMS sent successfully'
+      message: failedCount === 0 ? 'SMS sent successfully' : 'Some SMS failed to send'
     });
   } catch (error) {
     console.error(error);
