@@ -22,7 +22,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url('assets/images/lady.jpg');
+    background-image: url('/src/assets/images/lady.jpg');
     background-color: transparent; /* Fallback color for testing */
     background-size: cover;
     background-position: center;
