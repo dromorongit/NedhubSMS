@@ -64,6 +64,9 @@ app.use(express.json());
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../backend/uploads')));
 
+// Serve static files from root assets directory
+app.use('/assets', express.static(path.join(__dirname, '../assets')));
+
 // Serve static files from src directory
 app.use(express.static(path.join(__dirname, '../src')));
 
