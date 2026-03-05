@@ -25,6 +25,11 @@ const transactionSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  status: {
+    type: String,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'completed'
+  },
   balanceBefore: {
     type: Number,
     required: true,
@@ -35,7 +40,15 @@ const transactionSchema = new mongoose.Schema({
     required: true,
     min: [0, 'Balance cannot be negative']
   },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
     type: Date,
     default: Date.now
   }
@@ -43,5 +56,12 @@ const transactionSchema = new mongoose.Schema({
 
 // Index for better query performance
 transactionSchema.index({ userId: 1, createdAt: -1 });
+tansactionSchema.index({ reference: 1 });
+
+// Update updatedAt before saving
+transactionSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
 
 module.exports = mongoose.model('Transaction', transactionSchema);

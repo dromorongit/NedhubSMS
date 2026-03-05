@@ -9,12 +9,14 @@ const contactRoutes = require('../backend/routes/contacts');
 const smsRoutes = require('../backend/routes/sms');
 const naloSmsRoutes = require('../backend/routes/naloSms');
 const walletRoutes = require('../backend/routes/wallet');
+const transferRoutes = require('../backend/routes/transfers');
 const senderIdRoutes = require('../backend/routes/senderIds');
 const templateRoutes = require('../backend/routes/templates');
 const campaignRoutes = require('../backend/routes/campaigns');
 const adminRoutes = require('../backend/routes/admin');
 const paymentRoutes = require('../backend/routes/payments');
 const seedRoutes = require('../backend/routes/seed');
+const hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -147,6 +149,26 @@ app.get('/templates.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/templates.html'));
 });
 
+app.get('/send-money.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/send-money.html'));
+});
+
+app.get('/withdraw-bank.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/withdraw-bank.html'));
+});
+
+app.get('/buy-airtime.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/buy-airtime.html'));
+});
+
+app.get('/buy-data.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/buy-data.html'));
+});
+
+app.get('/transactions.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/transactions.html'));
+});
+
 app.get('/admin/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/admin/admin.html'));
 });
@@ -178,12 +200,30 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/sms', naloSmsRoutes); // Nalo SMS routes
 app.use('/api/wallet', walletRoutes);
+app.use('/api/transfer', transferRoutes);
 app.use('/api/sender-ids', senderIdRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/seed', seedRoutes);
+
+// Hubtel callback endpoints (no authentication - called by Hubtel)
+app.post('/api/hubtel/momo-callback', express.json(), async (req, res) => {
+  await hubtelCallbackController.handleMomoCallback(req, res);
+});
+
+app.post('/api/hubtel/bank-callback', express.json(), async (req, res) => {
+  await hubtelCallbackController.handleBankCallback(req, res);
+});
+
+app.post('/api/hubtel/airtime-callback', express.json(), async (req, res) => {
+  await hubtelCallbackController.handleAirtimeCallback(req, res);
+});
+
+app.post('/api/hubtel/data-callback', express.json(), async (req, res) => {
+  await hubtelCallbackController.handleDataCallback(req, res);
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

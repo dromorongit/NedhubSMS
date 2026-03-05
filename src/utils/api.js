@@ -262,6 +262,62 @@ class ApiClient {
     return this.request('GET', '/wallet/transactions');
   }
 
+  // Transfer endpoints - Mobile Money
+  async sendMomo(recipientPhone, recipientName, network, amount, description) {
+    return this.request('POST', '/transfer/send-momo', { 
+      recipientPhone, 
+      recipientName, 
+      network, 
+      amount, 
+      description 
+    });
+  }
+
+  // Transfer endpoints - Bank Transfer
+  async sendToBank(bankCode, accountNumber, accountName, amount, description) {
+    return this.request('POST', '/transfer/send-bank', { 
+      bankCode, 
+      accountNumber, 
+      accountName, 
+      amount, 
+      description 
+    });
+  }
+
+  // Transfer endpoints - Airtime
+  async buyAirtime(phoneNumber, network, amount) {
+    return this.request('POST', '/transfer/buy-airtime', { 
+      phoneNumber, 
+      network, 
+      amount 
+    });
+  }
+
+  // Transfer endpoints - Data
+  async buyData(phoneNumber, network, bundleCode, price) {
+    return this.request('POST', '/transfer/buy-data', { 
+      phoneNumber, 
+      network, 
+      bundleCode, 
+      price 
+    });
+  }
+
+  // Get bank codes
+  async getBankCodes() {
+    return this.request('GET', '/transfer/bank-codes');
+  }
+
+  // Get data bundles
+  async getDataBundles(network) {
+    return this.request('GET', `/transfer/data-bundles/${network}`);
+  }
+
+  // Check transaction status
+  async getTransactionStatus(clientReference) {
+    return this.request('GET', `/transfer/status/${clientReference}`);
+  }
+
   // Payment endpoints
   async initiatePayment(amount, description, frontendOrigin = null) {
     return this.request('POST', '/payments/initiate', { amount, description, frontendOrigin });

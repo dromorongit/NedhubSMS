@@ -752,3 +752,343 @@
         margin-left: 80px;
     }
 }
+
+/* Page Header */
+.page-header {
+    margin-bottom: 1.5rem;
+}
+
+.page-header h2 {
+    font-size: 1.75rem;
+    color: var(--primary-dark);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+    color: #666;
+    font-size: 1rem;
+}
+
+/* Compact Wallet Card */
+.wallet-card.compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.wallet-card.compact .wallet-header {
+    margin-bottom: 0;
+}
+
+.wallet-card.compact .balance-display {
+    text-align: right;
+    margin-bottom: 0;
+}
+
+.wallet-card.compact .balance-amount {
+    font-size: 1.75rem;
+}
+
+/* Quick Amount Buttons */
+.quick-amounts {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.quick-amount-btn {
+    flex: 1;
+    min-width: 60px;
+    padding: 0.75rem 0.5rem;
+    background: #f5f5f5;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quick-amount-btn:hover {
+    border-color: var(--accent-orange);
+    color: var(--accent-orange);
+    background: #fff5e6;
+}
+
+.quick-amount-btn:active {
+    transform: scale(0.95);
+}
+
+/* Bundle Grid */
+.bundle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.bundle-card {
+    background: #f8f9fa;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.bundle-card:hover {
+    border-color: var(--accent-orange);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(247, 127, 0, 0.15);
+}
+
+.bundle-card.selected {
+    border-color: var(--accent-orange);
+    background: #fff5e6;
+}
+
+.bundle-card.selected .bundle-name,
+.bundle-card.selected .bundle-price {
+    color: var(--accent-orange);
+}
+
+.bundle-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.bundle-price {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #666;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-badge.completed {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-badge.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.failed {
+    background: #ffebee;
+    color: #c62828;
+}
+
+/* Filter Section */
+.filter-section {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #666;
+}
+
+.filter-group select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+}
+
+.pagination-btn {
+    padding: 0.5rem 1rem;
+    background: var(--accent-orange);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #e56a00;
+}
+
+.page-info {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* Form Card */
+.form-container {
+    max-width: 550px;
+}
+
+.form-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.form-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+.form-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+.form-icon.money-icon {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, #1a2540 100%);
+    color: white;
+}
+
+.form-icon.bank-icon {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+}
+
+.form-icon.airtime-icon {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.form-icon.data-icon {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.form-header h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--primary-dark);
+}
+
+.form-header p {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+}
+
+/* Transfer Summary */
+.transfer-summary {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.transfer-summary h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+    color: var(--primary-dark);
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.summary-row span:last-child {
+    font-weight: 600;
+    color: var(--primary-dark);
+}
+
+.summary-row.total {
+    border-top: 1px solid #e0e0e0;
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.summary-row.total span:last-child {
+    color: var(--accent-orange);
+}
+
+/* Input Prefix */
+.input-prefix {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.input-wrapper input {
+    padding-left: 3rem !important;
+}
+
+/* Description cell in tables */
+.description-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reference-cell {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #666;
+}

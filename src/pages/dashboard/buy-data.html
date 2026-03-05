@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy Data - Nedhub Bulk Messaging</title>
+    <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link rel="stylesheet" href="../../styles/responsive.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Overview</span>
+                    </a></li>
+                    <li><a href="send-sms.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        <span>Send SMS</span>
+                    </a></li>
+                    <li><a href="contacts.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Contacts</span>
+                    </a></li>
+                    <li><a href="history.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Message History</span>
+                    </a></li>
+                    <li><a href="send-money.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        <span>Send Money</span>
+                    </a></li>
+                    <li><a href="withdraw-bank.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                        <span>Bank Withdrawal</span>
+                    </a></li>
+                    <li><a href="buy-airtime.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        <span>Buy Airtime</span>
+                    </a></li>
+                    <li><a href="buy-data.html" class="active">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <span>Buy Data</span>
+                    </a></li>
+                    <li><a href="transactions.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        <span>Transactions</span>
+                    </a></li>
+                    <li><a href="reports.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Reports</span>
+                    </a></li>
+                    <li><a href="settings.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
+        
+        <main class="main-content">
+            <header class="top-nav">
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <span class="mobile-header-title">Buy Data</span>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Sidebar Overlay -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            
+            <div class="dashboard-content">
+                <div class="page-header">
+                    <h2>Buy Data</h2>
+                    <p class="page-subtitle">Purchase data bundles for MTN, Telecel, or AirtelTigo</p>
+                </div>
+
+                <!-- Wallet Balance Card -->
+                <div class="wallet-card compact">
+                    <div class="wallet-header">
+                        <div class="wallet-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div class="wallet-info">
+                            <h3>Wallet Balance</h3>
+                            <p class="wallet-subtitle">Available Balance</p>
+                        </div>
+                    </div>
+                    <div class="balance-display">
+                        <span class="balance-amount" id="walletBalanceAmount">0</span>
+                        <span class="balance-currency">GHS</span>
+                    </div>
+                </div>
+
+                <!-- Data Purchase Form -->
+                <div class="form-container">
+                    <div class="form-card">
+                        <div class="form-header">
+                            <div class="form-icon data-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                            </div>
+                            <h3>Purchase Data Bundle</h3>
+                            <p>Instant data top-up for all major networks</p>
+                        </div>
+                        
+                        <form id="dataForm">
+                            <div class="form-group">
+                                <label for="phoneNumber">Phone Number</label>
+                                <div class="input-wrapper">
+                                    <span class="input-prefix">+233</span>
+                                    <input type="tel" id="phoneNumber" name="phoneNumber" 
+                                           placeholder="501234567" required pattern="[0-9]{9}" 
+                                           maxlength="9">
+                                </div>
+                                <small>Enter the phone number to receive data</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="network">Network</label>
+                                <select id="network" name="network" required>
+                                    <option value="">Select network</option>
+                                    <option value="MTN">MTN</option>
+                                    <option value="TELECOM">Telecel</option>
+                                    <option value="AIRTELTIGO">AirtelTigo</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Data Bundles -->
+                            <div class="form-group" id="bundleGroup" style="display: none;">
+                                <label>Select Data Bundle</label>
+                                <div class="bundle-grid" id="bundleGrid">
+                                    <!-- Bundles will be loaded dynamically -->
+                                </div>
+                            </div>
+                            
+                            <div class="error-message" id="formError" style="display: none;"></div>
+                            
+                            <button type="submit" class="btn-primary btn-block" id="submitBtn" disabled>
+                                <span>Select a bundle</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Info Box -->
+                <div class="info-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <div>
+                        <h4>Instant Delivery</h4>
+                        <p>Data bundles are delivered instantly to the specified phone number. The amount will be deducted from your wallet immediately.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../../utils/api.js"></script>
+    <script src="../../utils/toast.js"></script>
+    <script>
+        // Data bundle definitions
+        const dataBundles = {
+            'MTN': [
+                { code: 'MTN-10MB', name: '10MB (1 Day)', price: 1.50 },
+                { code: 'MTN-50MB', name: '50MB (3 Days)', price: 3.50 },
+                { code: 'MTN-100MB', name: '100MB (7 Days)', price: 6.00 },
+                { code: 'MTN-200MB', name: '200MB (14 Days)', price: 10.00 },
+                { code: 'MTN-500MB', name: '500MB (30 Days)', price: 20.00 },
+                { code: 'MTN-1GB', name: '1GB (30 Days)', price: 35.00 },
+                { code: 'MTN-2GB', name: '2GB (30 Days)', price: 60.00 },
+                { code: 'MTN-5GB', name: '5GB (30 Days)', price: 120.00 }
+            ],
+            'TELECOM': [
+                { code: 'TELECEL-10MB', name: '10MB (1 Day)', price: 1.50 },
+                { code: 'TELECEL-50MB', name: '50MB (3 Days)', price: 3.50 },
+                { code: 'TELECEL-100MB', name: '100MB (7 Days)', price: 6.00 },
+                { code: 'TELECEL-200MB', name: '200MB (14 Days)', price: 10.00 },
+                { code: 'TELECEL-500MB', name: '500MB (30 Days)', price: 20.00 },
+                { code: 'TELECEL-1GB', name: '1GB (30 Days)', price: 35.00 }
+            ],
+            'AIRTELTIGO': [
+                { code: 'AIRTEL-10MB', name: '10MB (1 Day)', price: 1.50 },
+                { code: 'AIRTEL-50MB', name: '50MB (3 Days)', price: 3.50 },
+                { code: 'AIRTEL-100MB', name: '100MB (7 Days)', price: 6.00 },
+                { code: 'AIRTEL-200MB', name: '200MB (14 Days)', price: 10.00 },
+                { code: 'AIRTEL-500MB', name: '500MB (30 Days)', price: 20.00 },
+                { code: 'AIRTEL-1GB', name: '1GB (30 Days)', price: 35.00 }
+            ]
+        };
+
+        let selectedBundle = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthAndLoad();
+        });
+
+        async function checkAuthAndLoad() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            await loadUserProfile();
+            loadWalletBalance();
+            setupFormHandlers();
+            setupMobileSidebar();
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await window.apiClient.getUserProfile();
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    document.getElementById('userName').textContent = firstName;
+                    document.getElementById('userAvatar').textContent = firstName.charAt(0).toUpperCase();
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+            }
+        }
+
+        async function loadWalletBalance() {
+            try {
+                const response = await window.apiClient.getWalletBalance();
+                if (response.data) {
+                    const balance = response.data.balance || 0;
+                    document.getElementById('walletBalanceAmount').textContent = '₵' + balance.toFixed(2);
+                }
+            } catch (error) {
+                console.error('Error loading wallet balance:', error);
+            }
+        }
+
+        function setupFormHandlers() {
+            const form = document.getElementById('dataForm');
+            const phoneNumber = document.getElementById('phoneNumber');
+            const network = document.getElementById('network');
+            const bundleGrid = document.getElementById('bundleGrid');
+            const bundleGroup = document.getElementById('bundleGroup');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Auto-detect network
+            phoneNumber.addEventListener('input', (e) => {
+                const phone = e.target.value;
+                if (phone.length >= 3) {
+                    const prefix = phone.substring(0, 3);
+                    if (['050', '054', '055', '056', '024', '026', '027', '028', '029'].includes(prefix)) {
+                        network.value = 'MTN';
+                    } else if (['057', '053'].includes(prefix)) {
+                        network.value = 'TELECOM';
+                    } else if (['044', '045', '047'].includes(prefix)) {
+                        network.value = 'AIRTELTIGO';
+                    }
+                    loadBundles();
+                }
+            });
+
+            network.addEventListener('change', loadBundles);
+
+            function loadBundles() {
+                const net = network.value;
+                if (net && dataBundles[net]) {
+                    bundleGroup.style.display = 'block';
+                    bundleGrid.innerHTML = '';
+                    
+                    dataBundles[net].forEach(bundle => {
+                        const bundleCard = document.createElement('div');
+                        bundleCard.className = 'bundle-card';
+                        bundleCard.dataset.code = bundle.code;
+                        bundleCard.dataset.price = bundle.price;
+                        bundleCard.dataset.name = bundle.name;
+                        
+                        bundleCard.innerHTML = `
+                            <div class="bundle-name">${bundle.name}</div>
+                            <div class="bundle-price">₵${bundle.price.toFixed(2)}</div>
+                        `;
+                        
+                        bundleCard.addEventListener('click', () => {
+                            // Remove selected class from all
+                            document.querySelectorAll('.bundle-card').forEach(c => c.classList.remove('selected'));
+                            // Add selected class
+                            bundleCard.classList.add('selected');
+                            // Store selection
+                            selectedBundle = bundle;
+                            // Enable submit button
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = `<span>Buy ${bundle.name} - ₵${bundle.price.toFixed(2)}</span>`;
+                        });
+                        
+                        bundleGrid.appendChild(bundleCard);
+                    });
+                } else {
+                    bundleGroup.style.display = 'none';
+                    bundleGrid.innerHTML = '';
+                    selectedBundle = null;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span>Select a bundle</span>';
+                }
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                if (!selectedBundle) {
+                    showError('Please select a data bundle');
+                    return;
+                }
+
+                const phone = phoneNumber.value.trim();
+                const net = network.value;
+
+                // Validation
+                if (phone.length < 9) {
+                    showError('Please enter a valid 9-digit phone number');
+                    return;
+                }
+
+                if (!net) {
+                    showError('Please select a network');
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span>Processing...</span>';
+
+                try {
+                    const formattedPhone = '0' + phone;
+
+                    const response = await window.apiClient.buyData(
+                        formattedPhone,
+                        net,
+                        selectedBundle.code,
+                        selectedBundle.price
+                    );
+
+                    if (response.error) {
+                        showError(response.error);
+                    } else if (response.data) {
+                        showToast(`Data bundle purchased successfully! ${selectedBundle.name} sent to ${formattedPhone}`, 'success');
+                        form.reset();
+                        bundleGroup.style.display = 'none';
+                        bundleGrid.innerHTML = '';
+                        selectedBundle = null;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span>Select a bundle</span>';
+                        loadWalletBalance();
+                    }
+                } catch (error) {
+                    showError(error.message || 'Failed to purchase data. Please try again.');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<span>Buy ${selectedBundle.name} - ₵${selectedBundle.price.toFixed(2)}</span>`;
+                }
+            });
+
+            function showError(message) {
+                const errorDiv = document.getElementById('formError');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function setupMobileSidebar() {
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                hamburgerBtn.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                hamburgerBtn.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleSidebar);
+            if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 1024) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 1024) {
+                    closeSidebar();
+                }
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '../auth/login.html';
+        }
+    </script>
+</body>
+</html>
