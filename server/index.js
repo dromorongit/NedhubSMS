@@ -15,6 +15,7 @@ const templateRoutes = require('../backend/routes/templates');
 const campaignRoutes = require('../backend/routes/campaigns');
 const adminRoutes = require('../backend/routes/admin');
 const paymentRoutes = require('../backend/routes/payments');
+const utilityRoutes = require('../backend/routes/utility');
 const seedRoutes = require('../backend/routes/seed');
 const hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
 
@@ -149,20 +150,16 @@ app.get('/templates.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/templates.html'));
 });
 
-app.get('/send-money.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../src/pages/dashboard/send-money.html'));
-});
-
-app.get('/withdraw-bank.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../src/pages/dashboard/withdraw-bank.html'));
-});
-
 app.get('/buy-airtime.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/buy-airtime.html'));
 });
 
 app.get('/buy-data.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/buy-data.html'));
+});
+
+app.get('/utility-payments.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/utility-payments.html'));
 });
 
 app.get('/transactions.html', (req, res) => {
@@ -201,6 +198,7 @@ app.use('/api/sms', smsRoutes);
 app.use('/api/sms', naloSmsRoutes); // Nalo SMS routes
 app.use('/api/wallet', walletRoutes);
 app.use('/api/transfer', transferRoutes);
+app.use('/api/utility', utilityRoutes);
 app.use('/api/sender-ids', senderIdRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);

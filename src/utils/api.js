@@ -262,31 +262,9 @@ class ApiClient {
     return this.request('GET', '/wallet/transactions');
   }
 
-  // Transfer endpoints - Mobile Money
-  async sendMomo(recipientPhone, recipientName, network, amount, description) {
-    return this.request('POST', '/transfer/send-momo', { 
-      recipientPhone, 
-      recipientName, 
-      network, 
-      amount, 
-      description 
-    });
-  }
-
-  // Transfer endpoints - Bank Transfer
-  async sendToBank(bankCode, accountNumber, accountName, amount, description) {
-    return this.request('POST', '/transfer/send-bank', { 
-      bankCode, 
-      accountNumber, 
-      accountName, 
-      amount, 
-      description 
-    });
-  }
-
   // Transfer endpoints - Airtime
   async buyAirtime(phoneNumber, network, amount) {
-    return this.request('POST', '/transfer/buy-airtime', { 
+    return this.request('POST', '/transfer/airtime', { 
       phoneNumber, 
       network, 
       amount 
@@ -295,7 +273,7 @@ class ApiClient {
 
   // Transfer endpoints - Data
   async buyData(phoneNumber, network, bundleCode, price) {
-    return this.request('POST', '/transfer/buy-data', { 
+    return this.request('POST', '/transfer/data', { 
       phoneNumber, 
       network, 
       bundleCode, 
@@ -303,14 +281,40 @@ class ApiClient {
     });
   }
 
-  // Get bank codes
-  async getBankCodes() {
-    return this.request('GET', '/transfer/bank-codes');
-  }
-
   // Get data bundles
   async getDataBundles(network) {
     return this.request('GET', `/transfer/data-bundles/${network}`);
+  }
+
+  // Utility endpoints - TV bundles
+  async getTVBundles(service) {
+    return this.request('GET', `/utility/tv-bundles/${service}`);
+  }
+
+  // Utility endpoints - TV payment
+  async payTVBill(serviceType, smartCardNumber, amount) {
+    return this.request('POST', '/utility/tv-pay', {
+      serviceType,
+      smartCardNumber,
+      amount
+    });
+  }
+
+  // Utility endpoints - ECG payment
+  async payECGBill(meterNumber, meterType, amount) {
+    return this.request('POST', '/utility/ecg-pay', {
+      meterNumber,
+      meterType,
+      amount
+    });
+  }
+
+  // Utility endpoints - Ghana Water payment
+  async payGhanaWaterBill(meterNumber, amount) {
+    return this.request('POST', '/utility/water-pay', {
+      meterNumber,
+      amount
+    });
   }
 
   // Check transaction status

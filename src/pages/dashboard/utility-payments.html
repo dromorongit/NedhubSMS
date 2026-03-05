@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utility Payments - Nedhub Bulk Messaging</title>
+    <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link rel="stylesheet" href="../../styles/responsive.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Overview</span>
+                    </a></li>
+                    <li><a href="send-sms.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        <span>Send SMS</span>
+                    </a></li>
+                    <li><a href="contacts.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Contacts</span>
+                    </a></li>
+                    <li><a href="history.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Message History</span>
+                    </a></li>
+                    <li><a href="buy-airtime.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        <span>Buy Airtime</span>
+                    </a></li>
+                    <li><a href="buy-data.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <span>Buy Data</span>
+                    </a></li>
+                    <li><a href="utility-payments.html" class="active">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
+                        <span>Utility Payments</span>
+                    </a></li>
+                    <li><a href="transactions.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        <span>Transactions</span>
+                    </a></li>
+                    <li><a href="reports.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Reports</span>
+                    </a></li>
+                    <li><a href="settings.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
+        
+        <main class="main-content">
+            <header class="top-nav">
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <span class="mobile-header-title">Utility Payments</span>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Sidebar Overlay -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            
+            <div class="dashboard-content">
+                <div class="page-header">
+                    <h2>Utility Payments</h2>
+                    <p class="page-subtitle">Pay your DSTV, GOtv, StarTimes, ECG, and Ghana Water bills</p>
+                </div>
+
+                <!-- Wallet Balance Card -->
+                <div class="wallet-card compact">
+                    <div class="wallet-header">
+                        <div class="wallet-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div class="wallet-info">
+                            <h3>Wallet Balance</h3>
+                            <p class="wallet-subtitle">Available Balance</p>
+                        </div>
+                    </div>
+                    <div class="balance-display">
+                        <span class="balance-amount" id="walletBalanceAmount">0</span>
+                        <span class="balance-currency">GHS</span>
+                    </div>
+                </div>
+
+                <!-- Service Tabs -->
+                <div class="utility-tabs">
+                    <button class="tab-btn active" data-service="dstv">DSTV</button>
+                    <button class="tab-btn" data-service="gotv">GOtv</button>
+                    <button class="tab-btn" data-service="startimes">StarTimes</button>
+                    <button class="tab-btn" data-service="ecg">ECG</button>
+                    <button class="tab-btn" data-service="water">Ghana Water</button>
+                </div>
+
+                <!-- DSTV Form -->
+                <div class="utility-form-container" id="dstv-form">
+                    <div class="form-card">
+                        <div class="form-header">
+                            <div class="form-icon tv-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                                    <polyline points="17 2 12 7 7 2"></polyline>
+                                </svg>
+                            </div>
+                            <h3>Pay DSTV</h3>
+                            <p>Renew your DSTV subscription</p>
+                        </div>
+                        
+                        <form class="utility-form" data-service="dstv">
+                            <div class="form-group">
+                                <label for="dstv-card">Smart Card Number</label>
+                                <input type="text" id="dstv-card" name="smartCardNumber" 
+                                       placeholder="Enter DSTV smart card number" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="dstv-package">Select Package</label>
+                                <select id="dstv-package" name="package" required>
+                                    <option value="">Select package</option>
+                                    <option value="65">DSTV Personal - GHS 65.00</option>
+                                    <option value="100">DSTV Personal + Extra View - GHS 100.00</option>
+                                    <option value="225">DSTV Compact - GHS 225.00</option>
+                                    <option value="260">DSTV Compact + Extra View - GHS 260.00</option>
+                                    <option value="335">DSTV Compact Plus - GHS 335.00</option>
+                                    <option value="580">DSTV Premium - GHS 580.00</option>
+                                    <option value="615">DSTV Premium + Extra View - GHS 615.00</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="dstv-amount">Or Enter Amount (GHS)</label>
+                                <div class="input-wrapper">
+                                    <span class="currency-symbol">₵</span>
+                                    <input type="number" id="dstv-amount" name="amount" 
+                                           min="10" step="0.01" placeholder="Enter custom amount">
+                                </div>
+                            </div>
+                            
+                            <div class="error-message" style="display: none;"></div>
+                            
+                            <button type="submit" class="btn-primary btn-block">
+                                <span>Pay Now</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- GOtv Form -->
+                <div class="utility-form-container" id="gotv-form" style="display: none;">
+                    <div class="form-card">
+                        <div class="form-header">
+                            <div class="form-icon tv-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                                    <polyline points="17 2 12 7 7 2"></polyline>
+                                </svg>
+                            </div>
+                            <h3>Pay GOtv</h3>
+                            <p>Renew your GOtv subscription</p>
+                        </div>
+                        
+                        <form class="utility-form" data-service="gotv">
+                            <div class="form-group">
+                                <label for="gotv-card">Smart Card Number</label>
+                                <input type="text" id="gotv-card" name="smartCardNumber" 
+                                       placeholder="Enter GOtv smart card number" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="gotv-package">Select Package</label>
+                                <select id="gotv-package" name="package" required>
+                                    <option value="">Select package</option>
+                                    <option value="35">GOtv Lite - GHS 35.00</option>
+                                    <option value="125">GOtv Jinja - GHS 125.00</option>
+                                    <option value="180">GOtv Joli - GHS 180.00</option>
+                                    <option value="320">GOtv Max - GHS 320.00</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="gotv-amount">Or Enter Amount (GHS)</label>
+                                <div class="input-wrapper">
+                                    <span class="currency-symbol">₵</span>
+                                    <input type="number" id="gotv-amount" name="amount" 
+                                           min="10" step="0.01" placeholder="Enter custom amount">
+                                </div>
+                            </div>
+                            
+                            <div class="error-message" style="display: none;"></div>
+                            
+                            <button type="submit" class="btn-primary btn-block">
+                                <span>Pay Now</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- StarTimes Form -->
+                <div class="utility-form-container" id="startimes-form" style="display: none;">
+                    <div class="form-card">
+                        <div class="form-header">
+                            <div class="form-icon tv-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                                    <polyline points="17 2 12 7 7 2"></polyline>
+                                </svg>
+                            </div>
+                            <h3>Pay StarTimes</h3>
+                            <p>Renew your StarTimes subscription</p>
+                        </div>
+                        
+                        <form class="utility-form" data-service="startimes">
+                            <div class="form-group">
+                                <label for="startimes-card">Smart Card Number</label>
+                                <input type="text" id="startimes-card" name="smartCardNumber" 
+                                       placeholder="Enter StarTimes smart card number" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="startimes-package">Select Package</label>
+                                <select id="startimes-package" name="package" required>
+                                    <option value="">Select package</option>
+                                    <option value="30">StarTimes Lite - GHS 30.00</option>
+                                    <option value="80">StarTimes Nova - GHS 80.00</option>
+                                    <option value="140">StarTimes Smart - GHS 140.00</option>
+                                    <option value="240">StarTimes Complete - GHS 240.00</option>
+                                    <option value="420">StarTimes Super - GHS 420.00</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="startimes-amount">Or Enter Amount (GHS)</label>
+                                <div class="input-wrapper">
+                                    <span class="currency-symbol">₵</span>
+                                    <input type="number" id="startimes-amount" name="amount" 
+                                           min="10" step="0.01" placeholder="Enter custom amount">
+                                </div>
+                            </div>
+                            
+                            <div class="error-message" style="display: none;"></div>
+                            
+                            <button type="submit" class="btn-primary btn-block">
+                                <span>Pay Now</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ECG Form -->
+                <div class="utility-form-container" id="ecg-form" style="display: none;">
+                    <div class="form-card">
+                        <div class="form-header">
+                            <div class="form-icon electric-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                </svg>
+                            </div>
+                            <h3>Pay ECG</h3>
+                            <p>Pay your electricity bill</p>
+                        </div>
+                        
+                        <form class="utility-form" data-service="ecg">
+                            <div class="form-group">
+                                <label for="ecg-meter">Meter Number</label>
+                                <input type="text" id="ecg-meter" name="meterNumber" 
+                                       placeholder="Enter ECG meter number" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="ecg-type">Meter Type</label>
+                                <select id="ecg-type" name="meterType" required>
+                                    <option value="">Select meter type</option>
+                                    <option value="PREPAID">Prepaid Meter</option>
+                                    <option value="POSTPAID">Postpaid Meter</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="ecg-amount">Amount (GHS)</label>
+                                <div class="input-wrapper">
+                                    <span class="currency-symbol">₵</span>
+                                    <input type="number" id="ecg-amount" name="amount" 
+                                           min="5" step="0.01" placeholder="Enter amount" required>
+                                </div>
+                                <small>Minimum: ₵5.00</small>
+                            </div>
+                            
+                            <div class="error-message" style="display: none;"></div>
+                            
+                            <button type="submit" class="btn-primary btn-block">
+                                <span>Pay Now</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Ghana Water Form -->
+                <div class="utility-form-container" id="water-form" style="display: none;">
+                    <div class="form-card">
+                        <div class="form-header">
+                            <div class="form-icon water-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                                </svg>
+                            </div>
+                            <h3>Pay Ghana Water</h3>
+                            <p>Pay your water bill</p>
+                        </div>
+                        
+                        <form class="utility-form" data-service="water">
+                            <div class="form-group">
+                                <label for="water-meter">Meter Number</label>
+                                <input type="text" id="water-meter" name="meterNumber" 
+                                       placeholder="Enter Ghana Water meter number" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="water-amount">Amount (GHS)</label>
+                                <div class="input-wrapper">
+                                    <span class="currency-symbol">₵</span>
+                                    <input type="number" id="water-amount" name="amount" 
+                                           min="5" step="0.01" placeholder="Enter amount" required>
+                                </div>
+                                <small>Minimum: ₵5.00</small>
+                            </div>
+                            
+                            <div class="error-message" style="display: none;"></div>
+                            
+                            <button type="submit" class="btn-primary btn-block">
+                                <span>Pay Now</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="info-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <div>
+                        <h4>Important Information</h4>
+                        <p>All utility payments are processed instantly. Please double-check the meter/smart card number before making payment. Payments are non-refundable.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../../utils/api.js"></script>
+    <script src="../../utils/toast.js"></script>
+    <script>
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthAndLoad();
+        });
+
+        async function checkAuthAndLoad() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            await loadUserProfile();
+            loadWalletBalance();
+            setupTabs();
+            setupForms();
+            setupMobileSidebar();
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await window.apiClient.getUserProfile();
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    document.getElementById('userName').textContent = firstName;
+                    document.getElementById('userAvatar').textContent = firstName.charAt(0).toUpperCase();
+                    localStorage.setItem('userName', user.name);
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+            }
+        }
+
+        async function loadWalletBalance() {
+            try {
+                const response = await window.apiClient.getWalletBalance();
+                if (response.data) {
+                    const balance = response.data.balance || 0;
+                    document.getElementById('walletBalanceAmount').textContent = '₵' + balance.toFixed(2);
+                }
+            } catch (error) {
+                console.error('Error loading wallet balance:', error);
+            }
+        }
+
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const forms = document.querySelectorAll('.utility-form-container');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+
+                    // Hide all forms
+                    forms.forEach(f => f.style.display = 'none');
+                    // Show selected form
+                    const service = tab.dataset.service;
+                    document.getElementById(`${service}-form`).style.display = 'block';
+                });
+            });
+        }
+
+        function setupForms() {
+            const forms = document.querySelectorAll('.utility-form');
+
+            forms.forEach(form => {
+                const service = form.dataset.service;
+                
+                // Handle package selection
+                const packageSelect = form.querySelector('select[name="package"]');
+                const amountInput = form.querySelector('input[name="amount"]');
+
+                if (packageSelect) {
+                    packageSelect.addEventListener('change', (e) => {
+                        if (e.target.value) {
+                            amountInput.value = '';
+                            amountInput.removeAttribute('required');
+                            packageSelect.removeAttribute('required');
+                        }
+                    });
+                }
+
+                if (amountInput) {
+                    amountInput.addEventListener('input', (e) => {
+                        if (e.target.value) {
+                            if (packageSelect) packageSelect.value = '';
+                        }
+                    });
+                }
+
+                // Handle form submission
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    const errorDiv = form.querySelector('.error-message');
+
+                    // Get form values
+                    let amount;
+                    if (packageSelect && packageSelect.value) {
+                        amount = parseFloat(packageSelect.value);
+                    } else if (amountInput && amountInput.value) {
+                        amount = parseFloat(amountInput.value);
+                    }
+
+                    const smartCardNumber = form.querySelector('input[name="smartCardNumber"]')?.value;
+                    const meterNumber = form.querySelector('input[name="meterNumber"]')?.value;
+                    const meterType = form.querySelector('select[name="meterType"]')?.value;
+
+                    // Validation
+                    if (!amount || amount <= 0) {
+                        showError('Please select a package or enter an amount');
+                        return;
+                    }
+
+                    if (service !== 'water' && service !== 'ecg' && !smartCardNumber) {
+                        showError('Please enter smart card number');
+                        return;
+                    }
+
+                    if (service === 'ecg' && !meterType) {
+                        showError('Please select meter type');
+                        return;
+                    }
+
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span>Processing...</span>';
+                    errorDiv.style.display = 'none';
+
+                    try {
+                        let response;
+
+                        if (service === 'dstv') {
+                            response = await window.apiClient.payTVBill('DSTV', smartCardNumber, amount);
+                        } else if (service === 'gotv') {
+                            response = await window.apiClient.payTVBill('GOTV', smartCardNumber, amount);
+                        } else if (service === 'startimes') {
+                            response = await window.apiClient.payTVBill('STARTIMES', smartCardNumber, amount);
+                        } else if (service === 'ecg') {
+                            response = await window.apiClient.payECGBill(meterNumber, meterType, amount);
+                        } else if (service === 'water') {
+                            response = await window.apiClient.payGhanaWaterBill(meterNumber, amount);
+                        }
+
+                        if (response.error) {
+                            showError(response.error);
+                        } else if (response.data) {
+                            showToast('Payment initiated successfully! Reference: ' + response.data.clientReference, 'success');
+                            form.reset();
+                            loadWalletBalance();
+                        }
+                    } catch (error) {
+                        showError(error.message || 'Payment failed. Please try again.');
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<span>Pay Now</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+                    }
+                });
+
+                function showError(message) {
+                    const errorDiv = form.querySelector('.error-message');
+                    errorDiv.textContent = message;
+                    errorDiv.style.display = 'block';
+                }
+            });
+        }
+
+        function setupMobileSidebar() {
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                hamburgerBtn.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                hamburgerBtn.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleSidebar);
+            if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 1024) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 1024) {
+                    closeSidebar();
+                }
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '../auth/login.html';
+        }
+    </script>
+</body>
+</html>
