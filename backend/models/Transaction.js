@@ -56,7 +56,7 @@ const transactionSchema = new mongoose.Schema({
 
 // Index for better query performance
 transactionSchema.index({ userId: 1, createdAt: -1 });
-tansactionSchema.index({ reference: 1 });
+transactionSchema.index({ reference: 1 });
 
 // Update updatedAt before saving
 transactionSchema.pre('save', function(next) {
