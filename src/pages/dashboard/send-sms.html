@@ -373,6 +373,50 @@
         </div>
     </div>
 
+    <!-- SMS Send Result Modal -->
+    <div class="modal" id="smsResultModal">
+        <div class="modal-content result-modal-content">
+            <button class="modal-close" onclick="closeSmsResultModal()">&times;</button>
+            <div class="result-modal-header" id="resultModalHeader">
+                <div class="result-modal-icon" id="resultModalIcon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                    </svg>
+                </div>
+                <h3 id="resultModalTitle">SMS Send Results</h3>
+                <p id="resultModalSubtitle">View the details of your sent messages</p>
+            </div>
+            <div class="result-summary">
+                <div class="result-stat success">
+                    <span class="result-stat-value" id="successCount">0</span>
+                    <span class="result-stat-label">Sent Successfully</span>
+                </div>
+                <div class="result-stat failed">
+                    <span class="result-stat-value" id="failedCount">0</span>
+                    <span class="result-stat-label">Failed</span>
+                </div>
+                <div class="result-stat total">
+                    <span class="result-stat-value" id="totalCount">0</span>
+                    <span class="result-stat-label">Total</span>
+                </div>
+            </div>
+            <div class="result-details">
+                <h4>Details</h4>
+                <div class="result-list" id="resultList">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-primary" onclick="closeSmsResultModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthAndLoad();
@@ -787,7 +831,8 @@
                 if (result.error) {
                     showToast(result.error, 'error');
                 } else {
-                    showToast('SMS sent successfully!', 'success');
+                    // Show result modal
+                    showSmsResultModal(result);
                     this.reset();
                     // Reset file upload
                     uploadedRecipients = [];
@@ -844,6 +889,75 @@
             const previewModal = document.getElementById('previewMessageModal');
             if (e.target === previewModal) {
                 closePreviewModal();
+            }
+        });
+
+        // Show SMS result modal
+        function showSmsResultModal(result) {
+            const modal = document.getElementById('smsResultModal');
+            const header = document.getElementById('resultModalHeader');
+            const icon = document.getElementById('resultModalIcon');
+            const title = document.getElementById('resultModalTitle');
+            const subtitle = document.getElementById('resultModalSubtitle');
+            const successCount = document.getElementById('successCount');
+            const failedCount = document.getElementById('failedCount');
+            const totalCount = document.getElementById('totalCount');
+            const resultList = document.getElementById('resultList');
+
+            // Update counts
+            successCount.textContent = result.summary.success;
+            failedCount.textContent = result.summary.failed;
+            totalCount.textContent = result.summary.total;
+
+            // Update header based on results
+            if (result.summary.failed === 0) {
+                icon.className = 'result-modal-icon success';
+                icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                title.textContent = 'SMS Sent Successfully!';
+                subtitle.textContent = `All ${result.summary.total} messages were sent successfully`;
+            } else if (result.summary.success === 0) {
+                icon.className = 'result-modal-icon failed';
+                icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
+                title.textContent = 'SMS Sending Failed';
+                subtitle.textContent = 'All messages failed to send';
+            } else {
+                icon.className = 'result-modal-icon failed';
+                icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+                title.textContent = 'SMS Partially Sent';
+                subtitle.textContent = `${result.summary.success} sent, ${result.summary.failed} failed`;
+            }
+
+            // Populate result list
+            let listHtml = '';
+            result.results.forEach((r, index) => {
+                const statusClass = r.success ? 'success' : 'failed';
+                const statusText = r.success ? 'Sent' : 'Failed';
+                listHtml += `
+                    <div class="result-item">
+                        <div>
+                            <div class="result-item recipient">${r.recipient}</div>
+                            ${r.error ? `<div class="result-error">${r.error}</div>` : ''}
+                        </div>
+                        <span class="result-item status ${statusClass}">${statusText}</span>
+                    </div>
+                `;
+            });
+            resultList.innerHTML = listHtml;
+
+            // Show modal
+            modal.style.display = 'block';
+        }
+
+        // Close SMS result modal
+        function closeSmsResultModal() {
+            document.getElementById('smsResultModal').style.display = 'none';
+        }
+
+        // Close SMS result modal when clicking outside
+        window.addEventListener('click', function(e) {
+            const resultModal = document.getElementById('smsResultModal');
+            if (e.target === resultModal) {
+                closeSmsResultModal();
             }
         });
 
@@ -1587,6 +1701,161 @@
         .modal-actions .btn-secondary svg {
             width: 16px;
             height: 16px;
+        }
+
+        /* SMS Result Modal Styles */
+        .result-modal-content {
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .result-modal-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .result-modal-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+
+        .result-modal-icon.success {
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+        }
+
+        .result-modal-icon.failed {
+            background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+        }
+
+        .result-modal-icon svg {
+            width: 28px;
+            height: 28px;
+            color: white;
+        }
+
+        .result-modal-header h3 {
+            color: var(--primary-dark);
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-modal-header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .result-summary {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .result-stat {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 10px;
+            background-color: #f5f5f5;
+        }
+
+        .result-stat.success {
+            background-color: #e8f5e9;
+        }
+
+        .result-stat.failed {
+            background-color: #ffebee;
+        }
+
+        .result-stat.total {
+            background-color: #e3f2fd;
+        }
+
+        .result-stat-value {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .result-stat.success .result-stat-value {
+            color: #2e7d32;
+        }
+
+        .result-stat.failed .result-stat-value {
+            color: #c62828;
+        }
+
+        .result-stat.total .result-stat-value {
+            color: #1565c0;
+        }
+
+        .result-stat-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .result-details {
+            margin-bottom: 1.5rem;
+        }
+
+        .result-details h4 {
+            font-size: 0.95rem;
+            color: var(--primary-dark);
+            margin-bottom: 0.75rem;
+        }
+
+        .result-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item.recipient {
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+        }
+
+        .result-item.status {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .result-item.status.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .result-item.status.failed {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .result-error {
+            font-size: 0.75rem;
+            color: #c62828;
+            margin-top: 0.25rem;
         }
     </style>
 </body>
