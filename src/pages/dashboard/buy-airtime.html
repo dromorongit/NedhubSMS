@@ -9,6 +9,784 @@
     <link rel="stylesheet" href="../../styles/dashboard.css">
     <link rel="stylesheet" href="../../styles/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================
+           BUY AIRTIME - MODERN UI/UX STYLES
+           ============================================ */
+
+        /* Page Layout */
+        .airtime-page {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Section */
+        .page-header-modern {
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .page-header-modern h2 {
+            font-size: 2rem;
+            color: var(--primary-dark);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .page-header-modern h2 svg {
+            width: 32px;
+            height: 32px;
+            color: var(--accent-orange);
+        }
+
+        .page-header-modern p {
+            color: #666;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .page-header-modern p::before {
+            content: '';
+            width: 4px;
+            height: 4px;
+            background: var(--accent-orange);
+            border-radius: 50%;
+        }
+
+        /* Wallet Card - Enhanced */
+        .wallet-card-modern {
+            background: linear-gradient(135deg, #0B132B 0%, #1a2540 50%, #0B132B 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(11, 19, 43, 0.3);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.5s ease 0.1s both;
+        }
+
+        .wallet-card-modern::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(247, 127, 0, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .wallet-card-modern::after {
+            content: '';
+            position: absolute;
+            bottom: -50px;
+            left: -50px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(247, 127, 0, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .wallet-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .wallet-left {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .wallet-icon-modern {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .wallet-icon-modern svg {
+            width: 28px;
+            height: 28px;
+            color: var(--accent-orange);
+        }
+
+        .wallet-label h3 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .wallet-balance {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        .balance-amount-modern {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .balance-currency-modern {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+
+        .wallet-action {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-topup-modern {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(247, 127, 0, 0.3);
+        }
+
+        .btn-topup-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(247, 127, 0, 0.4);
+        }
+
+        .btn-topup-modern svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Main Content Grid */
+        .airtime-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+            animation: fadeInUp 0.5s ease 0.2s both;
+        }
+
+        /* Network Selection */
+        .network-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title svg {
+            width: 20px;
+            height: 20px;
+            color: var(--accent-orange);
+        }
+
+        .network-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .network-card {
+            background: #f8f9fa;
+            border: 2px solid #e8e8e8;
+            border-radius: 14px;
+            padding: 1.25rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .network-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+        }
+
+        .network-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .network-card.selected {
+            border-color: var(--accent-orange);
+            background: linear-gradient(135deg, #fff5e6 0%, #fff 100%);
+        }
+
+        .network-card.selected::before {
+            opacity: 1;
+        }
+
+        .network-card.selected .network-icon {
+            transform: scale(1.1);
+        }
+
+        .network-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            transition: transform 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .network-card[data-network="MTN"] .network-icon {
+            background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+            color: white;
+        }
+
+        .network-card[data-network="TELECEL"] .network-icon {
+            background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+            color: white;
+        }
+
+        .network-card[data-network="AIRTELTIGO"] .network-icon {
+            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+            color: white;
+        }
+
+        .network-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #333;
+            position: relative;
+            z-index: 1;
+        }
+
+        .network-card.selected .network-name {
+            color: var(--accent-orange);
+        }
+
+        /* Form Styles */
+        .airtime-form {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .form-group-modern {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-group-modern label {
+            display: block;
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group-modern input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group-modern input:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(247, 127, 0, 0.1);
+        }
+
+        .form-group-modern input::placeholder {
+            color: #aaa;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            transition: color 0.3s ease;
+            pointer-events: none;
+        }
+
+        .form-group-modern input:focus ~ .input-icon,
+        .form-group-modern:focus-within .input-icon {
+            color: var(--accent-orange);
+        }
+
+        .form-group-modern small {
+            color: #999;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            display: block;
+        }
+
+        .input-hint {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: #888;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .input-hint svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Quick Amount Buttons */
+        .quick-amounts-modern {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .quick-amount-btn {
+            flex: 1;
+            min-width: 70px;
+            padding: 0.875rem 0.5rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-amount-btn:hover {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+            background: #fff5e6;
+            transform: translateY(-2px);
+        }
+
+        .quick-amount-btn:active {
+            transform: scale(0.95);
+        }
+
+        .quick-amount-btn.selected {
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
+            border-color: var(--accent-orange);
+            color: white;
+            box-shadow: 0 4px 15px rgba(247, 127, 0, 0.3);
+        }
+
+        /* Purchase Summary Card */
+        .summary-card {
+            background: linear-gradient(135deg, #0B132B 0%, #1a2540 100%);
+            border-radius: 16px;
+            padding: 1.5rem;
+            color: white;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .summary-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(247, 127, 0, 0.2) 0%, transparent 70%);
+        }
+
+        .summary-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .summary-card h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--accent-orange);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .summary-row span:first-child {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .summary-row span:last-child {
+            font-weight: 600;
+        }
+
+        .summary-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 0.75rem 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .summary-total span:first-child {
+            font-weight: 600;
+        }
+
+        .summary-total span:last-child {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-orange);
+        }
+
+        /* Submit Button */
+        .btn-submit-modern {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1.125rem;
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(247, 127, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-submit-modern:hover::before {
+            left: 100%;
+        }
+
+        .btn-submit-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(247, 127, 0, 0.4);
+        }
+
+        .btn-submit-modern:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-submit-modern svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Error Message */
+        .error-message-modern {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            animation: shake 0.4s ease;
+        }
+
+        .error-message-modern svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Info Box */
+        .info-box-modern {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 1px solid #90caf9;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .info-box-modern svg {
+            width: 24px;
+            height: 24px;
+            color: #1976d2;
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+        }
+
+        .info-box-modern h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1565c0;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-box-modern p {
+            font-size: 0.85rem;
+            color: #1976d2;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* Success Animation */
+        .success-animation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            display: none;
+            animation: popIn 0.4s ease;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+
+        .success-animation h3 {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .success-animation p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Spinner */
+        .btn-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile Network Cards */
+        @media (max-width: 768px) {
+            .airtime-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .network-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.75rem;
+            }
+
+            .network-card {
+                padding: 1rem 0.5rem;
+            }
+
+            .network-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.25rem;
+            }
+
+            .network-name {
+                font-size: 0.8rem;
+            }
+
+            .wallet-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .wallet-left {
+                flex-direction: column;
+            }
+
+            .wallet-action {
+                width: 100%;
+            }
+
+            .btn-topup-modern {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .page-header-modern h2 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .network-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .network-card {
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 1rem;
+                padding: 1rem;
+                text-align: left;
+            }
+
+            .network-icon {
+                margin: 0;
+                width: 44px;
+                height: 44px;
+            }
+
+            .quick-amounts-modern {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -121,130 +899,210 @@
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
             
             <div class="dashboard-content">
-                <div class="page-header">
-                    <h2>Buy Airtime</h2>
-                    <p class="page-subtitle">Purchase airtime for MTN, Telecel, or AirtelTigo</p>
-                </div>
-
-                <!-- Wallet Balance Card -->
-                <div class="wallet-card compact">
-                    <div class="wallet-header">
-                        <div class="wallet-icon">
+                <div class="airtime-page">
+                    <!-- Modern Header -->
+                    <div class="page-header-modern">
+                        <h2>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                             </svg>
-                        </div>
-                        <div class="wallet-info">
-                            <h3>Wallet Balance</h3>
-                            <p class="wallet-subtitle">Available Balance</p>
-                        </div>
+                            Buy Airtime
+                        </h2>
+                        <p>Instant airtime top-up for MTN, Telecel & AirtelTigo</p>
                     </div>
-                    <div class="balance-display">
-                        <span class="balance-amount" id="walletBalanceAmount">0</span>
-                        <span class="balance-currency">GHS</span>
-                    </div>
-                </div>
 
-                <!-- Airtime Purchase Form -->
-                <div class="form-container">
-                    <div class="form-card">
-                        <div class="form-header">
-                            <div class="form-icon airtime-icon">
+                    <!-- Wallet Balance Card -->
+                    <div class="wallet-card-modern">
+                        <div class="wallet-content">
+                            <div class="wallet-left">
+                                <div class="wallet-icon-modern">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                                    </svg>
+                                </div>
+                                <div class="wallet-label">
+                                    <h3>Wallet Balance</h3>
+                                    <div class="wallet-balance">
+                                        <span class="balance-amount-modern" id="walletBalanceAmount">0</span>
+                                        <span class="balance-currency-modern">GHS</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="wallet-action">
+                                <button class="btn-topup-modern" onclick="window.location.href='transactions.html'">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    Top Up
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Grid -->
+                    <div class="airtime-grid">
+                        <!-- Network Selection -->
+                        <div class="network-section">
+                            <h3 class="section-title">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                                </svg>
+                                Select Network
+                            </h3>
+                            
+                            <div class="network-grid">
+                                <div class="network-card" data-network="MTN">
+                                    <div class="network-icon">M</div>
+                                    <div class="network-name">MTN</div>
+                                </div>
+                                <div class="network-card" data-network="TELECEL">
+                                    <div class="network-icon">T</div>
+                                    <div class="network-name">Telecel</div>
+                                </div>
+                                <div class="network-card" data-network="AIRTELTIGO">
+                                    <div class="network-icon">A</div>
+                                    <div class="network-name">AirtelTigo</div>
+                                </div>
+                            </div>
+
+                            <!-- Phone Number Input -->
+                            <div class="form-group-modern">
+                                <label for="phoneNumber">Phone Number</label>
+                                <input type="tel" id="phoneNumber" name="phoneNumber" 
+                                       placeholder="501234567" required pattern="[0-9]{9}" 
+                                       maxlength="9">
+                                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                                 </svg>
-                            </div>
-                            <h3>Purchase Airtime</h3>
-                            <p>Instant airtime top-up for all major networks</p>
-                        </div>
-                        
-                        <form id="airtimeForm">
-                            <div class="form-group">
-                                <label for="phoneNumber">Phone Number</label>
-                                <div class="input-wrapper">
-                                    <span class="input-prefix">+233</span>
-                                    <input type="tel" id="phoneNumber" name="phoneNumber" 
-                                           placeholder="501234567" required pattern="[0-9]{9}" 
-                                           maxlength="9">
+                                <div class="input-hint">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    Enter the 9-digit phone number (without 0)
                                 </div>
-                                <small>Enter the 9-digit phone number</small>
                             </div>
-                            
-                            <div class="form-group">
-                                <label for="network">Network</label>
-                                <select id="network" name="network" required>
-                                    <option value="">Select network</option>
-                                    <option value="MTN">MTN</option>
-                                    <option value="TELECEL">Telecel</option>
-                                    <option value="AIRTELTIGO">AirtelTigo</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="amount">Amount (GHS)</label>
-                                <div class="input-wrapper">
-                                    <span class="currency-symbol">₵</span>
+                        </div>
+
+                        <!-- Airtime Form -->
+                        <div class="airtime-form">
+                            <h3 class="section-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                </svg>
+                                Enter Amount
+                            </h3>
+
+                            <form id="airtimeForm">
+                                <div class="form-group-modern">
+                                    <label for="amount">Amount (GHS)</label>
                                     <input type="number" id="amount" name="amount" 
                                            min="1" max="500" step="1" 
                                            placeholder="0.00" required>
+                                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                    </svg>
+                                    <div class="input-hint">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                        </svg>
+                                        Min: ₵1 | Max: ₵500
+                                    </div>
                                 </div>
-                                <small>Minimum: ₵1.00 | Maximum: ₵500.00</small>
-                            </div>
-                            
-                            <!-- Quick Amount Buttons -->
-                            <div class="quick-amounts">
-                                <button type="button" class="quick-amount-btn" data-amount="5">₵5</button>
-                                <button type="button" class="quick-amount-btn" data-amount="10">₵10</button>
-                                <button type="button" class="quick-amount-btn" data-amount="20">₵20</button>
-                                <button type="button" class="quick-amount-btn" data-amount="50">₵50</button>
-                                <button type="button" class="quick-amount-btn" data-amount="100">₵100</button>
-                            </div>
-                            
-                            <!-- Purchase Summary -->
-                            <div class="transfer-summary" id="purchaseSummary" style="display: none;">
-                                <h4>Purchase Summary</h4>
-                                <div class="summary-row">
-                                    <span>Phone Number:</span>
-                                    <span id="summaryPhone">-</span>
+
+                                <!-- Quick Amount Buttons -->
+                                <div class="quick-amounts-modern">
+                                    <button type="button" class="quick-amount-btn" data-amount="5">₵5</button>
+                                    <button type="button" class="quick-amount-btn" data-amount="10">₵10</button>
+                                    <button type="button" class="quick-amount-btn" data-amount="20">₵20</button>
+                                    <button type="button" class="quick-amount-btn" data-amount="50">₵50</button>
+                                    <button type="button" class="quick-amount-btn" data-amount="100">₵100</button>
                                 </div>
-                                <div class="summary-row">
-                                    <span>Network:</span>
-                                    <span id="summaryNetwork">-</span>
+
+                                <!-- Hidden Network Field -->
+                                <input type="hidden" id="network" name="network" value="">
+
+                                <!-- Purchase Summary -->
+                                <div class="summary-card" id="purchaseSummary">
+                                    <h4>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                        Purchase Summary
+                                    </h4>
+                                    <div class="summary-row">
+                                        <span>Phone Number:</span>
+                                        <span id="summaryPhone">-</span>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>Network:</span>
+                                        <span id="summaryNetwork">-</span>
+                                    </div>
+                                    <div class="summary-divider"></div>
+                                    <div class="summary-total">
+                                        <span>Total Cost:</span>
+                                        <span id="summaryTotal">₵0.00</span>
+                                    </div>
                                 </div>
-                                <div class="summary-row total">
-                                    <span>Total Cost:</span>
-                                    <span id="summaryTotal">-</span>
+
+                                <div class="error-message-modern" id="formError">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                                    </svg>
+                                    <span id="errorText"></span>
                                 </div>
-                            </div>
-                            
-                            <div class="error-message" id="formError" style="display: none;"></div>
-                            
-                            <button type="submit" class="btn-primary btn-block" id="submitBtn">
-                                <span>Buy Airtime</span>
+
+                                <button type="submit" class="btn-submit-modern" id="submitBtn">
+                                    <span>Buy Airtime</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        <polyline points="12 5 19 12 12 19"></polyline>
+                                    </svg>
+                                </button>
+                            </form>
+
+                            <!-- Info Box -->
+                            <div class="info-box-modern">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
                                 </svg>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                
-                <!-- Info Box -->
-                <div class="info-box">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                    <div>
-                        <h4>Instant Delivery</h4>
-                        <p>Airtime is delivered instantly to the specified phone number. The amount will be deducted from your wallet immediately.</p>
+                                <div>
+                                    <h4>Instant Delivery</h4>
+                                    <p>Airtime is delivered instantly to the specified phone number. The amount will be deducted from your wallet immediately.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Success Animation Overlay -->
+    <div class="success-animation" id="successAnimation">
+        <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </div>
+        <h3>Purchase Successful!</h3>
+        <p id="successMessage">Airtime has been sent</p>
     </div>
 
     <script src="../../utils/api.js"></script>
@@ -264,6 +1122,7 @@
             await loadUserProfile();
             loadWalletBalance();
             setupFormHandlers();
+            setupNetworkSelection();
             setupMobileSidebar();
         }
 
@@ -286,23 +1145,43 @@
                 const response = await window.apiClient.getWalletBalance();
                 if (response.data) {
                     const balance = response.data.balance || 0;
-                    document.getElementById('walletBalanceAmount').textContent = '₵' + balance.toFixed(2);
+                    document.getElementById('walletBalanceAmount').textContent = balance.toFixed(2);
                 }
             } catch (error) {
                 console.error('Error loading wallet balance:', error);
             }
         }
 
+        function setupNetworkSelection() {
+            const networkCards = document.querySelectorAll('.network-card');
+            
+            networkCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    // Remove selected class from all cards
+                    networkCards.forEach(c => c.classList.remove('selected'));
+                    // Add selected class to clicked card
+                    card.classList.add('selected');
+                    // Set hidden input value
+                    document.getElementById('network').value = card.dataset.network;
+                    updateSummary();
+                });
+            });
+        }
+
         function setupFormHandlers() {
             const form = document.getElementById('airtimeForm');
             const phoneNumber = document.getElementById('phoneNumber');
-            const network = document.getElementById('network');
             const amount = document.getElementById('amount');
             const quickAmountBtns = document.querySelectorAll('.quick-amount-btn');
 
             // Quick amount buttons
             quickAmountBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
+                    // Remove selected class from all buttons
+                    quickAmountBtns.forEach(b => b.classList.remove('selected'));
+                    // Add selected class to clicked button
+                    btn.classList.add('selected');
+                    // Set amount value
                     amount.value = btn.dataset.amount;
                     updateSummary();
                 });
@@ -313,33 +1192,45 @@
                 const phone = e.target.value;
                 if (phone.length >= 3) {
                     const prefix = phone.substring(0, 3);
+                    const networkCards = document.querySelectorAll('.network-card');
+                    
+                    networkCards.forEach(card => card.classList.remove('selected'));
+                    
                     if (['050', '054', '055', '056', '024', '026', '027', '028', '029'].includes(prefix)) {
-                        network.value = 'MTN';
+                        document.getElementById('network').value = 'MTN';
+                        document.querySelector('.network-card[data-network="MTN"]').classList.add('selected');
                     } else if (['057', '053'].includes(prefix)) {
-                        network.value = 'TELECEL';
+                        document.getElementById('network').value = 'TELECEL';
+                        document.querySelector('.network-card[data-network="TELECEL"]').classList.add('selected');
                     } else if (['044', '045', '047'].includes(prefix)) {
-                        network.value = 'AIRTELTIGO';
+                        document.getElementById('network').value = 'AIRTELTIGO';
+                        document.querySelector('.network-card[data-network="AIRTELTIGO"]').classList.add('selected');
                     }
                 }
                 updateSummary();
             });
 
-            network.addEventListener('change', updateSummary);
             amount.addEventListener('input', updateSummary);
 
             function updateSummary() {
                 const summary = document.getElementById('purchaseSummary');
                 const phone = phoneNumber.value;
-                const net = network.options[network.selectedIndex]?.text;
+                const network = document.getElementById('network').value;
                 const amt = parseFloat(amount.value) || 0;
 
-                if (phone.length >= 9 && net && amt > 0) {
-                    summary.style.display = 'block';
+                if (phone.length >= 9 && network && amt > 0) {
+                    summary.classList.add('visible');
                     document.getElementById('summaryPhone').textContent = '0' + phone;
-                    document.getElementById('summaryNetwork').textContent = net;
+                    
+                    const networkNames = {
+                        'MTN': 'MTN',
+                        'TELECEL': 'Telecel',
+                        'AIRTELTIGO': 'AirtelTigo'
+                    };
+                    document.getElementById('summaryNetwork').textContent = networkNames[network] || network;
                     document.getElementById('summaryTotal').textContent = '₵' + amt.toFixed(2);
                 } else {
-                    summary.style.display = 'none';
+                    summary.classList.remove('visible');
                 }
             }
 
@@ -348,9 +1239,10 @@
 
                 const submitBtn = document.getElementById('submitBtn');
                 const errorDiv = document.getElementById('formError');
+                const errorText = document.getElementById('errorText');
 
                 const phone = phoneNumber.value.trim();
-                const net = network.value;
+                const net = document.getElementById('network').value;
                 const amt = parseFloat(amount.value);
 
                 // Validation
@@ -374,8 +1266,9 @@
                     return;
                 }
 
+                // Show loading state
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span>Processing...</span>';
+                submitBtn.innerHTML = '<div class="btn-spinner"></div><span>Processing...</span>';
                 errorDiv.style.display = 'none';
 
                 try {
@@ -390,9 +1283,15 @@
                     if (response.error) {
                         showError(response.error);
                     } else if (response.data) {
-                        showToast('Airtime purchased successfully! ₵' + amt + ' sent to ' + formattedPhone, 'success');
+                        // Show success animation
+                        showSuccess(formattedPhone, amt);
                         form.reset();
-                        document.getElementById('purchaseSummary').style.display = 'none';
+                        
+                        // Reset UI
+                        document.getElementById('purchaseSummary').classList.remove('visible');
+                        document.querySelectorAll('.network-card').forEach(c => c.classList.remove('selected'));
+                        document.querySelectorAll('.quick-amount-btn').forEach(b => b.classList.remove('selected'));
+                        
                         loadWalletBalance();
                     }
                 } catch (error) {
@@ -405,8 +1304,20 @@
 
             function showError(message) {
                 const errorDiv = document.getElementById('formError');
-                errorDiv.textContent = message;
-                errorDiv.style.display = 'block';
+                const errorText = document.getElementById('errorText');
+                errorText.textContent = message;
+                errorDiv.style.display = 'flex';
+            }
+
+            function showSuccess(phone, amount) {
+                const successDiv = document.getElementById('successAnimation');
+                const message = document.getElementById('successMessage');
+                message.textContent = `₵${amount.toFixed(2)} sent to 0${phone}`;
+                successDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 3000);
             }
         }
 
