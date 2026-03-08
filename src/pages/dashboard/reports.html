@@ -124,25 +124,6 @@
                     <p class="welcome-subtitle">Track your SMS performance and delivery metrics</p>
                 </div>
 
-                <!-- Date Range Filter -->
-                <div class="date-filter-bar">
-                    <div class="filter-title">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        <span>Date Range</span>
-                    </div>
-                    <div class="filter-options">
-                        <button class="filter-btn active" data-range="7">Last 7 Days</button>
-                        <button class="filter-btn" data-range="30">Last 30 Days</button>
-                        <button class="filter-btn" data-range="90">Last 90 Days</button>
-                        <button class="filter-btn" data-range="365">This Year</button>
-                    </div>
-                </div>
-
                 <!-- Summary Stats -->
                 <div class="reports-stats">
                     <div class="stat-card">
@@ -154,124 +135,185 @@
                         <div class="stat-content">
                             <h3>Total Sent</h3>
                             <p class="stat-value" id="totalSent">0</p>
-                            <span class="stat-label">messages sent</span>
+                            <span class="stat-label">messages</span>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon delivery-icon">
+                        <div class="stat-icon success-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
                             </svg>
                         </div>
                         <div class="stat-content">
+                            <h3>Delivered</h3>
+                            <p class="stat-value" id="deliveredCount">0</p>
+                            <span class="stat-label">successfully</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon failed-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Failed</h3>
+                            <p class="stat-value" id="failedCount">0</p>
+                            <span class="stat-label">failed</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon rate-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="20" x2="12" y2="10"></line>
+                                <line x1="18" y1="20" x2="18" y2="4"></line>
+                                <line x1="6" y1="20" x2="6" y2="16"></line>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
                             <h3>Delivery Rate</h3>
                             <p class="stat-value" id="deliveryRate">0%</p>
-                            <span class="stat-label">successfully delivered</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon sent-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <h3>Messages Sent</h3>
-                            <p class="stat-value" id="creditsUsed">0</p>
-                            <span class="stat-label">this month</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon cost-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="1" x2="12" y2="23"></line>
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <h3>Est. Cost</h3>
-                            <p class="stat-value" id="estCost">GHS 0</p>
-                            <span class="stat-label">approximate</span>
+                            <span class="stat-label">success rate</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Charts Grid -->
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>SMS Usage Over Time</h3>
-                            <div class="chart-legend">
-                                <span class="legend-item"><span class="legend-dot sent"></span>Sent</span>
-                            </div>
-                        </div>
-                        <div class="chart-container" id="usageChart">
-                            <canvas id="usageCanvas"></canvas>
-                        </div>
-                        <div class="chart-placeholder" id="usagePlaceholder">
-                            <div class="placeholder-content">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="20" x2="18" y2="10"></line>
-                                    <line x1="12" y1="20" x2="12" y2="4"></line>
-                                    <line x1="6" y1="20" x2="6" y2="14"></line>
-                                </svg>
-                                <p>Messages sent over time</p>
-                                <span id="usageChartMessage">No data available for the selected period</span>
-                            </div>
-                        </div>
+                <!-- Filter Bar -->
+                <div class="reports-filter-bar">
+                    <div class="filter-group">
+                        <label>Search:</label>
+                        <input type="text" id="searchInput" placeholder="Search by sender ID or recipient...">
                     </div>
-
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>Delivery Status</h3>
-                        </div>
-                        <div class="chart-container" id="deliveryChart">
-                            <canvas id="deliveryCanvas"></canvas>
-                        </div>
-                        <div class="delivery-legend" id="deliveryLegend">
-                            <div class="legend-item">
-                                <span class="legend-color delivered"></span>
-                                <span>Delivered</span>
-                                <span class="legend-value" id="deliveredCount">0</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color pending"></span>
-                                <span>Pending</span>
-                                <span class="legend-value" id="pendingCount">0</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color failed"></span>
-                                <span>Failed</span>
-                                <span class="legend-value" id="failedCount">0</span>
-                            </div>
-                        </div>
+                    <div class="filter-group">
+                        <label>Status:</label>
+                        <select id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="sent">Sent</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                        </select>
                     </div>
+                    <div class="filter-group">
+                        <label>Date:</label>
+                        <input type="date" id="dateFrom" placeholder="From">
+                        <span>to</span>
+                        <input type="date" id="dateTo" placeholder="To">
+                    </div>
+                    <button class="btn-filter" onclick="applyFilters()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                        Filter
+                    </button>
+                    <button class="btn-download" onclick="downloadReport()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download CSV
+                    </button>
                 </div>
 
-                <!-- Top Groups Section -->
-                <div class="top-groups-section">
-                    <div class="section-header">
-                        <h3>Top Contact Groups</h3>
-                        <span class="section-subtitle">Groups with most messages sent</span>
+                <!-- Messages Table -->
+                <div class="reports-table-card">
+                    <div class="table-header">
+                        <h3>Message History</h3>
+                        <span class="table-count" id="tableCount">0 messages</span>
                     </div>
-                    <div class="groups-list" id="groupsList">
-                        <div class="empty-state small">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                            </svg>
-                            <p>No group data available</p>
-                        </div>
+                    <div class="table-container">
+                        <table class="reports-table">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Sender ID</th>
+                                    <th>Recipients</th>
+                                    <th>Message Preview</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="messagesTableBody">
+                                <tr class="empty-row">
+                                    <td colspan="6">
+                                        <div class="empty-state">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                                            </svg>
+                                            <p>No messages found</p>
+                                            <span>Your sent messages will appear here</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-pagination" id="tablePagination">
+                        <!-- Pagination will be added here -->
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
+    <!-- Message Detail Modal -->
+    <div class="modal" id="messageDetailModal">
+        <div class="modal-content detail-modal-content">
+            <button class="modal-close" onclick="closeMessageDetailModal()">&times;</button>
+            <div class="detail-header">
+                <div class="detail-icon" id="detailIcon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                    </svg>
+                </div>
+                <div class="detail-info">
+                    <h3 id="detailSenderId">Sender ID</h3>
+                    <span class="detail-date" id="detailDate">Jan 1, 2024 12:00 PM</span>
+                </div>
+                <div class="detail-status" id="detailStatus">
+                    <span class="status-badge delivered">Delivered</span>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4>Message Content</h4>
+                <div class="message-content-box" id="detailMessage">
+                    Message content goes here...
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>Recipient Details</h4>
+                <div class="recipients-stats">
+                    <div class="recipient-stat delivered">
+                        <span class="count" id="detailDelivered">0</span>
+                        <span class="label">Delivered</span>
+                    </div>
+                    <div class="recipient-stat failed">
+                        <span class="count" id="detailFailed">0</span>
+                        <span class="label">Failed</span>
+                    </div>
+                    <div class="recipient-stat pending">
+                        <span class="count" id="detailPending">0</span>
+                        <span class="label">Pending</span>
+                    </div>
+                </div>
+                <div class="recipients-list" id="recipientsList">
+                    <!-- Recipients will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        let messages = [];
-        let selectedRange = 7;
+        let allMessages = [];
+        let filteredMessages = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthAndLoad();
@@ -330,222 +372,250 @@
 
         async function loadReportData() {
             try {
-                // Load messages for reports
                 const result = await window.apiClient.getMessageHistory();
                 if (result.error) {
                     console.error('Error loading messages:', result.error);
                     return;
                 }
                 
-                messages = result.data || [];
-                updateReportData();
+                allMessages = result.data || [];
+                filteredMessages = [...allMessages];
+                updateStats();
+                renderTable();
             } catch (error) {
                 console.error('Error loading report data:', error);
             }
         }
 
-        function updateReportData() {
-            // Filter messages by date range
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - selectedRange);
-            
-            const filteredMessages = messages.filter(msg => {
-                if (!msg.createdAt) return false;
-                return new Date(msg.createdAt) >= cutoffDate;
-            });
-
-            // Calculate stats
-            const totalSent = filteredMessages.length;
-            // Count delivered (including 'sent' as successfully sent to carrier)
+        function updateStats() {
+            const total = filteredMessages.length;
             const delivered = filteredMessages.filter(m => m.status === 'delivered' || m.status === 'sent').length;
-            const pending = filteredMessages.filter(m => m.status === 'pending').length;
             const failed = filteredMessages.filter(m => m.status === 'failed').length;
-            const deliveryRate = totalSent > 0 ? Math.round((delivered / totalSent) * 100) : 0;
+            const rate = total > 0 ? Math.round((delivered / total) * 100) : 0;
 
-            // Calculate estimated cost based on actual messages stored
-            let totalCharacters = 0;
-            filteredMessages.forEach(msg => {
-                if (msg.message) {
-                    totalCharacters += msg.message.length;
+            document.getElementById('totalSent').textContent = total.toLocaleString();
+            document.getElementById('deliveredCount').textContent = delivered.toLocaleString();
+            document.getElementById('failedCount').textContent = failed.toLocaleString();
+            document.getElementById('deliveryRate').textContent = rate + '%';
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+
+            filteredMessages = allMessages.filter(msg => {
+                // Search filter
+                if (searchTerm) {
+                    const senderIdMatch = msg.senderId && msg.senderId.toLowerCase().includes(searchTerm);
+                    const recipientMatch = msg.recipient && msg.recipient.toLowerCase().includes(searchTerm);
+                    const messageMatch = msg.message && msg.message.toLowerCase().includes(searchTerm);
+                    if (!senderIdMatch && !recipientMatch && !messageMatch) return false;
                 }
+
+                // Status filter
+                if (statusFilter && msg.status !== statusFilter) return false;
+
+                // Date filter
+                if (dateFrom || dateTo) {
+                    const msgDate = new Date(msg.createdAt);
+                    if (dateFrom && msgDate < new Date(dateFrom)) return false;
+                    if (dateTo && msgDate > new Date(dateTo + 'T23:59:59')) return false;
+                }
+
+                return true;
             });
-            // Rough estimate: 1 segment per 160 characters, cost is GHS 0.05 per segment
-            const totalSegments = Math.ceil(totalCharacters / 160);
-            const estimatedCost = totalSegments * 0.05;
 
-            // Update stat cards
-            document.getElementById('totalSent').textContent = totalSent.toLocaleString();
-            document.getElementById('deliveryRate').textContent = deliveryRate + '%';
-            document.getElementById('creditsUsed').textContent = totalSent.toLocaleString();
-            document.getElementById('estCost').textContent = '₵ ' + estimatedCost.toFixed(2);
-
-            // Update delivery chart legend
-            document.getElementById('deliveredCount').textContent = delivered;
-            document.getElementById('pendingCount').textContent = pending;
-            document.getElementById('failedCount').textContent = failed;
-
-            // Draw charts if canvas exists
-            drawUsageChart(filteredMessages);
-            drawDeliveryChart(delivered, pending, failed);
+            currentPage = 1;
+            updateStats();
+            renderTable();
         }
 
-        function drawUsageChart(filteredMessages) {
-            const canvas = document.getElementById('usageCanvas');
-            const placeholder = document.getElementById('usagePlaceholder');
-            const container = document.getElementById('usageChart');
-            
-            if (!canvas || !placeholder) return;
+        function renderTable() {
+            const tbody = document.getElementById('messagesTableBody');
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageMessages = filteredMessages.slice(startIndex, endIndex);
 
+            if (pageMessages.length === 0) {
+                tbody.innerHTML = `
+                    <tr class="empty-row">
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                                </svg>
+                                <p>No messages found</p>
+                                <span>Your sent messages will appear here</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('tableCount').textContent = '0 messages';
+                return;
+            }
+
+            document.getElementById('tableCount').textContent = `${filteredMessages.length} messages`;
+
+            tbody.innerHTML = pageMessages.map(msg => {
+                const date = new Date(msg.createdAt);
+                const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const statusClass = msg.status === 'delivered' || msg.status === 'sent' ? 'delivered' : 
+                                   msg.status === 'pending' ? 'pending' : 'failed';
+                const statusLabel = msg.status === 'sent' ? 'Sent' : msg.status.charAt(0).toUpperCase() + msg.status.slice(1);
+                const messagePreview = msg.message ? (msg.message.length > 50 ? msg.message.substring(0, 50) + '...' : msg.message) : 'N/A';
+                const recipientCount = msg.recipientsCount || 1;
+
+                return `
+                    <tr>
+                        <td>${formattedDate}</td>
+                        <td><span class="sender-id-badge">${msg.senderId || 'N/A'}</span></td>
+                        <td>${recipientCount} recipient${recipientCount > 1 ? 's' : ''}</td>
+                        <td><span class="message-preview">${messagePreview}</span></td>
+                        <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                        <td>
+                            <button class="btn-view" onclick="viewMessageDetail('${msg._id}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                View
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredMessages.length / itemsPerPage);
+            const pagination = document.getElementById('tablePagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let paginationHtml = '';
+            
+            // Previous button
+            if (currentPage > 1) {
+                paginationHtml += `<button class="page-btn" onclick="goToPage(${currentPage - 1})">Previous</button>`;
+            }
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    paginationHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    paginationHtml += `<span class="page-ellipsis">...</span>`;
+                }
+            }
+
+            // Next button
+            if (currentPage < totalPages) {
+                paginationHtml += `<button class="page-btn" onclick="goToPage(${currentPage + 1})">Next</button>`;
+            }
+
+            pagination.innerHTML = paginationHtml;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            renderTable();
+        }
+
+        function viewMessageDetail(messageId) {
+            const message = allMessages.find(m => m._id === messageId);
+            if (!message) return;
+
+            // Update header
+            document.getElementById('detailSenderId').textContent = message.senderId || 'N/A';
+            document.getElementById('detailDate').textContent = new Date(message.createdAt).toLocaleString();
+            
+            // Update status badge
+            const statusEl = document.getElementById('detailStatus');
+            const statusClass = message.status === 'delivered' || message.status === 'sent' ? 'delivered' : 
+                               message.status === 'pending' ? 'pending' : 'failed';
+            const statusLabel = message.status === 'sent' ? 'Sent' : message.status.charAt(0).toUpperCase() + message.status.slice(1);
+            statusEl.innerHTML = `<span class="status-badge ${statusClass}">${statusLabel}</span>`;
+
+            // Update message content
+            document.getElementById('detailMessage').textContent = message.message || 'N/A';
+
+            // Update recipient stats
+            const isDelivered = message.status === 'delivered' || message.status === 'sent';
+            const isFailed = message.status === 'failed';
+            const isPending = message.status === 'pending';
+
+            document.getElementById('detailDelivered').textContent = isDelivered ? '1' : '0';
+            document.getElementById('detailFailed').textContent = isFailed ? '1' : '0';
+            document.getElementById('detailPending').textContent = isPending ? '1' : '0';
+
+            // Populate recipients list
+            const recipientsList = document.getElementById('recipientsList');
+            const recipientStatusClass = isDelivered ? 'delivered' : isFailed ? 'failed' : 'pending';
+            const recipientStatusLabel = isDelivered ? 'Delivered' : isFailed ? 'Failed' : 'Pending';
+            
+            recipientsList.innerHTML = `
+                <div class="recipient-item ${recipientStatusClass}">
+                    <div class="recipient-info">
+                        <span class="recipient-number">${message.recipient || 'N/A'}</span>
+                        ${message.errorMessage ? `<span class="recipient-error">${message.errorMessage}</span>` : ''}
+                    </div>
+                    <span class="recipient-status ${recipientStatusClass}">${recipientStatusLabel}</span>
+                </div>
+            `;
+
+            // Show modal
+            document.getElementById('messageDetailModal').style.display = 'block';
+        }
+
+        function closeMessageDetailModal() {
+            document.getElementById('messageDetailModal').style.display = 'none';
+        }
+
+        function downloadReport() {
             if (filteredMessages.length === 0) {
-                placeholder.style.display = 'flex';
-                canvas.style.display = 'none';
+                showToast('No data to download', 'warning');
                 return;
             }
 
-            placeholder.style.display = 'none';
-            canvas.style.display = 'block';
-
-            const ctx = canvas.getContext('2d');
-            const rect = container.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = 250;
-
-            // Group messages by date
-            const dateGroups = {};
+            // Create CSV content
+            let csvContent = 'Date,Sender ID,Recipient,Message,Status,Error\n';
+            
             filteredMessages.forEach(msg => {
-                if (!msg.createdAt) return;
-                const date = new Date(msg.createdAt).toLocaleDateString();
-                dateGroups[date] = (dateGroups[date] || 0) + 1;
+                const date = new Date(msg.createdAt).toLocaleString();
+                const senderId = msg.senderId || '';
+                const recipient = msg.recipient || '';
+                const message = (msg.message || '').replace(/"/g, '""');
+                const status = msg.status || '';
+                const error = msg.errorMessage || '';
+                
+                csvContent += `"${date}","${senderId}","${recipient}","${message}","${status}","${error}"\n`;
             });
 
-            const dates = Object.keys(dateGroups).slice(-10); // Last 10 dates
-            const values = dates.map(d => dateGroups[d]);
-            const maxValue = Math.max(...values, 1);
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `sms_report_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
 
-            const padding = 40;
-            const chartWidth = canvas.width - padding * 2;
-            const chartHeight = canvas.height - padding * 2;
-            const barWidth = chartWidth / dates.length - 10;
-
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw bars
-            dates.forEach((date, i) => {
-                const barHeight = (values[i] / maxValue) * chartHeight;
-                const x = padding + i * (chartWidth / dates.length) + 5;
-                const y = canvas.height - padding - barHeight;
-
-                // Create gradient
-                const gradient = ctx.createLinearGradient(x, y, x, canvas.height - padding);
-                gradient.addColorStop(0, '#F77F00');
-                gradient.addColorStop(1, '#e56a00');
-
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.roundRect(x, y, barWidth, barHeight, 4);
-                ctx.fill();
-
-                // Draw value on top
-                ctx.fillStyle = '#0B132B';
-                ctx.font = '11px Inter, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(values[i], x + barWidth / 2, y - 8);
-
-                // Draw date below
-                ctx.fillStyle = '#999';
-                ctx.font = '10px Inter, sans-serif';
-                const shortDate = date.split('/').slice(0, 2).join('/');
-                ctx.fillText(shortDate, x + barWidth / 2, canvas.height - padding + 20);
-            });
+            showToast('Report downloaded successfully', 'success');
         }
 
-        function drawDeliveryChart(delivered, pending, failed) {
-            const canvas = document.getElementById('deliveryCanvas');
-            const legend = document.getElementById('deliveryLegend');
-            
-            if (!canvas) return;
-
-            const total = delivered + pending + failed;
-            if (total === 0) {
-                legend.style.display = 'none';
-                canvas.style.display = 'none';
-                return;
+        // Close modal when clicking outside
+        window.addEventListener('click', function(e) {
+            const modal = document.getElementById('messageDetailModal');
+            if (e.target === modal) {
+                closeMessageDetailModal();
             }
-
-            legend.style.display = 'flex';
-            canvas.style.display = 'block';
-
-            const ctx = canvas.getContext('2d');
-            const size = Math.min(canvas.parentElement.offsetWidth, 200);
-            canvas.width = size;
-            canvas.height = size;
-            
-            const centerX = size / 2;
-            const centerY = size / 2;
-            const radius = size / 2 - 20;
-
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const data = [
-                { value: delivered, color: '#4caf50', label: 'Delivered' },
-                { value: pending, color: '#ff9800', label: 'Pending' },
-                { value: failed, color: '#f44336', label: 'Failed' }
-            ];
-
-            let startAngle = -Math.PI / 2;
-
-            data.forEach(item => {
-                if (item.value === 0) return;
-                
-                const sliceAngle = (item.value / total) * Math.PI * 2;
-                
-                ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
-                ctx.closePath();
-                ctx.fillStyle = item.color;
-                ctx.fill();
-                
-                startAngle += sliceAngle;
-            });
-
-            // Draw center circle (donut effect)
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius * 0.6, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-
-            // Draw center text
-            ctx.fillStyle = '#0B132B';
-            ctx.font = 'bold 24px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(total, centerX, centerY - 8);
-            ctx.font = '12px Inter, sans-serif';
-            ctx.fillStyle = '#999';
-            ctx.fillText('Total', centerX, centerY + 12);
-        }
-
-        // Date range filter buttons
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                selectedRange = parseInt(this.dataset.range);
-                updateReportData();
-            });
         });
-
-        function getFilteredMessages() {
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - selectedRange);
-            return messages.filter(msg => {
-                if (!msg.createdAt) return false;
-                return new Date(msg.createdAt) >= cutoffDate;
-            });
-        }
 
         // Logout function
         function logout() {
@@ -602,321 +672,552 @@
                 }
             });
         });
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            if (messages.length > 0) {
-                const filteredMessages = getFilteredMessages();
-                drawUsageChart(filteredMessages);
-                
-                const delivered = filteredMessages.filter(m => m.status === 'delivered' || m.status === 'sent').length;
-                const pending = filteredMessages.filter(m => m.status === 'pending').length;
-                const failed = filteredMessages.filter(m => m.status === 'failed').length;
-                drawDeliveryChart(delivered, pending, failed);
-            }
-        });
     </script>
 
     <style>
-        /* Additional styles for Reports page */
-        .date-filter-bar {
-            background-color: var(--neutral-white);
-            padding: 1.25rem 1.5rem;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            border: 1px solid rgba(0, 0, 0, 0.04);
-            flex-wrap: wrap;
-        }
-
-        .filter-title {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 600;
-            color: var(--primary-dark);
-        }
-
-        .filter-title svg {
-            width: 20px;
-            height: 20px;
-            color: var(--accent-orange);
-        }
-
-        .filter-options {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .filter-btn {
-            padding: 0.5rem 1rem;
-            border: 2px solid #e8e8e8;
-            border-radius: 8px;
-            background-color: #fff;
-            color: #666;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .filter-btn:hover {
-            border-color: var(--accent-orange);
-            color: var(--accent-orange);
-        }
-
-        .filter-btn.active {
-            background-color: var(--accent-orange);
-            border-color: var(--accent-orange);
-            color: white;
-        }
-
+        /* Reports Page Styles */
         .reports-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .chart-card {
+        .stat-card {
             background-color: var(--neutral-white);
             border-radius: 12px;
             padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
             border: 1px solid rgba(0, 0, 0, 0.04);
         }
 
-        .chart-header {
+        .stat-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .stat-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .stat-icon.sms-icon {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #1976d2;
+        }
+
+        .stat-icon.success-icon {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            color: #388e3c;
+        }
+
+        .stat-icon.failed-icon {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            color: #d32f2f;
+        }
+
+        .stat-icon.rate-icon {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            color: #f57c00;
+        }
+
+        .stat-content h3 {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        /* Filter Bar */
+        .reports-filter-bar {
+            background-color: var(--neutral-white);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            border-color: var(--accent-orange);
+        }
+
+        .filter-group input[type="date"] {
+            width: 140px;
+        }
+
+        .filter-group span {
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .btn-filter,
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-filter {
+            background-color: var(--primary-dark);
+            color: white;
+        }
+
+        .btn-filter:hover {
+            background-color: #1a2540;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
+            color: white;
+            margin-left: auto;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(247, 127, 0, 0.3);
+        }
+
+        .btn-filter svg,
+        .btn-download svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Table Card */
+        .reports-table-card {
+            background-color: var(--neutral-white);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+
+        .table-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
         }
 
-        .chart-header h3 {
+        .table-header h3 {
             font-size: 1.1rem;
             font-weight: 700;
             color: var(--primary-dark);
         }
 
-        .chart-legend {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .legend-dot.sent {
-            background-color: var(--accent-orange);
-        }
-
-        .chart-container {
-            position: relative;
-            height: 250px;
-        }
-
-        .chart-container canvas {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        .chart-placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 250px;
-            background-color: #fafafa;
-            border-radius: 8px;
-        }
-
-        .placeholder-content {
-            text-align: center;
+        .table-count {
+            font-size: 0.9rem;
             color: #999;
         }
 
-        .placeholder-content svg {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 1rem;
-            opacity: 0.5;
+        .table-container {
+            overflow-x: auto;
         }
 
-        .placeholder-content p {
+        .reports-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .reports-table th {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background-color: #fafafa;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .reports-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f8f8f8;
+            font-size: 0.95rem;
+            color: #444;
+        }
+
+        .reports-table tbody tr:hover {
+            background-color: #fafafa;
+        }
+
+        .sender-id-badge {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .message-preview {
+            max-width: 200px;
+            display: inline-block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #666;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge.delivered {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-badge.pending {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .status-badge.failed {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .status-badge.sent {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .btn-view {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.75rem;
+            background-color: var(--primary-dark);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-view:hover {
+            background-color: #1a2540;
+        }
+
+        .btn-view svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .table-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .page-btn {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e8e8e8;
+            background-color: white;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .page-btn:hover {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+        }
+
+        .page-btn.active {
+            background-color: var(--accent-orange);
+            border-color: var(--accent-orange);
+            color: white;
+        }
+
+        .page-ellipsis {
+            padding: 0.5rem;
+            color: #999;
+        }
+
+        /* Detail Modal */
+        .detail-modal-content {
+            max-width: 550px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 1.25rem;
+        }
+
+        .detail-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, #1a2540 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .detail-info {
+            flex: 1;
+        }
+
+        .detail-info h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-date {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-section h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 0.75rem;
+        }
+
+        .message-content-box {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--primary-dark);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .recipients-stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .recipient-stat {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background-color: #f5f5f5;
+        }
+
+        .recipient-stat .count {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .recipient-stat .label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .recipient-stat.delivered .count {
+            color: #2e7d32;
+        }
+
+        .recipient-stat.failed .count {
+            color: #c62828;
+        }
+
+        .recipient-stat.pending .count {
+            color: #e65100;
+        }
+
+        .recipients-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .recipient-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .recipient-item:last-child {
+            border-bottom: none;
+        }
+
+        .recipient-number {
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        .recipient-error {
+            display: block;
+            font-size: 0.8rem;
+            color: #c62828;
+            margin-top: 0.25rem;
+        }
+
+        .recipient-status {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .recipient-status.delivered {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .recipient-status.failed {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .recipient-status.pending {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            color: #ccc;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state p {
+            font-size: 1rem;
             font-weight: 600;
             color: #666;
             margin-bottom: 0.5rem;
         }
 
-        .placeholder-content span {
+        .empty-state span {
             font-size: 0.9rem;
-        }
-
-        .delivery-legend {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid #f0f0f0;
-        }
-
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .legend-color.delivered {
-            background-color: #4caf50;
-        }
-
-        .legend-color.pending {
-            background-color: #ff9800;
-        }
-
-        .legend-color.failed {
-            background-color: #f44336;
-        }
-
-        .legend-value {
-            font-weight: 600;
-            color: var(--primary-dark);
-            margin-left: 0.5rem;
-        }
-
-        .top-groups-section {
-            background-color: var(--neutral-white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            border: 1px solid rgba(0, 0, 0, 0.04);
-        }
-
-        .top-groups-section .section-header {
-            margin-bottom: 1rem;
-        }
-
-        .top-groups-section .section-header h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--primary-dark);
-            margin-bottom: 0.25rem;
-        }
-
-        .section-subtitle {
-            color: #999;
-            font-size: 0.9rem;
-        }
-
-        .groups-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .group-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            background-color: #fafafa;
-            border-radius: 10px;
-            gap: 1rem;
-        }
-
-        .group-rank {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.9rem;
-        }
-
-        .group-info {
-            flex: 1;
-        }
-
-        .group-name {
-            font-weight: 600;
-            color: var(--primary-dark);
-            margin-bottom: 0.25rem;
-        }
-
-        .group-stats {
-            font-size: 0.85rem;
             color: #999;
         }
 
-        .group-bar {
-            width: 100px;
-            height: 8px;
-            background-color: #e8e8e8;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .group-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-orange) 0%, #e56a00 100%);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-
-        .empty-state.small {
-            padding: 2rem;
-        }
-
+        /* Responsive */
         @media (max-width: 768px) {
-            .date-filter-bar {
+            .reports-filter-bar {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
             }
 
-            .filter-options {
+            .filter-group {
                 width: 100%;
             }
 
-            .filter-btn {
+            .filter-group input,
+            .filter-group select {
                 flex: 1;
-                text-align: center;
             }
 
-            .charts-grid {
-                grid-template-columns: 1fr;
+            .btn-download {
+                margin-left: 0;
+                width: 100%;
+                justify-content: center;
             }
 
-            .delivery-legend {
-                flex-direction: column;
-                align-items: center;
-                gap: 0.75rem;
+            .reports-table th,
+            .reports-table td {
+                padding: 0.75rem;
+            }
+
+            .message-preview {
+                max-width: 100px;
             }
         }
     </style>
