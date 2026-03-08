@@ -713,7 +713,13 @@
                     }
                     
                     uploadedRecipients = phoneNumbers;
-                    
+
+                    // Automatically fill the recipients field
+                    const recipientsField = document.getElementById('recipients');
+                    const existingRecipients = recipientsField.value.trim();
+                    const newRecipients = phoneNumbers.join(', ');
+                    recipientsField.value = existingRecipients ? `${existingRecipients}, ${newRecipients}` : newRecipients;
+
                     // Update UI
                     document.getElementById('uploadedFileName').textContent = file.name;
                     document.getElementById('uploadedFileCount').textContent = `(${phoneNumbers.length} numbers)`;
@@ -735,6 +741,8 @@
             document.getElementById('contactFile').value = '';
             document.getElementById('filePreviewList').style.display = 'none';
             uploadedRecipients = [];
+            // Clear the recipients field if it was only populated from the file
+            document.getElementById('recipients').value = '';
         }
 
         // Handle form submission
