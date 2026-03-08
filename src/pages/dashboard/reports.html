@@ -406,7 +406,7 @@
             const dateTo = document.getElementById('dateTo').value;
 
             filteredMessages = allMessages.filter(msg => {
-                // Search filter
+                // Search filter - search in senderId, recipient, and message
                 if (searchTerm) {
                     const senderIdMatch = msg.senderId && msg.senderId.toLowerCase().includes(searchTerm);
                     const recipientMatch = msg.recipient && msg.recipient.toLowerCase().includes(searchTerm);
@@ -431,6 +431,12 @@
             updateStats();
             renderTable();
         }
+
+        // Add event listeners for real-time filtering
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+        document.getElementById('dateFrom').addEventListener('change', applyFilters);
+        document.getElementById('dateTo').addEventListener('change', applyFilters);
 
         function renderTable() {
             const tbody = document.getElementById('messagesTableBody');
