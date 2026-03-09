@@ -539,10 +539,44 @@
     display: flex;
     justify-content: center;
     gap: 3rem;
-    margin: 3rem 0;
-    padding: 2rem 0;
+    margin: 2rem 0;
+    padding: 1.5rem 0;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Services Preview */
+.services-preview {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.services-preview .service-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.services-preview .service-item svg {
+    width: 16px;
+    height: 16px;
+    stroke: white;
+    stroke-width: 2;
+    fill: none;
+}
+
+.services-preview .service-item span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
 }
 
 .stat-item {
