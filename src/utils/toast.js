@@ -11,7 +11,7 @@ function showToast(message, type = 'info') {
         border-radius: 4px;
         color: white;
         font-weight: 500;
-        z-index: 1000;
+        z-index: 3000;
         animation: fadeIn 0.3s ease;
         background-color: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#17a2b8'};
     `;

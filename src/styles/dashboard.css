@@ -726,7 +726,7 @@
     border-radius: 10px;
     color: white;
     font-weight: 500;
-    z-index: 1000;
+    z-index: 3000;
     animation: toastSlide 0.3s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
