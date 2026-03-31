@@ -280,7 +280,7 @@
                 <div class="form-group">
                     <label for="newSenderId">Sender ID</label>
                     <input type="text" id="newSenderId" name="newSenderId" placeholder="Enter Sender ID (1-11 characters)" required>
-                    <small>Must be 1-11 characters. This ID will be unique to your account.</small>
+                    <small>Must be 1-11 characters. Letters, numbers, spaces, hyphens, periods and underscores allowed.</small>
                 </div>
                 
                 <div class="form-group">
@@ -310,7 +310,7 @@
                     <h4>Requirements:</h4>
                     <ul>
                         <li>1-11 characters long</li>
-                        <li>Letters, numbers, spaces, hyphens and underscores allowed</li>
+                        <li>Letters, numbers, spaces, hyphens, periods and underscores allowed</li>
                         <li>Must be unique across all users</li>
                         <li>Must upload a valid ID document</li>
                         <li>Will be submitted for approval</li>
@@ -638,7 +638,7 @@
             const submitBtn = document.getElementById('submitSenderIdBtn');
             
             // Validate: 1-11 characters (letters, numbers, spaces, special chars allowed)
-            if (!/^[a-zA-Z0-9\s\-_]{1,11}$/.test(senderId)) {
+            if (!/^[a-zA-Z0-9\s\-_.]{1,11}$/.test(senderId)) {
                 showToast('Sender ID must be 1-11 characters', 'error');
                 return;
             }
