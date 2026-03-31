@@ -776,6 +776,14 @@ body .dashboard-content {
     body .sidebar {
         width: 280px;
         padding: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    body .sidebar-nav ul {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
     }
     
     body .sidebar-nav a {
@@ -793,6 +801,23 @@ body .dashboard-content {
         width: 20px;
         height: 20px;
         flex-shrink: 0;
+    }
+    
+    /* Sidebar logout button on mobile */
+    body .sidebar-logout {
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    body .sidebar-logout a {
+        color: rgba(255, 255, 255, 0.7) !important;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
+    body .sidebar-logout a:hover {
+        background: rgba(231, 76, 60, 0.2) !important;
+        color: #e74c3c !important;
     }
 }
 

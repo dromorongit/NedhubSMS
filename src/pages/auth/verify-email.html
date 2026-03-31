@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Nedhub Bulk Messaging</title>
+    <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/auth.css">
+    <script src="../../utils/api.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-page">
+        <!-- Left Side - Image Section -->
+        <div class="auth-image-section verify-image">
+            <div class="auth-image-overlay"></div>
+            <div class="auth-image-content">
+                <div class="brand-badge">Nedhub</div>
+                <h1>Verify Your Email</h1>
+                <p>We've sent a verification code to your email address. Please enter it below to complete your registration.</p>
+                <div class="security-info">
+                    <div class="security-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        <span>Secure verification</span>
+                    </div>
+                    <div class="security-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Code expires in 15 minutes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - Form Section -->
+        <div class="auth-form-section">
+            <div class="auth-form-container">
+                <div class="auth-logo-mobile">
+                    <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="logo-img">
+                </div>
+                
+                <div class="auth-form-header">
+                    <h2>Enter Verification Code</h2>
+                    <p>We've sent a 6-digit code to <span id="userEmail"></span></p>
+                </div>
+
+                <form id="verifyEmailForm">
+                    <div class="otp-input-container">
+                        <input type="text" class="otp-input" maxlength="1" data-index="0" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" class="otp-input" maxlength="1" data-index="1" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" class="otp-input" maxlength="1" data-index="2" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" class="otp-input" maxlength="1" data-index="3" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" class="otp-input" maxlength="1" data-index="4" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" class="otp-input" maxlength="1" data-index="5" pattern="[0-9]" inputmode="numeric" required>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        <span>Verify Email</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </button>
+                </form>
+
+                <div class="resend-otp">
+                    <p>Didn't receive the code?</p>
+                    <button type="button" id="resendOtpBtn" class="btn-link">Resend Code</button>
+                    <span id="resendTimer"></span>
+                </div>
+
+                <div class="auth-footer">
+                    <p>Already verified? <a href="login.html">Sign in</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .otp-input-container {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .otp-input {
+            width: 56px;
+            height: 64px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            background: #fff;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .otp-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .otp-input.filled {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .resend-otp {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #eee;
+        }
+
+        .resend-otp p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            transition: color 0.3s ease;
+        }
+
+        .btn-link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .btn-link:disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        #resendTimer {
+            display: block;
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .security-info {
+            margin-top: 40px;
+        }
+
+        .security-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .security-item svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .verify-image {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        @media (max-width: 768px) {
+            .otp-input-container {
+                gap: 8px;
+            }
+
+            .otp-input {
+                width: 48px;
+                height: 56px;
+                font-size: 20px;
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get email from URL parameter or localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email') || localStorage.getItem('pendingVerificationEmail');
+            
+            if (!email) {
+                // No email found, redirect to register
+                window.location.href = 'register.html';
+                return;
+            }
+
+            // Display email
+            document.getElementById('userEmail').textContent = email;
+            localStorage.setItem('pendingVerificationEmail', email);
+
+            // OTP input handling
+            const otpInputs = document.querySelectorAll('.otp-input');
+            
+            otpInputs.forEach((input, index) => {
+                // Handle input
+                input.addEventListener('input', function(e) {
+                    const value = e.target.value;
+                    
+                    // Only allow numbers
+                    if (!/^\d*$/.test(value)) {
+                        e.target.value = '';
+                        return;
+                    }
+
+                    // Add filled class
+                    if (value) {
+                        e.target.classList.add('filled');
+                    } else {
+                        e.target.classList.remove('filled');
+                    }
+
+                    // Move to next input
+                    if (value && index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    }
+                });
+
+                // Handle backspace
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                        otpInputs[index - 1].focus();
+                    }
+                });
+
+                // Handle paste
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                    
+                    pastedData.split('').forEach((char, i) => {
+                        if (otpInputs[i]) {
+                            otpInputs[i].value = char;
+                            otpInputs[i].classList.add('filled');
+                        }
+                    });
+
+                    // Focus on the next empty input or last input
+                    const nextEmptyIndex = pastedData.length < 6 ? pastedData.length : 5;
+                    otpInputs[nextEmptyIndex].focus();
+                });
+            });
+
+            // Focus first input
+            otpInputs[0].focus();
+
+            // Form submission
+            document.getElementById('verifyEmailForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const otp = Array.from(otpInputs).map(input => input.value).join('');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalBtnContent = submitBtn.innerHTML;
+
+                if (otp.length !== 6) {
+                    showError('Please enter all 6 digits');
+                    return;
+                }
+
+                // Disable button during request
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span>Verifying...</span><svg class="btn-spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg>';
+
+                try {
+                    const result = await window.apiClient.verifyEmail(email, otp);
+                    
+                    if (result.error) {
+                        showError(result.error);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnContent;
+                    } else {
+                        // Verification successful
+                        localStorage.removeItem('pendingVerificationEmail');
+                        showSuccess('Email verified successfully! Redirecting...');
+                        
+                        // Store token if provided
+                        if (result.token) {
+                            localStorage.setItem('token', result.token);
+                        }
+                        
+                        setTimeout(() => {
+                            window.location.href = '../dashboard/overview.html';
+                        }, 2000);
+                    }
+                } catch (error) {
+                    console.error('Verification error:', error);
+                    showError('An error occurred. Please try again.');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnContent;
+                }
+            });
+
+            // Resend OTP functionality
+            let resendCooldown = 60;
+            let resendTimerInterval;
+            const resendBtn = document.getElementById('resendOtpBtn');
+            const resendTimer = document.getElementById('resendTimer');
+
+            function startResendCooldown() {
+                resendBtn.disabled = true;
+                resendCooldown = 60;
+                resendTimer.textContent = `Resend available in ${resendCooldown}s`;
+                
+                resendTimerInterval = setInterval(() => {
+                    resendCooldown--;
+                    resendTimer.textContent = `Resend available in ${resendCooldown}s`;
+                    
+                    if (resendCooldown <= 0) {
+                        clearInterval(resendTimerInterval);
+                        resendBtn.disabled = false;
+                        resendTimer.textContent = '';
+                    }
+                }, 1000);
+            }
+
+            resendBtn.addEventListener('click', async function() {
+                try {
+                    resendBtn.disabled = true;
+                    resendBtn.textContent = 'Sending...';
+                    
+                    await window.apiClient.resendOTP(email, 'email_verification');
+                    
+                    showSuccess('Verification code sent successfully!');
+                    startResendCooldown();
+                    resendBtn.textContent = 'Resend Code';
+                } catch (error) {
+                    console.error('Resend OTP error:', error);
+                    showError('Failed to resend code. Please try again.');
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = 'Resend Code';
+                }
+            });
+
+            // Start cooldown on page load
+            startResendCooldown();
+        });
+
+        function showError(message) {
+            const existingError = document.querySelector('.error-message');
+            if (existingError) existingError.remove();
+
+            const form = document.getElementById('verifyEmailForm');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><span>' + message + '</span>';
+            form.insertBefore(errorDiv, form.firstChild);
+            
+            setTimeout(() => {
+                errorDiv.style.opacity = '0';
+                setTimeout(() => errorDiv.remove(), 300);
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const existingSuccess = document.querySelector('.success-message');
+            if (existingSuccess) existingSuccess.remove();
+
+            const form = document.getElementById('verifyEmailForm');
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg><span>' + message + '</span>';
+            form.insertBefore(successDiv, form.firstChild);
+        }
+    </script>
+</body>
+</html>

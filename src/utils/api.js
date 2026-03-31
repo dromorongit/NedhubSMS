@@ -86,8 +86,20 @@ class ApiClient {
     return this.request('POST', '/auth/forgot-password', { email });
   }
 
-  async resetPassword(token, newPassword) {
-    return this.request('POST', '/auth/reset-password', { token, newPassword });
+  async requestPasswordReset(email) {
+    return this.request('POST', '/auth/request-password-reset', { email });
+  }
+
+  async resetPassword(email, otp, newPassword) {
+    return this.request('POST', '/auth/reset-password', { email, otp, newPassword });
+  }
+
+  async verifyEmail(email, otp) {
+    return this.request('POST', '/auth/verify-email', { email, otp });
+  }
+
+  async resendOTP(email, purpose) {
+    return this.request('POST', '/auth/resend-otp', { email, purpose });
   }
 
   async getUserProfile() {

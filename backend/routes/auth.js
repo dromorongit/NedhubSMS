@@ -3,6 +3,8 @@ const router = express.Router();
 const { generateToken, verifyToken } = require('../utils/auth');
 const { authenticate } = require('../middleware/auth');
 const User = require('../models/User');
+const OTP = require('../models/OTP');
+const EmailService = require('../services/EmailService');
 const validator = require('validator');
 
 // User registration
@@ -32,12 +34,24 @@ router.post('/register', async (req, res) => {
     // Create user (password will be hashed by Mongoose pre-save hook)
     const user = await User.create({ name, email, password });
 
-    // Generate JWT token
-    const token = generateToken(user._id, 'user');
+    // Generate and send OTP for email verification
+    const otp = OTP.generateOTP();
+    await OTP.create({
+      email,
+      otp,
+      purpose: 'email_verification'
+    });
 
-    res.status(201).json({ token, userId: user._id });
+    // Send verification email
+    await EmailService.sendVerificationOTP(email, name, otp);
+
+    res.status(201).json({ 
+      success: true,
+      message: 'OTP sent to your email',
+      email: email
+    });
   } catch (error) {
-    console.error(error);
+    console.error('[AUTH] Registration error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -90,6 +104,198 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('[AUTH] Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Verify email with OTP
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Validate input
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Find and verify OTP
+    const result = await OTP.findAndVerifyOTP(email, otp, 'email_verification');
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.message });
+    }
+
+    // Update user email verification status
+    const user = await User.findOneAndUpdate(
+      { email },
+      { isEmailVerified: true, emailVerifiedAt: new Date() },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate JWT token
+    const token = generateToken(user._id, user.role);
+
+    res.json({ 
+      success: true,
+      message: 'Email verified successfully',
+      token,
+      user
+    });
+  } catch (error) {
+    console.error('[AUTH] Email verification error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Request password reset OTP
+router.post('/request-password-reset', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Validate input
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return res.json({ 
+        success: true,
+        message: 'If an account exists with this email, you will receive a password reset code'
+      });
+    }
+
+    // Delete any existing OTPs for this email and purpose
+    await OTP.deleteMany({ email, purpose: 'password_reset' });
+
+    // Generate and send OTP
+    const otp = OTP.generateOTP();
+    await OTP.create({
+      email,
+      otp,
+      purpose: 'password_reset'
+    });
+
+    // Send password reset email
+    await EmailService.sendPasswordResetOTP(email, user.name, otp);
+
+    res.json({ 
+      success: true,
+      message: 'If an account exists with this email, you will receive a password reset code'
+    });
+  } catch (error) {
+    console.error('[AUTH] Password reset request error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Reset password with OTP
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    // Validate input
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ error: 'Email, OTP, and new password are required' });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    // Find and verify OTP
+    const result = await OTP.findAndVerifyOTP(email, otp, 'password_reset');
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.message });
+    }
+
+    // Find user and update password
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ 
+      success: true,
+      message: 'Password reset successfully'
+    });
+  } catch (error) {
+    console.error('[AUTH] Password reset error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Resend OTP
+router.post('/resend-otp', async (req, res) => {
+  try {
+    const { email, purpose } = req.body;
+
+    // Validate input
+    if (!email || !purpose) {
+      return res.status(400).json({ error: 'Email and purpose are required' });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    if (!['email_verification', 'password_reset'].includes(purpose)) {
+      return res.status(400).json({ error: 'Invalid purpose' });
+    }
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Delete any existing OTPs for this email and purpose
+    await OTP.deleteMany({ email, purpose });
+
+    // Generate and send OTP
+    const otp = OTP.generateOTP();
+    await OTP.create({
+      email,
+      otp,
+      purpose
+    });
+
+    // Send email based on purpose
+    if (purpose === 'email_verification') {
+      await EmailService.sendVerificationOTP(email, user.name, otp);
+    } else {
+      await EmailService.sendPasswordResetOTP(email, user.name, otp);
+    }
+
+    res.json({ 
+      success: true,
+      message: 'OTP sent successfully'
+    });
+  } catch (error) {
+    console.error('[AUTH] Resend OTP error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
