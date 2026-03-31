@@ -11,8 +11,8 @@ const senderIdSchema = new mongoose.Schema({
     required: [true, 'Sender ID is required'],
     unique: true,
     match: [
-      /^[a-zA-Z0-9]{1,11}$/,
-      'Sender ID must be alphanumeric and 1-11 characters'
+      /^[a-zA-Z0-9\s\-_.]{1,11}$/,
+      'Sender ID must be 1-11 characters and can contain letters, numbers, spaces, hyphens, periods and underscores'
     ]
   },
   documentType: {
