@@ -17,19 +17,25 @@ class EmailService {
     console.log(`[EMAIL]   Secure: ${smtpSecure}`);
     console.log(`[EMAIL]   User: ${smtpUser}`);
     
+    // Determine connection settings based on port
+    const isSSL = smtpPort === 465;
+    const isTLS = smtpPort === 587;
+    
     this.transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: smtpSecure, // true for port 465, false for port 587
+      secure: isSSL, // true for SSL (port 465), false for TLS/STARTTLS (port 587)
+      requireTLS: isTLS, // Force TLS for port 587
       auth: {
         user: smtpUser,
         pass: smtpPass
       },
-      connectionTimeout: 15000,
-      timeout: 15000,
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
       tls: {
-        // For TLS on port 587, allow self-signed certificates in dev
-        rejectUnauthorized: process.env.NODE_ENV === 'production'
+        // Allow self-signed certificates in production for internal mail servers
+        rejectUnauthorized: false
       }
     });
     
