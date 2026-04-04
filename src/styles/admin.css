@@ -27,6 +27,7 @@ body {
     background-color: var(--admin-primary);
     color: var(--admin-text);
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 #admin-app {
@@ -693,6 +694,24 @@ body {
 
     .admin-main {
         margin-left: 0;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Enable horizontal scroll on main content */
+    #admin-app {
+        overflow-x: hidden;
+    }
+
+    .admin-content {
+        overflow-x: visible;
+    }
+
+    /* Enable horizontal scrolling with smooth scroll */
+    .data-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        overflow-y: visible;
     }
 
     /* Overlay when sidebar is open on mobile */
