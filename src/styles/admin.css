@@ -663,6 +663,43 @@ body {
     justify-content: flex-end;
 }
 
+/* Edit User Modal Form Styles */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--admin-text-secondary);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    background-color: var(--admin-secondary);
+    color: var(--admin-text);
+    font-size: 0.95rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--admin-accent);
+}
+
+#edit-user-form .modal-actions {
+    margin-top: 20px;
+}
+
+#edit-user-form .btn-danger {
+    margin-left: auto;
+}
+
 /* Error Messages */
 .error-message {
     text-align: center;

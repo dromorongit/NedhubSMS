@@ -764,10 +764,157 @@ function debounce(func, wait) {
 }
 
 // Make functions global for onclick handlers
-window.editUser = (userId) => {
-    // Implement edit user modal
-    showToast('Edit user functionality not implemented yet', 'info');
+window.editUser = async function(userId) {
+    try {
+        const response = await window.apiClient.request('GET', `/admin/users/${userId}`);
+        if (response.error) {
+            showToast('Failed to load user details', 'error');
+            return;
+        }
+        
+        const user = response.data;
+        showEditUserModal(user);
+    } catch (error) {
+        showToast('Failed to load user details', 'error');
+    }
 };
+
+function showEditUserModal(user) {
+    const modal = document.getElementById('edit-user-modal');
+    if (!modal) {
+        // Create modal if it doesn't exist
+        createEditUserModal();
+    }
+    
+    const modalEl = document.getElementById('edit-user-modal');
+    
+    // Populate form
+    document.getElementById('edit-user-id').value = user._id;
+    document.getElementById('edit-user-name').value = user.name || '';
+    document.getElementById('edit-user-email').value = user.email || '';
+    document.getElementById('edit-user-phone').value = user.phone || '';
+    document.getElementById('edit-user-role').value = user.role || 'user';
+    document.getElementById('edit-user-status').value = user.status || 'active';
+    
+    modalEl.style.display = 'flex';
+}
+
+function createEditUserModal() {
+    const modalHTML = `
+        <div id="edit-user-modal" class="modal">
+            <div class="modal-content">
+                <h3>Edit User</h3>
+                <form id="edit-user-form">
+                    <input type="hidden" id="edit-user-id">
+                    <div class="form-group">
+                        <label for="edit-user-name">Name</label>
+                        <input type="text" id="edit-user-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-email">Email</label>
+                        <input type="email" id="edit-user-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-phone">Phone</label>
+                        <input type="text" id="edit-user-phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-role">Role</label>
+                        <select id="edit-user-role">
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-status">Status</label>
+                        <select id="edit-user-status">
+                            <option value="active">Active</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeEditUserModal()">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Changes</button>
+                        <button type="button" class="btn-danger" id="delete-user-btn">Delete User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Add form submit handler
+    document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveUserChanges();
+    });
+    
+    // Add delete button handler
+    document.getElementById('delete-user-btn').addEventListener('click', async () => {
+        const userId = document.getElementById('edit-user-id').value;
+        await deleteUser(userId);
+    });
+}
+
+window.closeEditUserModal = function() {
+    const modal = document.getElementById('edit-user-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
+async function saveUserChanges() {
+    const userId = document.getElementById('edit-user-id').value;
+    const name = document.getElementById('edit-user-name').value;
+    const email = document.getElementById('edit-user-email').value;
+    const phone = document.getElementById('edit-user-phone').value;
+    const role = document.getElementById('edit-user-role').value;
+    const status = document.getElementById('edit-user-status').value;
+    
+    try {
+        const response = await window.apiClient.request('PUT', `/admin/users/${userId}`, {
+            name,
+            email,
+            phone,
+            role,
+            status
+        });
+        
+        if (response.error) {
+            showToast(response.error || 'Failed to update user', 'error');
+            return;
+        }
+        
+        showToast('User updated successfully', 'success');
+        closeEditUserModal();
+        loadUsers(); // Refresh the table
+    } catch (error) {
+        showToast('Failed to update user', 'error');
+    }
+}
+
+async function deleteUser(userId) {
+    if (!await confirmAction('Are you sure you want to delete this user? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await window.apiClient.request('DELETE', `/admin/users/${userId}`);
+        
+        if (response.error) {
+            showToast(response.error || 'Failed to delete user', 'error');
+            return;
+        }
+        
+        showToast('User deleted successfully', 'success');
+        closeEditUserModal();
+        loadUsers(); // Refresh the table
+    } catch (error) {
+        showToast('Failed to delete user', 'error');
+    }
+}
 
 window.suspendUser = suspendUser;
 window.activateUser = activateUser;

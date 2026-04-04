@@ -100,6 +100,81 @@ router.patch('/users/:id/role', authorize(['super_admin']), async (req, res) => 
   }
 });
 
+// Get single user for editing
+router.get('/users/:id', authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// Update user details
+router.put('/users/:id', authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const { name, email, phone, status } = req.body;
+
+    const update = {};
+    if (name) update.name = name;
+    if (email) update.email = email;
+    if (phone) update.phone = phone;
+    if (status && ['active', 'suspended'].includes(status)) update.status = status;
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      update,
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await logAction(req.user.id, 'update_user', 'user', user._id, update);
+
+    res.json(user);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Delete user
+router.delete('/users/:id', authorize(['super_admin']), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent deleting yourself
+    if (user._id.toString() === req.user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    // Delete associated wallet
+    await Wallet.findOneAndDelete({ userId: user._id });
+
+    // Delete the user
+    await User.findByIdAndDelete(req.params.id);
+
+    await logAction(req.user.id, 'delete_user', 'user', req.params.id, { deletedUser: user.name });
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
 // Wallet Management Routes
 router.get('/wallets', authorize(['admin', 'super_admin']), async (req, res) => {
   try {
