@@ -34,7 +34,7 @@ router.post('/register', async (req, res) => {
     // Create user (password will be hashed by Mongoose pre-save hook)
     const user = await User.create({ name, email, password });
 
-    // Generate and send OTP for email verification (non-blocking)
+    // Generate OTP immediately
     const otp = OTP.generateOTP();
     await OTP.create({
       email,
@@ -42,14 +42,10 @@ router.post('/register', async (req, res) => {
       purpose: 'email_verification'
     });
 
-    // Try to send verification email (don't fail registration if email fails)
-    try {
-      await EmailService.sendVerificationOTP(email, name, otp);
-      console.log('[AUTH] Verification email sent successfully');
-    } catch (emailError) {
-      console.error('[AUTH] Failed to send verification email:', emailError.message);
-      // Don't fail the registration - user can still verify later
-    }
+    // Send verification email in background (don't wait)
+    EmailService.sendVerificationOTP(email, name, otp)
+      .then(() => console.log('[AUTH] Verification email sent successfully'))
+      .catch(err => console.error('[AUTH] Failed to send verification email:', err.message));
 
     res.status(201).json({ 
       success: true,
