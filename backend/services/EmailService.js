@@ -9,6 +9,17 @@ class EmailService {
       auth: {
         user: process.env.SMTP_USER || 'support@nedhubgh.com',
         pass: process.env.SMTP_PASS || ''
+      },
+      connectionTimeout: 10000,
+      timeout: 10000
+    });
+    
+    // Verify SMTP connection on startup
+    this.transporter.verify((error, success) => {
+      if (error) {
+        console.error('[EMAIL] SMTP connection error:', error.message);
+      } else {
+        console.log('[EMAIL] SMTP server is ready to take our messages');
       }
     });
   }
