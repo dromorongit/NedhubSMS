@@ -1,27 +1,58 @@
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 class EmailService {
   constructor() {
+    // Get SMTP configuration from environment variables
+    const smtpHost = process.env.SMTP_HOST || 'mail.privateemail.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || '465');
+    const smtpSecure = process.env.SMTP_SECURE === 'true' || (smtpPort === 465);
+    const smtpUser = process.env.SMTP_USER || 'support@nedhubgh.com';
+    const smtpPass = process.env.SMTP_PASS || '';
+    
+    // Log SMTP configuration (without password)
+    console.log('[EMAIL] Configuring SMTP with:');
+    console.log(`[EMAIL]   Host: ${smtpHost}`);
+    console.log(`[EMAIL]   Port: ${smtpPort}`);
+    console.log(`[EMAIL]   Secure: ${smtpSecure}`);
+    console.log(`[EMAIL]   User: ${smtpUser}`);
+    
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '465'),
-      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure, // true for port 465, false for port 587
       auth: {
-        user: process.env.SMTP_USER || 'support@nedhubgh.com',
-        pass: process.env.SMTP_PASS || ''
+        user: smtpUser,
+        pass: smtpPass
       },
-      connectionTimeout: 10000,
-      timeout: 10000
+      connectionTimeout: 15000,
+      timeout: 15000,
+      tls: {
+        // For TLS on port 587, allow self-signed certificates in dev
+        rejectUnauthorized: process.env.NODE_ENV === 'production'
+      }
     });
     
     // Verify SMTP connection on startup
-    this.transporter.verify((error, success) => {
-      if (error) {
-        console.error('[EMAIL] SMTP connection error:', error.message);
-      } else {
-        console.log('[EMAIL] SMTP server is ready to take our messages');
-      }
-    });
+    this.verifyConnection();
+    
+    // Store base URL for email links
+    this.baseUrl = process.env.FRONTEND_URL || 'https://app.nedhubgh.com';
+  }
+
+  /**
+   * Verify SMTP connection on startup
+   */
+  async verifyConnection() {
+    try {
+      await this.transporter.verify();
+      console.log('[EMAIL] ✓ SMTP server is ready to take our messages');
+      return true;
+    } catch (error) {
+      console.error('[EMAIL] ✗ SMTP connection error:', error.message);
+      console.error('[EMAIL]   Please check your SMTP settings in .env file');
+      return false;
+    }
   }
 
   /**
@@ -70,6 +101,60 @@ class EmailService {
       return true;
     } catch (error) {
       console.error('[EMAIL] Error sending password reset OTP:', error);
+      throw new Error('Failed to send password reset email');
+    }
+  }
+
+  /**
+   * Send email verification with link (token-based)
+   * @param {string} email - Recipient email
+   * @param {string} fullName - User's full name
+   * @param {string} token - Verification token
+   * @returns {Promise<boolean>} - Returns true if email sent successfully
+   */
+  async sendVerificationLink(email, fullName, token) {
+    const verifyUrl = `${this.baseUrl}/verify-email?token=${token}`;
+    const mailOptions = {
+      from: `"Nedhub" <${process.env.SMTP_USER || 'support@nedhubgh.com'}>`,
+      to: email,
+      subject: 'Verify Your Email - Nedhub',
+      html: this.getVerificationLinkTemplate(fullName, verifyUrl),
+      text: this.getVerificationLinkTextTemplate(fullName, verifyUrl)
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`[EMAIL] Verification link sent to ${email}`);
+      return true;
+    } catch (error) {
+      console.error('[EMAIL] Error sending verification link:', error);
+      throw new Error('Failed to send verification email');
+    }
+  }
+
+  /**
+   * Send password reset link
+   * @param {string} email - Recipient email
+   * @param {string} fullName - User's full name
+   * @param {string} token - Reset token
+   * @returns {Promise<boolean>} - Returns true if email sent successfully
+   */
+  async sendPasswordResetLink(email, fullName, token) {
+    const resetUrl = `${this.baseUrl}/reset-password?token=${token}`;
+    const mailOptions = {
+      from: `"Nedhub" <${process.env.SMTP_USER || 'support@nedhubgh.com'}>`,
+      to: email,
+      subject: 'Reset Your Password - Nedhub',
+      html: this.getPasswordResetLinkTemplate(fullName, resetUrl),
+      text: this.getPasswordResetLinkTextTemplate(fullName, resetUrl)
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`[EMAIL] Password reset link sent to ${email}`);
+      return true;
+    } catch (error) {
+      console.error('[EMAIL] Error sending password reset link:', error);
       throw new Error('Failed to send password reset email');
     }
   }
@@ -352,6 +437,207 @@ class EmailService {
       </body>
       </html>
     `;
+  }
+
+  /**
+   * Get HTML template for email verification link
+   * @param {string} fullName - User's full name
+   * @param {string} verifyUrl - Verification URL
+   * @returns {string} - HTML email template
+   */
+  getVerificationLinkTemplate(fullName, verifyUrl) {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your Email</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .email-card { background: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden; }
+          .email-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+          .email-header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+          .email-body { padding: 40px 30px; }
+          .greeting { font-size: 18px; margin-bottom: 20px; color: #333; }
+          .message { font-size: 16px; margin-bottom: 30px; color: #555; }
+          .btn { display: inline-block; padding: 15px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; font-weight: 600; }
+          .btn:hover { opacity: 0.9; }
+          .expiry-notice { font-size: 14px; color: #e74c3c; margin-top: 15px; font-weight: 500; }
+          .fallback-link { font-size: 14px; color: #667eea; word-break: break-all; }
+          .footer { text-align: center; padding: 20px; font-size: 12px; color: #999; border-top: 1px solid #eee; }
+          .footer a { color: #667eea; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="email-card">
+            <div class="email-header">
+              <h1>Nedhub</h1>
+            </div>
+            <div class="email-body">
+              <p class="greeting">Hello ${fullName},</p>
+              <p class="message">
+                Thank you for registering with Nedhub! To complete your registration and verify your email address, 
+                please click the button below:
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${verifyUrl}" class="btn">Verify Email</a>
+              </div>
+              <p class="expiry-notice">This link expires in 24 hours</p>
+              <p class="message">
+                If the button above doesn't work, you can copy and paste this link into your browser:
+                <br>
+                <span class="fallback-link">${verifyUrl}</span>
+              </p>
+              <p class="message">
+                If you didn't create an account with Nedhub, you can safely ignore this email.
+              </p>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} Nedhub. All rights reserved.</p>
+              <p>
+                <a href="https://nedhubgh.com">Visit our website</a> | 
+                <a href="mailto:support@nedhubgh.com">Contact Support</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Get plain text template for email verification link
+   * @param {string} fullName - User's full name
+   * @param {string} verifyUrl - Verification URL
+   * @returns {string} - Plain text email template
+   */
+  getVerificationLinkTextTemplate(fullName, verifyUrl) {
+    return `Hello ${fullName},
+
+Thank you for registering with Nedhub! To complete your registration and verify your email address, please click the link below:
+
+${verifyUrl}
+
+This link expires in 24 hours.
+
+If you didn't create an account with Nedhub, you can safely ignore this email.
+
+© ${new Date().getFullYear()} Nedhub. All rights reserved.`;
+  }
+
+  /**
+   * Get HTML template for password reset link
+   * @param {string} fullName - User's full name
+   * @param {string} resetUrl - Password reset URL
+   * @returns {string} - HTML email template
+   */
+  getPasswordResetLinkTemplate(fullName, resetUrl) {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .email-card { background: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden; }
+          .email-header { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 30px; text-align: center; }
+          .email-header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+          .email-body { padding: 40px 30px; }
+          .greeting { font-size: 18px; margin-bottom: 20px; color: #333; }
+          .message { font-size: 16px; margin-bottom: 30px; color: #555; }
+          .btn { display: inline-block; padding: 15px 30px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; text-decoration: none; border-radius: 5px; font-weight: 600; }
+          .btn:hover { opacity: 0.9; }
+          .expiry-notice { font-size: 14px; color: #e74c3c; margin-top: 15px; font-weight: 500; }
+          .fallback-link { font-size: 14px; color: #e74c3c; word-break: break-all; }
+          .security-notice { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; font-size: 14px; color: #856404; }
+          .footer { text-align: center; padding: 20px; font-size: 12px; color: #999; border-top: 1px solid #eee; }
+          .footer a { color: #e74c3c; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="email-card">
+            <div class="email-header">
+              <h1>Password Reset</h1>
+            </div>
+            <div class="email-body">
+              <p class="greeting">Hello ${fullName},</p>
+              <p class="message">
+                We received a request to reset your password for your Nedhub account. 
+                Click the button below to create a new password:
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" class="btn">Reset Password</a>
+              </div>
+              <p class="expiry-notice">This link expires in 30 minutes</p>
+              <p class="message">
+                If the button above doesn't work, you can copy and paste this link into your browser:
+                <br>
+                <span class="fallback-link">${resetUrl}</span>
+              </p>
+              <div class="security-notice">
+                <strong>Security Notice:</strong> If you didn't request a password reset, 
+                please ignore this email or contact support if you have concerns.
+              </div>
+              <p class="message">
+                For security reasons, never share this link with anyone. Nedhub staff will never ask for your password reset link.
+              </p>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} Nedhub. All rights reserved.</p>
+              <p>
+                <a href="https://nedhubgh.com">Visit our website</a> | 
+                <a href="mailto:support@nedhubgh.com">Contact Support</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Get plain text template for password reset link
+   * @param {string} fullName - User's full name
+   * @param {string} resetUrl - Password reset URL
+   * @returns {string} - Plain text email template
+   */
+  getPasswordResetLinkTextTemplate(fullName, resetUrl) {
+    return `Hello ${fullName},
+
+We received a request to reset your password for your Nedhub account. Click the link below to create a new password:
+
+${resetUrl}
+
+This link expires in 30 minutes.
+
+If you didn't request a password reset, please ignore this email or contact support if you have concerns.
+
+For security reasons, never share this link with anyone.
+
+© ${new Date().getFullYear()} Nedhub. All rights reserved.`;
   }
 }
 

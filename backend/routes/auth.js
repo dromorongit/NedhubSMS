@@ -1,11 +1,57 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { generateToken, verifyToken } = require('../utils/auth');
 const { authenticate } = require('../middleware/auth');
 const User = require('../models/User');
 const OTP = require('../models/OTP');
 const EmailService = require('../services/EmailService');
 const validator = require('validator');
+
+// Rate limiting store for auth endpoints (in-memory, use Redis in production)
+const rateLimitStore = {
+  resendVerification: { lastSent: 0, attempts: 0, email: '' },
+  forgotPassword: { lastSent: 0, attempts: 0, email: '' }
+};
+
+// Rate limiting helper - per email
+const checkRateLimit = (type, email, cooldownMs = 60000, maxAttempts = 3) => {
+  const now = Date.now();
+  const record = rateLimitStore[type];
+  
+  // Reset if cooldown period has passed or different email
+  if (record.email !== email || now - record.lastSent > cooldownMs * maxAttempts) {
+    record.attempts = 0;
+    record.email = email;
+    record.lastSent = 0;
+  }
+  
+  // Check cooldown since last attempt
+  if (record.lastSent > 0 && now - record.lastSent < cooldownMs) {
+    const timeLeft = Math.ceil((cooldownMs - (now - record.lastSent)) / 1000);
+    return { allowed: false, message: `Please wait ${timeLeft} seconds before requesting again.` };
+  }
+  
+  if (record.attempts >= maxAttempts) {
+    const timeLeft = Math.ceil((record.lastSent + (cooldownMs * maxAttempts) - now) / 1000);
+    return { allowed: false, message: `Too many attempts. Please try again in ${Math.ceil(timeLeft / 60)} minutes.` };
+  }
+  
+  record.attempts++;
+  record.lastSent = now;
+  record.email = email;
+  return { allowed: true };
+};
+
+// Generate secure token
+const generateSecureToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
+
+// Hash token for storage (optional security enhancement)
+const hashToken = (token) => {
+  return crypto.createHash('sha256').update(token).digest('hex');
+};
 
 // User registration
 router.post('/register', async (req, res) => {
@@ -86,7 +132,11 @@ router.post('/login', async (req, res) => {
 
     // Check if user account is pending (not verified yet)
     if (user.status === 'pending') {
-      return res.status(403).json({ error: 'Please verify your email first. Check your inbox for the verification code.' });
+      return res.status(403).json({ 
+        error: 'Please verify your email first. Check your inbox for the verification code.',
+        requiresVerification: true,
+        email: user.email
+      });
     }
 
     // Check if user account is suspended
@@ -187,6 +237,12 @@ router.post('/request-password-reset', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
+    // Check rate limit for forgot password
+    const rateLimitCheck = checkRateLimit('forgotPassword', email, 60000, 3); // 1 minute cooldown, 3 attempts
+    if (!rateLimitCheck.allowed) {
+      return res.status(429).json({ error: rateLimitCheck.message });
+    }
+
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
@@ -284,10 +340,23 @@ router.post('/resend-otp', async (req, res) => {
       return res.status(400).json({ error: 'Invalid purpose' });
     }
 
+    // Check rate limit for resend verification
+    if (purpose === 'email_verification') {
+      const rateLimitCheck = checkRateLimit('resendVerification', email, 60000, 3); // 1 minute cooldown, 3 attempts
+      if (!rateLimitCheck.allowed) {
+        return res.status(429).json({ error: rateLimitCheck.message });
+      }
+    }
+
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    // If purpose is email_verification but user is already verified
+    if (purpose === 'email_verification' && user.isEmailVerified) {
+      return res.status(400).json({ error: 'Email is already verified' });
     }
 
     // Delete any existing OTPs for this email and purpose

@@ -18,6 +18,7 @@ const paymentRoutes = require('../backend/routes/payments');
 const utilityRoutes = require('../backend/routes/utility');
 const seedRoutes = require('../backend/routes/seed');
 const hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
+const EmailService = require('../backend/services/EmailService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
