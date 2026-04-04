@@ -63,11 +63,36 @@ function initializeNavigation() {
             console.log('Menu item clicked:', item.dataset.page);
             const page = item.dataset.page;
             navigateToPage(page);
+            // Close sidebar on mobile after navigation
+            if (window.innerWidth <= 768) {
+                closeSidebar();
+            }
         });
     });
 
     sidebarToggle.addEventListener('click', toggleSidebar);
+    // Add touch support for mobile
+    sidebarToggle.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        toggleSidebar();
+    });
     logoutBtn.addEventListener('click', handleLogout);
+
+    // Mobile sidebar close button
+    const sidebarClose = document.getElementById('sidebar-close');
+    if (sidebarClose) {
+        sidebarClose.addEventListener('click', closeSidebar);
+    }
+}
+
+function toggleSidebar() {
+    document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+    document.querySelector('.admin-main').classList.toggle('sidebar-collapsed');
+}
+
+function closeSidebar() {
+    document.querySelector('.admin-sidebar').classList.remove('collapsed');
+    document.querySelector('.admin-main').classList.remove('sidebar-collapsed');
 }
 
 function navigateToPage(page) {
