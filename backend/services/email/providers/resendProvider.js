@@ -1,28 +1,28 @@
-const { Resend } = require('resend');
-
 /**
- * Resend Email Provider
- * Handles all email sending via Resend API
+ * SendGrid Email Provider
+ * Uses SendGrid API for email sending (compatible with Node.js 18)
  */
-class ResendProvider {
+const sgMail = require('@sendgrid/mail');
+
+class SendGridProvider {
   constructor() {
-    // Initialize Resend with API key from environment
-    const apiKey = process.env.RESEND_API_KEY;
+    // Initialize SendGrid with API key from environment
+    const apiKey = process.env.SENDGRID_API_KEY || process.env.RESEND_API_KEY;
     
     if (!apiKey) {
-      throw new Error('[RESEND] RESEND_API_KEY is required in environment variables');
+      throw new Error('[SendGrid] SENDGRID_API_KEY is required in environment variables');
     }
     
-    this.resend = new Resend(apiKey);
+    sgMail.setApiKey(apiKey);
     this.fromEmail = process.env.EMAIL_FROM || 'support@nedhubgh.com';
     this.fromName = process.env.EMAIL_FROM_NAME || 'Nedhub';
     
-    console.log('[EMAIL] Resend provider initialized');
+    console.log('[EMAIL] SendGrid provider initialized');
     console.log(`[EMAIL]   From: ${this.fromName} <${this.fromEmail}>`);
   }
 
   /**
-   * Send email using Resend API
+   * Send email using SendGrid API
    * @param {string} to - Recipient email
    * @param {string} subject - Email subject
    * @param {string} html - HTML content
@@ -31,24 +31,23 @@ class ResendProvider {
    */
   async sendEmail(to, subject, html, text) {
     try {
-      const data = await this.resend.emails.send({
-        from: `${this.fromName} <${this.fromEmail}>`,
+      const msg = {
         to: to,
+        from: `${this.fromName} <${this.fromEmail}>`,
         subject: subject,
         html: html,
         text: text
-      });
+      };
 
-      if (data.error) {
-        console.error('[RESEND] API Error:', data.error);
-        return { success: false, error: data.error.message };
-      }
-
+      await sgMail.send(msg);
+      
       console.log(`[EMAIL] ✓ Email sent successfully to ${to}`);
-      console.log(`[EMAIL]   Message ID: ${data.data?.id}`);
-      return { success: true, messageId: data.data?.id };
+      return { success: true };
     } catch (error) {
-      console.error('[RESEND] Send error:', error.message);
+      console.error('[SendGrid] Send error:', error.message);
+      if (error.response) {
+        console.error('[SendGrid] Response:', error.response.body);
+      }
       return { success: false, error: error.message };
     }
   }
@@ -59,26 +58,22 @@ class ResendProvider {
    */
   async verifyConnection() {
     try {
-      const { data, error } = await this.resend.emails.send({
+      const msg = {
+        to: 'test@example.com',
         from: `${this.fromName} <${this.fromEmail}>`,
-        to: 'test@resend.dev', // Resend's test email
         subject: 'Test email',
         html: '<p>Test</p>',
         text: 'Test'
-      });
+      };
 
-      if (error) {
-        console.error('[EMAIL] Resend verification failed:', error);
-        return false;
-      }
-
-      console.log('[EMAIL] ✓ Resend API connection verified');
+      await sgMail.send(msg);
+      console.log('[EMAIL] ✓ SendGrid API connection verified');
       return true;
     } catch (error) {
-      console.error('[EMAIL] Resend verification error:', error.message);
+      console.error('[EMAIL] SendGrid verification error:', error.message);
       return false;
     }
   }
 }
 
-module.exports = new ResendProvider();
+module.exports = new SendGridProvider();
