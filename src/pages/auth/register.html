@@ -258,9 +258,8 @@
                     // Registration successful - redirect to email verification
                     localStorage.setItem('pendingVerificationEmail', email);
                     showSuccess('Account created! Please check your email for verification code.');
-                    setTimeout(() => {
-                        window.location.href = 'verify-email.html?email=' + encodeURIComponent(email);
-                    }, 2000);
+                    // Redirect immediately without delay for faster UX
+                    window.location.href = 'verify-email.html?email=' + encodeURIComponent(email);
                 }
             } catch (error) {
                 console.error('Registration error:', error);
