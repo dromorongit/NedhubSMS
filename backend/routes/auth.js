@@ -31,10 +31,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Create user (password will be hashed by Mongoose pre-save hook)
-    const user = await User.create({ name, email, password });
+    // Create user as 'pending' - user cannot login until they verify email
+    const user = await User.create({ 
+      name, 
+      email, 
+      password,
+      status: 'pending',
+      isEmailVerified: false
+    });
 
-    // Generate OTP immediately
+    // Generate OTP for email verification
     const otp = OTP.generateOTP();
     await OTP.create({
       email,
@@ -42,14 +48,14 @@ router.post('/register', async (req, res) => {
       purpose: 'email_verification'
     });
 
-    // Send verification email in background (don't wait)
+    // Send verification email in background
     EmailService.sendVerificationOTP(email, name, otp)
       .then(() => console.log('[AUTH] Verification email sent successfully'))
       .catch(err => console.error('[AUTH] Failed to send verification email:', err.message));
 
     res.status(201).json({ 
       success: true,
-      message: 'Account created! Please check your email for verification code.',
+      message: 'Verification code sent to your email. Please verify to activate your account.',
       email: email
     });
   } catch (error) {
@@ -76,6 +82,16 @@ router.post('/login', async (req, res) => {
     if (!user) {
       console.log('[AUTH] User not found:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check if user account is pending (not verified yet)
+    if (user.status === 'pending') {
+      return res.status(403).json({ error: 'Please verify your email first. Check your inbox for the verification code.' });
+    }
+
+    // Check if user account is suspended
+    if (user.status === 'suspended') {
+      return res.status(403).json({ error: 'Your account has been suspended. Contact support.' });
     }
 
     console.log('[AUTH] User found:', user._id, 'Role:', user.role);
@@ -131,10 +147,10 @@ router.post('/verify-email', async (req, res) => {
       return res.status(400).json({ error: result.message });
     }
 
-    // Update user email verification status
+    // Update user email verification status and activate account
     const user = await User.findOneAndUpdate(
       { email },
-      { isEmailVerified: true, emailVerifiedAt: new Date() },
+      { isEmailVerified: true, emailVerifiedAt: new Date(), status: 'active' },
       { new: true }
     ).select('-password');
 
