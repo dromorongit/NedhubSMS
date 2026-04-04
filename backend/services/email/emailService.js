@@ -1,19 +1,29 @@
 const crypto = require('crypto');
 
-// Import the Resend provider
+// Import providers
 const resendProvider = require('./providers/resendProvider');
+const brevoProvider = require('./providers/brevoProvider');
 
 /**
- * Email Service - Modular email service using Resend
+ * Email Service - Modular email service supporting multiple providers
+ * Supported providers: Resend, Brevo (for Railway Hobby compatibility)
  * Supports multiple email types: verification, password reset, etc.
  */
 class EmailService {
   constructor() {
     // Get configuration from environment
     this.baseUrl = process.env.FRONTEND_URL || 'https://app.nedhubgh.com';
-    this.provider = resendProvider;
     
-    console.log('[EMAIL] Email service initialized with Resend provider');
+    // Select provider based on EMAIL_PROVIDER env var
+    const providerType = (process.env.EMAIL_PROVIDER || 'resend').toLowerCase();
+    
+    if (providerType === 'brevo') {
+      this.provider = brevoProvider;
+      console.log('[EMAIL] Email service initialized with Brevo provider');
+    } else {
+      this.provider = resendProvider;
+      console.log('[EMAIL] Email service initialized with Resend provider');
+    }
   }
 
   /**

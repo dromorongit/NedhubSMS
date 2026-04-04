@@ -1,13 +1,15 @@
 /**
- * Email Service - Resend API based email service
+ * Email Service - Modular email service
  * 
- * This module has been migrated from SMTP to Resend API for compatibility
+ * This module has been migrated from SMTP to Brevo API for compatibility
  * with Railway Hobby plan which blocks outbound SMTP connections.
  * 
  * All configuration is read from environment variables:
- * - RESEND_API_KEY: Resend API key (required)
+ * - EMAIL_PROVIDER: 'resend' or 'brevo' (default: 'resend')
+ * - BREVO_API_KEY: Brevo API key (required when using Brevo)
+ * - RESEND_API_KEY: Resend API key (required when using Resend)
  * - EMAIL_FROM: From email address (default: support@nedhubgh.com)
- * - EMAIL_FROM_NAME: From display name (default: Nedhub)
+ * - EMAIL_FROM_NAME: From display name (default: Nedhub Support)
  * - FRONTEND_URL: Frontend URL for email links
  */
 
@@ -26,8 +28,8 @@ class EmailService {
     this.baseUrl = process.env.FRONTEND_URL || 'https://app.nedhubgh.com';
     this.provider = emailService.provider;
     
-    console.log('[EMAIL] Email service initialized with Resend API');
-    console.log('[EMAIL] Provider: Resend (HTTPS API)');
+    const providerType = (process.env.EMAIL_PROVIDER || 'resend').toLowerCase();
+    console.log(`[EMAIL] Email service initialized with ${providerType === 'brevo' ? 'Brevo' : 'Resend'} API`);
   }
 
   /**

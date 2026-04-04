@@ -118,6 +118,22 @@ app.get('/auth/forgot-password.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/auth/forgot-password.html'));
 });
 
+app.get('/auth/verify-email', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/verify-email.html'));
+});
+
+app.get('/auth/verify-email.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/verify-email.html'));
+});
+
+app.get('/auth/reset-password', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/reset-password.html'));
+});
+
+app.get('/auth/reset-password.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/auth/reset-password.html'));
+});
+
 // Dashboard page routes
 app.get('/overview.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/overview.html'));

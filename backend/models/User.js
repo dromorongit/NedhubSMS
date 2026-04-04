@@ -38,6 +38,24 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Email verification token (hashed)
+  emailVerificationToken: {
+    type: String,
+    default: null
+  },
+  emailVerificationTokenExpires: {
+    type: Date,
+    default: null
+  },
+  // Password reset token (hashed)
+  passwordResetToken: {
+    type: String,
+    default: null
+  },
+  passwordResetTokenExpires: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
