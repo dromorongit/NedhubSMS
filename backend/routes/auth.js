@@ -211,6 +211,17 @@ router.post('/verify-email', async (req, res) => {
     // Generate JWT token
     const token = generateToken(user._id, user.role);
 
+    // Send admin notification (non-blocking - don't fail user verification if this fails)
+    EmailService.sendAdminUserVerifiedNotification(user)
+      .then(success => {
+        if (success) {
+          console.log(`[AUTH] Admin notification sent for verified user: ${user.email}`);
+        }
+      })
+      .catch(err => {
+        console.error(`[AUTH][ERROR] Failed to send admin notification:`, err.message);
+      });
+
     res.json({ 
       success: true,
       message: 'Email verified successfully',

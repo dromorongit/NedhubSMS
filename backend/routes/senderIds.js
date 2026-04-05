@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const { authenticate, authorize } = require('../middleware/auth');
 const SenderId = require('../models/SenderId');
+const User = require('../models/User');
+const EmailService = require('../services/email/emailService');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -72,6 +74,36 @@ router.post('/', authenticate, upload.single('document'), async (req, res) => {
     });
 
     await newSenderId.save();
+
+    // Send admin notification (non-blocking - don't fail request if this fails)
+    // First get user details for the notification
+    const user = await User.findById(userId).select('name email');
+    if (user) {
+      EmailService.sendAdminSenderIdRequestNotification({
+        userName: user.name || 'N/A',
+        userEmail: user.email || 'N/A',
+        senderId: newSenderId.senderId,
+        businessName: '', // Could be extended to collect this
+        documentType: newSenderId.documentType,
+        requestId: newSenderId._id.toString(),
+        submittedAt: new Date().toLocaleString('en-GB', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric', 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        })
+      })
+        .then(success => {
+          if (success) {
+            console.log(`[SENDER_ID] Admin notification sent for request: ${newSenderId.senderId}`);
+          }
+        })
+        .catch(err => {
+          console.error(`[SENDER_ID][ERROR] Failed to send admin notification:`, err.message);
+        });
+    }
 
     res.status(201).json({
       message: 'Sender ID request submitted successfully with document',

@@ -104,6 +104,24 @@ class EmailService {
   getPasswordResetLinkTextTemplate(fullName, resetUrl) {
     return emailService.getPasswordResetLinkTextTemplate(fullName, resetUrl);
   }
+
+  /**
+   * Send admin notification when a user successfully verifies their email
+   * @param {Object} user - User object with name, email, _id, emailVerifiedAt
+   * @returns {Promise<boolean>}
+   */
+  async sendAdminUserVerifiedNotification(user) {
+    return await emailService.sendAdminUserVerifiedNotification(user);
+  }
+
+  /**
+   * Send admin notification when a new Sender ID approval request is submitted
+   * @param {Object} requestData - Sender ID request data
+   * @returns {Promise<boolean>}
+   */
+  async sendAdminSenderIdRequestNotification(requestData) {
+    return await emailService.sendAdminSenderIdRequestNotification(requestData);
+  }
 }
 
 // Export singleton instance

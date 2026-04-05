@@ -4,6 +4,10 @@ const crypto = require('crypto');
 const resendProvider = require('./providers/resendProvider');
 const brevoProvider = require('./providers/brevoProvider');
 
+// Import admin notification templates
+const adminUserVerifiedTemplate = require('./templates/adminUserVerifiedTemplate');
+const adminSenderIdRequestTemplate = require('./templates/adminSenderIdRequestTemplate');
+
 /**
  * Email Service - Modular email service supporting multiple providers
  * Supported providers: Resend, Brevo (for Railway Hobby compatibility)
@@ -13,6 +17,9 @@ class EmailService {
   constructor() {
     // Get configuration from environment
     this.baseUrl = process.env.FRONTEND_URL || 'https://app.nedhubgh.com';
+    
+    // Admin notification recipient
+    this.adminNotificationEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'info@nedhubgh.com';
     
     // Select provider based on EMAIL_PROVIDER env var
     const providerType = (process.env.EMAIL_PROVIDER || 'resend').toLowerCase();
@@ -24,6 +31,8 @@ class EmailService {
       this.provider = resendProvider;
       console.log('[EMAIL] Email service initialized with Resend provider');
     }
+    
+    console.log(`[EMAIL] Admin notifications will be sent to: ${this.adminNotificationEmail}`);
   }
 
   /**
@@ -418,6 +427,76 @@ If you didn't request a password reset, please ignore this email or contact supp
 For security reasons, never share this link with anyone.
 
 © ${new Date().getFullYear()} Nedhub. All rights reserved.`;
+  }
+
+  // ==================== Admin Notification Methods ====================
+
+  /**
+   * Send admin notification when a user successfully verifies their email
+   * @param {Object} user - User object with name, email, _id, emailVerifiedAt
+   * @returns {Promise<boolean>}
+   */
+  async sendAdminUserVerifiedNotification(user) {
+    try {
+      const html = adminUserVerifiedTemplate.getAdminUserVerifiedTemplate(user);
+      const text = adminUserVerifiedTemplate.getAdminUserVerifiedTextTemplate(user);
+      
+      const result = await this.provider.sendEmail(
+        this.adminNotificationEmail,
+        'New User Verified Successfully - Nedhub',
+        html,
+        text,
+        { tags: ['admin-notification', 'user-verified'] }
+      );
+
+      if (result.success) {
+        console.log(`[EMAIL][ADMIN] ✓ User verified notification sent to ${this.adminNotificationEmail}`);
+      } else {
+        console.error(`[EMAIL][ADMIN][ERROR] Failed to send user verified notification:`, result.error);
+      }
+
+      return result.success;
+    } catch (error) {
+      console.error(`[EMAIL][ADMIN][ERROR] Exception sending user verified notification:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Send admin notification when a new Sender ID approval request is submitted
+   * @param {Object} requestData - Sender ID request data
+   * @param {string} requestData.userName - Requesting user's full name
+   * @param {string} requestData.userEmail - Requesting user's email
+   * @param {string} requestData.senderId - Requested Sender ID
+   * @param {string} requestData.businessName - Business name (optional)
+   * @param {string} requestData.documentType - Document type
+   * @param {string} requestData.requestId - Request ID
+   * @returns {Promise<boolean>}
+   */
+  async sendAdminSenderIdRequestNotification(requestData) {
+    try {
+      const html = adminSenderIdRequestTemplate.getAdminSenderIdRequestTemplate(requestData);
+      const text = adminSenderIdRequestTemplate.getAdminSenderIdRequestTextTemplate(requestData);
+      
+      const result = await this.provider.sendEmail(
+        this.adminNotificationEmail,
+        'New Sender ID Approval Request Submitted - Nedhub',
+        html,
+        text,
+        { tags: ['admin-notification', 'sender-id-request'] }
+      );
+
+      if (result.success) {
+        console.log(`[EMAIL][ADMIN] ✓ Sender ID request notification sent to ${this.adminNotificationEmail}`);
+      } else {
+        console.error(`[EMAIL][ADMIN][ERROR] Failed to send Sender ID request notification:`, result.error);
+      }
+
+      return result.success;
+    } catch (error) {
+      console.error(`[EMAIL][ADMIN][ERROR] Exception sending Sender ID request notification:`, error.message);
+      return false;
+    }
   }
 }
 
