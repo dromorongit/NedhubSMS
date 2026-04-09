@@ -5,11 +5,18 @@ const { Queue } = require('bullmq');
 const logger = require('../utils/logger');
 
 // Redis configuration
-const redisConfig = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined
-};
+let redisConfig;
+if (process.env.REDIS_URL) {
+  redisConfig = process.env.REDIS_URL;
+} else {
+  redisConfig = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
+    db: parseInt(process.env.REDIS_DB) || 0,
+    username: process.env.REDIS_USERNAME || undefined
+  };
+}
 
 // Helper function to check Nalo health
 async function checkNaloHealth() {
