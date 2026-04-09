@@ -39,7 +39,7 @@ class SmsJobQueueService {
           db: parseInt(process.env.REDIS_DB) || 0,
           username: process.env.REDIS_USERNAME || undefined,
           retryDelayOnFailover: 100,
-          maxRetriesPerRequest: 3,
+          maxRetriesPerRequest: null,
           lazyConnect: true,
         };
       }
