@@ -1459,9 +1459,19 @@
         document.getElementById('generatePreviewBtn').addEventListener('click', generateMessagePreview);
 
         async function generateMessagePreview() {
-            const salutation = document.getElementById('salutation').value;
-            const customSalutation = document.getElementById('customSalutation').value;
-            const messageBody = document.getElementById('messageBody').value;
+            const messageBodyEl = document.getElementById('messageBody');
+            const salutationEl = document.getElementById('salutation');
+            const customSalutationEl = document.getElementById('customSalutation');
+            
+            const messageBody = messageBodyEl ? messageBodyEl.value : '';
+            const salutation = salutationEl ? salutationEl.value : 'Dear';
+            const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+
+            // Validate message body
+            if (!messageBody || messageBody.trim().length === 0) {
+                showToast('Please enter a message body first', 'warning');
+                return;
+            }
 
             // Get sample recipients
             const sampleRecipients = getSampleRecipients();
@@ -1482,7 +1492,7 @@
                 if (response.error) {
                     showToast(response.error, 'error');
                 } else {
-                    displayMessagePreview(response.previewMessages);
+                    displayMessagePreview(response.data?.previewMessages || response.previewMessages);
                 }
             } catch (error) {
                 console.error('Preview error:', error);
