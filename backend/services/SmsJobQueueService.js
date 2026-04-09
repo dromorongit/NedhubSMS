@@ -140,7 +140,6 @@ class SmsJobQueueService {
         console.warn(`[SmsJobQueueService] Job ${jobId} stalled`);
       });
 
-      await this.redisConnection.connect();
       this.isInitialized = true;
       console.log('[SmsJobQueueService] Queue service initialized successfully');
 

@@ -4,6 +4,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const Wallet = require('../models/Wallet');
 const SmsMessage = require('../models/SmsMessage');
 const Transaction = require('../models/Transaction');
+const WalletService = require('../services/WalletService');
 
 // Get wallet balance with SMS balance
 router.get('/', authenticate, async (req, res) => {
