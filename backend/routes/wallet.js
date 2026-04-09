@@ -26,6 +26,7 @@ router.get('/', authenticate, async (req, res) => {
     res.json({
       balance,
       availableBalance,
+      smsBalance: availableBalance, // For frontend compatibility
       reservedAmount,
       currency: 'GHS',
       stats: {

@@ -119,6 +119,26 @@ class WalletService {
   }
 
   /**
+   * Get available balance (balance minus active reservations)
+   * @param {string} userId - User ID
+   * @returns {number} - Available balance
+   */
+  async getAvailableBalance(userId) {
+    const wallet = await Wallet.findOne({ userId });
+    if (!wallet) return 0;
+
+    // Get total active reservations
+    const activeReservations = await WalletReservation.find({
+      userId,
+      status: 'active'
+    });
+
+    const totalReserved = activeReservations.reduce((sum, res) => sum + res.amount, 0);
+
+    return Math.max(0, wallet.balance - totalReserved);
+  }
+
+  /**
    * Get wallet by user ID
    * @param {string} userId - User ID
    * @returns {Object} - Wallet document
