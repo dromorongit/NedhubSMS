@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
-const { sendSMS, checkBalance } = require('../utils/nalo');
+const { checkBalance } = require('../utils/nalo');
 const { calculateSMSCost, deductCredits } = require('../utils/billing');
 const Message = require('../models/Message');
 const SmsMessage = require('../models/SmsMessage');
+const NaloSmsService = require('../services/NaloSmsService');
 const validator = require('validator');
 
 // Send SMS (handles both single and multiple recipients)
@@ -55,29 +56,22 @@ router.post('/send', authenticate, async (req, res) => {
 
     for (const recipient of recipients) {
       try {
-        const naloResponse = await sendSMS(senderId, recipient, message);
-        
-        // Log message in database for each recipient
-        const segments = Math.ceil(message.length / 160);
-        const smsMessage = new SmsMessage({
+        // Use NaloSmsService for proper tracking and webhook support
+        const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
           userId,
           msisdn: recipient,
           senderId,
-          message: message,
-          status: 'sent',
-          jobId: naloResponse.message_id, // Store Nalo's message_id for webhook tracking
-          sellPricePerSms: 0.095,
-          providerCostPerSms: 0.082,
-          segments,
-          recipientsCount: 1,
-          totalChargedToUser: 0.095 * segments,
-          totalCostToProvider: 0.082 * segments,
-          profitAmount: (0.095 - 0.082) * segments
+          message,
+          recipientsCount: 1
         });
-        await smsMessage.save();
         
-        results.push({ recipient, success: true, response: naloResponse });
-        successCount++;
+        if (smsResult.success) {
+          results.push({ recipient, success: true, messageId: smsResult.messageId, jobId: smsResult.jobId });
+          successCount++;
+        } else {
+          results.push({ recipient, success: false, error: smsResult.error });
+          failedCount++;
+        }
       } catch (error) {
         results.push({ recipient, success: false, error: error.message });
         failedCount++;
