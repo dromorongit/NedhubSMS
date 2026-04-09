@@ -28,11 +28,14 @@ class SmsJobQueueService {
 
     try {
       // Create Redis connection
-      let redisConfig;
       if (process.env.REDIS_URL) {
-        redisConfig = process.env.REDIS_URL;
+        this.redisConnection = new IORedis(process.env.REDIS_URL, {
+          maxRetriesPerRequest: null,
+          retryDelayOnFailover: 100,
+          lazyConnect: true,
+        });
       } else {
-        redisConfig = {
+        this.redisConnection = new IORedis({
           host: process.env.REDIS_HOST || 'localhost',
           port: parseInt(process.env.REDIS_PORT) || 6379,
           password: process.env.REDIS_PASSWORD || undefined,
@@ -41,9 +44,8 @@ class SmsJobQueueService {
           retryDelayOnFailover: 100,
           maxRetriesPerRequest: null,
           lazyConnect: true,
-        };
+        });
       }
-      this.redisConnection = new IORedis(redisConfig);
 
       // Handle Redis connection events
       this.redisConnection.on('connect', () => {
