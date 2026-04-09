@@ -305,7 +305,8 @@ const server = app.listen(PORT, async () => {
     logger.info('SMS Scheduler service started');
   } catch (error) {
     logger.error('Failed to start SMS Scheduler service', { error: error.message });
-    process.exit(1);
+    // Continue without queue service for now
+    logger.warn('Application starting without queue service due to Redis connection failure');
   }
 });
 
