@@ -4,11 +4,13 @@ const contactSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    index: true
   },
-  name: {
+  recipientName: {
     type: String,
-    required: [true, 'Please add a name']
+    required: [true, 'Please add a recipient name'],
+    trim: true
   },
   phoneNumber: {
     type: String,
@@ -16,13 +18,25 @@ const contactSchema = new mongoose.Schema({
     match: [
       /^(?:\+233|0)(?:20|50|24|54|27|57|26|56|23|53|28|58|25|55)[0-9]{7}$/,
       'Please add a valid Ghana phone number'
-    ]
+    ],
+    index: true
   },
-  groupName: {
+  normalizedPhoneNumber: {
     type: String,
-    default: 'General'
+    required: true,
+    index: true
   },
+  groupIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ContactGroup',
+    index: true
+  }],
   createdAt: {
+    type: Date,
+    default: Date.now,
+    index: true
+  },
+  updatedAt: {
     type: Date,
     default: Date.now
   }
@@ -39,10 +53,10 @@ contactSchema.statics.findById = function(id) {
 };
 
 // Static method to create contact
-contactSchema.statics.create = async function(userId, name, phoneNumber, groupName) {
+contactSchema.statics.create = async function(userId, recipientName, phoneNumber, groupName) {
   const contact = new this({
     userId,
-    name,
+    recipientName,
     phoneNumber,
     groupName: groupName || 'General'
   });
@@ -51,13 +65,20 @@ contactSchema.statics.create = async function(userId, name, phoneNumber, groupNa
 };
 
 // Static method to update contact
-contactSchema.statics.update = async function(id, name, phoneNumber, groupName) {
+contactSchema.statics.update = async function(id, recipientName, phoneNumber, groupName) {
   return this.findByIdAndUpdate(id, {
-    name,
+    recipientName,
     phoneNumber,
-    groupName: groupName || 'General'
+    groupName: groupName || 'General',
+    updatedAt: new Date()
   }, { new: true });
 };
+
+// Update the updatedAt field on save
+contactSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
 
 // Static method to delete contact
 contactSchema.statics.delete = function(id) {

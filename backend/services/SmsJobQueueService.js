@@ -1,0 +1,514 @@
+const { Queue, Worker, QueueScheduler } = require('bullmq');
+const IORedis = require('ioredis');
+const SmsCampaign = require('../models/SmsCampaign');
+const SmsRecipient = require('../models/SmsRecipient');
+const NaloSmsService = require('./NaloSmsService');
+const BatchProcessorService = require('./BatchProcessorService');
+const logger = require('../utils/logger');
+const MetricsService = require('./MetricsService');
+const AlertingService = require('../utils/alerting');
+
+class SmsJobQueueService {
+  constructor() {
+    this.queue = null;
+    this.worker = null;
+    this.scheduler = null;
+    this.redisConnection = null;
+    this.isInitialized = false;
+  }
+
+  /**
+   * Initialize the queue service with Redis connection
+   */
+  async initialize() {
+    if (this.isInitialized) {
+      logger.info('Queue service already initialized');
+      return;
+    }
+
+    try {
+      // Create Redis connection
+      this.redisConnection = new IORedis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT) || 6379,
+        password: process.env.REDIS_PASSWORD || undefined,
+        db: parseInt(process.env.REDIS_DB) || 0,
+        username: process.env.REDIS_USERNAME || undefined,
+        retryDelayOnFailover: 100,
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+      });
+
+      // Handle Redis connection events
+      this.redisConnection.on('connect', () => {
+        console.log('[SmsJobQueueService] Redis connected successfully');
+      });
+
+      this.redisConnection.on('error', (error) => {
+        console.error('[SmsJobQueueService] Redis connection error:', error);
+      });
+
+      this.redisConnection.on('ready', () => {
+        console.log('[SmsJobQueueService] Redis connection ready');
+      });
+
+      // Initialize queue
+      this.queue = new Queue('sms-campaigns', {
+        connection: this.redisConnection,
+        defaultJobOptions: {
+          removeOnComplete: 50, // Keep last 50 completed jobs
+          removeOnFail: 100,    // Keep last 100 failed jobs (for dead letter)
+          attempts: 5,          // Enhanced retry: up to 5 attempts
+          backoff: {
+            type: 'exponential',
+            delay: 2000, // 2 seconds initial delay
+          },
+        },
+      });
+
+      // Initialize dead letter queue
+      this.deadLetterQueue = new Queue('sms-dead-letter', {
+        connection: this.redisConnection,
+        defaultJobOptions: {
+          removeOnComplete: 0, // Keep all dead letter jobs
+          removeOnFail: 0,
+        },
+      });
+
+      // Initialize queue scheduler for delayed jobs
+      this.scheduler = new QueueScheduler('sms-campaigns', {
+        connection: this.redisConnection,
+      });
+
+      // Initialize worker
+      this.worker = new Worker('sms-campaigns', this.processJob.bind(this), {
+        connection: this.redisConnection,
+        concurrency: 2, // Process 2 campaigns concurrently
+        limiter: {
+          max: 10, // Max 10 jobs per duration
+          duration: 1000, // Per second
+        },
+      });
+
+      // Graceful shutdown handling
+      process.on('SIGTERM', async () => {
+        console.log('[SmsJobQueueService] Received SIGTERM, initiating graceful shutdown');
+        await this.shutdown();
+        process.exit(0);
+      });
+
+      process.on('SIGINT', async () => {
+        console.log('[SmsJobQueueService] Received SIGINT, initiating graceful shutdown');
+        await this.shutdown();
+        process.exit(0);
+      });
+
+      // Handle worker events
+      this.worker.on('completed', (job) => {
+        logger.info('Queue job completed', { jobId: job.id, campaignId: job.data.campaignId });
+        MetricsService.incrementQueueProcessed(job.data.campaignId);
+      });
+
+      this.worker.on('failed', async (job, err) => {
+        logger.error('Queue job failed', { jobId: job.id, campaignId: job.data.campaignId, error: err.message });
+        MetricsService.incrementQueueFailed(job.data.campaignId, err);
+        await AlertingService.alertQueueFailure(job.data.campaignId, err);
+
+        // Dead letter queue: Move jobs that have exhausted retries
+        if (job.attemptsMade >= job.opts.attempts) {
+          try {
+            await this.deadLetterQueue.add('dead-letter', {
+              originalJobId: job.id,
+              campaignId: job.data.campaignId,
+              error: err.message,
+              failedAt: new Date(),
+              attemptsMade: job.attemptsMade,
+            });
+            console.log(`[SmsJobQueueService] Moved job ${job.id} to dead letter queue`);
+          } catch (dlqError) {
+            console.error(`[SmsJobQueueService] Failed to add to dead letter queue:`, dlqError);
+          }
+        }
+      });
+
+      this.worker.on('stalled', (jobId) => {
+        console.warn(`[SmsJobQueueService] Job ${jobId} stalled`);
+      });
+
+      await this.redisConnection.connect();
+      this.isInitialized = true;
+      console.log('[SmsJobQueueService] Queue service initialized successfully');
+
+    } catch (error) {
+      console.error('[SmsJobQueueService] Failed to initialize queue service:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a job to send campaign immediately
+   * @param {string} campaignId - The campaign ID to process
+   * @param {object} options - Additional job options
+   */
+  async addImmediateJob(campaignId, options = {}) {
+    if (!this.isInitialized) {
+      throw new Error('Queue service not initialized');
+    }
+
+    // Use unique job ID for idempotency
+    const jobId = `campaign-${campaignId}`;
+
+    const job = await this.queue.add('sendCampaign', { campaignId }, {
+      jobId, // Unique job ID to prevent duplicates
+      priority: 1, // High priority for immediate sends
+      delay: 0,
+      ...options,
+    });
+
+    console.log(`[SmsJobQueueService] Added immediate job for campaign ${campaignId}, job ID: ${job.id}`);
+    return job;
+  }
+
+  /**
+   * Add a delayed job to send campaign at scheduled time
+   * @param {string} campaignId - The campaign ID to process
+   * @param {Date} scheduledTime - When to execute the job
+   * @param {object} options - Additional job options
+   */
+  async addScheduledJob(campaignId, scheduledTime, options = {}) {
+    if (!this.isInitialized) {
+      throw new Error('Queue service not initialized');
+    }
+
+    const delay = Math.max(0, scheduledTime.getTime() - Date.now());
+
+    const job = await this.queue.add('sendCampaign', { campaignId }, {
+      priority: 0, // Lower priority for scheduled sends
+      delay,
+      ...options,
+    });
+
+    console.log(`[SmsJobQueueService] Added scheduled job for campaign ${campaignId} at ${scheduledTime.toISOString()}, job ID: ${job.id}`);
+    return job;
+  }
+
+  /**
+   * Cancel a scheduled job
+   * @param {string} jobId - The job ID to cancel
+   */
+  async cancelJob(jobId) {
+    if (!this.isInitialized) {
+      throw new Error('Queue service not initialized');
+    }
+
+    const job = await this.queue.getJob(jobId);
+    if (job) {
+      await job.remove();
+      console.log(`[SmsJobQueueService] Cancelled job ${jobId}`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Reschedule a job
+   * @param {string} jobId - The job ID to reschedule
+   * @param {Date} newScheduledTime - New scheduled time
+   */
+  async rescheduleJob(jobId, newScheduledTime) {
+    if (!this.isInitialized) {
+      throw new Error('Queue service not initialized');
+    }
+
+    const job = await this.queue.getJob(jobId);
+    if (!job) {
+      throw new Error(`Job ${jobId} not found`);
+    }
+
+    const delay = Math.max(0, newScheduledTime.getTime() - Date.now());
+    await job.changeDelay(delay);
+
+    console.log(`[SmsJobQueueService] Rescheduled job ${jobId} to ${newScheduledTime.toISOString()}`);
+    return job;
+  }
+
+  /**
+   * Get job status
+   * @param {string} jobId - The job ID
+   */
+  async getJobStatus(jobId) {
+    if (!this.isInitialized) {
+      throw new Error('Queue service not initialized');
+    }
+
+    const job = await this.queue.getJob(jobId);
+    if (!job) {
+      return null;
+    }
+
+    return {
+      id: job.id,
+      name: job.name,
+      data: job.data,
+      opts: job.opts,
+      progress: job.progress,
+      attemptsMade: job.attemptsMade,
+      finishedOn: job.finishedOn,
+      processedOn: job.processedOn,
+      failedReason: job.failedReason,
+      returnvalue: job.returnvalue,
+      state: await job.getState(),
+    };
+  }
+
+  /**
+   * Get queue statistics
+   */
+  async getQueueStats() {
+    if (!this.isInitialized) {
+      throw new Error('Queue service not initialized');
+    }
+
+    const [waiting, active, completed, failed, delayed] = await Promise.all([
+      this.queue.getWaiting(),
+      this.queue.getActive(),
+      this.queue.getCompleted(),
+      this.queue.getFailed(),
+      this.queue.getDelayed(),
+    ]);
+
+    return {
+      waiting: waiting.length,
+      active: active.length,
+      completed: completed.length,
+      failed: failed.length,
+      delayed: delayed.length,
+    };
+  }
+
+  /**
+   * Process a job (campaign sending)
+   * @param {Job} job - The BullMQ job
+   */
+  async processJob(job) {
+     const { campaignId } = job.data;
+
+     console.log(`[SmsJobQueueService] Processing campaign job: ${campaignId}`);
+
+     try {
+       // Find the campaign
+       const campaign = await SmsCampaign.findById(campaignId);
+       if (!campaign) {
+         throw new Error(`Campaign ${campaignId} not found`);
+       }
+
+       // Restart safety: Check if campaign is already sent or failed to prevent duplicate execution
+       if (campaign.status === 'sent' || campaign.status === 'failed') {
+         console.warn(`[SmsJobQueueService] Campaign ${campaignId} already ${campaign.status}, skipping duplicate execution`);
+         return;
+       }
+
+       // Check if campaign is still valid for sending
+       if (campaign.status !== 'scheduled' && campaign.status !== 'processing') {
+         console.warn(`[SmsJobQueueService] Campaign ${campaignId} status is ${campaign.status}, skipping`);
+         return;
+       }
+
+      // Process the campaign (similar to old processCampaign)
+      await this.processCampaign(campaign);
+
+      console.log(`[SmsJobQueueService] Successfully processed campaign ${campaignId}`);
+      return { success: true, campaignId };
+
+    } catch (error) {
+      console.error(`[SmsJobQueueService] Error processing campaign ${campaignId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process a single campaign using batch processing
+   * @param {SmsCampaign} campaign - The campaign to process
+   */
+  async processCampaign(campaign) {
+    console.log(`[SmsJobQueueService] Processing campaign: ${campaign.title} (${campaign._id})`);
+
+    // Update campaign status to processing
+    campaign.status = 'processing';
+    await campaign.save();
+
+    // Capture reservation if exists
+    if (campaign.walletReservationId) {
+      try {
+        const WalletService = require('./WalletService');
+        const captureResult = await WalletService.captureReservation(campaign.walletReservationId);
+        campaign.actualCost = captureResult.transaction.amount;
+        await campaign.save();
+      } catch (error) {
+        console.error(`[SmsJobQueueService] Failed to capture reservation for campaign ${campaign._id}:`, error);
+        campaign.status = 'failed';
+        await campaign.save();
+        return;
+      }
+    }
+
+    // Check if there are any pending recipients
+    const pendingCount = await SmsRecipient.countDocuments({ campaignId: campaign._id, status: 'pending' });
+    if (pendingCount === 0) {
+      console.warn(`[SmsJobQueueService] No pending recipients found for campaign ${campaign._id}`);
+      campaign.status = 'failed';
+      await campaign.save();
+      return;
+    }
+
+    // Define the processor function for each recipient
+    const processRecipient = async (recipient) => {
+      try {
+        // Skip if already processed (double-check)
+        if (recipient.status !== 'pending') {
+          return { success: false, reason: 'already processed' };
+        }
+
+        // Send SMS
+        const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
+          userId: campaign.userId,
+          msisdn: recipient.phoneNumber,
+          senderId: campaign.senderId,
+          message: recipient.personalizedMessage,
+          recipientsCount: 1,
+          skipDeduction: !!campaign.walletReservationId
+        });
+
+        if (smsResult.success) {
+          await recipient.markAsSent(smsResult.jobId);
+          logger.info('SMS sent successfully', { recipientName: recipient.recipientName, phoneNumber: recipient.phoneNumber });
+          return { success: true };
+        } else {
+          await recipient.markAsFailed(smsResult.error);
+          logger.error('SMS send failed', { recipientName: recipient.recipientName, phoneNumber: recipient.phoneNumber, error: smsResult.error });
+          return { success: false, error: smsResult.error };
+        }
+
+      } catch (error) {
+        console.error(`[SmsJobQueueService] Error sending to ${recipient.recipientName}:`, error);
+        await recipient.markAsFailed(error.message);
+        return { success: false, error: error.message };
+      }
+    };
+
+    try {
+      // Process recipients in batches
+      const batchResult = await BatchProcessorService.processRecipientsInBatches(
+        campaign._id,
+        processRecipient,
+        { batchSize: BatchProcessorService.getBatchConfig().DEFAULT_SIZE }
+      );
+
+      if (batchResult.success) {
+        // Get final progress
+        const finalProgress = await BatchProcessorService.getProgress(campaign._id);
+
+        // Update campaign with final counts
+        campaign.sentCount = finalProgress.successfulRecipients;
+        campaign.failedCount = finalProgress.failedRecipients;
+        campaign.pendingCount = 0; // All processed
+
+        // Status should already be set by BatchProcessorService.finalizeCampaign
+        // But ensure it's set correctly
+        if (campaign.sentCount > 0) {
+          campaign.status = 'sent';
+          campaign.sentAt = new Date();
+        } else {
+          campaign.status = 'failed';
+        }
+
+        await campaign.save();
+
+        // Record metrics
+        MetricsService.recordSmsSent(campaign.sentCount + campaign.failedCount, campaign.sentCount > 0);
+
+        logger.info('Campaign processing completed', {
+          campaignId: campaign._id,
+          title: campaign.title,
+          sentCount: campaign.sentCount,
+          failedCount: campaign.failedCount,
+          totalBatches: batchResult.totalBatches
+        });
+      } else {
+        throw new Error('Batch processing failed');
+      }
+
+    } catch (error) {
+      console.error(`[SmsJobQueueService] Batch processing error for campaign ${campaign._id}:`, error);
+      campaign.status = 'failed';
+      await campaign.save();
+      throw error;
+    }
+  }
+
+  /**
+   * Graceful shutdown
+   */
+  async shutdown() {
+    console.log('[SmsJobQueueService] Shutting down queue service...');
+
+    if (this.worker) {
+      await this.worker.close();
+      console.log('[SmsJobQueueService] Worker closed');
+    }
+
+    if (this.scheduler) {
+      await this.scheduler.close();
+      console.log('[SmsJobQueueService] Scheduler closed');
+    }
+
+    if (this.queue) {
+      await this.queue.close();
+      console.log('[SmsJobQueueService] Queue closed');
+    }
+
+    if (this.deadLetterQueue) {
+      await this.deadLetterQueue.close();
+      console.log('[SmsJobQueueService] Dead letter queue closed');
+    }
+
+    if (this.redisConnection) {
+      this.redisConnection.disconnect();
+      console.log('[SmsJobQueueService] Redis disconnected');
+    }
+
+    this.isInitialized = false;
+    console.log('[SmsJobQueueService] Queue service shutdown complete');
+  }
+
+  /**
+   * Check if service is healthy
+   */
+  async isHealthy() {
+    if (!this.isInitialized) {
+      return false;
+    }
+
+    try {
+      await this.redisConnection.ping();
+
+      // Check persistence status for enhanced resilience
+      const info = await this.redisConnection.info('persistence');
+      const isAofEnabled = info.includes('aof_enabled:1');
+
+      return isAofEnabled;
+    } catch (error) {
+      console.error('[SmsJobQueueService] Health check failed:', error);
+      return false;
+    }
+  }
+
+ /**
+  * Get Redis connection for sharing with other services
+  */
+ getRedisConnection() {
+   return this.redisConnection;
+ }
+}
+
+module.exports = new SmsJobQueueService();

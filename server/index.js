@@ -1,9 +1,14 @@
-require('dotenv').config();
+require('dotenv').config({ path: '../backend/.env' });
+
+// Initialize Sentry first
+require('../backend/utils/sentry');
+
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const { connectDB } = require('../backend/utils/database');
+const logger = require('../backend/utils/logger');
 const authRoutes = require('../backend/routes/auth');
 const contactRoutes = require('../backend/routes/contacts');
 const smsRoutes = require('../backend/routes/sms');
@@ -13,12 +18,23 @@ const transferRoutes = require('../backend/routes/transfers');
 const senderIdRoutes = require('../backend/routes/senderIds');
 const templateRoutes = require('../backend/routes/templates');
 const campaignRoutes = require('../backend/routes/campaigns');
+const smsCampaignRoutes = require('../backend/routes/sms-campaigns');
+const analyticsRoutes = require('../backend/routes/analytics');
+const reportsRoutes = require('../backend/routes/reports');
 const adminRoutes = require('../backend/routes/admin');
 const paymentRoutes = require('../backend/routes/payments');
 const utilityRoutes = require('../backend/routes/utility');
+const blacklistRoutes = require('../backend/routes/blacklist');
 const seedRoutes = require('../backend/routes/seed');
+const healthRoutes = require('../backend/routes/health');
+const metricsRoutes = require('../backend/routes/metrics');
 const hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
-const EmailService = require('../backend/services/EmailService');
+const EmailServiceClass = require('../backend/services/EmailService');
+const SmsSchedulerService = require('../backend/services/SmsSchedulerService');
+const Sentry = require('../backend/utils/sentry');
+
+// Instantiate email service
+const EmailService = new EmailServiceClass();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -151,6 +167,10 @@ app.get('/history.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/history.html'));
 });
 
+app.get('/analytics.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/analytics.html'));
+});
+
 app.get('/reports.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/reports.html'));
 });
@@ -183,6 +203,10 @@ app.get('/transactions.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/dashboard/transactions.html'));
 });
 
+app.get('/blacklist.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../src/pages/dashboard/blacklist.html'));
+});
+
 app.get('/admin/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../src/pages/admin/admin.html'));
 });
@@ -213,6 +237,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/sms', naloSmsRoutes); // Nalo SMS routes
+app.use('/api/sms-campaigns', smsCampaignRoutes); // New SMS campaigns routes
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/reports', reportsRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/transfer', transferRoutes);
 app.use('/api/utility', utilityRoutes);
@@ -221,7 +248,10 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/blacklist', blacklistRoutes);
 app.use('/api/seed', seedRoutes);
+app.use('/api', healthRoutes); // Health routes (no auth required)
+app.use('/api', metricsRoutes); // Metrics routes (no auth required)
 
 // Hubtel callback endpoints (no authentication - called by Hubtel)
 app.post('/api/hubtel/momo-callback', express.json(), async (req, res) => {
@@ -242,13 +272,72 @@ app.post('/api/hubtel/data-callback', express.json(), async (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  Sentry.withScope((scope) => {
+    scope.setUser({ id: req.user?.id });
+    scope.setTag('url', req.url);
+    scope.setTag('method', req.method);
+    scope.setContext('request', {
+      body: req.body,
+      query: req.query,
+      params: req.params
+    });
+    Sentry.captureException(err);
+  });
+
+  logger.error('Unhandled error', {
+    error: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    userId: req.user?.id
+  });
+
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, async () => {
+  logger.info('Server started', { port: PORT });
+
+  try {
+    // Start SMS scheduler service
+    await SmsSchedulerService.start();
+    logger.info('SMS Scheduler service started');
+  } catch (error) {
+    logger.error('Failed to start SMS Scheduler service', { error: error.message });
+    process.exit(1);
+  }
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  server.close(async () => {
+    logger.info('HTTP server closed');
+    try {
+      await SmsSchedulerService.stop();
+      logger.info('SMS Scheduler service stopped');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error stopping SMS Scheduler service', { error: error.message });
+      process.exit(1);
+    }
+  });
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  server.close(async () => {
+    logger.info('HTTP server closed');
+    try {
+      await SmsSchedulerService.stop();
+      logger.info('SMS Scheduler service stopped');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error stopping SMS Scheduler service', { error: error.message });
+      process.exit(1);
+    }
+  });
 });
 
 module.exports = app;

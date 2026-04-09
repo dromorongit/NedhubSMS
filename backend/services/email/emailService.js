@@ -1,8 +1,7 @@
 const crypto = require('crypto');
 
-// Import providers
-const resendProvider = require('./providers/resendProvider');
-const brevoProvider = require('./providers/brevoProvider');
+// Import providers dynamically
+let resendProvider, brevoProvider;
 
 // Import admin notification templates
 const adminUserVerifiedTemplate = require('./templates/adminUserVerifiedTemplate');
@@ -17,21 +16,23 @@ class EmailService {
   constructor() {
     // Get configuration from environment
     this.baseUrl = process.env.FRONTEND_URL || 'https://app.nedhubgh.com';
-    
+
     // Admin notification recipient
     this.adminNotificationEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'info@nedhubgh.com';
-    
+
     // Select provider based on EMAIL_PROVIDER env var
     const providerType = (process.env.EMAIL_PROVIDER || 'resend').toLowerCase();
-    
+
     if (providerType === 'brevo') {
-      this.provider = brevoProvider;
+      const BrevoProvider = require('./providers/brevoProvider');
+      this.provider = new BrevoProvider();
       console.log('[EMAIL] Email service initialized with Brevo provider');
     } else {
-      this.provider = resendProvider;
+      const SendGridProvider = require('./providers/resendProvider');
+      this.provider = new SendGridProvider();
       console.log('[EMAIL] Email service initialized with Resend provider');
     }
-    
+
     console.log(`[EMAIL] Admin notifications will be sent to: ${this.adminNotificationEmail}`);
   }
 
@@ -500,5 +501,5 @@ For security reasons, never share this link with anyone.
   }
 }
 
-// Export singleton instance
-module.exports = new EmailService();
+// Export class
+module.exports = EmailService;

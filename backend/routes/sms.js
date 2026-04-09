@@ -58,13 +58,21 @@ router.post('/send', authenticate, async (req, res) => {
         const naloResponse = await sendSMS(senderId, recipient, message);
         
         // Log message in database for each recipient
-        await Message.create({
+        const segments = Math.ceil(message.length / 160);
+        await new SmsMessage({
           userId,
+          msisdn: recipient,
           senderId,
-          messageBody: message,
-          recipients: [recipient],
-          status: 'sent'
-        });
+          message: message,
+          status: 'sent',
+          sellPricePerSms: 0.095,
+          providerCostPerSms: 0.082,
+          segments,
+          recipientsCount: 1,
+          totalChargedToUser: 0.095 * segments,
+          totalCostToProvider: 0.082 * segments,
+          profitAmount: (0.095 - 0.082) * segments
+        }).save();
         
         results.push({ recipient, success: true, response: naloResponse });
         successCount++;
@@ -142,6 +150,44 @@ router.get('/logs', authenticate, async (req, res) => {
     res.json(allMessages);
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Calculate live SMS cost estimation
+router.get('/calculate-cost', authenticate, async (req, res) => {
+  try {
+    const { message, recipients, salutation, customSalutation } = req.query;
+    const userId = req.user.userId;
+
+    // Validate input
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const recipientCount = parseInt(recipients) || 1;
+
+    if (recipientCount < 1 || recipientCount > 10000) {
+      return res.status(400).json({ error: 'Recipient count must be between 1 and 10000' });
+    }
+
+    // Prepare personalization data if provided
+    const personalizationData = {};
+    if (salutation) personalizationData.salutation = salutation;
+    if (customSalutation) personalizationData.customSalutation = customSalutation;
+
+    // Calculate cost
+    const costCalculator = require('../services/CostCalculatorService');
+    const costEstimation = await costCalculator.calculateLiveCost(
+      userId,
+      message,
+      recipientCount,
+      Object.keys(personalizationData).length > 0 ? personalizationData : null
+    );
+
+    res.json(costEstimation);
+  } catch (error) {
+    console.error('Cost calculation error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

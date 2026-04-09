@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const axios = require('axios');
+const ResilientHttpClient = require('../utils/ResilientHttpClient');
 
 /**
  * HubtelPaymentService
@@ -22,6 +22,17 @@ class HubtelPaymentService {
     
     // Basic Auth header value (computed once)
     this.basicAuthHeader = this._computeBasicAuthHeader();
+
+    // Initialize resilient HTTP client for payment operations
+    this.httpClient = new ResilientHttpClient({
+      serviceName: 'hubtel-payment',
+      timeout: 30000, // 30 seconds for payments
+      maxRetries: 2,
+      baseDelay: 2000,
+      maxDelay: 15000,
+      failureThreshold: 5,
+      recoveryTimeout: 60000
+    });
   }
 
   /**
@@ -126,13 +137,12 @@ class HubtelPaymentService {
         }
       }, null, 2));
 
-      // Make POST request to Hubtel initiate endpoint
-      const response = await axios.post(this.initiateEndpoint, payload, {
+      // Make POST request to Hubtel initiate endpoint using resilient client
+      const response = await this.httpClient.post(this.initiateEndpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 30000 // 30 second timeout
+        }
       });
 
       // Extract response data
@@ -221,12 +231,11 @@ class HubtelPaymentService {
       // Hubtel status endpoint format
       const statusUrl = `${this.statusEndpoint}/${clientReference}/status`;
 
-      const response = await axios.get(statusUrl, {
+      const response = await this.httpClient.get(statusUrl, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 30000
+        }
       });
 
       // Extract full response body

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('./logger');
 
 // Set strictQuery option to avoid deprecation warning in Mongoose 7
 mongoose.set('strictQuery', false);
@@ -9,11 +10,11 @@ const connectDB = async () => {
     
     const conn = await mongoose.connect(mongoURI);
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    logger.info('MongoDB connected', { host: conn.connection.host });
     
     return conn;
   } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
+    logger.error('MongoDB connection error', { error: error.message });
     process.exit(1);
   }
 };
@@ -21,9 +22,9 @@ const connectDB = async () => {
 const disconnectDB = async () => {
   try {
     await mongoose.disconnect();
-    console.log('MongoDB disconnected');
+    logger.info('MongoDB disconnected');
   } catch (error) {
-    console.error(`Error disconnecting from MongoDB: ${error.message}`);
+    logger.error('MongoDB disconnect error', { error: error.message });
     process.exit(1);
   }
 };

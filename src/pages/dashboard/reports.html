@@ -191,6 +191,100 @@
                     </div>
                 </div>
 
+                <!-- Campaign Reports Section -->
+                <div class="reports-section">
+                    <div class="section-header">
+                        <h3>Campaign Reports</h3>
+                        <div class="section-tabs">
+                            <button class="tab-btn active" onclick="switchReportTab('campaigns')">Campaigns</button>
+                            <button class="tab-btn" onclick="switchReportTab('messages')">Messages</button>
+                        </div>
+                    </div>
+
+                    <!-- Campaign Filters -->
+                    <div class="reports-filter-bar campaign-filters">
+                        <div class="filter-group">
+                            <label>Campaign Status:</label>
+                            <select id="campaignStatusFilter">
+                                <option value="">All Status</option>
+                                <option value="sent">Sent</option>
+                                <option value="scheduled">Scheduled</option>
+                                <option value="processing">Processing</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Delivery Status:</label>
+                            <select id="campaignDeliveryFilter">
+                                <option value="">All</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="sent">Sent</option>
+                                <option value="failed">Failed</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Date:</label>
+                            <input type="date" id="campaignDateFrom" placeholder="From">
+                            <span>to</span>
+                            <input type="date" id="campaignDateTo" placeholder="To">
+                        </div>
+                        <button class="btn-filter" onclick="applyCampaignFilters()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            </svg>
+                            Filter
+                        </button>
+                    </div>
+
+                    <!-- Campaigns Table -->
+                    <div class="reports-table-card campaigns-table-card">
+                        <div class="table-header">
+                            <h3>SMS Campaigns</h3>
+                            <span class="table-count" id="campaignTableCount">0 campaigns</span>
+                        </div>
+                        <div class="table-container">
+                            <table class="reports-table campaigns-table">
+                                <thead>
+                                    <tr>
+                                        <th>Campaign Title</th>
+                                        <th>Sender ID</th>
+                                        <th>Status</th>
+                                        <th>Recipients</th>
+                                        <th>Delivered</th>
+                                        <th>Delivery Rate</th>
+                                        <th>Cost</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="campaignsTableBody">
+                                    <tr class="empty-row">
+                                        <td colspan="9">
+                                            <div class="empty-state">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                                                </svg>
+                                                <p>No campaigns found</p>
+                                                <span>Your SMS campaigns will appear here</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-pagination" id="campaignTablePagination">
+                            <!-- Pagination will be added here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Reports Section (existing) -->
+                <div class="reports-section messages-section" style="display: none;">
+                    <div class="section-header">
+                        <h3>Message Reports</h3>
+                    </div>
+
                 <!-- Filter Bar -->
                 <div class="reports-filter-bar">
                     <div class="filter-group">
@@ -266,6 +360,7 @@
                         <!-- Pagination will be added here -->
                     </div>
                 </div>
+               </div>
             </div>
         </main>
     </div>
@@ -324,6 +419,11 @@
         let filteredMessages = [];
         let currentPage = 1;
         const itemsPerPage = 20;
+
+        let allCampaigns = [];
+        let filteredCampaigns = [];
+        let currentCampaignPage = 1;
+        const campaignsPerPage = 20;
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthAndLoad();
@@ -387,13 +487,224 @@
                     console.error('Error loading messages:', result.error);
                     return;
                 }
-                
+
                 allMessages = result.data || [];
                 filteredMessages = [...allMessages];
                 updateStats();
                 renderTable();
             } catch (error) {
                 console.error('Error loading report data:', error);
+            }
+        }
+
+        async function loadCampaignData() {
+            try {
+                const result = await window.apiClient.getCampaignReports();
+                if (result.error) {
+                    console.error('Error loading campaigns:', result.error);
+                    return;
+                }
+
+                allCampaigns = result.data.campaigns || [];
+                filteredCampaigns = [...allCampaigns];
+                renderCampaignTable();
+            } catch (error) {
+                console.error('Error loading campaign data:', error);
+            }
+        }
+
+        function switchReportTab(tab) {
+            const campaignSection = document.querySelector('.reports-section');
+            const messageSection = document.querySelector('.messages-section');
+            const campaignTab = document.querySelector('.tab-btn[onclick*="campaigns"]');
+            const messageTab = document.querySelector('.tab-btn[onclick*="messages"]');
+
+            if (tab === 'campaigns') {
+                campaignSection.style.display = 'block';
+                messageSection.style.display = 'none';
+                campaignTab.classList.add('active');
+                messageTab.classList.remove('active');
+                if (allCampaigns.length === 0) {
+                    loadCampaignData();
+                }
+            } else {
+                campaignSection.style.display = 'none';
+                messageSection.style.display = 'block';
+                messageTab.classList.add('active');
+                campaignTab.classList.remove('active');
+            }
+        }
+
+        function applyCampaignFilters() {
+            const statusFilter = document.getElementById('campaignStatusFilter').value;
+            const deliveryFilter = document.getElementById('campaignDeliveryFilter').value;
+            const dateFrom = document.getElementById('campaignDateFrom').value;
+            const dateTo = document.getElementById('campaignDateTo').value;
+
+            filteredCampaigns = allCampaigns.filter(campaign => {
+                // Status filter
+                if (statusFilter && campaign.status !== statusFilter) return false;
+
+                // Date filter
+                if (dateFrom || dateTo) {
+                    const campaignDate = new Date(campaign.createdAt);
+                    if (dateFrom && campaignDate < new Date(dateFrom)) return false;
+                    if (dateTo && campaignDate > new Date(dateTo + 'T23:59:59')) return false;
+                }
+
+                // Delivery status filter (simplified - would need more complex logic for actual delivery status)
+                if (deliveryFilter) {
+                    const deliveryRate = campaign.deliveryStats?.deliveryRate || 0;
+                    if (deliveryFilter === 'delivered' && deliveryRate < 80) return false;
+                    if (deliveryFilter === 'failed' && campaign.deliveryStats?.failed === 0) return false;
+                    if (deliveryFilter === 'pending' && campaign.deliveryStats?.pending === 0) return false;
+                }
+
+                return true;
+            });
+
+            currentCampaignPage = 1;
+            renderCampaignTable();
+        }
+
+        function renderCampaignTable() {
+            const tbody = document.getElementById('campaignsTableBody');
+            const startIndex = (currentCampaignPage - 1) * campaignsPerPage;
+            const endIndex = startIndex + campaignsPerPage;
+            const pageCampaigns = filteredCampaigns.slice(startIndex, endIndex);
+
+            if (pageCampaigns.length === 0) {
+                tbody.innerHTML = `
+                    <tr class="empty-row">
+                        <td colspan="9">
+                            <div class="empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                                </svg>
+                                <p>No campaigns found</p>
+                                <span>Your SMS campaigns will appear here</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('campaignTableCount').textContent = '0 campaigns';
+                return;
+            }
+
+            document.getElementById('campaignTableCount').textContent = `${filteredCampaigns.length} campaigns`;
+
+            tbody.innerHTML = pageCampaigns.map(campaign => {
+                const createdDate = new Date(campaign.createdAt);
+                const formattedDate = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const statusClass = campaign.status === 'sent' ? 'delivered' :
+                                   campaign.status === 'scheduled' ? 'pending' :
+                                   campaign.status === 'processing' ? 'pending' :
+                                   campaign.status === 'failed' ? 'failed' : 'pending';
+                const statusLabel = campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1);
+
+                const deliveryStats = campaign.deliveryStats || {};
+                const costStats = campaign.costStats || {};
+
+                return `
+                    <tr>
+                        <td><strong>${campaign.title}</strong></td>
+                        <td><span class="sender-id-badge">${campaign.senderId}</span></td>
+                        <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                        <td>${campaign.recipientCount || 0}</td>
+                        <td>${deliveryStats.delivered || 0}/${deliveryStats.sent || 0}</td>
+                        <td>${deliveryStats.deliveryRate || 0}%</td>
+                        <td>GH₵${(costStats.actualCost || costStats.estimatedCost || 0).toFixed(2)}</td>
+                        <td>${formattedDate}</td>
+                        <td>
+                            <button class="btn-view" onclick="exportCampaign('${campaign._id}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Export CSV
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            renderCampaignPagination();
+        }
+
+        function renderCampaignPagination() {
+            const totalPages = Math.ceil(filteredCampaigns.length / campaignsPerPage);
+            const pagination = document.getElementById('campaignTablePagination');
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let paginationHtml = '';
+
+            // Previous button
+            if (currentCampaignPage > 1) {
+                paginationHtml += `<button class="page-btn" onclick="goToCampaignPage(${currentCampaignPage - 1})">Previous</button>`;
+            }
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentCampaignPage - 1 && i <= currentCampaignPage + 1)) {
+                    paginationHtml += `<button class="page-btn ${i === currentCampaignPage ? 'active' : ''}" onclick="goToCampaignPage(${i})">${i}</button>`;
+                } else if (i === currentCampaignPage - 2 || i === currentCampaignPage + 2) {
+                    paginationHtml += `<span class="page-ellipsis">...</span>`;
+                }
+            }
+
+            // Next button
+            if (currentCampaignPage < totalPages) {
+                paginationHtml += `<button class="page-btn" onclick="goToCampaignPage(${currentCampaignPage + 1})">Next</button>`;
+            }
+
+            pagination.innerHTML = paginationHtml;
+        }
+
+        function goToCampaignPage(page) {
+            currentCampaignPage = page;
+            renderCampaignTable();
+        }
+
+        async function exportCampaign(campaignId) {
+            try {
+                // Create download link for CSV export
+                const response = await fetch(`/api/reports/sms-campaigns/${campaignId}/export?format=csv`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Export failed');
+                }
+
+                // Get filename from response headers
+                const contentDisposition = response.headers.get('Content-Disposition');
+                const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
+                const filename = filenameMatch ? filenameMatch[1] : `campaign_${campaignId}_recipients.csv`;
+
+                // Create blob and download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                showToast('Campaign data exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Failed to export campaign data: ' + error.message, 'error');
             }
         }
 
@@ -1203,6 +1514,70 @@
         .empty-state span {
             font-size: 0.9rem;
             color: #999;
+        }
+
+        /* Campaign Reports Styles */
+        .reports-section {
+            display: none;
+        }
+
+        .reports-section:first-child {
+            display: block;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e8e8e8;
+            background-color: white;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .tab-btn:hover {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-orange);
+            border-color: var(--accent-orange);
+            color: white;
+        }
+
+        .campaign-filters {
+            margin-bottom: 1.5rem;
+        }
+
+        .campaigns-table th:nth-child(1), .campaigns-table td:nth-child(1) {
+            min-width: 200px;
+        }
+
+        .campaigns-table th:nth-child(2), .campaigns-table td:nth-child(2) {
+            min-width: 100px;
+        }
+
+        .campaigns-table th:nth-child(6), .campaigns-table td:nth-child(6) {
+            text-align: center;
+        }
+
+        .campaigns-table th:nth-child(7), .campaigns-table td:nth-child(7) {
+            text-align: right;
         }
 
         /* Responsive */

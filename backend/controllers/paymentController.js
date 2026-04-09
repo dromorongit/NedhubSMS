@@ -130,41 +130,51 @@ const initiatePayment = async (req, res) => {
  * @returns {boolean} - True if wallet was credited, false if already credited
  */
 async function creditWalletIfNeeded(payment) {
-  // Check if wallet was already credited for this payment
-  const existingTransaction = await Transaction.findOne({ 
-    reference: `PAYMENT-${payment.clientReference}` 
-  });
-  
-  if (existingTransaction) {
-    console.log(`[Payment] Wallet already credited for: ${payment.clientReference}`);
-    return false;
-  }
-  
-  // Calculate gateway fee (estimate based on amount)
-  // In production, this would come from actual Hubtel response
-  const estimatedGatewayFee = calculateGatewayFee(payment.paymentMethod || 'unknown', payment.amount);
-  const netAmount = payment.amount - estimatedGatewayFee;
-  
-  // Update payment with gateway fee information
-  payment.gatewayFeeEstimated = estimatedGatewayFee;
-  payment.netAmountReceived = netAmount;
-  payment.grossAmountPaid = payment.amount;
-  await payment.save();
-  
-  // Credit the wallet with the GHS amount directly (gateway fees absorbed by platform)
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
+    // Check if wallet was already credited for this payment
+    const existingTransaction = await Transaction.findOne({
+      reference: `PAYMENT-${payment.clientReference}`
+    }).session(session);
+
+    if (existingTransaction) {
+      console.log(`[Payment] Wallet already credited for: ${payment.clientReference}`);
+      await session.abortTransaction();
+      session.endSession();
+      return false;
+    }
+
+    // Calculate gateway fee (estimate based on amount)
+    // In production, this would come from actual Hubtel response
+    const estimatedGatewayFee = calculateGatewayFee(payment.paymentMethod || 'unknown', payment.amount);
+    const netAmount = payment.amount - estimatedGatewayFee;
+
+    // Update payment with gateway fee information
+    payment.gatewayFeeEstimated = estimatedGatewayFee;
+    payment.netAmountReceived = netAmount;
+    payment.grossAmountPaid = payment.amount;
+    await payment.save({ session });
+
+    // Credit the wallet with the GHS amount directly (gateway fees absorbed by platform)
     await walletService.creditWalletWithReference(
       payment.userId,
       payment.amount, // Credit directly in GHS
       `Wallet top-up via Hubtel (${payment.amount} GHS)`,
       `PAYMENT-${payment.clientReference}`,
-      null
+      session // Pass session for transaction
     );
+
+    await session.commitTransaction();
     console.log(`[Payment] Wallet credited: ${payment.userId}, amount: ${payment.amount} GHS, gatewayFee: ${estimatedGatewayFee.toFixed(2)} GHS`);
     return true;
-  } catch (walletError) {
-    console.error('[Payment] Failed to credit wallet:', walletError);
-    throw walletError;
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('[Payment] Failed to credit wallet:', error);
+    throw error;
+  } finally {
+    session.endSession();
   }
 }
 

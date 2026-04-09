@@ -200,8 +200,11 @@
                             <option value="">All Status</option>
                             <option value="delivered">Delivered</option>
                             <option value="sent">Sent</option>
+                            <option value="processing">Processing</option>
+                            <option value="queued">Queued</option>
                             <option value="pending">Pending</option>
                             <option value="failed">Failed</option>
+                            <option value="cancelled">Cancelled</option>
                         </select>
                     </div>
                     <div class="filter-wrapper">
@@ -408,10 +411,16 @@
                     return 'delivered';
                 case 'sent':
                     return 'sent';
+                case 'processing':
+                    return 'processing';
+                case 'queued':
+                    return 'queued';
                 case 'pending':
                     return 'pending';
                 case 'failed':
                     return 'failed';
+                case 'cancelled':
+                    return 'cancelled';
                 default:
                     return 'pending';
             }
@@ -770,6 +779,21 @@
         .status-badge.failed {
             background-color: #ffebee;
             color: #c62828;
+        }
+
+        .status-badge.processing {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-badge.queued {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .status-badge.cancelled {
+            background-color: #fafafa;
+            color: #616161;
         }
 
         /* Modal styles */

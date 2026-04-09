@@ -16,7 +16,7 @@
 const crypto = require('crypto');
 
 // Import the new modular email service
-const emailService = require('./email/emailService');
+const EmailServiceClass = require('./email/emailService');
 
 /**
  * EmailService - Wrapper for backwards compatibility
@@ -26,8 +26,11 @@ class EmailService {
   constructor() {
     // Get configuration from environment
     this.baseUrl = process.env.FRONTEND_URL || 'https://app.nedhubgh.com';
-    this.provider = emailService.provider;
-    
+
+    // Instantiate the new email service
+    this.emailServiceInstance = new EmailServiceClass();
+    this.provider = this.emailServiceInstance.provider;
+
     const providerType = (process.env.EMAIL_PROVIDER || 'resend').toLowerCase();
     console.log(`[EMAIL] Email service initialized with ${providerType === 'brevo' ? 'Brevo' : 'Resend'} API`);
   }
@@ -40,7 +43,7 @@ class EmailService {
    * @returns {Promise<boolean>}
    */
   async sendVerificationOTP(email, fullName, otp) {
-    const result = await emailService.sendVerificationOTP(email, fullName, otp);
+    const result = await this.emailServiceInstance.sendVerificationOTP(email, fullName, otp);
     return result.success;
   }
 
@@ -52,7 +55,7 @@ class EmailService {
    * @returns {Promise<boolean>}
    */
   async sendPasswordResetOTP(email, fullName, otp) {
-    const result = await emailService.sendPasswordResetOTP(email, fullName, otp);
+    const result = await this.emailServiceInstance.sendPasswordResetOTP(email, fullName, otp);
     return result.success;
   }
 
@@ -64,7 +67,7 @@ class EmailService {
    * @returns {Promise<boolean>}
    */
   async sendVerificationLink(email, fullName, token) {
-    const result = await emailService.sendVerificationLink(email, fullName, token);
+    const result = await this.emailServiceInstance.sendVerificationLink(email, fullName, token);
     return result.success;
   }
 
@@ -76,33 +79,33 @@ class EmailService {
    * @returns {Promise<boolean>}
    */
   async sendPasswordResetLink(email, fullName, token) {
-    const result = await emailService.sendPasswordResetLink(email, fullName, token);
+    const result = await this.emailServiceInstance.sendPasswordResetLink(email, fullName, token);
     return result.success;
   }
 
   // Template methods - for backwards compatibility
   getVerificationEmailTemplate(fullName, otp) {
-    return emailService.getVerificationEmailTemplate(fullName, otp);
+    return this.emailServiceInstance.getVerificationEmailTemplate(fullName, otp);
   }
 
   getPasswordResetEmailTemplate(fullName, otp) {
-    return emailService.getPasswordResetEmailTemplate(fullName, otp);
+    return this.emailServiceInstance.getPasswordResetEmailTemplate(fullName, otp);
   }
 
   getVerificationLinkTemplate(fullName, verifyUrl) {
-    return emailService.getVerificationLinkTemplate(fullName, verifyUrl);
+    return this.emailServiceInstance.getVerificationLinkTemplate(fullName, verifyUrl);
   }
 
   getVerificationLinkTextTemplate(fullName, verifyUrl) {
-    return emailService.getVerificationLinkTextTemplate(fullName, verifyUrl);
+    return this.emailServiceInstance.getVerificationLinkTextTemplate(fullName, verifyUrl);
   }
 
   getPasswordResetLinkTemplate(fullName, resetUrl) {
-    return emailService.getPasswordResetLinkTemplate(fullName, resetUrl);
+    return this.emailServiceInstance.getPasswordResetLinkTemplate(fullName, resetUrl);
   }
 
   getPasswordResetLinkTextTemplate(fullName, resetUrl) {
-    return emailService.getPasswordResetLinkTextTemplate(fullName, resetUrl);
+    return this.emailServiceInstance.getPasswordResetLinkTextTemplate(fullName, resetUrl);
   }
 
   /**
@@ -111,7 +114,7 @@ class EmailService {
    * @returns {Promise<boolean>}
    */
   async sendAdminUserVerifiedNotification(user) {
-    return await emailService.sendAdminUserVerifiedNotification(user);
+    return await this.emailServiceInstance.sendAdminUserVerifiedNotification(user);
   }
 
   /**
@@ -120,9 +123,9 @@ class EmailService {
    * @returns {Promise<boolean>}
    */
   async sendAdminSenderIdRequestNotification(requestData) {
-    return await emailService.sendAdminSenderIdRequestNotification(requestData);
+    return await this.emailServiceInstance.sendAdminSenderIdRequestNotification(requestData);
   }
 }
 
-// Export singleton instance
-module.exports = new EmailService();
+// Export class
+module.exports = EmailService;

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const Wallet = require('../models/Wallet');
-const Message = require('../models/Message');
+const SmsMessage = require('../models/SmsMessage');
 const Transaction = require('../models/Transaction');
 
 // Get wallet balance with SMS balance
@@ -13,15 +13,19 @@ router.get('/', authenticate, async (req, res) => {
     // Get wallet balance
     let wallet = await Wallet.findByUserId(userId);
     const balance = wallet ? wallet.balance : 0;
+    const availableBalance = wallet ? await WalletService.getAvailableBalance(userId) : 0;
+    const reservedAmount = balance - availableBalance;
     
     // Get message stats
-    const messages = await Message.findByUserId(userId);
+    const messages = await SmsMessage.find({ userId }).sort({ createdAt: -1 });
     const totalSent = messages.length;
     const delivered = messages.filter(m => m.status === 'delivered').length;
     const deliveryRate = totalSent > 0 ? Math.round((delivered / totalSent) * 100) : 0;
 
     res.json({
       balance,
+      availableBalance,
+      reservedAmount,
       currency: 'GHS',
       stats: {
         totalSent,

@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Nedhub Bulk Messaging</title>
+    <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link rel="stylesheet" href="../../styles/responsive.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Overview</span>
+                    </a></li>
+                    <li><a href="send-sms.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        <span>Send SMS</span>
+                    </a></li>
+                    <li><a href="contacts.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Contacts</span>
+                    </a></li>
+                    <li><a href="history.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Message History</span>
+                    </a></li>
+                    <li><a href="analytics.html" class="active">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Analytics</span>
+                    </a></li>
+                    <li><a href="buy-airtime.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        <span>Buy Airtime</span>
+                    </a></li>
+                    <li><a href="buy-data.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <span>Buy Data</span>
+                    </a></li>
+                    <li><a href="utility-payments.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
+                        <span>Utility Payments</span>
+                    </a></li>
+                    <li><a href="transactions.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        <span>Transactions</span>
+                    </a></li>
+                    <li><a href="reports.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Reports</span>
+                    </a></li>
+                    <li><a href="settings.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </a></li>
+                    <li class="sidebar-logout">
+                        <a href="#" onclick="logout(); return false;">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-nav">
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <span class="mobile-header-title">Analytics</span>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+            <!-- Sidebar Overlay -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            <div class="dashboard-content">
+                <div class="welcome-section">
+                    <h2>SMS Analytics Dashboard</h2>
+                    <p class="welcome-subtitle">Comprehensive insights into your SMS campaign performance</p>
+                </div>
+
+                <!-- Date Range Filter -->
+                <div class="date-filter-section">
+                    <div class="date-filter-controls">
+                        <div class="form-group">
+                            <label for="startDate">Start Date</label>
+                            <input type="date" id="startDate" name="startDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate">End Date</label>
+                            <input type="date" id="endDate" name="endDate">
+                        </div>
+                        <button class="btn-secondary" id="applyFilter">Apply Filter</button>
+                        <button class="btn-outline" id="clearFilter">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Analytics Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon campaign-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Total Campaigns</h3>
+                            <p class="stat-value" id="totalCampaigns">0</p>
+                            <span class="stat-label">campaigns created</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon recipients-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Total Recipients</h3>
+                            <p class="stat-value" id="totalRecipients">0</p>
+                            <span class="stat-label">messages targeted</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon delivery-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Delivery Rate</h3>
+                            <p class="stat-value" id="deliveryRate">0%</p>
+                            <span class="stat-label">successfully delivered</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon cost-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Total Cost</h3>
+                            <p class="stat-value" id="totalCost">₵0.00</p>
+                            <span class="stat-label">actual cost incurred</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="charts-section">
+                    <div class="chart-container">
+                        <h3>SMS Sends Over Time</h3>
+                        <canvas id="sendsChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Delivery Success Rate</h3>
+                        <canvas id="deliveryChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Cost Trends</h3>
+                        <canvas id="costChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Campaigns Table -->
+                <div class="campaigns-section">
+                    <div class="section-header">
+                        <h3>Recent Campaigns</h3>
+                        <a href="history.html" class="view-all">View All</a>
+                    </div>
+                    <div class="table-container">
+                        <table class="campaigns-table">
+                            <thead>
+                                <tr>
+                                    <th>Campaign Title</th>
+                                    <th>Sent Date</th>
+                                    <th>Status</th>
+                                    <th>Sent</th>
+                                    <th>Delivered</th>
+                                    <th>Failed</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentCampaignsBody">
+                                <!-- Campaigns will be loaded here -->
+                            </tbody>
+                        </table>
+                        <div class="loading-spinner" id="campaignsSpinner">
+                            <div class="spinner"></div>
+                            <p>Loading campaigns...</p>
+                        </div>
+                        <div class="empty-state" id="campaignsEmpty" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                            </svg>
+                            <p>No campaigns yet</p>
+                            <span>Your SMS campaigns will appear here</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Performing Campaigns -->
+                <div class="campaigns-section">
+                    <div class="section-header">
+                        <h3>Top Performing Campaigns</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="campaigns-table">
+                            <thead>
+                                <tr>
+                                    <th>Campaign Title</th>
+                                    <th>Sent Date</th>
+                                    <th>Status</th>
+                                    <th>Sent</th>
+                                    <th>Delivered</th>
+                                    <th>Failed</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topCampaignsBody">
+                                <!-- Top campaigns will be loaded here -->
+                            </tbody>
+                        </table>
+                        <div class="loading-spinner" id="topCampaignsSpinner">
+                            <div class="spinner"></div>
+                            <p>Loading campaigns...</p>
+                        </div>
+                        <div class="empty-state" id="topCampaignsEmpty" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                            </svg>
+                            <p>No top campaigns yet</p>
+                            <span>Your best performing campaigns will appear here</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../../utils/api.js"></script>
+    <script src="../../utils/toast.js"></script>
+    <script>
+        let sendsChart, deliveryChart, costChart;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthAndLoad();
+            setupDateFilters();
+        });
+
+        async function checkAuthAndLoad() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            // Load user profile first
+            await loadUserProfile();
+
+            // Load analytics data
+            loadAnalytics();
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await window.apiClient.getUserProfile();
+                if (response.error) {
+                    console.error('Error loading user profile:', response.error);
+                    useStoredUserName();
+                    return;
+                }
+
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    updateUserDisplay(firstName);
+
+                    // Store full name for later use
+                    localStorage.setItem('userName', user.name);
+                } else {
+                    useStoredUserName();
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                useStoredUserName();
+            }
+        }
+
+        function useStoredUserName() {
+            const storedName = localStorage.getItem('userName');
+            if (storedName) {
+                const firstName = storedName.split(' ')[0];
+                updateUserDisplay(firstName);
+            } else {
+                updateUserDisplay('User');
+            }
+        }
+
+        function updateUserDisplay(firstName) {
+            const userNameEl = document.getElementById('userName');
+            const userAvatarEl = document.getElementById('userAvatar');
+
+            if (userNameEl) userNameEl.textContent = firstName;
+            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+        }
+
+        function setupDateFilters() {
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const applyFilterBtn = document.getElementById('applyFilter');
+            const clearFilterBtn = document.getElementById('clearFilter');
+
+            // Set default date range (last 30 days)
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+
+            startDateInput.value = startDate.toISOString().split('T')[0];
+            endDateInput.value = endDate.toISOString().split('T')[0];
+
+            applyFilterBtn.addEventListener('click', () => {
+                loadAnalytics();
+            });
+
+            clearFilterBtn.addEventListener('click', () => {
+                startDateInput.value = '';
+                endDateInput.value = '';
+                loadAnalytics();
+            });
+        }
+
+        async function loadAnalytics() {
+            try {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                const params = {};
+                if (startDate) params.startDate = startDate;
+                if (endDate) params.endDate = endDate;
+
+                // Load summary stats
+                await loadSummaryStats(params);
+
+                // Load chart data
+                await loadChartData(params);
+
+                // Load campaigns
+                await loadCampaigns(params);
+
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                showToast('Failed to load analytics data', 'error');
+            }
+        }
+
+        async function loadSummaryStats(params) {
+            try {
+                const queryString = new URLSearchParams(params).toString();
+                const response = await window.apiClient.makeRequest(`/api/analytics/sms-summary?${queryString}`, 'GET');
+
+                if (response.error) {
+                    console.error('Error loading summary stats:', response.error);
+                    return;
+                }
+
+                if (response.data) {
+                    const data = response.data;
+
+                    document.getElementById('totalCampaigns').textContent = data.totalCampaigns.toLocaleString();
+                    document.getElementById('totalRecipients').textContent = data.totalRecipients.toLocaleString();
+                    document.getElementById('deliveryRate').textContent = data.deliveryRate + '%';
+                    document.getElementById('totalCost').textContent = '₵' + data.totalActualCost.toFixed(2);
+                }
+            } catch (error) {
+                console.error('Error loading summary stats:', error);
+            }
+        }
+
+        async function loadChartData(params) {
+            try {
+                const queryString = new URLSearchParams(params).toString();
+                const response = await window.apiClient.makeRequest(`/api/analytics/charts?${queryString}`, 'GET');
+
+                if (response.error) {
+                    console.error('Error loading chart data:', response.error);
+                    return;
+                }
+
+                if (response.data) {
+                    const data = response.data;
+                    renderCharts(data);
+                }
+            } catch (error) {
+                console.error('Error loading chart data:', error);
+            }
+        }
+
+        function renderCharts(data) {
+            // Sends over time chart
+            const sendsCtx = document.getElementById('sendsChart').getContext('2d');
+            if (sendsChart) sendsChart.destroy();
+
+            sendsChart = new Chart(sendsCtx, {
+                type: 'line',
+                data: {
+                    labels: data.sendsOverTime.map(d => d.date),
+                    datasets: [{
+                        label: 'Sent',
+                        data: data.sendsOverTime.map(d => d.sent),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Delivered',
+                        data: data.sendsOverTime.map(d => d.delivered),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Failed',
+                        data: data.sendsOverTime.map(d => d.failed),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Delivery success rate chart
+            const deliveryCtx = document.getElementById('deliveryChart').getContext('2d');
+            if (deliveryChart) deliveryChart.destroy();
+
+            deliveryChart = new Chart(deliveryCtx, {
+                type: 'line',
+                data: {
+                    labels: data.deliverySuccessRate.map(d => d.date),
+                    datasets: [{
+                        label: 'Delivery Rate (%)',
+                        data: data.deliverySuccessRate.map(d => d.rate),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // Cost trends chart
+            const costCtx = document.getElementById('costChart').getContext('2d');
+            if (costChart) costChart.destroy();
+
+            costChart = new Chart(costCtx, {
+                type: 'line',
+                data: {
+                    labels: data.costTrends.map(d => d.date),
+                    datasets: [{
+                        label: 'Estimated Cost',
+                        data: data.costTrends.map(d => d.estimated),
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Actual Cost',
+                        data: data.costTrends.map(d => d.actual),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadCampaigns(params) {
+            try {
+                const queryString = new URLSearchParams(params).toString();
+                const response = await window.apiClient.makeRequest(`/api/analytics/campaigns?${queryString}`, 'GET');
+
+                if (response.error) {
+                    console.error('Error loading campaigns:', response.error);
+                    return;
+                }
+
+                if (response.data) {
+                    const data = response.data;
+                    renderRecentCampaigns(data.recent);
+                    renderTopCampaigns(data.topPerforming);
+                }
+            } catch (error) {
+                console.error('Error loading campaigns:', error);
+            }
+        }
+
+        function renderRecentCampaigns(campaigns) {
+            const tbody = document.getElementById('recentCampaignsBody');
+            const spinner = document.getElementById('campaignsSpinner');
+            const empty = document.getElementById('campaignsEmpty');
+
+            spinner.style.display = 'none';
+
+            if (!campaigns || campaigns.length === 0) {
+                empty.style.display = 'flex';
+                tbody.innerHTML = '';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = campaigns.map(campaign => `
+                <tr>
+                    <td>${campaign.title}</td>
+                    <td>${campaign.sentAt ? new Date(campaign.sentAt).toLocaleDateString() : '-'}</td>
+                    <td><span class="status-${campaign.status}">${campaign.status}</span></td>
+                    <td>${campaign.sentCount || 0}</td>
+                    <td>${campaign.deliveredCount || 0}</td>
+                    <td>${campaign.failedCount || 0}</td>
+                    <td>₵${(campaign.actualCost || 0).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTopCampaigns(campaigns) {
+            const tbody = document.getElementById('topCampaignsBody');
+            const spinner = document.getElementById('topCampaignsSpinner');
+            const empty = document.getElementById('topCampaignsEmpty');
+
+            spinner.style.display = 'none';
+
+            if (!campaigns || campaigns.length === 0) {
+                empty.style.display = 'flex';
+                tbody.innerHTML = '';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = campaigns.map(campaign => `
+                <tr>
+                    <td>${campaign.title}</td>
+                    <td>${campaign.sentAt ? new Date(campaign.sentAt).toLocaleDateString() : '-'}</td>
+                    <td><span class="status-${campaign.status}">${campaign.status}</span></td>
+                    <td>${campaign.sentCount || 0}</td>
+                    <td>${campaign.deliveredCount || 0}</td>
+                    <td>${campaign.failedCount || 0}</td>
+                    <td>₵${(campaign.actualCost || 0).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '../auth/login.html';
+        }
+
+        // Mobile sidebar functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                hamburgerBtn.classList.toggle('active');
+
+                // Prevent body scroll when sidebar is open
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                hamburgerBtn.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', toggleSidebar);
+            }
+
+            if (sidebarCloseBtn) {
+                sidebarCloseBtn.addEventListener('click', closeSidebar);
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', closeSidebar);
+            }
+
+            // Close sidebar when clicking nav links on mobile
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 1024) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            // Close sidebar on window resize
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 1024) {
+                    closeSidebar();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

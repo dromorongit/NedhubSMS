@@ -184,5 +184,5 @@ class BrevoProvider {
   }
 }
 
-// Export singleton instance
-module.exports = new BrevoProvider();
+// Export class
+module.exports = BrevoProvider;

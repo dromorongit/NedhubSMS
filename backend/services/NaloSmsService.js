@@ -1,4 +1,4 @@
-const axios = require('axios');
+const ResilientHttpClient = require('../utils/ResilientHttpClient');
 const SmsMessage = require('../models/SmsMessage');
 const WalletService = require('./WalletService');
 const CostCalculatorService = require('./CostCalculatorService');
@@ -12,9 +12,22 @@ class NaloSmsService {
     this.baseUrl = 'https://sms.nalosolutions.com';
     this.endpoint = '/smsbackend/Resl_Nalo/send-message/';
 
-    if (!this.apiKey) {
-      throw new Error('NALO_API_KEY environment variable is required');
+    if (!this.apiKey || this.apiKey === 'dummy_nalo_key_for_testing') {
+      console.warn('[NaloSmsService] Using dummy API key - SMS sending will be simulated');
+      this.isDummyMode = true;
     }
+
+    // Initialize resilient HTTP client for SMS operations
+    this.httpClient = new ResilientHttpClient({
+      serviceName: 'nalo-sms',
+      baseURL: this.baseUrl,
+      timeout: 15000, // 15 seconds for SMS
+      maxRetries: 3,
+      baseDelay: 1000,
+      maxDelay: 10000,
+      failureThreshold: 5,
+      recoveryTimeout: 30000
+    });
   }
 
   /**
@@ -110,7 +123,7 @@ class NaloSmsService {
    * Send SMS using Nalo API with full financial tracking
    */
   async sendSmsWithFinancialTracking(request) {
-    const { userId, msisdn, senderId, message, recipientsCount = 1 } = request;
+    const { userId, msisdn, senderId, message, recipientsCount = 1, skipDeduction = false } = request;
 
     try {
       // Validate phone number
@@ -151,31 +164,44 @@ class NaloSmsService {
 
       console.log('[NaloSmsService] Financial breakdown:', JSON.stringify(financialBreakdown));
 
-      // Check wallet balance
-      const hasSufficientBalance = await WalletService.hasSufficientBalance(
-        userId,
-        financialBreakdown.totalChargedToUser
-      );
+      // Check wallet balance and deduct (skip for reservation-based campaigns)
+      let deductionResult = null;
+      if (!skipDeduction) {
+        const hasSufficientBalance = await WalletService.hasSufficientBalance(
+          userId,
+          financialBreakdown.totalChargedToUser
+        );
 
-      if (!hasSufficientBalance) {
-        return {
-          success: false,
-          error: 'Insufficient wallet balance',
-          required: financialBreakdown.totalChargedToUser,
-          code: 'INSUFFICIENT_BALANCE'
+        if (!hasSufficientBalance) {
+          return {
+            success: false,
+            error: 'Insufficient wallet balance',
+            required: financialBreakdown.totalChargedToUser,
+            code: 'INSUFFICIENT_BALANCE'
+          };
+        }
+
+        // Deduct from wallet FIRST (wallet protection rule)
+        deductionResult = await WalletService.deductGhsForSms(
+          userId,
+          financialBreakdown,
+          `SMS to ${recipientsCount} recipient(s), ${financialBreakdown.segments} segment(s)`
+        );
+
+        console.log('[NaloSmsService] Wallet deducted:', deductionResult.amountDeducted);
+      } else {
+        // For skip deduction, create a mock result
+        const wallet = await Wallet.findOne({ userId });
+        deductionResult = {
+          success: true,
+          wallet,
+          transaction: null,
+          newBalance: wallet.balance,
+          amountDeducted: 0
         };
       }
 
-      // Deduct from wallet FIRST (wallet protection rule)
-      const deductionResult = await WalletService.deductGhsForSms(
-        userId,
-        financialBreakdown,
-        `SMS to ${recipientsCount} recipient(s), ${financialBreakdown.segments} segment(s)`
-      );
-
-      console.log('[NaloSmsService] Wallet deducted:', deductionResult.amountDeducted);
-
-      // Send SMS via Nalo API
+      // Send SMS via Nalo API or simulate in dummy mode
       const payload = {
         key: this.apiKey,
         msisdn: formattedMsisdn,
@@ -189,45 +215,47 @@ class NaloSmsService {
       let errorMessage = null;
       let jobId = null;
 
-      try {
-        console.log('[NaloSmsService] Sending to:', `${this.baseUrl}${this.endpoint}`);
-        console.log('[NaloSmsService] Payload:', { ...payload, key: '***' }); // Hide API key in logs
+      if (this.isDummyMode) {
+        // Simulate SMS sending in dummy mode
+        console.log('[NaloSmsService] Dummy mode: Simulating SMS send');
+        smsStatus = 'sent';
+        jobId = `dummy-${Date.now()}`;
+      } else {
+        try {
+          console.log('[NaloSmsService] Sending SMS via resilient client');
+          console.log('[NaloSmsService] Payload:', { ...payload, key: '***' }); // Hide API key in logs
 
-        const response = await axios.post(
-          `${this.baseUrl}${this.endpoint}`,
-          payload,
-          {
+          const response = await this.httpClient.post(this.endpoint, payload, {
             headers: { 'Content-Type': 'application/json' },
-            timeout: 15000,
             validateStatus: (status) => status === 200
+          });
+
+          console.log('[NaloSmsService] Raw response:', response.data);
+
+          naloResponse = this.parseNaloResponse(response.data);
+          console.log('[NaloSmsService] Parsed response:', naloResponse);
+
+          // Check for success (1701)
+          if (naloResponse.status === '1701') {
+            smsStatus = 'sent';
+            jobId = naloResponse.message_id || naloResponse.job_id || `nalo-${Date.now()}`;
+          } else {
+            smsStatus = 'failed';
+            errorCode = naloResponse.status;
+            errorMessage = naloResponse.error_message || this.mapErrorCode(naloResponse.status);
+
+            // Refund wallet on failure
+            await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
           }
-        );
 
-        console.log('[NaloSmsService] Raw response:', response.data);
-        
-        naloResponse = this.parseNaloResponse(response.data);
-        console.log('[NaloSmsService] Parsed response:', naloResponse);
-
-        // Check for success (1701)
-        if (naloResponse.status === '1701') {
-          smsStatus = 'sent';
-          jobId = naloResponse.message_id || naloResponse.job_id || `nalo-${Date.now()}`;
-        } else {
+        } catch (apiError) {
+          console.error('[NaloSmsService] API Error:', apiError.message);
           smsStatus = 'failed';
-          errorCode = naloResponse.status;
-          errorMessage = naloResponse.error_message || this.mapErrorCode(naloResponse.status);
-          
-          // Refund wallet on failure
-          await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
-        }
+          errorMessage = apiError.message;
 
-      } catch (apiError) {
-        console.error('[NaloSmsService] API Error:', apiError.message);
-        smsStatus = 'failed';
-        errorMessage = apiError.message;
-        
-        // Refund wallet on API error
-        await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund');
+          // Refund wallet on API error
+          await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund');
+        }
       }
 
       // Create SMS record
@@ -245,15 +273,15 @@ class NaloSmsService {
         providerCostPerSms: financialBreakdown.providerCostPerSms,
         segments: financialBreakdown.segments,
         recipientsCount: recipientsCount,
-        totalChargedToUser: smsStatus === 'sent' ? financialBreakdown.totalChargedToUser : 0,
+        totalChargedToUser: smsStatus === 'sent' && !skipDeduction ? financialBreakdown.totalChargedToUser : 0,
         totalCostToProvider: financialBreakdown.totalCostToProvider,
         profitAmount: smsStatus === 'sent' ? financialBreakdown.profitAmount : 0
       };
 
       const savedMessage = await SmsMessage.create(smsMessageData);
 
-      // Update monthly financial summary only on success
-      if (smsStatus === 'sent') {
+      // Update monthly financial summary only on success and non-skip deduction
+      if (smsStatus === 'sent' && !skipDeduction) {
         try {
           const now = new Date();
           const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -278,9 +306,9 @@ class NaloSmsService {
           messageId: savedMessage._id.toString(),
           jobId: savedMessage.jobId,
           financial: {
-            charged: financialBreakdown.totalChargedToUser,
+            charged: skipDeduction ? 0 : financialBreakdown.totalChargedToUser,
             cost: financialBreakdown.totalCostToProvider,
-            profit: financialBreakdown.profitAmount,
+            profit: skipDeduction ? 0 : financialBreakdown.profitAmount,
             segments: financialBreakdown.segments
           }
         };
@@ -348,13 +376,49 @@ class NaloSmsService {
       '1701': 'Success',
       '1702': 'Missing parameters',
       '1703': 'Authentication failed',
+      '1704': 'Invalid API key',
+      '1705': 'Account suspended',
       '1706': 'Invalid destination number',
       '1707': 'Invalid sender ID',
+      '1708': 'Message too long',
+      '1709': 'Message contains invalid characters',
+      '1710': 'Internal provider error',
+      '1711': 'Service temporarily unavailable',
       '1025': 'Insufficient credit at provider',
-      '1710': 'Internal provider error'
+      '1026': 'Message blocked by spam filter',
+      '1027': 'Destination number blacklisted',
+      '1028': 'Invalid message format'
     };
 
     return errorMap[code] || `Unknown error: ${code}`;
+  }
+
+  /**
+   * Normalize delivery status for internal use
+   */
+  normalizeDeliveryStatus(providerStatus) {
+    const statusMap = {
+      'DELIVERED': 'delivered',
+      'delivered': 'delivered',
+      'SENT': 'sent',
+      'sent': 'sent',
+      'FAILED': 'failed',
+      'failed': 'failed',
+      'UNDELIVERED': 'failed',
+      'undelivered': 'failed',
+      'EXPIRED': 'failed',
+      'expired': 'failed',
+      'REJECTED': 'failed',
+      'rejected': 'failed',
+      'PENDING': 'pending',
+      'pending': 'pending',
+      'QUEUED': 'queued',
+      'queued': 'queued',
+      'PROCESSING': 'processing',
+      'processing': 'processing'
+    };
+
+    return statusMap[providerStatus] || 'unknown';
   }
 }
 

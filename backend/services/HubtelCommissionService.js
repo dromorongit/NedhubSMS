@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const axios = require('axios');
+const ResilientHttpClient = require('../utils/ResilientHttpClient');
 
 /**
  * HubtelCommissionService
@@ -19,6 +19,17 @@ class HubtelCommissionService {
     
     // Basic Auth header value (computed once)
     this.basicAuthHeader = this._computeBasicAuthHeader();
+
+    // Initialize resilient HTTP client for commission operations
+    this.httpClient = new ResilientHttpClient({
+      serviceName: 'hubtel-commission',
+      timeout: 30000, // 30 seconds for commission services
+      maxRetries: 2,
+      baseDelay: 3000,
+      maxDelay: 20000,
+      failureThreshold: 5,
+      recoveryTimeout: 60000
+    });
     
     // TV Service Codes
     this.tvServiceCodes = {
@@ -211,12 +222,11 @@ class HubtelCommissionService {
         amount: payload.amount
       }, null, 2));
 
-      const response = await axios.post(endpoint, payload, {
+      const response = await this.httpClient.post(endpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 30000
+        }
       });
 
       const responseData = response.data;
@@ -301,12 +311,11 @@ class HubtelCommissionService {
         bundleId: payload.bundleId
       }, null, 2));
 
-      const response = await axios.post(endpoint, payload, {
+      const response = await this.httpClient.post(endpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 30000
+        }
       });
 
       const responseData = response.data;
@@ -356,12 +365,11 @@ class HubtelCommissionService {
     try {
       const endpoint = `${this.baseURL}/api/merchants/${this.merchantAccountNumber}/services/${serviceCode}/bundles`;
       
-      const response = await axios.get(endpoint, {
+      const response = await this.httpClient.get(endpoint, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 15000
+        }
       });
 
       const responseData = response.data;
@@ -435,12 +443,11 @@ class HubtelCommissionService {
         amount: payload.amount
       }, null, 2));
 
-      const response = await axios.post(endpoint, payload, {
+      const response = await this.httpClient.post(endpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 30000
+        }
       });
 
       const responseData = response.data;
@@ -488,12 +495,11 @@ class HubtelCommissionService {
     try {
       const endpoint = `${this.baseURL}/api/merchants/${this.merchantAccountNumber}/verify/meter/${meterNumber}`;
       
-      const response = await axios.get(endpoint, {
+      const response = await this.httpClient.get(endpoint, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 15000
+        }
       });
 
       const responseData = response.data;
@@ -559,12 +565,11 @@ class HubtelCommissionService {
         amount: payload.amount
       }, null, 2));
 
-      const response = await axios.post(endpoint, payload, {
+      const response = await this.httpClient.post(endpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 30000
+        }
       });
 
       const responseData = response.data;
@@ -638,12 +643,11 @@ class HubtelCommissionService {
         amount: payload.amount
       }, null, 2));
 
-      const response = await axios.post(endpoint, payload, {
+      const response = await this.httpClient.post(endpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 30000
+        }
       });
 
       const responseData = response.data;
@@ -691,12 +695,11 @@ class HubtelCommissionService {
     try {
       const endpoint = `${this.baseURL}/api/merchants/${this.merchantAccountNumber}/transactions/${clientReference}/status`;
       
-      const response = await axios.get(endpoint, {
+      const response = await this.httpClient.get(endpoint, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 15000
+        }
       });
 
       const responseData = response.data;

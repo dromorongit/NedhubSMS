@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blacklist - Nedhub Bulk Messaging</title>
+    <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link rel="stylesheet" href="../../styles/responsive.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="../../utils/api.js" defer></script>
+    <script src="../../utils/toast.js" defer></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="overview.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Overview</span>
+                    </a></li>
+                    <li><a href="send-sms.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        <span>Send SMS</span>
+                    </a></li>
+                    <li><a href="contacts.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Contacts</span>
+                    </a></li>
+                    <li><a href="history.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Message History</span>
+                    </a></li>
+                    <li><a href="blacklist.html" class="active">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Blacklist</span>
+                    </a></li>
+                    <li><a href="buy-airtime.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        <span>Buy Airtime</span>
+                    </a></li>
+                    <li><a href="buy-data.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <span>Buy Data</span>
+                    </a></li>
+                    <li><a href="utility-payments.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
+                        <span>Utility Payments</span>
+                    </a></li>
+                    <li><a href="transactions.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        <span>Transactions</span>
+                    </a></li>
+                    <li><a href="reports.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Reports</span>
+                    </a></li>
+                    <li><a href="settings.html">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </a></li>
+                    <li class="sidebar-logout">
+                        <a href="#" onclick="logout(); return false;">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-nav">
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <span class="mobile-header-title">Blacklist</span>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+            <!-- Sidebar Overlay -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            <div class="dashboard-content">
+                <div class="welcome-section">
+                    <h2 id="pageTitle">SMS Blacklist</h2>
+                    <p class="welcome-subtitle">Manage phone numbers that should not receive SMS messages</p>
+                </div>
+
+                <!-- Add Blacklist Entry Card -->
+                <div class="sms-form-card">
+                    <h3 class="section-title">Add to Blacklist</h3>
+                    <form id="addBlacklistForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="blacklistPhone">Phone Number</label>
+                                <input type="tel" id="blacklistPhone" name="phoneNumber" placeholder="0241234567" required>
+                                <small>Enter the phone number to blacklist (with or without country code)</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="blacklistReason">Reason</label>
+                                <select id="blacklistReason" name="reason" required>
+                                    <option value="">Select reason</option>
+                                    <option value="User requested opt-out">User requested opt-out</option>
+                                    <option value="Invalid number">Invalid number</option>
+                                    <option value="Spam complaint">Spam complaint</option>
+                                    <option value="Bounce/failure">Bounce/failure</option>
+                                    <option value="Duplicate contact">Duplicate contact</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="customReason">Custom Reason (Optional)</label>
+                            <input type="text" id="customReason" name="customReason" placeholder="Additional details..." maxlength="200">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary" id="addBlacklistBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add to Blacklist
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Blacklist Table Card -->
+                <div class="data-table-card">
+                    <div class="table-header">
+                        <h3>Blacklisted Numbers</h3>
+                        <div class="table-controls">
+                            <div class="search-box">
+                                <input type="text" id="searchInput" placeholder="Search by phone or reason...">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="M21 21l-4.35-4.35"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table" id="blacklistTable">
+                            <thead>
+                                <tr>
+                                    <th>Phone Number</th>
+                                    <th>Reason</th>
+                                    <th>Source</th>
+                                    <th>Date Added</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="blacklistTableBody">
+                                <!-- Blacklist entries will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-pagination" id="pagination" style="display: none;">
+                        <button class="btn-secondary" id="prevPage" disabled>&larr; Previous</button>
+                        <span id="pageInfo">Page 1 of 1</span>
+                        <button class="btn-secondary" id="nextPage" disabled>Next &rarr;</button>
+                    </div>
+                </div>
+
+                <!-- Tips Card -->
+                <div class="tips-card">
+                    <div class="tips-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <h3>Important Notes</h3>
+                    </div>
+                    <ul class="tips-list">
+                        <li>Blacklisted numbers will be automatically excluded from all SMS campaigns</li>
+                        <li>Phone numbers are normalized for consistent matching</li>
+                        <li>All blacklist additions and removals are logged for audit purposes</li>
+                        <li>Users can request to be removed from the blacklist at any time</li>
+                        <li>Ensure compliance with local opt-out regulations</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+                <h3>Remove from Blacklist</h3>
+                <p>Are you sure you want to remove this number from the blacklist? The contact will be able to receive SMS messages again.</p>
+            </div>
+            <div class="modal-body">
+                <div class="delete-details" id="deleteDetails">
+                    <p><strong>Phone:</strong> <span id="deletePhone"></span></p>
+                    <p><strong>Reason:</strong> <span id="deleteReason"></span></p>
+                    <p><strong>Added:</strong> <span id="deleteDate"></span></p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button type="button" class="btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Remove from Blacklist
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let searchQuery = '';
+        let deleteItemId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthAndLoad();
+            await loadBlacklist();
+        });
+
+        async function checkAuthAndLoad() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            await loadUserProfile();
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await window.apiClient.getUserProfile();
+                if (response.error) {
+                    useStoredUserName();
+                    return;
+                }
+
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    updateUserDisplay(firstName);
+                    localStorage.setItem('userName', user.name);
+                } else {
+                    useStoredUserName();
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                useStoredUserName();
+            }
+        }
+
+        function useStoredUserName() {
+            const storedName = localStorage.getItem('userName');
+            if (storedName) {
+                const firstName = storedName.split(' ')[0];
+                updateUserDisplay(firstName);
+            } else {
+                updateUserDisplay('User');
+            }
+        }
+
+        function updateUserDisplay(firstName) {
+            const userNameEl = document.getElementById('userName');
+            const userAvatarEl = document.getElementById('userAvatar');
+
+            if (userNameEl) userNameEl.textContent = firstName;
+            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+        }
+
+        // Load blacklist entries
+        async function loadBlacklist(page = 1, search = '') {
+            try {
+                const response = await window.apiClient.getBlacklist({ page, limit: 50, search });
+                if (response.error) {
+                    console.error('Error loading blacklist:', response.error);
+                    showToast('Failed to load blacklist', 'error');
+                    return;
+                }
+
+                const { blacklistedNumbers, pagination } = response.data;
+                displayBlacklist(blacklistedNumbers);
+                updatePagination(pagination);
+
+            } catch (error) {
+                console.error('Error loading blacklist:', error);
+                showToast('Error loading blacklist', 'error');
+            }
+        }
+
+        function displayBlacklist(blacklistedNumbers) {
+            const tbody = document.getElementById('blacklistTableBody');
+
+            if (!blacklistedNumbers || blacklistedNumbers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div class="empty-state-content">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <h4>No blacklisted numbers</h4>
+                                <p>Add phone numbers to prevent them from receiving SMS messages.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = blacklistedNumbers.map(item => `
+                <tr>
+                    <td class="phone-number">${item.phoneNumber}</td>
+                    <td class="reason">${item.reason}</td>
+                    <td class="source">
+                        <span class="source-badge source-${item.source}">${item.source}</span>
+                    </td>
+                    <td class="date">${new Date(item.createdAt).toLocaleDateString()}</td>
+                    <td class="actions">
+                        <button class="btn-icon btn-delete" onclick="openDeleteModal('${item._id}', '${item.phoneNumber}', '${item.reason}', '${item.createdAt}')" title="Remove from blacklist">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updatePagination(pagination) {
+            const paginationEl = document.getElementById('pagination');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            const pageInfo = document.getElementById('pageInfo');
+
+            if (pagination.totalPages <= 1) {
+                paginationEl.style.display = 'none';
+                return;
+            }
+
+            paginationEl.style.display = 'flex';
+            pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
+
+            prevBtn.disabled = !pagination.hasPrev;
+            nextBtn.disabled = !pagination.hasNext;
+
+            currentPage = pagination.page;
+            totalPages = pagination.totalPages;
+        }
+
+        // Add to blacklist form submission
+        document.getElementById('addBlacklistForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const phoneNumber = formData.get('phoneNumber').trim();
+            let reason = formData.get('reason');
+            const customReason = formData.get('customReason').trim();
+
+            if (reason === 'Other' && customReason) {
+                reason = customReason;
+            }
+
+            if (!phoneNumber || !reason) {
+                showToast('Phone number and reason are required', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('addBlacklistBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>Adding...</span>';
+
+            try {
+                const response = await window.apiClient.addToBlacklist(phoneNumber, reason);
+                if (response.error) {
+                    showToast(response.error, 'error');
+                } else {
+                    showToast('Number added to blacklist successfully', 'success');
+                    this.reset();
+                    await loadBlacklist(currentPage, searchQuery);
+                }
+            } catch (error) {
+                console.error('Error adding to blacklist:', error);
+                showToast('Failed to add number to blacklist', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add to Blacklist
+                `;
+            }
+        });
+
+        // Search functionality
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const query = this.value.trim();
+            searchQuery = query;
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                loadBlacklist(1, query);
+            }, 300);
+        });
+
+        // Pagination
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                loadBlacklist(currentPage - 1, searchQuery);
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                loadBlacklist(currentPage + 1, searchQuery);
+            }
+        });
+
+        // Delete modal functions
+        function openDeleteModal(id, phone, reason, date) {
+            deleteItemId = id;
+            document.getElementById('deletePhone').textContent = phone;
+            document.getElementById('deleteReason').textContent = reason;
+            document.getElementById('deleteDate').textContent = new Date(date).toLocaleDateString();
+            document.getElementById('deleteModal').style.display = 'block';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            deleteItemId = null;
+        }
+
+        async function confirmDelete() {
+            if (!deleteItemId) return;
+
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<span>Removing...</span>';
+
+            try {
+                const response = await window.apiClient.removeFromBlacklist(deleteItemId);
+                if (response.error) {
+                    showToast(response.error, 'error');
+                } else {
+                    showToast('Number removed from blacklist successfully', 'success');
+                    closeDeleteModal();
+                    await loadBlacklist(currentPage, searchQuery);
+                }
+            } catch (error) {
+                console.error('Error removing from blacklist:', error);
+                showToast('Failed to remove number from blacklist', 'error');
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Remove from Blacklist
+                `;
+            }
+        }
+
+        // Reason change handler
+        document.getElementById('blacklistReason').addEventListener('change', function() {
+            const customReasonGroup = document.getElementById('customReason').parentElement;
+            if (this.value === 'Other') {
+                customReasonGroup.style.display = 'block';
+                document.getElementById('customReason').required = true;
+            } else {
+                customReasonGroup.style.display = 'none';
+                document.getElementById('customReason').required = false;
+            }
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '../auth/login.html';
+        }
+
+        // Mobile sidebar functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                hamburgerBtn.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                hamburgerBtn.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', toggleSidebar);
+            }
+
+            if (sidebarCloseBtn) {
+                sidebarCloseBtn.addEventListener('click', closeSidebar);
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', closeSidebar);
+            }
+
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 1024) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 1024) {
+                    closeSidebar();
+                }
+            });
+        });
+    </script>
+
+    <style>
+        /* Additional styles for blacklist page */
+        .data-table-card {
+            background-color: var(--neutral-white);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin: 0;
+        }
+
+        .table-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box input {
+            padding: 0.75rem 1rem;
+            padding-right: 2.5rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            width: 250px;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+        }
+
+        .search-box svg {
+            position: absolute;
+            right: 0.75rem;
+            width: 18px;
+            height: 18px;
+            color: #666;
+            pointer-events: none;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .data-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 0.9rem;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .phone-number {
+            font-family: monospace;
+            font-weight: 500;
+        }
+
+        .reason {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .source-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .source-user {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .source-system {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .source-complaint {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .source-bounce {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .actions {
+            text-align: center;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delete {
+            color: #c62828;
+        }
+
+        .btn-delete:hover {
+            background-color: #ffebee;
+        }
+
+        .btn-delete svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .empty-state-content {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .empty-state-content svg {
+            width: 48px;
+            height: 48px;
+            color: #ccc;
+        }
+
+        .empty-state-content h4 {
+            color: var(--primary-dark);
+            margin: 0;
+        }
+
+        .empty-state-content p {
+            color: #666;
+            margin: 0;
+        }
+
+        .table-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .table-pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal-content {
+            max-width: 400px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 1.25rem;
+        }
+
+        .delete-details {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .delete-details p {
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .delete-details strong {
+            color: var(--primary-dark);
+        }
+
+        .btn-danger {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background-color: #c62828;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background-color: #b71c1c;
+        }
+
+        .btn-danger:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .table-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .search-box input {
+                width: 100%;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.85rem;
+            }
+
+            .reason {
+                max-width: 150px;
+            }
+
+            .table-pagination {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .table-pagination button {
+                width: 100%;
+            }
+        }
+    </style>
+</body>
+</html>

@@ -24,6 +24,11 @@ const walletSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  version: {
+    type: Number,
+    default: 0,
+    description: 'Version field for optimistic locking'
+  },
   migrationFlag: {
     type: Boolean,
     default: false,
@@ -67,9 +72,10 @@ const walletSchema = new mongoose.Schema({
   }
 });
 
-// Update updatedAt before saving
+// Update updatedAt and version before saving
 walletSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
+  this.version += 1;
   next();
 });
 

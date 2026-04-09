@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const axios = require('axios');
+const ResilientHttpClient = require('../utils/ResilientHttpClient');
 
 /**
  * HubtelTransferService
@@ -23,6 +23,17 @@ class HubtelTransferService {
     
     // Basic Auth header value (computed once)
     this.basicAuthHeader = this._computeBasicAuthHeader();
+
+    // Initialize resilient HTTP client for transfer operations
+    this.httpClient = new ResilientHttpClient({
+      serviceName: 'hubtel-transfer',
+      timeout: 60000, // 60 seconds for transfers
+      maxRetries: 3,
+      baseDelay: 2000,
+      maxDelay: 30000,
+      failureThreshold: 5,
+      recoveryTimeout: 60000
+    });
     
     // Ghana bank codes
     this.bankCodes = {
@@ -186,12 +197,11 @@ class HubtelTransferService {
         amount: payload.amount
       }, null, 2));
 
-      const response = await axios.post(endpoint, payload, {
+      const response = await this.httpClient.post(endpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 60000 // 60 second timeout for mobile money
+        }
       });
 
       const responseData = response.data;
@@ -283,12 +293,11 @@ class HubtelTransferService {
         amount: payload.amount
       }, null, 2));
 
-      const response = await axios.post(endpoint, payload, {
+      const response = await this.httpClient.post(endpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 60000 // 60 second timeout for bank transfers
+        }
       });
 
       const responseData = response.data;
@@ -378,12 +387,11 @@ class HubtelTransferService {
         amount: payload.amount
       }, null, 2));
 
-      const response = await axios.post(endpoint, payload, {
+      const response = await this.httpClient.post(endpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 30000
+        }
       });
 
       const responseData = response.data;
@@ -470,12 +478,11 @@ class HubtelTransferService {
         bundleId: payload.bundleId
       }, null, 2));
 
-      const response = await axios.post(endpoint, payload, {
+      const response = await this.httpClient.post(endpoint, payload, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 30000
+        }
       });
 
       const responseData = response.data;
@@ -523,12 +530,11 @@ class HubtelTransferService {
     try {
       const endpoint = `${this.momoEndpoint}/transactions/${clientReference}/status`;
       
-      const response = await axios.get(endpoint, {
+      const response = await this.httpClient.get(endpoint, {
         headers: {
           'Authorization': this.basicAuthHeader,
           'Content-Type': 'application/json'
-        },
-        timeout: 15000
+        }
       });
 
       const responseData = response.data;

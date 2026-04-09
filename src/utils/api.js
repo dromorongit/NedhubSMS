@@ -107,31 +107,25 @@ class ApiClient {
   }
 
   // Contact endpoints
-  async createContact(name, phoneNumber, groupName) {
-    return this.request('POST', '/contacts', { name, phoneNumber, groupName });
+  async createContact(recipientName, phoneNumber, groupName) {
+    return this.request('POST', '/contacts', { recipientName, phoneNumber, groupName });
   }
 
   async getContacts() {
     return this.request('GET', '/contacts');
   }
 
-  async updateContact(id, name, phoneNumber, groupName) {
-    return this.request('PUT', `/contacts/${id}`, { name, phoneNumber, groupName });
+  async updateContact(id, recipientName, phoneNumber, groupName) {
+    return this.request('PUT', `/contacts/${id}`, { recipientName, phoneNumber, groupName });
   }
 
   async deleteContact(id) {
     return this.request('DELETE', `/contacts/${id}`);
   }
 
-  async importContacts(file, groupName = '') {
+  async uploadContacts(formData) {
     const url = `${API_BASE_URL}/contacts/import`;
     const token = this.getToken();
-
-    const formData = new FormData();
-    formData.append('file', file);
-    if (groupName) {
-      formData.append('groupName', groupName);
-    }
 
     try {
       const response = await fetch(url, {
@@ -156,14 +150,18 @@ class ApiClient {
       const result = await response.json();
 
       if (!response.ok) {
-        return { error: result.error || 'Import failed' };
+        return { error: result.error || 'Upload failed' };
       }
 
       return { data: result };
     } catch (error) {
-      console.error('Import contacts error:', error);
+      console.error('Upload contacts error:', error);
       return { error: 'Network error: ' + error.message };
     }
+  }
+
+  async confirmContactImport(fileData, columnMapping, fileName) {
+    return this.request('POST', '/contacts/import/confirm', { fileData, columnMapping, fileName });
   }
 
   // Template endpoints
@@ -265,6 +263,60 @@ class ApiClient {
     return this.request('GET', '/sms/logs');
   }
 
+  async getSmsCost(params) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request('GET', `/sms/calculate-cost?${queryString}`);
+  }
+
+  // SMS Campaign endpoints
+  async generateMessagePreview(messageBody, salutation, customSalutation, sampleRecipients) {
+    return this.request('POST', '/sms-campaigns/preview-personalized', {
+      messageBody,
+      salutation,
+      customSalutation,
+      sampleRecipients
+    });
+  }
+
+  async previewCampaign(campaignData) {
+    return this.request('POST', '/sms-campaigns/preview-campaign', campaignData);
+  }
+
+  async sendPersonalizedCampaign(campaignData) {
+    return this.request('POST', '/sms-campaigns/send', campaignData);
+  }
+
+  async schedulePersonalizedCampaign(campaignData) {
+    return this.request('POST', '/sms-campaigns/schedule', campaignData);
+  }
+
+  async getScheduledCampaigns() {
+    return this.request('GET', '/sms-campaigns/scheduled');
+  }
+
+  async updateScheduledCampaign(id, updates) {
+    return this.request('PATCH', `/sms-campaigns/scheduled/${id}`, updates);
+  }
+
+  async cancelScheduledCampaign(id) {
+    return this.request('DELETE', `/sms-campaigns/scheduled/${id}`);
+  }
+
+  async retryFailedRecipients(campaignId) {
+    return this.request('POST', `/sms-campaigns/${campaignId}/retry-failed`);
+  }
+
+  async duplicateCampaignWithFailed(campaignId) {
+    return this.request('POST', `/sms-campaigns/${campaignId}/duplicate`);
+  }
+
+  // Reports endpoints
+  async getCampaignReports(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/reports/sms-campaigns?${queryString}` : '/reports/sms-campaigns';
+    return this.request('GET', endpoint);
+  }
+
   // Wallet endpoints
   async getWalletBalance() {
     return this.request('GET', '/wallet');
@@ -345,6 +397,25 @@ class ApiClient {
 
   async checkPaymentStatus(clientReference) {
     return this.request('GET', `/payments/status/${clientReference}`);
+  }
+
+  // Blacklist endpoints
+  async addToBlacklist(phoneNumber, reason) {
+    return this.request('POST', '/blacklist', { phoneNumber, reason });
+  }
+
+  async getBlacklist(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/blacklist?${queryString}` : '/blacklist';
+    return this.request('GET', endpoint);
+  }
+
+  async removeFromBlacklist(id) {
+    return this.request('DELETE', `/blacklist/${id}`);
+  }
+
+  async checkBlacklist(phoneNumber) {
+    return this.request('GET', `/blacklist/check/${encodeURIComponent(phoneNumber)}`);
   }
 }
 

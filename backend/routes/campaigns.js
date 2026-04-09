@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
-const Campaign = require('../models/Campaign');
+const SmsCampaign = require('../models/SmsCampaign');
+const SmsRecipient = require('../models/SmsRecipient');
 const Template = require('../models/Template');
 const SenderId = require('../models/SenderId');
 const { calculateSMSCost, deductCredits } = require('../utils/billing');
 const { sendSMS } = require('../utils/nalo');
-const Message = require('../models/Message');
+const SmsMessage = require('../models/SmsMessage');
 
 // Create and send campaign
 router.post('/', authenticate, async (req, res) => {
@@ -81,13 +82,28 @@ router.post('/', authenticate, async (req, res) => {
 
         // Log messages
         for (const recipient of recipients) {
-          await Message.create(
+          const segments = Math.ceil(messageContent.length / 160);
+          const sellPricePerSms = 0.095;
+          const providerCostPerSms = 0.082;
+          const totalChargedToUser = sellPricePerSms * segments;
+          const totalCostToProvider = providerCostPerSms * segments;
+          const profitAmount = totalChargedToUser - totalCostToProvider;
+        
+          const smsMessage = new SmsMessage({
             userId,
+            msisdn: recipient,
             senderId,
-            messageContent,
-            recipient,
-            'sent'
-          );
+            message: messageContent,
+            status: 'sent',
+            sellPricePerSms,
+            providerCostPerSms,
+            segments,
+            recipientsCount: 1,
+            totalChargedToUser,
+            totalCostToProvider,
+            profitAmount
+          });
+          await smsMessage.save();
         }
 
         res.json({
@@ -126,9 +142,7 @@ router.post('/', authenticate, async (req, res) => {
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const campaigns = await Campaign.find({ userId })
-      .sort({ createdAt: -1 })
-      .populate('templateId', 'title');
+    const campaigns = await SmsCampaign.findByUserId(userId);
 
     res.json(campaigns);
   } catch (error) {
@@ -143,8 +157,7 @@ router.get('/:id', authenticate, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.userId;
 
-    const campaign = await Campaign.findOne({ _id: id, userId })
-      .populate('templateId', 'title content');
+    const campaign = await SmsCampaign.findOne({ _id: id, userId });
 
     if (!campaign) {
       return res.status(404).json({ error: 'Campaign not found' });
