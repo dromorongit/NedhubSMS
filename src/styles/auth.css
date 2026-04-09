@@ -538,6 +538,10 @@
     background-repeat: no-repeat;
 }
 
+.auth-image-section.register-image .auth-image-overlay {
+    background: rgba(0, 0, 0, 0.3);
+}
+
 .stats-preview {
     display: flex;
     justify-content: center;
@@ -734,4 +738,8 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+}
+
+.auth-image-section.verify-image .auth-image-overlay {
+    background: rgba(0, 0, 0, 0.3);
 }
