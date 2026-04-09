@@ -1710,35 +1710,6 @@
             document.querySelector('.tab-btn[data-tab="manual"]').click();
         }
 
-        // Preview button
-        document.getElementById('previewBtn').addEventListener('click', function() {
-            const message = document.getElementById('message').value;
-            const senderId = document.getElementById('senderId').value;
-            const recipients = document.getElementById('recipients').value;
-            
-            if (!message) {
-                showToast('Please enter a message to preview', 'warning');
-                return;
-            }
-            
-            // Populate preview modal
-            document.getElementById('previewSenderId').textContent = senderId || 'Not selected';
-            
-            // Format recipients
-            const recipientList = recipients.split(/[,\n]+/).filter(r => r.trim().length > 0);
-            const recipientCount = recipientList.length;
-            document.getElementById('previewRecipients').textContent = recipientCount > 0 
-                ? `${recipientCount} recipient${recipientCount > 1 ? 's' : ''}` 
-                : 'No recipients';
-            
-            document.getElementById('previewCharacters').textContent = message.length;
-            const segments = Math.ceil(message.length / 160) || 1;
-            document.getElementById('previewSegments').textContent = segments;
-            document.getElementById('previewMessageText').textContent = message;
-            
-            // Show modal
-            document.getElementById('previewMessageModal').style.display = 'block';
-        });
 
         // Close preview modal
         function closePreviewModal() {
