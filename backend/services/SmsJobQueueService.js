@@ -1,4 +1,4 @@
-const { Queue, Worker, QueueScheduler } = require('bullmq');
+const { Queue, Worker } = require('bullmq');
 const IORedis = require('ioredis');
 const SmsCampaign = require('../models/SmsCampaign');
 const SmsRecipient = require('../models/SmsRecipient');
@@ -81,10 +81,7 @@ class SmsJobQueueService {
         },
       });
 
-      // Initialize queue scheduler for delayed jobs
-      this.scheduler = new QueueScheduler('sms-campaigns', {
-        connection: this.redisConnection,
-      });
+      // QueueScheduler removed in newer bullmq versions; queue handles delayed jobs natively
 
       // Initialize worker
       this.worker = new Worker('sms-campaigns', this.processJob.bind(this), {
@@ -463,10 +460,6 @@ class SmsJobQueueService {
       console.log('[SmsJobQueueService] Worker closed');
     }
 
-    if (this.scheduler) {
-      await this.scheduler.close();
-      console.log('[SmsJobQueueService] Scheduler closed');
-    }
 
     if (this.queue) {
       await this.queue.close();
