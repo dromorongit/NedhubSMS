@@ -5,6 +5,7 @@ const Wallet = require('../models/Wallet');
 const SmsMessage = require('../models/SmsMessage');
 const Transaction = require('../models/Transaction');
 const WalletService = require('../services/WalletService');
+const SmsAnalyticsService = require('../services/SmsAnalyticsService');
 
 // Get wallet balance with SMS balance
 router.get('/', authenticate, async (req, res) => {
@@ -17,11 +18,10 @@ router.get('/', authenticate, async (req, res) => {
     const availableBalance = wallet ? await WalletService.getAvailableBalance(userId) : 0;
     const reservedAmount = balance - availableBalance;
     
-    // Get message stats
-    const messages = await SmsMessage.find({ userId }).sort({ createdAt: -1 });
-    const totalSent = messages.length;
-    const delivered = messages.filter(m => m.status === 'delivered').length;
-    const deliveryRate = totalSent > 0 ? Math.round((delivered / totalSent) * 100) : 0;
+    // Get message stats using the analytics service
+    const smsStats = await SmsAnalyticsService.getSmsSummary(userId);
+    const totalSent = smsStats.totalSent;
+    const deliveryRate = smsStats.deliveryRate;
 
     res.json({
       balance,
