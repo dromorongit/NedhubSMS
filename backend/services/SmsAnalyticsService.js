@@ -1,22 +1,35 @@
 const SmsCampaign = require('../models/SmsCampaign');
 const SmsMessage = require('../models/SmsMessage');
 const SmsRecipient = require('../models/SmsRecipient');
+const Message = require('../models/Message');
 
 class SmsAnalyticsService {
   // Get overall SMS analytics summary
   async getSmsSummary(userId, startDate = null, endDate = null) {
     const campaignMatchConditions = { userId };
     const recipientMatchConditions = { userId };
+    const messageMatchConditions = { userId };
+    const smsMessageMatchConditions = { userId };
 
     if (startDate || endDate) {
-      campaignMatchConditions.sentAt = {};
-      if (startDate) campaignMatchConditions.sentAt.$gte = new Date(startDate);
-      if (endDate) campaignMatchConditions.sentAt.$lte = new Date(endDate);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
       
-      // For recipients, filter by createdAt which is when they were created
+      campaignMatchConditions.sentAt = {};
+      if (start) campaignMatchConditions.sentAt.$gte = start;
+      if (end) campaignMatchConditions.sentAt.$lte = end;
+      
       recipientMatchConditions.createdAt = {};
-      if (startDate) recipientMatchConditions.createdAt.$gte = new Date(startDate);
-      if (endDate) recipientMatchConditions.createdAt.$lte = new Date(endDate);
+      if (start) recipientMatchConditions.createdAt.$gte = start;
+      if (end) recipientMatchConditions.createdAt.$lte = end;
+      
+      messageMatchConditions.createdAt = {};
+      if (start) messageMatchConditions.createdAt.$gte = start;
+      if (end) messageMatchConditions.createdAt.$lte = end;
+      
+      smsMessageMatchConditions.createdAt = {};
+      if (start) smsMessageMatchConditions.createdAt.$gte = start;
+      if (end) smsMessageMatchConditions.createdAt.$lte = end;
     }
 
     // Aggregate from SmsCampaign for campaign-level stats
@@ -37,7 +50,7 @@ class SmsAnalyticsService {
       }
     ]);
 
-    // Also get accurate counts from SmsRecipient collection
+    // Get counts from SmsRecipient collection
     const recipientStats = await SmsRecipient.aggregate([
       { $match: recipientMatchConditions },
       {
@@ -47,6 +60,34 @@ class SmsAnalyticsService {
           actualDelivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
           actualFailed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
           totalRecipients: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Get counts from Message collection (legacy single messages)
+    const messageStats = await Message.aggregate([
+      { $match: messageMatchConditions },
+      {
+        $group: {
+          _id: null,
+          totalSent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+          totalDelivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+          totalFailed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
+          totalMessages: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Get counts from SmsMessage collection
+    const smsMessageStats = await SmsMessage.aggregate([
+      { $match: smsMessageMatchConditions },
+      {
+        $group: {
+          _id: null,
+          totalSent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+          totalDelivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+          totalFailed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
+          totalMessages: { $sum: 1 }
         }
       }
     ]);
@@ -62,14 +103,31 @@ class SmsAnalyticsService {
       totalActualCost: 0
     };
 
-    // Use recipient stats for more accurate counts if available
     const recipientData = recipientStats[0] || { actualSent: 0, actualDelivered: 0, actualFailed: 0 };
+    const messageData = messageStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
+    const smsMessageData = smsMessageStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
 
-    // Use the higher value between campaign counts and recipient counts for sent
-    // This handles both cases: direct send and batch processing
-    const totalSent = Math.max(stats.totalSent, recipientData.actualSent);
-    const totalDelivered = Math.max(stats.totalDelivered, recipientData.actualDelivered);
-    const totalFailed = Math.max(stats.totalFailed, recipientData.actualFailed);
+    // Combine all sources - use max values to avoid double counting
+    const totalSent = Math.max(
+      stats.totalSent,
+      recipientData.actualSent,
+      messageData.totalSent,
+      smsMessageData.totalSent
+    );
+    
+    const totalDelivered = Math.max(
+      stats.totalDelivered,
+      recipientData.actualDelivered,
+      messageData.totalDelivered,
+      smsMessageData.totalDelivered
+    );
+    
+    const totalFailed = Math.max(
+      stats.totalFailed,
+      recipientData.actualFailed,
+      messageData.totalFailed,
+      smsMessageData.totalFailed
+    );
 
     // Calculate rates
     const deliveryRate = totalSent > 0 ? (totalDelivered / totalSent) * 100 : 0;
