@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const { checkBalance } = require('../utils/nalo');
-const { calculateSMSCost, deductCredits } = require('../utils/billing');
 const Message = require('../models/Message');
 const SmsMessage = require('../models/SmsMessage');
 const NaloSmsService = require('../services/NaloSmsService');
@@ -24,25 +23,7 @@ router.post('/send', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Recipients must be a non-empty array' });
     }
 
-    // Calculate SMS cost
-    const cost = calculateSMSCost(message, recipients.length);
-
-    // Check wallet balance and deduct GHS
-    try {
-      await deductCredits(userId, cost, `SMS send: ${recipients.length} recipients`);
-    } catch (error) {
-      if (error.message === 'Insufficient balance') {
-        return res.status(402).json({ error: 'Insufficient wallet balance' });
-      }
-      if (error.message === 'Daily SMS limit reached') {
-        return res.status(429).json({ error: 'Daily SMS limit reached' });
-      }
-      if (error.message === 'Monthly SMS limit reached') {
-        return res.status(429).json({ error: 'Monthly SMS limit reached' });
-      }
-      throw error;
-    }
-
+    // NaloSmsService handles wallet deduction internally, so we don't need to deduct here
     // Check Nalo SMS balance
     const naloBalance = await checkBalance();
     if (naloBalance <= 0) {
@@ -57,6 +38,7 @@ router.post('/send', authenticate, async (req, res) => {
     for (const recipient of recipients) {
       try {
         // Use NaloSmsService for proper tracking and webhook support
+        // Note: NaloSmsService handles wallet deduction internally
         const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
           userId,
           msisdn: recipient,
@@ -86,7 +68,6 @@ router.post('/send', authenticate, async (req, res) => {
         failed: failedCount
       },
       results,
-      cost,
       message: failedCount === 0 ? 'SMS sent successfully' : 'Some SMS failed to send'
     });
   } catch (error) {
