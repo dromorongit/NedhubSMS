@@ -5,17 +5,23 @@ const SmsRecipient = require('../models/SmsRecipient');
 class SmsAnalyticsService {
   // Get overall SMS analytics summary
   async getSmsSummary(userId, startDate = null, endDate = null) {
-    const matchConditions = { userId };
+    const campaignMatchConditions = { userId };
+    const recipientMatchConditions = { userId };
 
     if (startDate || endDate) {
-      matchConditions.sentAt = {};
-      if (startDate) matchConditions.sentAt.$gte = new Date(startDate);
-      if (endDate) matchConditions.sentAt.$lte = new Date(endDate);
+      campaignMatchConditions.sentAt = {};
+      if (startDate) campaignMatchConditions.sentAt.$gte = new Date(startDate);
+      if (endDate) campaignMatchConditions.sentAt.$lte = new Date(endDate);
+      
+      // For recipients, filter by createdAt which is when they were created
+      recipientMatchConditions.createdAt = {};
+      if (startDate) recipientMatchConditions.createdAt.$gte = new Date(startDate);
+      if (endDate) recipientMatchConditions.createdAt.$lte = new Date(endDate);
     }
 
-    // Aggregate from SmsCampaign
+    // Aggregate from SmsCampaign for campaign-level stats
     const campaignStats = await SmsCampaign.aggregate([
-      { $match: matchConditions },
+      { $match: campaignMatchConditions },
       {
         $group: {
           _id: null,
@@ -31,6 +37,20 @@ class SmsAnalyticsService {
       }
     ]);
 
+    // Also get accurate counts from SmsRecipient collection
+    const recipientStats = await SmsRecipient.aggregate([
+      { $match: recipientMatchConditions },
+      {
+        $group: {
+          _id: null,
+          actualSent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+          actualDelivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+          actualFailed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
+          totalRecipients: { $sum: 1 }
+        }
+      }
+    ]);
+
     const stats = campaignStats[0] || {
       totalCampaigns: 0,
       totalRecipients: 0,
@@ -42,16 +62,25 @@ class SmsAnalyticsService {
       totalActualCost: 0
     };
 
+    // Use recipient stats for more accurate counts if available
+    const recipientData = recipientStats[0] || { actualSent: 0, actualDelivered: 0, actualFailed: 0 };
+
+    // Use the higher value between campaign counts and recipient counts for sent
+    // This handles both cases: direct send and batch processing
+    const totalSent = Math.max(stats.totalSent, recipientData.actualSent);
+    const totalDelivered = Math.max(stats.totalDelivered, recipientData.actualDelivered);
+    const totalFailed = Math.max(stats.totalFailed, recipientData.actualFailed);
+
     // Calculate rates
-    const deliveryRate = stats.totalSent > 0 ? (stats.totalDelivered / stats.totalSent) * 100 : 0;
-    const failureRate = stats.totalSent > 0 ? (stats.totalFailed / stats.totalSent) * 100 : 0;
+    const deliveryRate = totalSent > 0 ? (totalDelivered / totalSent) * 100 : 0;
+    const failureRate = totalSent > 0 ? (totalFailed / totalSent) * 100 : 0;
 
     return {
       totalCampaigns: stats.totalCampaigns,
-      totalRecipients: stats.totalRecipients,
-      totalSent: stats.totalSent,
-      totalDelivered: stats.totalDelivered,
-      totalFailed: stats.totalFailed,
+      totalRecipients: stats.totalRecipients || recipientData.totalRecipients,
+      totalSent,
+      totalDelivered,
+      totalFailed,
       deliveryRate: Math.round(deliveryRate * 100) / 100,
       failureRate: Math.round(failureRate * 100) / 100,
       totalSegments: stats.totalSegments,
