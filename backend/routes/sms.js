@@ -59,12 +59,13 @@ router.post('/send', authenticate, async (req, res) => {
         
         // Log message in database for each recipient
         const segments = Math.ceil(message.length / 160);
-        await new SmsMessage({
+        const smsMessage = new SmsMessage({
           userId,
           msisdn: recipient,
           senderId,
           message: message,
           status: 'sent',
+          jobId: naloResponse.message_id, // Store Nalo's message_id for webhook tracking
           sellPricePerSms: 0.095,
           providerCostPerSms: 0.082,
           segments,
@@ -72,7 +73,8 @@ router.post('/send', authenticate, async (req, res) => {
           totalChargedToUser: 0.095 * segments,
           totalCostToProvider: 0.082 * segments,
           profitAmount: (0.095 - 0.082) * segments
-        }).save();
+        });
+        await smsMessage.save();
         
         results.push({ recipient, success: true, response: naloResponse });
         successCount++;

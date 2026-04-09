@@ -5,7 +5,6 @@ const Wallet = require('../models/Wallet');
 const SmsMessage = require('../models/SmsMessage');
 const Transaction = require('../models/Transaction');
 const WalletService = require('../services/WalletService');
-const SmsAnalyticsService = require('../services/SmsAnalyticsService');
 
 // Get wallet balance with SMS balance
 router.get('/', authenticate, async (req, res) => {
@@ -18,19 +17,72 @@ router.get('/', authenticate, async (req, res) => {
     const availableBalance = wallet ? await WalletService.getAvailableBalance(userId) : 0;
     const reservedAmount = balance - availableBalance;
     
-    // Get message stats using the analytics service
-    const smsStats = await SmsAnalyticsService.getSmsSummary(userId);
-    const totalSent = smsStats.totalSent;
-    const deliveryRate = smsStats.deliveryRate;
+    // Get message stats directly from all message collections for accurate counts
+    const Message = require('../models/Message');
+    const SmsMessage = require('../models/SmsMessage');
+    const SmsRecipient = require('../models/SmsRecipient');
+    
+    // Aggregate from Message collection
+    const messageStats = await Message.aggregate([
+      { $match: { userId } },
+      {
+        $group: {
+          _id: null,
+          totalSent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+          totalDelivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+          totalFailed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } }
+        }
+      }
+    ]);
+    
+    // Aggregate from SmsMessage collection
+    const smsMessageStats = await SmsMessage.aggregate([
+      { $match: { userId } },
+      {
+        $group: {
+          _id: null,
+          totalSent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+          totalDelivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+          totalFailed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } }
+        }
+      }
+    ]);
+    
+    // Aggregate from SmsRecipient collection
+    const recipientStats = await SmsRecipient.aggregate([
+      { $match: { userId } },
+      {
+        $group: {
+          _id: null,
+          totalSent: { $sum: { $cond: [{ $in: ['$status', ['sent', 'delivered']] }, 1, 0] } },
+          totalDelivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+          totalFailed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } }
+        }
+      }
+    ]);
+    
+    // Combine all sources - take max values to avoid double counting
+    const messageData = messageStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
+    const smsMessageData = smsMessageStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
+    const recipientData = recipientStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
+    
+    const totalSent = Math.max(messageData.totalSent, smsMessageData.totalSent, recipientData.totalSent);
+    const totalDelivered = Math.max(messageData.totalDelivered, smsMessageData.totalDelivered, recipientData.totalDelivered);
+    const totalFailed = Math.max(messageData.totalFailed, smsMessageData.totalFailed, recipientData.totalFailed);
+    
+    // Calculate delivery rate
+    const deliveryRate = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
 
     res.json({
       balance,
       availableBalance,
-      smsBalance: availableBalance, // For frontend compatibility
+      smsBalance: availableBalance,
       reservedAmount,
       currency: 'GHS',
       stats: {
         totalSent,
+        totalDelivered,
+        totalFailed,
         deliveryRate
       },
       message: 'Wallet balance retrieved successfully'
