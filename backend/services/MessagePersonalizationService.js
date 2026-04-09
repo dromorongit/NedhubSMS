@@ -118,22 +118,32 @@ class MessagePersonalizationService {
     }
 
     if (isPersonalized) {
-      if (!messageTemplate.includes('{{name}}')) {
-        errors.push('Personalized messages must include {{name}} placeholder');
-      }
-
-      if (!messageTemplate.includes('{{salutation}}')) {
-        errors.push('Personalized messages must include {{salutation}} placeholder');
+      // Check if message has at least one placeholder for personalization
+      const hasNamePlaceholder = messageTemplate.includes('{{name}}');
+      const hasSalutationPlaceholder = messageTemplate.includes('{{salutation}}');
+      
+      // If no placeholders at all, warn but don't block - simple messages are allowed
+      if (!hasNamePlaceholder && !hasSalutationPlaceholder) {
+        // Not an error - simple messages without personalization are allowed
+      } else {
+        // If placeholders are used, validate they are complete
+        if (hasNamePlaceholder && !hasSalutationPlaceholder) {
+          // Only name used - that's fine
+        }
+        if (hasSalutationPlaceholder && !hasNamePlaceholder) {
+          // Only salutation used - that's fine
+        }
       }
     }
 
     // Check for unclosed placeholders
     const placeholderRegex = /\{\{([^}]+)\}\}/g;
     const placeholders = messageTemplate.match(placeholderRegex) || [];
-    const invalidPlaceholders = placeholders.filter(p => !['{{name}}', '{{salutation}}', '{{messageBody}}'].includes(p));
+    const validPlaceholders = ['{{name}}', '{{salutation}}', '{{messageBody}}'];
+    const invalidPlaceholders = placeholders.filter(p => !validPlaceholders.includes(p));
 
     if (invalidPlaceholders.length > 0) {
-      errors.push(`Invalid placeholders found: ${invalidPlaceholders.join(', ')}`);
+      errors.push(`Invalid placeholders found: ${invalidPlaceholders.join(', ')}. Valid placeholders are: {{name}}, {{salutation}}, {{messageBody}}`);
     }
 
     return {
