@@ -532,7 +532,7 @@
 
 /* Register Page Specific Styles */
 .auth-image-section.register-image {
-    background-image: url('../assets/images/yellowlady.jpg');
+    background-image: url('../../../assets/images/yellowlady.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -726,4 +726,12 @@
     .testimonial p {
         font-size: 0.9rem;
     }
+}
+
+/* Verify Email Page Specific Styles */
+.auth-image-section.verify-image {
+    background-image: url('../../../assets/images/bluelady.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
