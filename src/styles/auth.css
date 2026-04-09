@@ -532,7 +532,10 @@
 
 /* Register Page Specific Styles */
 .auth-image-section.register-image {
-    background: linear-gradient(135deg, #0f3460 0%, #16213e 50%, #1a1a2e 100%);
+    background-image: url('../assets/images/yellowlady.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .stats-preview {
