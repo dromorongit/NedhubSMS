@@ -242,7 +242,18 @@ class NaloSmsService {
           } else {
             smsStatus = 'failed';
             errorCode = naloResponse.status;
-            errorMessage = naloResponse.error_message || this.mapErrorCode(naloResponse.status);
+            // Provide more user-friendly error messages for common Nalo errors
+            if (naloResponse.status === '1707') {
+              errorMessage = 'Sender ID not registered with Nalo. Please contact admin to register your sender ID with the SMS provider.';
+            } else if (naloResponse.status === '1704') {
+              errorMessage = 'Invalid API key. Please contact admin to verify Nalo configuration.';
+            } else if (naloResponse.status === '1705') {
+              errorMessage = 'Account suspended. Please contact admin.';
+            } else if (naloResponse.status === '1025') {
+              errorMessage = 'Insufficient SMS credits. Please top up your account.';
+            } else {
+              errorMessage = naloResponse.error_message || this.mapErrorCode(naloResponse.status);
+            }
 
             // Refund wallet on failure
             await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
@@ -251,7 +262,12 @@ class NaloSmsService {
         } catch (apiError) {
           console.error('[NaloSmsService] API Error:', apiError.message);
           smsStatus = 'failed';
-          errorMessage = apiError.message;
+          // Provide more specific error for HTTP 412
+          if (apiError.response && apiError.response.status === 412) {
+            errorMessage = 'Sender ID not recognized by Nalo. Please ensure your sender ID is registered with the SMS provider.';
+          } else {
+            errorMessage = apiError.message;
+          }
 
           // Refund wallet on API error
           await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund');
