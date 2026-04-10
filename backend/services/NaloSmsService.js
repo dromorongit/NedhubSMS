@@ -422,4 +422,4 @@ class NaloSmsService {
   }
 }
 
-module.exports = NaloSmsService;
+module.exports = new NaloSmsService();
