@@ -1,6 +1,6 @@
 const NaloSmsService = require('../services/NaloSmsService');
 
-const naloService = new NaloSmsService();
+const naloService = NaloSmsService;
 
 /**
  * Send SMS endpoint with financial tracking
