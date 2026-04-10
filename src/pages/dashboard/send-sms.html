@@ -236,7 +236,7 @@
 
                         <!-- Duplicate Handling Section -->
                         <div class="duplicate-handling-section" id="duplicateHandlingSection" style="display: none;">
-                            <h3 class="section-title">Duplicate Recipients</h3>
+                            <h3 class="section-title">Duplicate & Blacklist Handling</h3>
 
                             <div class="duplicate-controls">
                                 <div class="duplicate-summary" id="duplicateSummary" style="display: none;">
@@ -249,6 +249,19 @@
                                         <div class="duplicate-info">
                                             <span class="duplicate-count" id="duplicateCount">0</span>
                                             <span>duplicate recipients detected</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Blacklist Summary -->
+                                <div class="blacklist-summary" id="blacklistSummary" style="display: none;">
+                                    <div class="blacklist-alert">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <div class="blacklist-info">
+                                            <span class="blacklist-count" id="blacklistCount">0</span>
+                                            <span>blacklisted recipients detected</span>
                                         </div>
                                     </div>
                                 </div>
@@ -270,6 +283,14 @@
                                         <!-- Duplicate recipients will be shown here -->
                                     </div>
                                     <small>Only the first 10 duplicates are shown</small>
+                                </div>
+
+                                <div class="blacklist-details" id="blacklistDetails" style="display: none;">
+                                    <h4>Blacklisted Recipients:</h4>
+                                    <div class="blacklist-list" id="blacklistList">
+                                        <!-- Blacklisted recipients will be shown here -->
+                                    </div>
+                                    <small>Only the first 10 blacklisted are shown</small>
                                 </div>
                             </div>
                         </div>
@@ -931,57 +952,74 @@
 
         // Character and SMS counter with live cost calculation
         let costCalculationTimeout;
-        document.getElementById('messageBody').addEventListener('input', function() {
-            const message = this.value;
-            const charCount = message.length;
+        const messageBodyEl = document.getElementById('messageBody');
+        const charCountEl = document.getElementById('charCount');
+        
+        if (messageBodyEl) {
+            messageBodyEl.addEventListener('input', function() {
+                const message = this.value;
+                const charCount = message.length;
 
-            // Update basic counters immediately
-            document.getElementById('charCount').textContent = charCount;
+                // Update basic counters immediately
+                if (charCountEl) charCountEl.textContent = charCount;
 
-            // Debounce cost calculation API call
-            clearTimeout(costCalculationTimeout);
-            costCalculationTimeout = setTimeout(() => {
-                updateCostEstimation();
-            }, 300);
+                // Debounce cost calculation API call
+                clearTimeout(costCalculationTimeout);
+                costCalculationTimeout = setTimeout(() => {
+                    updateCostEstimation();
+                }, 300);
 
-            // Update message preview
-            updateMessagePreview();
-        });
+                // Update message preview
+                updateMessagePreview();
+            });
+        }
 
         // Salutation change handler
-        document.getElementById('salutation').addEventListener('change', function() {
-            const customGroup = document.getElementById('customSalutationGroup');
-            if (this.value === 'Custom') {
-                customGroup.style.display = 'block';
-                document.getElementById('customSalutation').required = true;
-            } else {
-                customGroup.style.display = 'none';
-                document.getElementById('customSalutation').required = false;
-            }
-            updateMessagePreview();
-        });
+        const salutationEl = document.getElementById('salutation');
+        const customSalutationGroup = document.getElementById('customSalutationGroup');
+        const customSalutationEl = document.getElementById('customSalutation');
+        
+        if (salutationEl) {
+            salutationEl.addEventListener('change', function() {
+                if (customSalutationGroup) {
+                    if (this.value === 'Custom') {
+                        customSalutationGroup.style.display = 'block';
+                        if (customSalutationEl) customSalutationEl.required = true;
+                    } else {
+                        customSalutationGroup.style.display = 'none';
+                        if (customSalutationEl) customSalutationEl.required = false;
+                    }
+                }
+                updateMessagePreview();
+            });
+        }
 
         // Custom salutation input handler
-        document.getElementById('customSalutation').addEventListener('input', updateMessagePreview);
+        if (customSalutationEl) {
+            customSalutationEl.addEventListener('input', updateMessagePreview);
+        }
 
         // Send mode change handler
         document.querySelectorAll('input[name="sendMode"]').forEach(radio => {
             radio.addEventListener('change', function() {
                 const scheduleSettings = document.getElementById('scheduleSettings');
-                if (this.value === 'scheduled') {
-                    scheduleSettings.style.display = 'block';
-                    document.getElementById('scheduledDate').required = true;
-                    document.getElementById('scheduledTime').required = true;
-                } else {
-                    scheduleSettings.style.display = 'none';
-                    document.getElementById('scheduledDate').required = false;
-                    document.getElementById('scheduledTime').required = false;
+                if (scheduleSettings) {
+                    if (this.value === 'scheduled') {
+                        scheduleSettings.style.display = 'block';
+                        document.getElementById('scheduledDate').required = true;
+                        document.getElementById('scheduledTime').required = true;
+                    } else {
+                        scheduleSettings.style.display = 'none';
+                        document.getElementById('scheduledDate').required = false;
+                        document.getElementById('scheduledTime').required = false;
+                    }
                 }
             });
         });
 
         // Duplicate handling change handler
-        document.querySelectorAll('input[name="duplicateHandling"]').forEach(radio => {
+        const duplicateRadioButtons = document.querySelectorAll('input[name="duplicateHandling"]');
+        duplicateRadioButtons.forEach(radio => {
             radio.addEventListener('change', analyzeRecipients);
         });
 
@@ -998,7 +1036,8 @@
                 document.querySelectorAll('.recipient-section').forEach(section => {
                     section.classList.remove('active');
                 });
-                document.getElementById(tab + 'Section').classList.add('active');
+                const targetSection = document.getElementById(tab + 'Section');
+                if (targetSection) targetSection.classList.add('active');
             });
         });
 
@@ -1006,22 +1045,40 @@
         async function analyzeRecipients() {
             const recipients = getAllRecipients();
 
+            // Add null check for duplicateHandlingSection
+            const duplicateHandlingSection = document.getElementById('duplicateHandlingSection');
+            if (!duplicateHandlingSection) {
+                return;
+            }
+
             if (recipients.length === 0) {
-                document.getElementById('duplicateHandlingSection').style.display = 'none';
+                duplicateHandlingSection.style.display = 'none';
                 return;
             }
 
             try {
                 // Get campaign data for preview
                 const title = `Campaign ${new Date().toLocaleString()}`;
-                const senderId = document.getElementById('senderId').value;
-                const messageBody = document.getElementById('messageBody').value;
-                const salutation = document.getElementById('salutation').value;
-                const customSalutation = document.getElementById('customSalutation').value;
-                const removeDuplicates = document.querySelector('input[name="duplicateHandling"]:checked')?.value === 'remove';
+                const senderIdEl = document.getElementById('senderId');
+                const messageBodyEl = document.getElementById('messageBody');
+                const salutationEl = document.getElementById('salutation');
+                
+                // Add null checks
+                if (!senderIdEl || !messageBodyEl || !salutationEl) {
+                    duplicateHandlingSection.style.display = 'none';
+                    return;
+                }
+
+                const senderId = senderIdEl.value;
+                const messageBody = messageBodyEl.value;
+                const salutation = salutationEl.value;
+                const customSalutationEl = document.getElementById('customSalutation');
+                const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+                const removeDuplicatesEl = document.querySelector('input[name="duplicateHandling"]:checked');
+                const removeDuplicates = removeDuplicatesEl ? removeDuplicatesEl.value === 'remove' : true;
 
                 if (!senderId || !messageBody.trim()) {
-                    document.getElementById('duplicateHandlingSection').style.display = 'none';
+                    duplicateHandlingSection.style.display = 'none';
                     return;
                 }
 
@@ -1050,21 +1107,30 @@
                 }
 
                 // Show duplicate handling section
-                document.getElementById('duplicateHandlingSection').style.display = 'block';
+                duplicateHandlingSection.style.display = 'block';
 
                 // Update duplicate summary
                 const analysis = recipientAnalysis;
                 const duplicateCount = analysis.duplicateCount || 0;
                 const blacklistCount = analysis.blacklistedRecipients ? analysis.blacklistedRecipients.length : 0;
 
+                // Get DOM elements with null checks
+                const duplicateSummary = document.getElementById('duplicateSummary');
+                const duplicateCountEl = document.getElementById('duplicateCount');
+                const duplicateDetails = document.getElementById('duplicateDetails');
+                const duplicateList = document.getElementById('duplicateList');
+                const blacklistSummary = document.getElementById('blacklistSummary');
+                const blacklistCountEl = document.getElementById('blacklistCount');
+                const blacklistDetails = document.getElementById('blacklistDetails');
+                const blacklistList = document.getElementById('blacklistList');
+
                 if (duplicateCount > 0) {
-                    document.getElementById('duplicateSummary').style.display = 'block';
-                    document.getElementById('duplicateCount').textContent = duplicateCount;
+                    if (duplicateSummary) duplicateSummary.style.display = 'block';
+                    if (duplicateCountEl) duplicateCountEl.textContent = duplicateCount;
 
                     // Show duplicate details if any
-                    if (analysis.duplicates && analysis.duplicates.length > 0) {
-                        document.getElementById('duplicateDetails').style.display = 'block';
-                        const duplicateList = document.getElementById('duplicateList');
+                    if (analysis.duplicates && analysis.duplicates.length > 0 && duplicateDetails && duplicateList) {
+                        duplicateDetails.style.display = 'block';
                         let html = '';
                         analysis.duplicates.forEach(duplicate => {
                             html += `
@@ -1076,23 +1142,22 @@
                             `;
                         });
                         duplicateList.innerHTML = html;
-                    } else {
-                        document.getElementById('duplicateDetails').style.display = 'none';
+                    } else if (duplicateDetails) {
+                        duplicateDetails.style.display = 'none';
                     }
                 } else {
-                    document.getElementById('duplicateSummary').style.display = 'none';
-                    document.getElementById('duplicateDetails').style.display = 'none';
+                    if (duplicateSummary) duplicateSummary.style.display = 'none';
+                    if (duplicateDetails) duplicateDetails.style.display = 'none';
                 }
 
                 // Update blacklist summary
                 if (blacklistCount > 0) {
-                    document.getElementById('blacklistSummary').style.display = 'block';
-                    document.getElementById('blacklistCount').textContent = blacklistCount;
+                    if (blacklistSummary) blacklistSummary.style.display = 'block';
+                    if (blacklistCountEl) blacklistCountEl.textContent = blacklistCount;
 
                     // Show blacklist details if any
-                    if (analysis.blacklistedRecipients && analysis.blacklistedRecipients.length > 0) {
-                        document.getElementById('blacklistDetails').style.display = 'block';
-                        const blacklistList = document.getElementById('blacklistList');
+                    if (analysis.blacklistedRecipients && analysis.blacklistedRecipients.length > 0 && blacklistDetails && blacklistList) {
+                        blacklistDetails.style.display = 'block';
                         let html = '';
                         analysis.blacklistedRecipients.forEach(blacklisted => {
                             html += `
@@ -1104,19 +1169,21 @@
                             `;
                         });
                         blacklistList.innerHTML = html;
-                    } else {
-                        document.getElementById('blacklistDetails').style.display = 'none';
+                    } else if (blacklistDetails) {
+                        blacklistDetails.style.display = 'none';
                     }
                 } else {
-                    document.getElementById('blacklistSummary').style.display = 'none';
-                    document.getElementById('blacklistDetails').style.display = 'none';
+                    if (blacklistSummary) blacklistSummary.style.display = 'none';
+                    if (blacklistDetails) blacklistDetails.style.display = 'none';
                 }
 
                 // Update cost estimation with processed data
+                const smsCountEl = document.getElementById('smsCount');
+                const estimatedCostEl = document.getElementById('estimatedCost');
                 if (responseData.costEstimation || response.costEstimation) {
                     const costData = responseData.costEstimation || response.costEstimation;
-                    document.getElementById('smsCount').textContent = costData.totalSegments || 1;
-                    document.getElementById('estimatedCost').textContent = `GHS ${(costData.estimatedCost || 0).toFixed(2)}`;
+                    if (smsCountEl) smsCountEl.textContent = costData.totalSegments || 1;
+                    if (estimatedCostEl) estimatedCostEl.textContent = `GHS ${(costData.estimatedCost || 0).toFixed(2)}`;
                 }
 
             } catch (error) {
@@ -1126,29 +1193,51 @@
 
         // Function to update message preview
         function updateMessagePreview() {
-            const salutation = document.getElementById('salutation').value;
-            const customSalutation = document.getElementById('customSalutation').value;
-            const messageBody = document.getElementById('messageBody').value;
+            const salutationEl = document.getElementById('salutation');
+            const customSalutationEl = document.getElementById('customSalutation');
+            const messageBodyEl = document.getElementById('messageBody');
+            const salutationPreviewEl = document.getElementById('salutationPreview');
+            const messageBodyPreviewEl = document.getElementById('messageBodyPreview');
+            
+            if (!salutationEl || !messageBodyEl) return;
+            
+            const salutation = salutationEl.value;
+            const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+            const messageBody = messageBodyEl.value;
 
             const finalSalutation = salutation === 'Custom' ? customSalutation : salutation;
 
-            document.getElementById('salutationPreview').textContent = finalSalutation || 'Dear';
-            document.getElementById('messageBodyPreview').textContent = messageBody || 'your message here';
+            if (salutationPreviewEl) salutationPreviewEl.textContent = finalSalutation || 'Dear';
+            if (messageBodyPreviewEl) messageBodyPreviewEl.textContent = messageBody || 'your message here';
         }
 
         // Function to update cost estimation
         async function updateCostEstimation() {
-            const message = document.getElementById('messageBody').value;
+            // Get elements with null checks
+            const messageBodyEl = document.getElementById('messageBody');
+            if (!messageBodyEl) return;
+            
+            const message = messageBodyEl.value;
             const recipientCount = getRecipientCount();
-            const salutation = document.getElementById('salutation').value;
-            const customSalutation = document.getElementById('customSalutation').value;
+            
+            const salutationEl = document.getElementById('salutation');
+            const customSalutationEl = document.getElementById('customSalutation');
+            const salutation = salutationEl ? salutationEl.value : 'Dear';
+            const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+
+            // Get other UI elements with null checks
+            const encodingTypeEl = document.getElementById('encodingType');
+            const smsCountEl = document.getElementById('smsCount');
+            const estimatedCostEl = document.getElementById('estimatedCost');
+            const costWarningsEl = document.getElementById('costWarnings');
+            const warningTextEl = document.getElementById('warningText');
 
             if (!message.trim()) {
                 // Reset to defaults
-                document.getElementById('encodingType').textContent = 'GSM-7';
-                document.getElementById('smsCount').textContent = '1';
-                document.getElementById('estimatedCost').textContent = 'GHS 0.00';
-                document.getElementById('costWarnings').style.display = 'none';
+                if (encodingTypeEl) encodingTypeEl.textContent = 'GSM-7';
+                if (smsCountEl) smsCountEl.textContent = '1';
+                if (estimatedCostEl) estimatedCostEl.textContent = 'GHS 0.00';
+                if (costWarningsEl) costWarningsEl.style.display = 'none';
                 return;
             }
 
@@ -1170,18 +1259,18 @@
 
                 // Update UI
                 const data = response.data;
-                document.getElementById('encodingType').textContent = data.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
-                document.getElementById('smsCount').textContent = data.segments.minSegments && data.segments.maxSegments
+                if (encodingTypeEl) encodingTypeEl.textContent = data.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
+                if (smsCountEl) smsCountEl.textContent = data.segments.minSegments && data.segments.maxSegments
                     ? `${data.segments.minSegments}-${data.segments.maxSegments}`
                     : data.avgSegments || 1;
-                document.getElementById('estimatedCost').textContent = `GHS ${data.estimatedCost.toFixed(2)}`;
+                if (estimatedCostEl) estimatedCostEl.textContent = `GHS ${data.estimatedCost.toFixed(2)}`;
 
                 // Show warnings if any
                 if (data.warnings && data.warnings.length > 0) {
-                    document.getElementById('warningText').textContent = data.warnings.join('. ');
-                    document.getElementById('costWarnings').style.display = 'flex';
+                    if (warningTextEl) warningTextEl.textContent = data.warnings.join('. ');
+                    if (costWarningsEl) costWarningsEl.style.display = 'flex';
                 } else {
-                    document.getElementById('costWarnings').style.display = 'none';
+                    if (costWarningsEl) costWarningsEl.style.display = 'none';
                 }
 
             } catch (error) {
@@ -1194,7 +1283,13 @@
 
         // Function to get current recipient count
         function getRecipientCount() {
-            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+            const activeTabBtn = document.querySelector('.tab-btn.active');
+            
+            if (!activeTabBtn) {
+                return 1; // Default fallback
+            }
+            
+            const activeTab = activeTabBtn.dataset.tab;
 
             if (activeTab === 'manual') {
                 return document.querySelectorAll('.manual-recipient-item:not(.template)').length;
