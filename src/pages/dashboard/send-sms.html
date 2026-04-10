@@ -993,6 +993,12 @@
                 updateMessagePreview();
                 updateMessageBodyTemplate(); // Auto-update message when salutation changes
             });
+            
+            // Also update immediately when user changes salutation dropdown
+            // This ensures instant feedback without waiting for change event
+            salutationEl.addEventListener('input', function() {
+                updateMessageBodyTemplate();
+            });
         }
 
         // Custom salutation input handler
@@ -1000,6 +1006,11 @@
             customSalutationEl.addEventListener('input', function() {
                 updateMessagePreview();
                 updateMessageBodyTemplate(); // Auto-update message when custom salutation changes
+            });
+            
+            // Also trigger on change event for better reactivity
+            customSalutationEl.addEventListener('change', function() {
+                updateMessageBodyTemplate();
             });
         }
 
@@ -1412,18 +1423,47 @@
                 salutation = customSalutationEl.value || 'Dear';
             }
             
-            // Only auto-populate if message body is empty or just has the default template
-            const currentValue = messageBodyEl.value.trim();
-            const isEmpty = currentValue === '' || 
-                           currentValue === 'Dear {{name}}, ' ||
-                           currentValue === 'Hello {{name}}, ' ||
-                           currentValue === 'Hi {{name}}, ' ||
-                           currentValue === 'Esteemed {{name}}, ' ||
-                           currentValue === 'Honourable {{name}}, ';
+            if (!salutation) {
+                salutation = 'Dear';
+            }
             
-            if (isEmpty && salutation) {
-                messageBodyEl.value = `${salutation} {{name}}, `;
-                updateMessagePreview();
+            // Always auto-populate/update message body with current salutation
+            // This ensures the message body reflects the selected salutation
+            const currentValue = messageBodyEl.value;
+            
+            // Check if current message starts with any salutation pattern followed by {{name}}
+            const salutations = ['Dear', 'Hello', 'Hi', 'Esteemed', 'Honourable'];
+            let hasExistingSalutation = false;
+            let existingContent = '';
+            
+            for (const sal of salutations) {
+                const pattern = sal + ' {{name}}, ';
+                if (currentValue.startsWith(pattern)) {
+                    hasExistingSalutation = true;
+                    existingContent = currentValue.substring(pattern.length);
+                    break;
+                }
+            }
+            
+            // Also check for custom salutation pattern
+            if (!hasExistingSalutation && customSalutationEl && customSalutationEl.value) {
+                const customPattern = customSalutationEl.value + ' {{name}}, ';
+                if (currentValue.startsWith(customPattern)) {
+                    hasExistingSalutation = true;
+                    existingContent = currentValue.substring(customPattern.length);
+                }
+            }
+            
+            // Only update if message is empty OR starts with a salutation pattern
+            if (currentValue.trim() === '' || hasExistingSalutation) {
+                // Preserve any additional content after the salutation
+                const preservedContent = hasExistingSalutation ? existingContent : '';
+                messageBodyEl.value = salutation + ' {{name}}, ' + preservedContent;
+                try {
+                    updateMessagePreview();
+                } catch (e) {
+                    console.warn('Preview update skipped:', e);
+                }
             }
         }
 
@@ -1441,12 +1481,20 @@
                 validateManualRecipient.call(this);
                 updateMessageBodyTemplate(); // Auto-update message when name is entered
             });
+            
+            // Also trigger on change (when user finishes typing or leaves field)
+            nameInput.addEventListener('change', function() {
+                updateMessageBodyTemplate(); // Update message body when name is completed
+            });
             phoneInput.addEventListener('input', validateManualRecipient);
 
             document.getElementById('manualRecipientList').appendChild(newItem);
 
-            // Auto-populate message body with salutation template
-            updateMessageBodyTemplate();
+            // Auto-populate message body with salutation template on first recipient
+            const existingRecipients = document.querySelectorAll('.manual-recipient-item:not(.template)');
+            if (existingRecipients.length === 1) {
+                updateMessageBodyTemplate();
+            }
 
             // Update cost estimation when recipients change
             updateCostEstimation();
