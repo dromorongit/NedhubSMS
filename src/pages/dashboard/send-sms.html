@@ -1670,7 +1670,10 @@
             const recipients = [];
 
             // Check which tab is active
-            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+            const activeTabBtn = document.querySelector('.tab-btn.active');
+            if (!activeTabBtn) return recipients;
+            
+            const activeTab = activeTabBtn.dataset.tab;
 
             if (activeTab === 'manual') {
                 // Get manual recipients
@@ -1679,12 +1682,23 @@
                     const phone = item.querySelector('.recipient-phone-input').value.trim();
 
                     if (name && phone) {
-                        recipients.push({ recipientName: name, phoneNumber: phone });
+                        // Basic phone validation - must have at least 9 digits
+                        const phoneDigits = phone.replace(/\D/g, '');
+                        if (phoneDigits.length >= 9) {
+                            recipients.push({ recipientName: name, phoneNumber: phone });
+                        }
                     }
                 });
             } else if (activeTab === 'upload') {
-                // Use uploaded contacts
-                recipients.push(...uploadedContacts);
+                // Use uploaded contacts - filter for valid phone numbers
+                uploadedContacts.forEach(contact => {
+                    const phone = contact.phoneNumber || contact.phone || '';
+                    const name = contact.recipientName || contact.name || '';
+                    const phoneDigits = phone.replace(/\D/g, '');
+                    if (name && phone && phoneDigits.length >= 9) {
+                        recipients.push({ recipientName: name, phoneNumber: phone });
+                    }
+                });
             } else if (activeTab === 'contacts') {
                 // TODO: Implement saved contacts selection
                 showToast('Saved contacts selection not yet implemented', 'info');
@@ -1792,7 +1806,20 @@
                     await window.apiClient.schedulePersonalizedCampaign(campaignData);
 
                 if (result.error) {
-                    showToast(result.error, 'error');
+                    // Show detailed error if available
+                    let errorMessage = result.error;
+                    if (result.details) {
+                        const details = result.details;
+                        const parts = [];
+                        if (details.duplicateCount > 0) parts.push(`${details.duplicateCount} duplicates`);
+                        if (details.invalidCount > 0) parts.push(`${details.invalidCount} invalid`);
+                        if (details.blacklistedCount > 0) parts.push(`${details.blacklistedCount} blacklisted`);
+                        if (parts.length > 0) {
+                            errorMessage += ` (${parts.join(', ')})`;
+                        }
+                        errorMessage += '. Please check your recipients and try again.';
+                    }
+                    showToast(errorMessage, 'error');
                 } else {
                     const successMessage = sendMode === 'immediate' ?
                         `Campaign sent successfully to ${result.summary.success} recipients` :
