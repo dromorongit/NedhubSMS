@@ -1025,7 +1025,7 @@
                                 </div>
                             </div>
                             <div class="wallet-action">
-                                <button class="btn-topup-modern" onclick="window.location.href='transactions.html'">
+                                <button class="btn-topup-modern" id="topupButton">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="12" y1="5" x2="12" y2="19"></line>
                                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1185,6 +1185,45 @@
         </div>
         <h3>Purchase Successful!</h3>
         <p id="successMessage">Data bundle has been sent</p>
+    </div>
+
+    <!-- Top Up Modal -->
+    <div class="modal" id="topupModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeTopupModal">&times;</button>
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                </div>
+                <h3>Top Up Wallet</h3>
+                <p>Add funds to your wallet to send SMS</p>
+            </div>
+            <form id="topupForm">
+                <div class="form-group">
+                    <label for="topupAmount">Amount (GHS)</label>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₵</span>
+                        <input type="number" id="topupAmount" name="amount" min="1" step="0.01" required placeholder="Enter amount">
+                    </div>
+                    <small>Minimum top-up: ₵1.00</small>
+                </div>
+                <div class="form-group">
+                    <label for="topupDescription">Description (optional)</label>
+                    <input type="text" id="topupDescription" name="description" placeholder="e.g., Monthly top-up">
+                </div>
+                <button type="submit" class="btn-primary" id="topupSubmitBtn">
+                    <span>Proceed to Payment</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </form>
+            <div id="topupError" class="error-message" style="display: none;"></div>
+        </div>
     </div>
 
     <script src="../../utils/api.js"></script>
@@ -1535,6 +1574,75 @@
             localStorage.removeItem('userEmail');
             window.location.href = '../auth/login.html';
         }
+
+        // Handle top-up button click
+        document.getElementById('topupButton').addEventListener('click', () => {
+            document.getElementById('topupModal').style.display = 'flex';
+            document.getElementById('topupModal').classList.add('active');
+        });
+
+        // Handle close modal
+        document.getElementById('closeTopupModal').addEventListener('click', () => {
+            document.getElementById('topupModal').style.display = 'none';
+            document.getElementById('topupModal').classList.remove('active');
+            document.getElementById('topupError').style.display = 'none';
+        });
+
+        // Close modal on backdrop click
+        document.getElementById('topupModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('topupModal')) {
+                document.getElementById('topupModal').style.display = 'none';
+                document.getElementById('topupModal').classList.remove('active');
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('topupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const amount = document.getElementById('topupAmount').value;
+            const description = document.getElementById('topupDescription').value;
+            const submitBtn = document.getElementById('topupSubmitBtn');
+            const errorDiv = document.getElementById('topupError');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>Processing...</span>';
+            errorDiv.style.display = 'none';
+            
+            try {
+                console.log('[Payment] Initiating payment for amount:', amount);
+                
+                const frontendOrigin = window.location.origin;
+                
+                const response = await window.apiClient.initiatePayment(amount, description, frontendOrigin);
+                
+                console.log('[Payment] Response:', response);
+                
+                if (response.error) {
+                    console.error('[Payment] Error:', response.error);
+                    errorDiv.textContent = response.error;
+                    errorDiv.style.display = 'block';
+                } else if (response.data && response.data.checkoutUrl) {
+                    console.log('[Payment] Redirecting to:', response.data.checkoutUrl);
+                    window.location.href = response.data.checkoutUrl;
+                } else if (response.data && response.data.clientReference) {
+                    console.log('[Payment] No checkoutUrl, showing success message');
+                    showToast('Payment initiated successfully', 'success');
+                    document.getElementById('topupModal').style.display = 'none';
+                } else {
+                    console.error('[Payment] Unexpected response:', response);
+                    errorDiv.textContent = 'An unexpected error occurred. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('[Payment] Exception:', error);
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Proceed to Payment</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+            }
+        });
     </script>
 </body>
 </html>
