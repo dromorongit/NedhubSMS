@@ -7,12 +7,17 @@
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link rel="stylesheet" href="../../styles/responsive.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="../../utils/api.js" defer></script>
+    <script src="../../utils/toast.js" defer></script>
 </head>
 <body>
     <div class="dashboard-layout">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h1>Nedhub</h1>
+                <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
             </div>
             <nav class="sidebar-nav">
                 <ul>
@@ -68,8 +73,8 @@
                     <li><a href="utility-payments.html">
                         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="3" y="9" x2="21" y2="9"></line>
-                            <line x1="9" y="21" x2="9" y2="9"></line>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
                         </svg>
                         <span>Utility Payments</span>
                     </a></li>
@@ -133,36 +138,133 @@
         </aside>
         <main class="main-content">
             <header class="top-nav">
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <span class="mobile-header-title">Campaigns</span>
                 <div class="user-info">
-                    <span>Welcome, User</span>
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Loading...</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
                 </div>
             </header>
+            <!-- Sidebar Overlay -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
             <div class="dashboard-content">
-                <h2>Campaigns</h2>
-                
+                <div class="welcome-section">
+                    <h2 id="pageTitle">Campaigns</h2>
+                    <p class="welcome-subtitle">Manage and track your SMS campaigns</p>
+                </div>
+
+                <!-- Campaign Stats Grid -->
+                <div class="stats-grid" id="campaignStatsGrid">
+                    <div class="stat-card">
+                        <div class="stat-icon sent-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Total Campaigns</h3>
+                            <div class="stat-value" id="totalCampaigns">0</div>
+                            <div class="stat-label">All time</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); color: #388e3c;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Delivered</h3>
+                            <div class="stat-value" id="totalDelivered">0</div>
+                            <div class="stat-label">Messages sent</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon delivery-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Scheduled</h3>
+                            <div class="stat-value" id="totalScheduled">0</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); color: #c62828;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Failed</h3>
+                            <div class="stat-value" id="totalFailed">0</div>
+                            <div class="stat-label">Messages</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Create Campaign Button -->
-                <button class="btn-primary" id="createCampaignBtn">Create New Campaign</button>
-                
-                <!-- Campaigns List -->
-                <div class="campaigns-list">
-                    <h3>Your Campaigns</h3>
-                    <table class="campaigns-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Sender ID</th>
-                                <th>Status</th>
-                                <th>Recipients</th>
-                                <th>Delivered</th>
-                                <th>Failed</th>
-                                <th>Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="campaignsBody">
-                            <!-- Campaigns will be loaded here -->
-                        </tbody>
-                    </table>
+                <div class="campaigns-header">
+                    <button class="btn-primary" id="createCampaignBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Create New Campaign
+                    </button>
+                </div>
+
+                <!-- Campaigns Table -->
+                <div class="transactions-section">
+                    <div class="section-header">
+                        <h3>Your Campaigns</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="transactions-table" id="campaignsTable">
+                            <thead>
+                                <tr>
+                                    <th>Campaign Name</th>
+                                    <th>Sender ID</th>
+                                    <th>Status</th>
+                                    <th>Recipients</th>
+                                    <th>Delivered</th>
+                                    <th>Failed</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campaignsBody">
+                                <!-- Campaigns will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="empty-campaigns-state" id="emptyCampaignsState" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        <p>No campaigns yet</p>
+                        <span>Create your first campaign to get started</span>
+                    </div>
+                    <div class="loading-spinner" id="campaignsLoading">
+                        <div class="spinner"></div>
+                        <span>Loading campaigns...</span>
+                    </div>
                 </div>
             </div>
         </main>
@@ -171,13 +273,21 @@
     <!-- Create Campaign Modal -->
     <div class="modal" id="createCampaignModal">
         <div class="modal-content">
-            <span class="close" id="closeCampaignModal">&times;</span>
-            <h2>Create New Campaign</h2>
+            <button class="modal-close" id="closeCampaignModal">&times;</button>
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                    </svg>
+                </div>
+                <h3>Create New Campaign</h3>
+                <p>Set up a new SMS campaign</p>
+            </div>
             
             <form id="campaignForm">
                 <div class="form-group">
                     <label for="campaignName">Campaign Name</label>
-                    <input type="text" id="campaignName" name="campaignName" required>
+                    <input type="text" id="campaignName" name="campaignName" placeholder="Enter a name for your campaign" required>
                 </div>
                 
                 <div class="form-group">
@@ -189,48 +299,80 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="campaignTemplate">Message Template</label>
+                    <label for="campaignTemplate">Message Template (Optional)</label>
                     <select id="campaignTemplate" name="campaignTemplate">
-                        <option value="">Select Template (optional)</option>
+                        <option value="">Select Template</option>
                         <!-- Templates will be loaded here -->
                     </select>
                 </div>
                 
                 <div class="form-group">
                     <label for="campaignMessage">Custom Message</label>
-                    <textarea id="campaignMessage" name="campaignMessage" rows="4"></textarea>
-                    <div class="char-counter">Characters: <span id="charCount">0</span> | Segments: <span id="segmentCount">0</span></div>
+                    <textarea id="campaignMessage" name="campaignMessage" rows="4" placeholder="Type your message here..."></textarea>
+                    <div class="char-counter-info">
+                        <span>Characters: <strong id="charCount">0</strong></span>
+                        <span>Segments: <strong id="segmentCount">0</strong></span>
+                    </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="campaignRecipients">Recipients (comma separated)</label>
-                    <textarea id="campaignRecipients" name="campaignRecipients" rows="3" required></textarea>
+                    <label for="campaignRecipients">Recipients</label>
+                    <textarea id="campaignRecipients" name="campaignRecipients" rows="3" placeholder="Enter phone numbers separated by commas (e.g., 0241234567, 0271234567)" required></textarea>
+                    <small>Enter phone numbers separated by commas</small>
                 </div>
                 
                 <div class="form-group">
-                    <label for="campaignSchedule">Schedule (optional)</label>
+                    <label for="campaignSchedule">Schedule (Optional)</label>
                     <input type="datetime-local" id="campaignSchedule" name="campaignSchedule">
+                    <small>Leave empty to send immediately</small>
                 </div>
                 
-                <button type="submit" class="btn-primary">Create Campaign</button>
+                <button type="submit" class="btn-primary" id="createCampaignSubmitBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                    </svg>
+                    Create Campaign
+                </button>
             </form>
         </div>
     </div>
 
     <!-- Campaign Details Modal -->
     <div class="modal" id="campaignDetailsModal">
-        <div class="modal-content large">
-            <span class="close" id="closeDetailsModal">&times;</span>
-            <h2>Campaign Details</h2>
-
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close" id="closeDetailsModal">&times;</button>
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <h3>Campaign Details</h3>
+                <p>View campaign information</p>
+            </div>
+            
             <div id="campaignDetailsContent">
                 <!-- Campaign details will be loaded here -->
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeCampaignDetailsModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    Close
+                </button>
             </div>
         </div>
     </div>
 
-    <script src="../../utils/api.js"></script>
     <script>
+        // Global variables
+        let allCampaigns = [];
+
         // DOM elements
         const createCampaignBtn = document.getElementById('createCampaignBtn');
         const closeCampaignModal = document.getElementById('closeCampaignModal');
@@ -240,24 +382,131 @@
         const charCount = document.getElementById('charCount');
         const segmentCount = document.getElementById('segmentCount');
         const campaignsBody = document.getElementById('campaignsBody');
-
+        
         // Campaign details modal
         const campaignDetailsModal = document.getElementById('campaignDetailsModal');
         const closeDetailsModal = document.getElementById('closeDetailsModal');
         const campaignDetailsContent = document.getElementById('campaignDetailsContent');
-        
+
+        // Page elements
+        const userAvatarEl = document.getElementById('userAvatar');
+        const userNameEl = document.getElementById('userName');
+        const totalCampaignsEl = document.getElementById('totalCampaigns');
+        const totalDeliveredEl = document.getElementById('totalDelivered');
+        const totalScheduledEl = document.getElementById('totalScheduled');
+        const totalFailedEl = document.getElementById('totalFailed');
+        const campaignsLoadingEl = document.getElementById('campaignsLoading');
+        const emptyCampaignsStateEl = document.getElementById('emptyCampaignsState');
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthAndLoad();
+            await loadCampaigns();
+            initMobileSidebar();
+        });
+
+        async function checkAuthAndLoad() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            await loadUserProfile();
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await window.apiClient.getUserProfile();
+                if (response.data && response.data.user) {
+                    const user = response.data.user;
+                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
+                    updateUserDisplay(firstName);
+                    localStorage.setItem('userName', user.name);
+                } else {
+                    useStoredUserName();
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                useStoredUserName();
+            }
+        }
+
+        function useStoredUserName() {
+            const storedName = localStorage.getItem('userName');
+            if (storedName) {
+                const firstName = storedName.split(' ')[0];
+                updateUserDisplay(firstName);
+            } else {
+                updateUserDisplay('User');
+            }
+        }
+
+        function updateUserDisplay(firstName) {
+            if (userNameEl) userNameEl.textContent = firstName;
+            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+        }
+
+        // Mobile sidebar functionality
+        function initMobileSidebar() {
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                hamburgerBtn.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                hamburgerBtn.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', toggleSidebar);
+            }
+
+            if (sidebarCloseBtn) {
+                sidebarCloseBtn.addEventListener('click', closeSidebar);
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', closeSidebar);
+            }
+
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 1024) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 1024) {
+                    closeSidebar();
+                }
+            });
+        }
+
         // Character counter
         campaignMessage.addEventListener('input', () => {
             const chars = campaignMessage.value.length;
             charCount.textContent = chars;
             
             // Calculate segments (GSM: 160 chars, Unicode: 70 chars)
-            const isGSM = /^[ -¯]*$/.test(campaignMessage.value);
+            const isGSM = /^[\x00-\x7F]*$/.test(campaignMessage.value);
             const segmentSize = isGSM ? 160 : 70;
             const segments = Math.ceil(chars / segmentSize);
             segmentCount.textContent = segments;
         });
-        
+
         // Open create campaign modal
         createCampaignBtn.addEventListener('click', async () => {
             campaignModal.style.display = 'block';
@@ -272,7 +521,7 @@
                     if (senderId.status === 'approved') {
                         const option = document.createElement('option');
                         option.value = senderId.senderId;
-                        option.textContent = `${senderId.senderId} (Approved)`;
+                        option.textContent = senderId.senderId;
                         senderIdSelect.appendChild(option);
                     }
                 });
@@ -282,7 +531,7 @@
             const templatesResponse = await window.apiClient.getTemplates();
             if (templatesResponse.data) {
                 const templateSelect = document.getElementById('campaignTemplate');
-                templateSelect.innerHTML = '<option value="">Select Template (optional)</option>';
+                templateSelect.innerHTML = '<option value="">Select Template</option>';
                 
                 templatesResponse.data.forEach(template => {
                     const option = document.createElement('option');
@@ -292,12 +541,21 @@
                 });
             }
         });
-        
+
         // Close modal
         closeCampaignModal.addEventListener('click', () => {
             campaignModal.style.display = 'none';
         });
-        
+
+        // Close details modal
+        closeDetailsModal.addEventListener('click', () => {
+            campaignDetailsModal.style.display = 'none';
+        });
+
+        function closeCampaignDetailsModal() {
+            campaignDetailsModal.style.display = 'none';
+        }
+
         // Close modal when clicking outside
         window.addEventListener('click', (event) => {
             if (event.target === campaignModal) {
@@ -308,11 +566,6 @@
             }
         });
 
-        // Close details modal
-        closeDetailsModal.addEventListener('click', () => {
-            campaignDetailsModal.style.display = 'none';
-        });
-        
         // Handle form submission
         campaignForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -325,6 +578,10 @@
                 recipients: document.getElementById('campaignRecipients').value.split(',').map(r => r.trim()),
                 schedule: document.getElementById('campaignSchedule').value || null
             };
+
+            const submitBtn = document.getElementById('createCampaignSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>Creating...</span>';
             
             try {
                 const response = await window.apiClient.createCampaign(formData);
@@ -332,7 +589,7 @@
                     throw new Error(response.error);
                 }
                 
-                alert('Campaign created successfully!');
+                window.showToast('Campaign created successfully!', 'success');
                 campaignModal.style.display = 'none';
                 campaignForm.reset();
                 charCount.textContent = '0';
@@ -343,16 +600,27 @@
                 
             } catch (error) {
                 console.error('Error creating campaign:', error);
-                alert('Failed to create campaign: ' + error.message);
+                window.showToast('Failed to create campaign: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>Create Campaign';
             }
         });
-        
+
         // Load campaigns on page load
         async function loadCampaigns() {
             try {
+                campaignsLoadingEl.style.display = 'block';
+                emptyCampaignsStateEl.style.display = 'none';
+                campaignsBody.innerHTML = '';
+
                 const response = await window.apiClient.getCampaigns();
-                if (response.data) {
-                    campaignsBody.innerHTML = '';
+                
+                campaignsLoadingEl.style.display = 'none';
+                
+                if (response.data && response.data.length > 0) {
+                    allCampaigns = response.data;
+                    updateCampaignStats(response.data);
                     
                     response.data.forEach(campaign => {
                         const row = document.createElement('tr');
@@ -361,8 +629,8 @@
                         // Add retry buttons for completed campaigns with failures
                         if (campaign.status === 'sent' && (campaign.failedCount || 0) > 0) {
                             actionButtons += `
-                                <button class="btn-warning retry-btn" data-campaign-id="${campaign._id}" title="Retry Failed Recipients">Retry Failed</button>
-                                <button class="btn-info duplicate-btn" data-campaign-id="${campaign._id}" title="Duplicate with Failed Recipients">Duplicate Failed</button>
+                                <button class="btn-warning retry-btn" data-campaign-id="${campaign._id}" title="Retry Failed Recipients">Retry</button>
+                                <button class="btn-info duplicate-btn" data-campaign-id="${campaign._id}" title="Duplicate with Failed Recipients">Duplicate</button>
                             `;
                         }
 
@@ -370,25 +638,50 @@
                             <td>${campaign.title || campaign.name}</td>
                             <td>${campaign.senderId}</td>
                             <td><span class="status-badge ${campaign.status}">${campaign.status}</span></td>
-                            <td>${campaign.recipientCount || campaign.recipientsCount}</td>
-                            <td>${campaign.deliveredCount || 0}</td>
-                            <td>${campaign.failedCount || 0}</td>
-                            <td>${new Date(campaign.createdAt).toLocaleString()}</td>
+                            <td>${campaign.recipientCount || campaign.recipientsCount || 0}</td>
+                            <td class="text-success">${campaign.deliveredCount || 0}</td>
+                            <td class="text-danger">${campaign.failedCount || 0}</td>
+                            <td>${new Date(campaign.createdAt).toLocaleDateString()}</td>
                             <td>${actionButtons}</td>
                         `;
                         campaignsBody.appendChild(row);
                     });
+                } else {
+                    emptyCampaignsStateEl.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error loading campaigns:', error);
-                campaignsBody.innerHTML = '<tr><td colspan="6" class="error">Failed to load campaigns</td></tr>';
+                campaignsLoadingEl.style.display = 'none';
+                emptyCampaignsStateEl.style.display = 'block';
             }
         }
-        
+
+        function updateCampaignStats(campaigns) {
+            let total = campaigns.length;
+            let delivered = 0;
+            let scheduled = 0;
+            let failed = 0;
+
+            campaigns.forEach(c => {
+                delivered += c.deliveredCount || 0;
+                failed += c.failedCount || 0;
+                if (c.status === 'scheduled' || c.status === 'pending') {
+                    scheduled++;
+                }
+            });
+
+            if (totalCampaignsEl) totalCampaignsEl.textContent = total;
+            if (totalDeliveredEl) totalDeliveredEl.textContent = delivered;
+            if (totalScheduledEl) totalScheduledEl.textContent = scheduled;
+            if (totalFailedEl) totalFailedEl.textContent = failed;
+        }
+
         // Event delegation for dynamic buttons
         campaignsBody.addEventListener('click', async (e) => {
             const target = e.target;
             const campaignId = target.dataset.campaignId;
+
+            if (!campaignId) return;
 
             if (target.classList.contains('view-btn')) {
                 await viewCampaignDetails(campaignId);
@@ -402,33 +695,59 @@
         // View campaign details
         async function viewCampaignDetails(campaignId) {
             try {
-                // For now, just show basic campaign info
-                // In a real implementation, you'd fetch detailed recipient data
-                const campaigns = await window.apiClient.getCampaigns();
-                const campaign = campaigns.data.find(c => c._id === campaignId);
+                const campaign = allCampaigns.find(c => c._id === campaignId);
 
                 if (!campaign) {
-                    alert('Campaign not found');
+                    window.showToast('Campaign not found', 'error');
                     return;
                 }
 
                 let detailsHtml = `
-                    <div class="campaign-details">
-                        <h3>${campaign.title || campaign.name}</h3>
-                        <div class="details-grid">
-                            <div><strong>Sender ID:</strong> ${campaign.senderId}</div>
-                            <div><strong>Status:</strong> <span class="status-badge ${campaign.status}">${campaign.status}</span></div>
-                            <div><strong>Total Recipients:</strong> ${campaign.recipientCount || campaign.recipientsCount}</div>
-                            <div><strong>Delivered:</strong> ${campaign.deliveredCount || 0}</div>
-                            <div><strong>Failed:</strong> ${campaign.failedCount || 0}</div>
-                            <div><strong>Pending:</strong> ${campaign.pendingCount || 0}</div>
-                            <div><strong>Created:</strong> ${new Date(campaign.createdAt).toLocaleString()}</div>
-                            <div><strong>Estimated Cost:</strong> GHS ${campaign.estimatedCost || 0}</div>
+                    <div class="campaign-details-info">
+                        <div class="detail-row">
+                            <span class="detail-label">Campaign Name</span>
+                            <span class="detail-value">${campaign.title || campaign.name}</span>
                         </div>
-                        <div class="message-preview">
-                            <strong>Message:</strong>
-                            <p>${campaign.messageBody || 'N/A'}</p>
+                        <div class="detail-row">
+                            <span class="detail-label">Sender ID</span>
+                            <span class="detail-value">${campaign.senderId}</span>
                         </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Status</span>
+                            <span class="status-badge ${campaign.status}">${campaign.status}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Total Recipients</span>
+                            <span class="detail-value">${campaign.recipientCount || campaign.recipientsCount || 0}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Delivered</span>
+                            <span class="detail-value text-success">${campaign.deliveredCount || 0}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Failed</span>
+                            <span class="detail-value text-danger">${campaign.failedCount || 0}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Pending</span>
+                            <span class="detail-value">${campaign.pendingCount || 0}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Created</span>
+                            <span class="detail-value">${new Date(campaign.createdAt).toLocaleString()}</span>
+                        </div>
+                        ${campaign.estimatedCost ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Estimated Cost</span>
+                            <span class="detail-value">GHS ${campaign.estimatedCost}</span>
+                        </div>
+                        ` : ''}
+                        ${campaign.messageBody ? `
+                        <div class="detail-row message-row">
+                            <span class="detail-label">Message</span>
+                            <span class="detail-value message-text">${campaign.messageBody}</span>
+                        </div>
+                        ` : ''}
                     </div>
                 `;
 
@@ -437,7 +756,7 @@
 
             } catch (error) {
                 console.error('Error loading campaign details:', error);
-                alert('Failed to load campaign details');
+                window.showToast('Failed to load campaign details', 'error');
             }
         }
 
@@ -453,12 +772,12 @@
                     throw new Error(response.error);
                 }
 
-                alert(`Retry completed! ${response.successCount} succeeded, ${response.failedCount} failed. Total cost: GHS ${response.totalCost}`);
-                loadCampaigns(); // Refresh the list
+                window.showToast(`Retry completed! ${response.successCount} succeeded, ${response.failedCount} failed. Total cost: GHS ${response.totalCost}`, 'success');
+                loadCampaigns();
 
             } catch (error) {
                 console.error('Error retrying failed recipients:', error);
-                alert('Failed to retry failed recipients: ' + error.message);
+                window.showToast('Failed to retry failed recipients: ' + error.message, 'error');
             }
         }
 
@@ -474,17 +793,243 @@
                     throw new Error(response.error);
                 }
 
-                alert(`New campaign created! ${response.successCount} succeeded, ${response.failedCount} failed. Total cost: GHS ${response.totalCost}`);
-                loadCampaigns(); // Refresh the list
+                window.showToast(`New campaign created! ${response.successCount} succeeded, ${response.failedCount} failed. Total cost: GHS ${response.totalCost}`, 'success');
+                loadCampaigns();
 
             } catch (error) {
                 console.error('Error duplicating campaign:', error);
-                alert('Failed to duplicate campaign: ' + error.message);
+                window.showToast('Failed to duplicate campaign: ' + error.message, 'error');
             }
         }
 
-        // Load campaigns when page loads
-        document.addEventListener('DOMContentLoaded', loadCampaigns);
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '../auth/login.html';
+        }
     </script>
+
+    <style>
+        /* Additional styles for Campaigns page */
+        .campaigns-header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1.5rem;
+        }
+
+        .campaigns-header .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(247, 127, 0, 0.3);
+        }
+
+        .campaigns-header .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(247, 127, 0, 0.4);
+        }
+
+        .campaigns-header .btn-primary svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .campaigns-header .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Empty state */
+        .empty-campaigns-state {
+            padding: 3rem 2rem;
+            text-align: center;
+            color: #999;
+        }
+
+        .empty-campaigns-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-campaigns-state p {
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-campaigns-state span {
+            font-size: 0.9rem;
+        }
+
+        /* Table actions */
+        .transactions-table td:last-child {
+            white-space: nowrap;
+        }
+
+        .view-btn {
+            padding: 0.375rem 0.75rem;
+            background-color: var(--primary-dark);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 0.25rem;
+        }
+
+        .view-btn:hover {
+            background-color: #1a2540;
+        }
+
+        .retry-btn {
+            padding: 0.375rem 0.75rem;
+            background-color: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffb74d;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 0.25rem;
+        }
+
+        .retry-btn:hover {
+            background-color: #ffe0b2;
+        }
+
+        .duplicate-btn {
+            padding: 0.375rem 0.75rem;
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .duplicate-btn:hover {
+            background-color: #bbdefb;
+        }
+
+        .btn-warning {
+            padding: 0.375rem 0.75rem;
+            background-color: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffb74d;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-info {
+            padding: 0.375rem 0.75rem;
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* Campaign details modal */
+        .campaign-details-info {
+            margin-bottom: 1rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .detail-value {
+            color: var(--primary-dark);
+            font-weight: 500;
+        }
+
+        .detail-row.message-row {
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .message-text {
+            background-color: #f5f5f5;
+            padding: 0.75rem;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Char counter info */
+        .char-counter-info {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .char-counter-info strong {
+            color: var(--primary-dark);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .campaigns-header {
+                justify-content: stretch;
+            }
+
+            .campaigns-header .btn-primary {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .transactions-table th,
+            .transactions-table td {
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .view-btn,
+            .retry-btn,
+            .duplicate-btn {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.7rem;
+            }
+        }
+    </style>
 </body>
 </html>
