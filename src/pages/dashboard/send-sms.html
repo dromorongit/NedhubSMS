@@ -387,7 +387,7 @@
                             <div class="message-composer">
                                 <div class="form-group">
                                     <label for="messageBody">Message Body</label>
-                                    <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Type your message body here. Use {{name}} for recipient name and {{salutation}} for salutation."></textarea>
+                                    <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Your message will appear here with personalized salutation... Use {{name}} for recipient name."></textarea>
                                     <small>The final message will be: <strong id="salutationPreview">Dear</strong> <strong>{{name}}</strong>, <span id="messageBodyPreview">your message here</span></small>
                                 </div>
                             </div>
@@ -991,12 +991,16 @@
                     }
                 }
                 updateMessagePreview();
+                updateMessageBodyTemplate(); // Auto-update message when salutation changes
             });
         }
 
         // Custom salutation input handler
         if (customSalutationEl) {
-            customSalutationEl.addEventListener('input', updateMessagePreview);
+            customSalutationEl.addEventListener('input', function() {
+                updateMessagePreview();
+                updateMessageBodyTemplate(); // Auto-update message when custom salutation changes
+            });
         }
 
         // Send mode change handler
@@ -1394,6 +1398,35 @@
         // Manual recipient management
         let manualRecipients = [];
 
+        // Auto-populate message body with salutation and name placeholder
+        function updateMessageBodyTemplate() {
+            const messageBodyEl = document.getElementById('messageBody');
+            const salutationEl = document.getElementById('salutation');
+            const customSalutationEl = document.getElementById('customSalutation');
+            
+            if (!messageBodyEl || !salutationEl) return;
+            
+            // Get the current salutation value
+            let salutation = salutationEl.value;
+            if (salutation === 'Custom' && customSalutationEl) {
+                salutation = customSalutationEl.value || 'Dear';
+            }
+            
+            // Only auto-populate if message body is empty or just has the default template
+            const currentValue = messageBodyEl.value.trim();
+            const isEmpty = currentValue === '' || 
+                           currentValue === 'Dear {{name}}, ' ||
+                           currentValue === 'Hello {{name}}, ' ||
+                           currentValue === 'Hi {{name}}, ' ||
+                           currentValue === 'Esteemed {{name}}, ' ||
+                           currentValue === 'Honourable {{name}}, ';
+            
+            if (isEmpty && salutation) {
+                messageBodyEl.value = `${salutation} {{name}}, `;
+                updateMessagePreview();
+            }
+        }
+
         function addManualRecipient() {
             const template = document.querySelector('.manual-recipient-item.template');
             const newItem = template.cloneNode(true);
@@ -1404,10 +1437,16 @@
             const nameInput = newItem.querySelector('.recipient-name-input');
             const phoneInput = newItem.querySelector('.recipient-phone-input');
 
-            nameInput.addEventListener('input', validateManualRecipient);
+            nameInput.addEventListener('input', function() {
+                validateManualRecipient.call(this);
+                updateMessageBodyTemplate(); // Auto-update message when name is entered
+            });
             phoneInput.addEventListener('input', validateManualRecipient);
 
             document.getElementById('manualRecipientList').appendChild(newItem);
+
+            // Auto-populate message body with salutation template
+            updateMessageBodyTemplate();
 
             // Update cost estimation when recipients change
             updateCostEstimation();
