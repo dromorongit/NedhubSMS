@@ -181,14 +181,34 @@ router.post('/send', authenticate, async (req, res) => {
     }
 
     // Process recipients for deduplication and validation
+    console.log('[DEBUG] Processing recipients, count:', recipients.length);
+    console.log('[DEBUG] First few recipients:', JSON.stringify(recipients.slice(0, 3)));
+    console.log('[DEBUG] userId:', userId);
+    console.log('[DEBUG] removeDuplicates:', removeDuplicates);
+    
     const processedRecipients = await SmsRecipientService.processRecipientsForCampaign(
       recipients,
       userId,
       removeDuplicates
     );
 
+    console.log('[DEBUG] Processed recipients result:');
+    console.log('  originalCount:', processedRecipients.originalCount);
+    console.log('  duplicateCount:', processedRecipients.duplicateCount);
+    console.log('  finalCount:', processedRecipients.finalCount);
+    console.log('  validRecipients count:', processedRecipients.validRecipients.length);
+    console.log('  invalidRecipients count:', processedRecipients.invalidRecipients.length);
+    console.log('  blacklistedRecipients count:', processedRecipients.blacklistedRecipients.length);
+    if (processedRecipients.invalidRecipients.length > 0) {
+      console.log('  invalidRecipients:', JSON.stringify(processedRecipients.invalidRecipients));
+    }
+    if (processedRecipients.blacklistedRecipients.length > 0) {
+      console.log('  blacklistedRecipients:', JSON.stringify(processedRecipients.blacklistedRecipients));
+    }
+
     // Check if we have any valid recipients after processing
     if (processedRecipients.finalCount === 0) {
+      console.log('[DEBUG] No valid recipients found - returning 400 error');
       return res.status(400).json({
         error: 'No valid recipients found after processing. All recipients were either duplicates, invalid, or blacklisted.',
         details: {

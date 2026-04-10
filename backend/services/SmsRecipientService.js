@@ -18,9 +18,11 @@ class SmsRecipientService {
       return normalized;
     } else if (normalized.startsWith('0') && normalized.length === 10) {
       // Convert 0XXXXXXXXX to 233XXXXXXXXX
+      // Support 020-059 prefixes
       return '233' + normalized.substring(1);
     } else if (normalized.length === 9) {
       // Assume it's missing the country code, add 233
+      // Support 20-59 prefixes
       return '233' + normalized;
     }
 
@@ -85,6 +87,9 @@ class SmsRecipientService {
    * @returns {Object} {validRecipients: Array, invalidRecipients: Array, blacklistedRecipients: Array}
    */
   static async validateRecipients(recipients, userId) {
+    console.log('[DEBUG] validateRecipients called with:', recipients.length, 'recipients');
+    console.log('[DEBUG] userId:', userId);
+    
     const validRecipients = [];
     const invalidRecipients = [];
     const blacklistedRecipients = [];
@@ -97,15 +102,23 @@ class SmsRecipientService {
       ]
     }).select('phoneNumber');
 
+    console.log('[DEBUG] Blacklisted numbers found:', blacklistedNumbers.length);
+
     const blacklistedSet = new Set(
       blacklistedNumbers.map(b => this.normalizePhoneNumber(b.phoneNumber))
     );
 
+    console.log('[DEBUG] Blacklisted set:', Array.from(blacklistedSet));
+
     for (const recipient of recipients) {
+      console.log('[DEBUG] Processing recipient:', recipient);
+      
       const normalizedPhone = this.normalizePhoneNumber(recipient.phoneNumber);
+      console.log('[DEBUG] Normalized phone:', normalizedPhone);
 
       // Check if blacklisted
       if (blacklistedSet.has(normalizedPhone)) {
+        console.log('[DEBUG] Number is blacklisted:', normalizedPhone);
         blacklistedRecipients.push({
           ...recipient,
           normalizedPhoneNumber: normalizedPhone,
@@ -115,8 +128,11 @@ class SmsRecipientService {
       }
 
       // Validate phone number format (Ghanaian numbers)
-      const phoneRegex = /^(?:\+233|233|0)(?:20|50|24|54|27|57|26|56|23|53|28|58|25|55)[0-9]{7}$/;
+      const phoneRegex = /^(?:\+233|233|0)(?:20|50|24|54|27|57|26|56|23|53|28|58|25|55|59)[0-9]{7}$/;
+      console.log('[DEBUG] Testing phone:', recipient.phoneNumber, 'regex result:', phoneRegex.test(recipient.phoneNumber));
+      
       if (!phoneRegex.test(recipient.phoneNumber)) {
+        console.log('[DEBUG] Invalid phone format for:', recipient.phoneNumber);
         invalidRecipients.push({
           ...recipient,
           normalizedPhoneNumber: normalizedPhone,
@@ -130,6 +146,11 @@ class SmsRecipientService {
         normalizedPhoneNumber: normalizedPhone
       });
     }
+
+    console.log('[DEBUG] Validation results:');
+    console.log('  validRecipients:', validRecipients.length);
+    console.log('  invalidRecipients:', invalidRecipients.length);
+    console.log('  blacklistedRecipients:', blacklistedRecipients.length);
 
     return {
       validRecipients,

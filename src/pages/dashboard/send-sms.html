@@ -1676,14 +1676,20 @@
             const activeTab = activeTabBtn.dataset.tab;
 
             if (activeTab === 'manual') {
-                // Get manual recipients
-                document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => {
+                // Get manual recipients - log for debugging
+                console.log('[DEBUG] Getting manual recipients');
+                const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
+                console.log('[DEBUG] Manual recipient items count:', items.length);
+                
+                items.forEach((item, index) => {
                     const name = item.querySelector('.recipient-name-input').value.trim();
                     const phone = item.querySelector('.recipient-phone-input').value.trim();
+                    console.log(`[DEBUG] Item ${index}: name='${name}', phone='${phone}'`);
 
                     if (name && phone) {
                         // Basic phone validation - must have at least 9 digits
                         const phoneDigits = phone.replace(/\D/g, '');
+                        console.log(`[DEBUG] Phone digits: ${phoneDigits}, length: ${phoneDigits.length}`);
                         if (phoneDigits.length >= 9) {
                             recipients.push({ recipientName: name, phoneNumber: phone });
                         }
@@ -1705,6 +1711,7 @@
                 return [];
             }
 
+            console.log('[DEBUG] Final recipients:', recipients);
             return recipients;
         }
 
