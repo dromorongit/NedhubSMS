@@ -243,6 +243,7 @@
                                     <th>Recipient</th>
                                     <th>Message</th>
                                     <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="messagesBody">
@@ -423,6 +424,9 @@
                     <td class="message-recipient">${msg.recipient || '-'}</td>
                     <td class="message-text">${messagePreview}</td>
                     <td><span class="status-badge ${getStatusClass(msg.status)}">${formatStatus(msg.status)}</span></td>
+                    <td class="message-actions">
+                        ${msg.status === 'failed' ? `<button class="resend-btn" data-message-id="${msg._id}" title="Resend Failed Message">Resend</button>` : ''}
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
@@ -513,6 +517,40 @@
         document.getElementById('messageModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('messageModal')) {
                 document.getElementById('messageModal').style.display = 'none';
+            }
+        });
+
+        // Resend failed message handler
+        document.getElementById('messagesBody').addEventListener('click', async (e) => {
+            if (e.target.classList.contains('resend-btn')) {
+                const messageId = e.target.dataset.messageId;
+                
+                if (!confirm('Are you sure you want to resend this message?')) {
+                    return;
+                }
+
+                // Show loading state
+                e.target.disabled = true;
+                e.target.textContent = 'Sending...';
+
+                try {
+                    const response = await window.apiClient.resendSms(messageId);
+                    
+                    if (response.error) {
+                        showToast('Failed to resend message: ' + response.error, 'error');
+                        e.target.disabled = false;
+                        e.target.textContent = 'Resend';
+                    } else {
+                        showToast('Message resent successfully!', 'success');
+                        // Refresh message history
+                        loadMessageHistory();
+                    }
+                } catch (error) {
+                    console.error('Resend error:', error);
+                    showToast('Failed to resend message: ' + error.message, 'error');
+                    e.target.disabled = false;
+                    e.target.textContent = 'Resend';
+                }
             }
         });
 
@@ -817,6 +855,32 @@
         .status-badge.cancelled {
             background-color: #fafafa;
             color: #616161;
+        }
+
+        /* Resend button */
+        .resend-btn {
+            padding: 0.35rem 0.85rem;
+            background-color: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffb74d;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .resend-btn:hover {
+            background-color: #ffe0b2;
+        }
+
+        .resend-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .message-actions {
+            white-space: nowrap;
         }
 
         /* Modal styles */

@@ -210,4 +210,89 @@ router.post('/callback', async (req, res) => {
   }
 });
 
+// Resend a failed message
+router.post('/resend', authenticate, async (req, res) => {
+  try {
+    const { messageId } = req.body;
+    const userId = req.user.userId;
+
+    if (!messageId) {
+      return res.status(400).json({ error: 'Message ID is required' });
+    }
+
+    // Try to find the message in all three models
+    let message = await Message.findByUserId(userId).find(m => m._id.toString() === messageId);
+    let messageData = null;
+    let source = 'legacy';
+
+    // Check in SmsMessage
+    if (!messageData) {
+      messageData = await SmsMessage.findOne({ _id: messageId, userId });
+      source = 'new';
+    }
+
+    // Check in SmsRecipient
+    if (!messageData) {
+      const mongoose = require('mongoose');
+      messageData = await require('../models/SmsRecipient').findOne({ _id: new mongoose.Types.ObjectId(messageId), userId: new mongoose.Types.ObjectId(userId) });
+      source = 'recipient';
+    }
+
+    if (!messageData) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Extract message details based on source
+    let senderId, recipient, messageText;
+    
+    if (source === 'legacy') {
+      senderId = messageData.senderId;
+      recipient = Array.isArray(messageData.recipients) ? messageData.recipients[0] : messageData.recipients;
+      messageText = messageData.messageBody;
+    } else if (source === 'new') {
+      senderId = messageData.senderId;
+      recipient = messageData.msisdn;
+      messageText = messageData.message;
+    } else {
+      senderId = messageData.senderId || 'Campaign';
+      recipient = messageData.phoneNumber;
+      messageText = messageData.personalizedMessage;
+    }
+
+    if (!senderId || !recipient || !messageText) {
+      return res.status(400).json({ error: 'Incomplete message data. Cannot resend.' });
+    }
+
+    // Check wallet balance
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user || user.walletBalance <= 0) {
+      return res.status(402).json({ error: 'Insufficient wallet balance. Please top up your wallet.' });
+    }
+
+    // Resend the message using NaloSmsService
+    const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
+      userId,
+      msisdn: recipient,
+      senderId,
+      message: messageText,
+      recipientsCount: 1
+    });
+
+    if (smsResult.success) {
+      res.json({
+        success: true,
+        message: 'Message resent successfully',
+        newMessageId: smsResult.messageId,
+        jobId: smsResult.jobId
+      });
+    } else {
+      res.status(400).json({ error: smsResult.error || 'Failed to resend message' });
+    }
+  } catch (error) {
+    console.error('Resend message error:', error);
+    res.status(500).json({ error: error.message || 'Failed to resend message' });
+  }
+});
+
 module.exports = router;

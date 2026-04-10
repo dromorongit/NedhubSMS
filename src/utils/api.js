@@ -268,6 +268,10 @@ class ApiClient {
     return this.request('GET', `/sms/calculate-cost?${queryString}`);
   }
 
+  async resendSms(messageId) {
+    return this.request('POST', '/sms/resend', { messageId });
+  }
+
   // SMS Campaign endpoints
   async generateMessagePreview(messageBody, salutation, customSalutation, sampleRecipients) {
     return this.request('POST', '/sms-campaigns/preview-personalized', {
