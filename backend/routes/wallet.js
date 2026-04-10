@@ -21,10 +21,14 @@ router.get('/', authenticate, async (req, res) => {
     const Message = require('../models/Message');
     const SmsMessage = require('../models/SmsMessage');
     const SmsRecipient = require('../models/SmsRecipient');
+    const mongoose = require('mongoose');
+    
+    // Ensure userId is a proper ObjectId for MongoDB matching
+    const userIdObj = new mongoose.Types.ObjectId(userId);
     
     // Aggregate from Message collection
     const messageStats = await Message.aggregate([
-      { $match: { userId } },
+      { $match: { userId: userIdObj } },
       {
         $group: {
           _id: null,
@@ -37,7 +41,7 @@ router.get('/', authenticate, async (req, res) => {
     
     // Aggregate from SmsMessage collection
     const smsMessageStats = await SmsMessage.aggregate([
-      { $match: { userId } },
+      { $match: { userId: userIdObj } },
       {
         $group: {
           _id: null,
@@ -50,7 +54,7 @@ router.get('/', authenticate, async (req, res) => {
     
     // Aggregate from SmsRecipient collection
     const recipientStats = await SmsRecipient.aggregate([
-      { $match: { userId } },
+      { $match: { userId: userIdObj } },
       {
         $group: {
           _id: null,
