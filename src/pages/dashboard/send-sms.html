@@ -1040,12 +1040,21 @@
                     return;
                 }
 
+                // Handle multiple response formats
+                const responseData = response.data || response;
+                const recipientAnalysis = responseData.recipientAnalysis || responseData.data?.recipientAnalysis;
+                
+                if (!recipientAnalysis) {
+                    console.warn('No recipient analysis in response:', responseData);
+                    return;
+                }
+
                 // Show duplicate handling section
                 document.getElementById('duplicateHandlingSection').style.display = 'block';
 
                 // Update duplicate summary
-                const analysis = response.recipientAnalysis;
-                const duplicateCount = analysis.duplicateCount;
+                const analysis = recipientAnalysis;
+                const duplicateCount = analysis.duplicateCount || 0;
                 const blacklistCount = analysis.blacklistedRecipients ? analysis.blacklistedRecipients.length : 0;
 
                 if (duplicateCount > 0) {
@@ -1104,9 +1113,10 @@
                 }
 
                 // Update cost estimation with processed data
-                if (response.costEstimation) {
-                    document.getElementById('smsCount').textContent = response.costEstimation.totalSegments || 1;
-                    document.getElementById('estimatedCost').textContent = `GHS ${(response.costEstimation.estimatedCost || 0).toFixed(2)}`;
+                if (responseData.costEstimation || response.costEstimation) {
+                    const costData = responseData.costEstimation || response.costEstimation;
+                    document.getElementById('smsCount').textContent = costData.totalSegments || 1;
+                    document.getElementById('estimatedCost').textContent = `GHS ${(costData.estimatedCost || 0).toFixed(2)}`;
                 }
 
             } catch (error) {
