@@ -1,6 +1,4 @@
-const NaloSmsService = require('../services/NaloSmsService');
-
-const naloService = new NaloSmsService();
+const naloService = require('../services/NaloSmsService');
 
 /**
  * Handle Nalo delivery report callback
