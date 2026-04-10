@@ -9,7 +9,7 @@
     }
   },
   "deploy": {
-    "startCommand": "npm start",
+    "startCommand": "node server/index.js",
     "rootDirectory": ".",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,

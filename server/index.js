@@ -299,14 +299,13 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, async () => {
   logger.info('Server started', { port: PORT });
 
+  // Try to start SMS scheduler service, but don't fail if Redis is unavailable
   try {
-    // Start SMS scheduler service
     await SmsSchedulerService.start();
     logger.info('SMS Scheduler service started');
   } catch (error) {
     logger.error('Failed to start SMS Scheduler service', { error: error.message });
-    // Continue without queue service for now
-    logger.warn('Application starting without queue service due to Redis connection failure');
+    logger.warn('Application starting without queue service (Redis may be unavailable)');
   }
 });
 
