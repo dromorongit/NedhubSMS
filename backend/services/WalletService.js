@@ -120,7 +120,11 @@ class WalletService {
    * @returns {Object} - Deduct result with updated balance and transaction
    */
   async deductGhsForSms(userId, financialBreakdown, description) {
-    const { totalChargedToUser, segments } = financialBreakdown;
+    const totalChargedToUser = financialBreakdown.totalChargedToUser;
+    // Get numeric segments value - handle both object and number formats
+    const segments = financialBreakdown.avgSegments || 
+                    (financialBreakdown.segments?.segments) || 
+                    financialBreakdown.segments || 1;
 
     try {
       // Get current wallet
