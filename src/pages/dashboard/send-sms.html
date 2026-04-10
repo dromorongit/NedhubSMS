@@ -1482,6 +1482,8 @@
             }
 
             try {
+                console.log('Sending to API:', { messageBody, salutation, customSalutation, sampleRecipients });
+                
                 const response = await window.apiClient.generateMessagePreview({
                     messageBody,
                     salutation,
@@ -1489,10 +1491,20 @@
                     sampleRecipients
                 });
 
+                console.log('API Response:', response);
+
                 if (response.error) {
                     showToast(response.error, 'error');
                 } else {
-                    displayMessagePreview(response.data?.previewMessages || response.previewMessages);
+                    // Handle multiple response formats
+                    let previewMessages = response.data?.previewMessages || response.previewMessages || response.data?.data?.previewMessages;
+                    console.log('Preview messages:', previewMessages);
+                    if (previewMessages) {
+                        displayMessagePreview(previewMessages);
+                    } else {
+                        console.error('No preview messages found in response:', response);
+                        showToast('Unable to generate preview', 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Preview error:', error);
