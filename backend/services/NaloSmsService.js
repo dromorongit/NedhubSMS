@@ -185,7 +185,7 @@ class NaloSmsService {
         deductionResult = await WalletService.deductGhsForSms(
           userId,
           financialBreakdown,
-          `SMS to ${recipientsCount} recipient(s), ${financialBreakdown.segments} segment(s)`
+          `SMS to ${recipientsCount} recipient(s), ${financialBreakdown.avgSegments} segment(s)`
         );
 
         console.log('[NaloSmsService] Wallet deducted:', deductionResult.amountDeducted);
@@ -258,7 +258,7 @@ class NaloSmsService {
         }
       }
 
-      // Create SMS record
+        // Create SMS record
       const smsMessageData = {
         userId: userId,
         msisdn: formattedMsisdn,
@@ -271,7 +271,7 @@ class NaloSmsService {
         errorMessage: errorMessage,
         sellPricePerSms: financialBreakdown.sellPricePerSms,
         providerCostPerSms: financialBreakdown.providerCostPerSms,
-        segments: financialBreakdown.segments,
+        segments: financialBreakdown.avgSegments,
         recipientsCount: recipientsCount,
         totalChargedToUser: smsStatus === 'sent' && !skipDeduction ? financialBreakdown.totalChargedToUser : 0,
         totalCostToProvider: financialBreakdown.totalCostToProvider,
@@ -295,7 +295,7 @@ class NaloSmsService {
             0,
             1,
             recipientsCount,
-            financialBreakdown.segments
+            financialBreakdown.avgSegments
           );
         } catch (summaryError) {
           console.error('[NaloSmsService] Error updating financial summary:', summaryError.message);
@@ -309,7 +309,7 @@ class NaloSmsService {
             charged: skipDeduction ? 0 : financialBreakdown.totalChargedToUser,
             cost: financialBreakdown.totalCostToProvider,
             profit: skipDeduction ? 0 : financialBreakdown.profitAmount,
-            segments: financialBreakdown.segments
+            segments: financialBreakdown.avgSegments
           }
         };
       } else {
