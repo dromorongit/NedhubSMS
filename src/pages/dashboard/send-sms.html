@@ -1813,10 +1813,11 @@
                     await window.apiClient.schedulePersonalizedCampaign(campaignData);
 
                 if (result.error) {
-                    // Show detailed error if available
+                    // Handle error response
                     let errorMessage = result.error;
-                    if (result.details) {
-                        const details = result.details;
+                    const responseData = result.data || result;
+                    if (responseData.details || responseData.summary) {
+                        const details = responseData.details || responseData.summary;
                         const parts = [];
                         if (details.duplicateCount > 0) parts.push(`${details.duplicateCount} duplicates`);
                         if (details.invalidCount > 0) parts.push(`${details.invalidCount} invalid`);
@@ -1828,14 +1829,35 @@
                     }
                     showToast(errorMessage, 'error');
                 } else {
-                    const successMessage = sendMode === 'immediate' ?
-                        `Campaign sent successfully to ${result.summary.success} recipients` :
-                        `Campaign scheduled successfully for ${new Date(scheduledAt).toLocaleString()}`;
+                    // Check for both success: false (API-level failure) and result.data?.success
+                    const responseData = result.data || result;
+                    const isSuccess = responseData.success !== false;
+                    
+                    if (isSuccess) {
+                        const successMessage = sendMode === 'immediate' ?
+                            `Campaign sent successfully to ${responseData.summary?.success || 0} recipients` :
+                            `Campaign scheduled successfully for ${new Date(scheduledAt).toLocaleString()}`;
 
-                    showToast(successMessage, 'success');
+                        showToast(successMessage, 'success');
 
-                    // Reset form
-                    resetForm();
+                        // Reset form
+                        resetForm();
+                    } else {
+                        // Handle API-level failure (success: false)
+                        let errorMessage = responseData.error || 'Campaign failed to send';
+                        if (responseData.summary) {
+                            const details = responseData.summary;
+                            const parts = [];
+                            if (details.duplicateCount > 0) parts.push(`${details.duplicateCount} duplicates`);
+                            if (details.invalidCount > 0) parts.push(`${details.invalidCount} invalid`);
+                            if (details.blacklistedCount > 0) parts.push(`${details.blacklistedCount} blacklisted`);
+                            if (parts.length > 0) {
+                                errorMessage += ` (${parts.join(', ')})`;
+                            }
+                            errorMessage += '. Please check your recipients and try again.';
+                        }
+                        showToast(errorMessage, 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Campaign error:', error);
