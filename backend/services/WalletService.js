@@ -1,14 +1,11 @@
-const mongoose = require('mongoose');
 const Wallet = require('../models/Wallet');
 const Transaction = require('../models/Transaction');
 const WalletReservation = require('../models/WalletReservation');
-const SmsMessage = require('../models/SmsMessage');
-const CostCalculatorService = require('./CostCalculatorService');
 
 /**
  * WalletService
- * Handles wallet operations for payment processing
- * Uses MongoDB transactions for atomic operations where available
+ * Simplified wallet operations that work without MongoDB transactions
+ * Suitable for Railway's free tier MongoDB
  */
 class WalletService {
   /**
@@ -17,54 +14,33 @@ class WalletService {
    * @param {number} amount - Amount to credit
    * @param {string} description - Transaction description
    * @param {string} reference - Transaction reference
-   * @param {Object} session - MongoDB session for transactions
    * @returns {Object} - Updated wallet and transaction details
    */
-  async creditWalletWithReference(userId, amount, description, reference, session = null) {
-    try {
-      return await this._performCredit(userId, amount, description, reference, session);
-    } catch (error) {
-      console.error('[WalletService] Credit error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Perform the credit operation with transaction support
-   * @param {string} userId - User ID
-   * @param {number} amount - Amount to credit
-   * @param {string} description - Transaction description
-   * @param {string} reference - Transaction reference
-   * @param {Object} session - MongoDB session (optional)
-   */
-  async _performCredit(userId, amount, description, reference, session = null) {
-    // If no session provided, create one for this operation
-    const useOwnSession = !session;
-    const operationSession = session || await mongoose.startSession();
-
-    if (useOwnSession) {
-      operationSession.startTransaction();
-    }
-
+  async creditWalletWithReference(userId, amount, description, reference) {
     try {
       // Find or create wallet
-      let wallet = await Wallet.findOne({ userId }).session(operationSession);
+      let wallet = await Wallet.findOne({ userId });
 
       if (!wallet) {
-        wallet = new Wallet({ userId, balance: 0 });
-        await wallet.save({ session: operationSession });
+        wallet = new Wallet({ 
+          userId, 
+          balance: 0,
+          smsBalance: 0,
+          reservedAmount: 0
+        });
+        await wallet.save();
       }
 
       const balanceBefore = wallet.balance;
 
-      // Atomic credit using findOneAndUpdate with version check for optimistic locking
+      // Atomic credit using findOneAndUpdate
       const updatedWallet = await Wallet.findOneAndUpdate(
         { userId },
         {
-          $inc: { balance: amount },
+          $inc: { balance: amount, smsBalance: amount },
           $set: { updatedAt: new Date() }
         },
-        { new: true, session: operationSession }
+        { new: true }
       );
 
       if (!updatedWallet) {
@@ -78,15 +54,11 @@ class WalletService {
         amount,
         description,
         reference,
-        balanceBefore: balanceBefore,
+        balanceBefore,
         balanceAfter: balanceBefore + amount
       });
 
-      await transaction.save({ session: operationSession });
-
-      if (useOwnSession) {
-        await operationSession.commitTransaction();
-      }
+      await transaction.save();
 
       console.log(`[WalletService] Wallet credited: ${userId}, amount: ${amount}, new balance: ${balanceBefore + amount}`);
 
@@ -96,15 +68,8 @@ class WalletService {
         newBalance: balanceBefore + amount
       };
     } catch (error) {
-      if (useOwnSession) {
-        await operationSession.abortTransaction();
-      }
-      console.error('[WalletService] Credit operation failed:', error);
+      console.error('[WalletService] Credit error:', error);
       throw error;
-    } finally {
-      if (useOwnSession) {
-        operationSession.endSession();
-      }
     }
   }
 
@@ -155,14 +120,11 @@ class WalletService {
    * @returns {Object} - Deduct result with updated balance and transaction
    */
   async deductGhsForSms(userId, financialBreakdown, description) {
-    const { totalChargedToUser, segments, recipientsCount } = financialBreakdown;
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    const { totalChargedToUser, segments } = financialBreakdown;
 
     try {
       // Get current wallet
-      const wallet = await Wallet.findOne({ userId }).session(session);
+      const wallet = await Wallet.findOne({ userId });
 
       if (!wallet) {
         throw new Error('Wallet not found');
@@ -175,22 +137,21 @@ class WalletService {
 
       const balanceBefore = wallet.balance;
 
-      // Atomic deduction using findOneAndUpdate with version check for optimistic locking
+      // Atomic deduction
       const updatedWallet = await Wallet.findOneAndUpdate(
         {
           userId,
-          balance: { $gte: totalChargedToUser },
-          version: wallet.version // Optimistic locking
+          balance: { $gte: totalChargedToUser }
         },
         {
           $inc: { balance: -totalChargedToUser, monthlyUsage: segments },
           $set: { updatedAt: new Date() }
         },
-        { new: true, session }
+        { new: true }
       );
 
       if (!updatedWallet) {
-        throw new Error('Insufficient balance, wallet not found, or concurrent modification');
+        throw new Error('Insufficient balance or wallet not found');
       }
 
       // Generate unique reference
@@ -203,13 +164,11 @@ class WalletService {
         amount: totalChargedToUser,
         description,
         reference,
-        balanceBefore: balanceBefore,
+        balanceBefore,
         balanceAfter: balanceBefore - totalChargedToUser
       });
 
-      await transaction.save({ session });
-
-      await session.commitTransaction();
+      await transaction.save();
 
       console.log(`[WalletService] SMS GHS deducted: ${userId}, amount: ${totalChargedToUser}, segments: ${segments}, new balance: ${balanceBefore - totalChargedToUser}`);
 
@@ -221,11 +180,8 @@ class WalletService {
         amountDeducted: totalChargedToUser
       };
     } catch (error) {
-      await session.abortTransaction();
       console.error('[WalletService] Debit operation failed:', error);
       throw error;
-    } finally {
-      session.endSession();
     }
   }
 
@@ -236,188 +192,162 @@ class WalletService {
    * @returns {boolean} - True if sufficient balance
    */
   async hasSufficientBalance(userId, amount) {
-     const wallet = await Wallet.findOne({ userId });
-     if (!wallet) return false;
-     return wallet.balance >= amount;
-   }
+    const wallet = await Wallet.findOne({ userId });
+    if (!wallet) return false;
+    return wallet.balance >= amount;
+  }
 
-   /**
-    * Reserve funds for a campaign
-    * @param {string} userId - User ID
-    * @param {number} amount - Amount to reserve
-    * @param {string} campaignId - Campaign ID
-    * @returns {Object} - Reservation object
-    */
-   async reserveFunds(userId, amount, campaignId) {
-     const session = await mongoose.startSession();
-     session.startTransaction();
+  /**
+   * Reserve funds for a campaign
+   * @param {string} userId - User ID
+   * @param {number} amount - Amount to reserve
+   * @param {string} campaignId - Campaign ID
+   * @returns {Object} - Reservation object
+   */
+  async reserveFunds(userId, amount, campaignId) {
+    try {
+      // Check wallet balance
+      const wallet = await Wallet.findOne({ userId });
+      if (!wallet) {
+        throw new Error('Wallet not found');
+      }
 
-     try {
-       // Check wallet balance
-       const wallet = await Wallet.findOne({ userId }).session(session);
-       if (!wallet) {
-         throw new Error('Wallet not found');
-       }
+      if (wallet.balance < amount) {
+        throw new Error('Insufficient balance for reservation');
+      }
 
-       if (wallet.balance < amount) {
-         throw new Error('Insufficient balance for reservation');
-       }
+      // Create reservation record
+      const reservation = new WalletReservation({
+        userId,
+        campaignId,
+        amount,
+        status: 'active'
+      });
 
-       // Create reservation record
-       const reservation = new WalletReservation({
-         userId,
-         campaignId,
-         amount,
-         status: 'active'
-       });
+      await reservation.save();
 
-       await reservation.save({ session });
+      console.log(`[WalletService] Reserved ${amount} GHS for campaign ${campaignId}, user ${userId}`);
 
-       // Note: We're not debiting the wallet immediately for reservations
-       // The balance check ensures funds are available, but actual debit happens on capture
+      return reservation;
+    } catch (error) {
+      console.error('[WalletService] Reservation failed:', error);
+      throw error;
+    }
+  }
 
-       await session.commitTransaction();
-       console.log(`[WalletService] Reserved ${amount} GHS for campaign ${campaignId}, user ${userId}`);
+  /**
+   * Capture a reservation (convert to actual debit)
+   * @param {string} reservationId - Reservation ID
+   * @returns {Object} - Capture result with transaction
+   */
+  async captureReservation(reservationId) {
+    try {
+      // Find the reservation
+      const reservation = await WalletReservation.findById(reservationId);
+      if (!reservation) {
+        throw new Error('Reservation not found');
+      }
 
-       return reservation;
-     } catch (error) {
-       await session.abortTransaction();
-       console.error('[WalletService] Reservation failed:', error);
-       throw error;
-     } finally {
-       session.endSession();
-     }
-   }
+      if (reservation.status !== 'active') {
+        throw new Error(`Reservation is not active (status: ${reservation.status})`);
+      }
 
-   /**
-    * Capture a reservation (convert to actual debit)
-    * @param {string} reservationId - Reservation ID
-    * @returns {Object} - Capture result with transaction
-    */
-   async captureReservation(reservationId) {
-     const session = await mongoose.startSession();
-     session.startTransaction();
+      // Check wallet balance again (in case it changed)
+      const wallet = await Wallet.findOne({ userId: reservation.userId });
+      if (!wallet) {
+        throw new Error('Wallet not found');
+      }
 
-     try {
-       // Find the reservation
-       const reservation = await WalletReservation.findById(reservationId).session(session);
-       if (!reservation) {
-         throw new Error('Reservation not found');
-       }
+      if (wallet.balance < reservation.amount) {
+        throw new Error('Insufficient balance to capture reservation');
+      }
 
-       if (reservation.status !== 'active') {
-         throw new Error(`Reservation is not active (status: ${reservation.status})`);
-       }
+      // Get balance before debit
+      const balanceBefore = wallet.balance;
 
-       // Check wallet balance again (in case it changed)
-       const wallet = await Wallet.findOne({ userId: reservation.userId }).session(session);
-       if (!wallet) {
-         throw new Error('Wallet not found');
-       }
+      // Atomic debit
+      const updatedWallet = await Wallet.findOneAndUpdate(
+        {
+          userId: reservation.userId,
+          balance: { $gte: reservation.amount }
+        },
+        {
+          $inc: { balance: -reservation.amount },
+          $set: { updatedAt: new Date() }
+        },
+        { new: true }
+      );
 
-       if (wallet.balance < reservation.amount) {
-         throw new Error('Insufficient balance to capture reservation');
-       }
+      if (!updatedWallet) {
+        throw new Error('Failed to debit wallet - insufficient balance');
+      }
 
-       // Update reservation status
-       reservation.status = 'captured';
-       reservation.capturedAt = new Date();
-       await reservation.save({ session });
+      // Update reservation status
+      reservation.status = 'captured';
+      reservation.capturedAt = new Date();
+      await reservation.save();
 
-       // Get balance before debit
-       const balanceBefore = wallet.balance;
+      // Create transaction record
+      const reference = `RESERVATION-${reservationId}`;
+      const transaction = new Transaction({
+        userId: reservation.userId,
+        type: 'debit',
+        amount: reservation.amount,
+        description: `Campaign reservation capture`,
+        reference,
+        balanceBefore,
+        balanceAfter: balanceBefore - reservation.amount
+      });
 
-       // Atomic debit using findOneAndUpdate with version check
-       const updatedWallet = await Wallet.findOneAndUpdate(
-         {
-           userId: reservation.userId,
-           version: wallet.version // Optimistic locking
-         },
-         {
-           $inc: { balance: -reservation.amount },
-           $set: { updatedAt: new Date() }
-         },
-         { new: true, session }
-       );
+      await transaction.save();
 
-       if (!updatedWallet) {
-         throw new Error('Failed to debit wallet - concurrent modification or insufficient balance');
-       }
+      console.log(`[WalletService] Captured reservation ${reservationId}, debited ${reservation.amount} GHS`);
 
-       // Create transaction record
-       const reference = `RESERVATION-${reservationId}`;
-       const transaction = new Transaction({
-         userId: reservation.userId,
-         type: 'debit',
-         amount: reservation.amount,
-         description: `Campaign reservation capture`,
-         reference,
-         balanceBefore: balanceBefore,
-         balanceAfter: balanceBefore - reservation.amount
-       });
+      return {
+        reservation,
+        transaction,
+        wallet: updatedWallet,
+        amountDeducted: reservation.amount
+      };
+    } catch (error) {
+      console.error('[WalletService] Capture reservation failed:', error);
+      throw error;
+    }
+  }
 
-       await transaction.save({ session });
+  /**
+   * Release a reservation (return funds to wallet)
+   * @param {string} reservationId - Reservation ID
+   * @returns {Object} - Released reservation
+   */
+  async releaseReservation(reservationId) {
+    try {
+      // Find the reservation
+      const reservation = await WalletReservation.findById(reservationId);
+      if (!reservation) {
+        throw new Error('Reservation not found');
+      }
 
-       await session.commitTransaction();
+      if (reservation.status !== 'active') {
+        throw new Error(`Reservation is not active (status: ${reservation.status})`);
+      }
 
-       console.log(`[WalletService] Captured reservation ${reservationId}, debited ${reservation.amount} GHS`);
+      // Update reservation status
+      reservation.status = 'released';
+      reservation.releasedAt = new Date();
+      await reservation.save();
 
-       return {
-         reservation,
-         transaction,
-         wallet: updatedWallet,
-         amountDeducted: reservation.amount
-       };
-     } catch (error) {
-       await session.abortTransaction();
-       console.error('[WalletService] Capture reservation failed:', error);
-       throw error;
-     } finally {
-       session.endSession();
-     }
-   }
+      // Note: We're not crediting the wallet because we never debited it during reservation
+      // The funds were just "reserved" through balance checking
 
-   /**
-    * Release a reservation (return funds to wallet)
-    * @param {string} reservationId - Reservation ID
-    * @returns {Object} - Released reservation
-    */
-   async releaseReservation(reservationId) {
-     const session = await mongoose.startSession();
-     session.startTransaction();
+      console.log(`[WalletService] Released reservation ${reservationId}`);
 
-     try {
-       // Find the reservation
-       const reservation = await WalletReservation.findById(reservationId).session(session);
-       if (!reservation) {
-         throw new Error('Reservation not found');
-       }
-
-       if (reservation.status !== 'active') {
-         throw new Error(`Reservation is not active (status: ${reservation.status})`);
-       }
-
-       // Update reservation status
-       reservation.status = 'released';
-       reservation.releasedAt = new Date();
-       await reservation.save({ session });
-
-       // Note: We're not crediting the wallet because we never debited it during reservation
-       // The funds were just "reserved" through balance checking
-
-       await session.commitTransaction();
-
-       console.log(`[WalletService] Released reservation ${reservationId}`);
-
-       return reservation;
-     } catch (error) {
-       await session.abortTransaction();
-       console.error('[WalletService] Release reservation failed:', error);
-       throw error;
-     } finally {
-       session.endSession();
-     }
-   }
- }
+      return reservation;
+    } catch (error) {
+      console.error('[WalletService] Release reservation failed:', error);
+      throw error;
+    }
+  }
+}
 
 module.exports = new WalletService();
