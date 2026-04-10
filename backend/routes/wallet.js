@@ -65,10 +65,17 @@ router.get('/', authenticate, async (req, res) => {
       }
     ]);
     
+    // Debug: Log the raw aggregation results
+    console.log('[Wallet] Message stats:', messageStats);
+    console.log('[Wallet] SmsMessage stats:', smsMessageStats);
+    console.log('[Wallet] Recipient stats:', recipientStats);
+    
     // Combine all sources - take max values to avoid double counting
     const messageData = messageStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
     const smsMessageData = smsMessageStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
     const recipientData = recipientStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
+    
+    console.log('[Wallet] Combined data:', { messageData, smsMessageData, recipientData });
     
     const totalSent = Math.max(messageData.totalSent, smsMessageData.totalSent, recipientData.totalSent);
     const totalDelivered = Math.max(messageData.totalDelivered, smsMessageData.totalDelivered, recipientData.totalDelivered);
@@ -88,6 +95,11 @@ router.get('/', authenticate, async (req, res) => {
         totalDelivered,
         totalFailed,
         deliveryRate
+      },
+      debug: {
+        messageData,
+        smsMessageData,
+        recipientData
       },
       message: 'Wallet balance retrieved successfully'
     });
