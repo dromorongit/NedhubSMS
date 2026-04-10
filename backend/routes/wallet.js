@@ -70,16 +70,17 @@ router.get('/', authenticate, async (req, res) => {
     console.log('[Wallet] SmsMessage stats:', smsMessageStats);
     console.log('[Wallet] Recipient stats:', recipientStats);
     
-    // Combine all sources - take max values to avoid double counting
+    // Combine all sources - sum all values (messages may be in different collections)
     const messageData = messageStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
     const smsMessageData = smsMessageStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
     const recipientData = recipientStats[0] || { totalSent: 0, totalDelivered: 0, totalFailed: 0 };
     
     console.log('[Wallet] Combined data:', { messageData, smsMessageData, recipientData });
     
-    const totalSent = Math.max(messageData.totalSent, smsMessageData.totalSent, recipientData.totalSent);
-    const totalDelivered = Math.max(messageData.totalDelivered, smsMessageData.totalDelivered, recipientData.totalDelivered);
-    const totalFailed = Math.max(messageData.totalFailed, smsMessageData.totalFailed, recipientData.totalFailed);
+    // Sum all sources to get total messages
+    const totalSent = messageData.totalSent + smsMessageData.totalSent + recipientData.totalSent;
+    const totalDelivered = messageData.totalDelivered + smsMessageData.totalDelivered + recipientData.totalDelivered;
+    const totalFailed = messageData.totalFailed + smsMessageData.totalFailed + recipientData.totalFailed;
     
     // Calculate delivery rate
     const deliveryRate = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
