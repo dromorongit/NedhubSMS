@@ -371,10 +371,14 @@
                 messages = result.data || [];
                 filteredMessages = [...messages];
                 
-                // Update stats - count actual status values
+                // Update stats - count actual status values including 'sent' as delivered (provider acknowledged)
                 if (totalMessagesEl) totalMessagesEl.textContent = messages.length;
-                if (deliveredCountEl) deliveredCountEl.textContent = messages.filter(m => m.status === 'delivered').length;
+                
+                const deliveredMsgs = messages.filter(m => m.status === 'delivered' || m.status === 'sent');
+                if (deliveredCountEl) deliveredCountEl.textContent = deliveredMsgs.length;
+                
                 if (pendingCountEl) pendingCountEl.textContent = messages.filter(m => m.status === 'pending').length;
+                
                 if (failedCountEl) {
                     // Count failed plus any that have error codes
                     const failedCount = messages.filter(m => m.status === 'failed' || m.errorCode || m.errorMessage).length;
