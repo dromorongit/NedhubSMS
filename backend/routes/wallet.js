@@ -26,26 +26,26 @@ router.get('/', authenticate, async (req, res) => {
     // Ensure userId is a proper ObjectId for MongoDB matching
     const userIdObj = new mongoose.Types.ObjectId(userId);
     
-    // Aggregate from Message collection - count 'sent' OR 'delivered' as delivered (like history page)
+    // Aggregate from Message collection - count 'sent' OR 'delivered' as total sent (like history page)
     const messageStats = await Message.aggregate([
       { $match: { userId: userIdObj } },
       {
         $group: {
           _id: null,
-          totalSent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+          totalSent: { $sum: { $cond: [{ $in: ['$status', ['sent', 'delivered']] }, 1, 0] } },
           totalDelivered: { $sum: { $cond: [{ $in: ['$status', ['sent', 'delivered']] }, 1, 0] } },
           totalFailed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } }
         }
       }
     ]);
     
-    // Aggregate from SmsMessage collection - count 'sent' OR 'delivered' as delivered
+    // Aggregate from SmsMessage collection - count 'sent' OR 'delivered' as total sent
     const smsMessageStats = await SmsMessage.aggregate([
       { $match: { userId: userIdObj } },
       {
         $group: {
           _id: null,
-          totalSent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+          totalSent: { $sum: { $cond: [{ $in: ['$status', ['sent', 'delivered']] }, 1, 0] } },
           totalDelivered: { $sum: { $cond: [{ $in: ['$status', ['sent', 'delivered']] }, 1, 0] } },
           totalFailed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } }
         }
