@@ -371,11 +371,15 @@
                 messages = result.data || [];
                 filteredMessages = [...messages];
                 
-                // Update stats
+                // Update stats - count actual status values
                 if (totalMessagesEl) totalMessagesEl.textContent = messages.length;
                 if (deliveredCountEl) deliveredCountEl.textContent = messages.filter(m => m.status === 'delivered').length;
-                if (pendingCountEl) pendingCountEl.textContent = messages.filter(m => m.status === 'pending' || m.status === 'sent').length;
-                if (failedCountEl) failedCountEl.textContent = messages.filter(m => m.status === 'failed').length;
+                if (pendingCountEl) pendingCountEl.textContent = messages.filter(m => m.status === 'pending').length;
+                if (failedCountEl) {
+                    // Count failed plus any that have error codes
+                    const failedCount = messages.filter(m => m.status === 'failed' || m.errorCode || m.errorMessage).length;
+                    failedCountEl.textContent = failedCount;
+                }
                 
                 if (messages.length > 0) {
                     renderMessages(messages);

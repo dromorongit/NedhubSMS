@@ -1,5 +1,6 @@
 const SmsRecipient = require('../models/SmsRecipient');
 const SmsCampaign = require('../models/SmsCampaign');
+const SmsMessage = require('../models/SmsMessage');
 const SmsRecipientStatusService = require('../services/SmsRecipientStatusService');
 
 /**
@@ -54,6 +55,32 @@ const handleDeliveryStatusWebhook = async (req, res) => {
 
     if (!result.success) {
       console.error('[Webhook] Failed to update recipient status:', result.error);
+      // Continue to try updating SmsMessage even if recipient not found
+    }
+
+    // Also update the SmsMessage if it exists (for message history sync)
+    if (message_id) {
+      try {
+        const updateData = { status: normalizedStatus };
+        if (normalizedStatus === 'delivered') {
+          updateData.deliveredAt = timestamp ? new Date(timestamp) : new Date();
+        }
+        await SmsMessage.findOneAndUpdate(
+          { jobId: message_id },
+          updateData,
+          { new: true }
+        );
+        console.log(`[Webhook] Updated SmsMessage status to ${normalizedStatus}`);
+      } catch (smsError) {
+        console.error('[Webhook] Error updating SmsMessage:', smsError.message);
+      }
+    }
+
+    if (!result.success) {
+      // If only recipient update failed but SmsMessage update succeeded, still return success
+      if (message_id) {
+        return res.status(200).json({ message: 'Delivery status updated (via SmsMessage)' });
+      }
       return res.status(500).json({ error: 'Failed to process delivery status update' });
     }
 
