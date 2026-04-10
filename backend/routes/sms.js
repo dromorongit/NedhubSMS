@@ -76,15 +76,18 @@ router.post('/send', authenticate, async (req, res) => {
   }
 });
 
-// Get message history - fetch from BOTH Message and SmsMessage models
+// Get message history - fetch from ALL three models: Message, SmsMessage, and SmsRecipient
 router.get('/logs', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
+    const mongoose = require('mongoose');
+    const userIdObj = new mongoose.Types.ObjectId(userId);
     
-    // Fetch from both models
-    const [legacyMessages, newMessages] = await Promise.all([
+    // Fetch from all three models
+    const [legacyMessages, newMessages, recipients] = await Promise.all([
       Message.findByUserId(userId),
-      SmsMessage.find({ userId }).sort({ createdAt: -1 })
+      SmsMessage.find({ userId }).sort({ createdAt: -1 }),
+      require('../models/SmsRecipient').find({ userId: userIdObj }).sort({ createdAt: -1 })
     ]);
     
     // Transform messages to have consistent format
@@ -100,7 +103,7 @@ router.get('/logs', authenticate, async (req, res) => {
           createdAt: msg.createdAt,
           source: 'legacy'
         };
-      } else {
+      } else if (source === 'new') {
         return {
           _id: msg._id,
           senderId: msg.senderId,
@@ -115,13 +118,28 @@ router.get('/logs', authenticate, async (req, res) => {
           totalChargedToUser: msg.totalChargedToUser,
           source: 'new'
         };
+      } else {
+        // SmsRecipient
+        return {
+          _id: msg._id,
+          senderId: msg.campaignId ? 'Campaign' : 'N/A',
+          recipient: msg.phoneNumber,
+          recipientName: msg.recipientName,
+          message: msg.personalizedMessage,
+          status: msg.status,
+          createdAt: msg.createdAt,
+          errorCode: msg.errorMessage, // maps errorMessage to errorCode for filtering
+          errorMessage: msg.errorMessage,
+          source: 'recipient'
+        };
       }
     };
     
-    // Combine and sort by date
+    // Combine all three sources and sort by date
     const allMessages = [
       ...legacyMessages.map(msg => transformMessage(msg, 'legacy')),
-      ...newMessages.map(msg => transformMessage(msg, 'new'))
+      ...newMessages.map(msg => transformMessage(msg, 'new')),
+      ...recipients.map(msg => transformMessage(msg, 'recipient'))
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     res.json(allMessages);
