@@ -6,8 +6,10 @@ const SenderId = require('../models/SenderId');
 const SmsCampaign = require('../models/SmsCampaign');
 const Transaction = require('../models/Transaction');
 const SmsMessage = require('../models/SmsMessage');
+const Payment = require('../models/Payment');
 const FinancialSummary = require('../models/FinancialSummary');
 const CostCalculatorService = require('../services/CostCalculatorService');
+const WalletService = require('../services/WalletService');
 const { logAction } = require('../utils/audit');
 
 const router = express.Router();
@@ -559,6 +561,150 @@ router.get('/sms-volume/monthly', authorize(['admin', 'super_admin']), async (re
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch monthly SMS volume' });
+  }
+});
+
+// ==================== Manual Wallet Credit (for failed payments) ====================
+
+// Credit a user's wallet manually (for cases where payment callback failed)
+router.post('/wallets/credit', authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const { userId, amount, description } = req.body;
+    
+    if (!userId || !amount || amount <= 0) {
+      return res.status(400).json({ 
+        error: 'Valid userId and positive amount are required' 
+      });
+    }
+    
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Credit the wallet using WalletService
+    const result = await WalletService.creditWalletWithReference(
+      userId,
+      amount,
+      description || `Manual credit by admin`,
+      `ADMIN-CREDIT-${Date.now()}`
+    );
+    
+    await logAction(
+      req.user.id, 
+      'manual_wallet_credit', 
+      'user', 
+      userId, 
+      { amount, description, newBalance: result.newBalance }
+    );
+    
+    res.json({
+      success: true,
+      message: `Wallet credited with ${amount} GHS`,
+      newBalance: result.newBalance,
+      transactionId: result.transaction._id
+    });
+  } catch (error) {
+    console.error('[Admin] Manual wallet credit error:', error);
+    res.status(500).json({ error: 'Failed to credit wallet' });
+  }
+});
+
+// Get all payments (for troubleshooting)
+router.get('/payments', authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const query = {};
+    
+    if (status) query.status = status;
+    
+    const payments = await Payment.find(query)
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await Payment.countDocuments(query);
+    
+    res.json({
+      payments,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch payments' });
+  }
+});
+
+// Fix all uncredited payments (bulk credit for payments marked as paid but wallet not credited)
+router.post('/payments/fix-credited', authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    // Find all payments that are marked as 'paid' but don't have corresponding credit transactions
+    const paidPayments = await Payment.find({ status: 'paid' });
+    
+    let creditedCount = 0;
+    let failedCount = 0;
+    const results = [];
+    
+    for (const payment of paidPayments) {
+      // Check if a credit transaction already exists for this payment
+      const existingCredit = await Transaction.findOne({
+        reference: `PAYMENT-${payment.clientReference}`
+      });
+      
+      if (existingCredit) {
+        // Already credited, skip
+        continue;
+      }
+      
+      try {
+        // Credit the wallet
+        await WalletService.creditWalletWithReference(
+          payment.userId,
+          payment.amount,
+          `Wallet top-up via Hubtel (${payment.amount} GHS) - Bulk fix`,
+          `PAYMENT-${payment.clientReference}`
+        );
+        
+        creditedCount++;
+        results.push({ 
+          clientReference: payment.clientReference, 
+          userId: payment.userId, 
+          amount: payment.amount, 
+          status: 'credited' 
+        });
+      } catch (creditError) {
+        failedCount++;
+        results.push({ 
+          clientReference: payment.clientReference, 
+          userId: payment.userId, 
+          amount: payment.amount, 
+          status: 'failed', 
+          error: creditError.message 
+        });
+      }
+    }
+    
+    await logAction(
+      req.user.id, 
+      'bulk_wallet_credit_fix', 
+      'system', 
+      null, 
+      { creditedCount, failedCount, results }
+    );
+    
+    res.json({
+      success: true,
+      message: `Fixed ${creditedCount} payments, ${failedCount} failed`,
+      creditedCount,
+      failedCount,
+      results
+    });
+  } catch (error) {
+    console.error('[Admin] Bulk credit fix error:', error);
+    res.status(500).json({ error: 'Failed to fix uncredited payments' });
   }
 });
 
