@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const HubtelPaymentService = require('../services/HubtelPaymentService');
 const WalletService = require('../services/WalletService');
 const Payment = require('../models/Payment');
@@ -130,19 +131,14 @@ const initiatePayment = async (req, res) => {
  * @returns {boolean} - True if wallet was credited, false if already credited
  */
 async function creditWalletIfNeeded(payment) {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     // Check if wallet was already credited for this payment
     const existingTransaction = await Transaction.findOne({
       reference: `PAYMENT-${payment.clientReference}`
-    }).session(session);
+    });
 
     if (existingTransaction) {
       console.log(`[Payment] Wallet already credited for: ${payment.clientReference}`);
-      await session.abortTransaction();
-      session.endSession();
       return false;
     }
 
@@ -155,26 +151,22 @@ async function creditWalletIfNeeded(payment) {
     payment.gatewayFeeEstimated = estimatedGatewayFee;
     payment.netAmountReceived = netAmount;
     payment.grossAmountPaid = payment.amount;
-    await payment.save({ session });
+    await payment.save();
 
     // Credit the wallet with the GHS amount directly (gateway fees absorbed by platform)
+    // Note: Not using session since WalletService works without MongoDB transactions
     await walletService.creditWalletWithReference(
       payment.userId,
       payment.amount, // Credit directly in GHS
       `Wallet top-up via Hubtel (${payment.amount} GHS)`,
-      `PAYMENT-${payment.clientReference}`,
-      session // Pass session for transaction
+      `PAYMENT-${payment.clientReference}`
     );
 
-    await session.commitTransaction();
     console.log(`[Payment] Wallet credited: ${payment.userId}, amount: ${payment.amount} GHS, gatewayFee: ${estimatedGatewayFee.toFixed(2)} GHS`);
     return true;
   } catch (error) {
-    await session.abortTransaction();
     console.error('[Payment] Failed to credit wallet:', error);
     throw error;
-  } finally {
-    session.endSession();
   }
 }
 
