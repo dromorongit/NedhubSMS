@@ -392,45 +392,8 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Scheduling Section -->
-                        <div class="scheduling-section">
-                            <h3 class="section-title">Scheduling Options</h3>
-
-                            <div class="form-group">
-                                <label>Send Options</label>
-                                <div class="send-options">
-                                    <label class="radio-option">
-                                        <input type="radio" name="sendMode" value="immediate" checked>
-                                        <span class="radio-label">Send Immediately</span>
-                                    </label>
-                                    <label class="radio-option">
-                                        <input type="radio" name="sendMode" value="scheduled">
-                                        <span class="radio-label">Schedule for Later</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="schedule-settings" id="scheduleSettings" style="display: none;">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="scheduledDate">Date</label>
-                                        <input type="date" id="scheduledDate" name="scheduledDate">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="scheduledTime">Time</label>
-                                        <input type="time" id="scheduledTime" name="scheduledTime">
-                                    </div>
-                                </div>
-                                <small>Scheduled messages will be sent in UTC timezone</small>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                        <label for="message">Message</label>
-                        <div class="message-input-wrapper">
-                            <textarea id="message" name="message" rows="8" required placeholder="Type your message here..."></textarea>
-                        </div>
+    
+                        <!-- Character Counter and Cost Estimation -->
                         <div class="char-counter-wrapper">
                             <div class="char-counter">
                                 <span class="char-count-label">Characters:</span>
@@ -954,6 +917,11 @@
         let costCalculationTimeout;
         const messageBodyEl = document.getElementById('messageBody');
         const charCountEl = document.getElementById('charCount');
+        const encodingTypeEl = document.getElementById('encodingType');
+        const smsCountEl = document.getElementById('smsCount');
+        const estimatedCostEl = document.getElementById('estimatedCost');
+        const costWarningsEl = document.getElementById('costWarnings');
+        const warningTextEl = document.getElementById('warningText');
         
         if (messageBodyEl) {
             messageBodyEl.addEventListener('input', function() {
@@ -962,6 +930,43 @@
 
                 // Update basic counters immediately
                 if (charCountEl) charCountEl.textContent = charCount;
+
+                // Calculate segments and encoding for immediate feedback
+                if (charCount > 0) {
+                    const segmentResult = calculateSmsSegments(message);
+                    if (encodingTypeEl) {
+                        encodingTypeEl.textContent = segmentResult.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
+                        encodingTypeEl.className = 'encoding-value ' +
+                            (segmentResult.encoding === 'gsm7' ? '' : 'unicode-warning');
+                    }
+                    if (smsCountEl) {
+                        smsCountEl.textContent = segmentResult.segments;
+                    }
+                    
+                    // Check for Unicode characters and show warning
+                    if (costWarningsEl && warningTextEl) {
+                        const specialChars = detectUnicodeCharacters(message);
+                        if (specialChars.length > 0) {
+                            costWarningsEl.style.display = 'flex';
+                            warningTextEl.innerHTML = `Your message contains special characters
+                                (<strong>${specialChars.join(', ')}</strong>) which reduce SMS length
+                                from 160 to 70 characters per segment and may increase cost.
+                                <button class="convert-gsm-btn" onclick="convertToGsmCompatible()">
+                                    Convert to GSM-compatible text
+                                </button>`;
+                        } else {
+                            costWarningsEl.style.display = 'none';
+                        }
+                    }
+                } else {
+                    // Reset to defaults
+                    if (encodingTypeEl) {
+                        encodingTypeEl.textContent = 'GSM-7';
+                        encodingTypeEl.className = 'encoding-value';
+                    }
+                    if (smsCountEl) smsCountEl.textContent = '1';
+                    if (costWarningsEl) costWarningsEl.style.display = 'none';
+                }
 
                 // Debounce cost calculation API call
                 clearTimeout(costCalculationTimeout);
@@ -1223,7 +1228,24 @@
             const finalSalutation = salutation === 'Custom' ? customSalutation : salutation;
 
             if (salutationPreviewEl) salutationPreviewEl.textContent = finalSalutation || 'Dear';
-            if (messageBodyPreviewEl) messageBodyPreviewEl.textContent = messageBody || 'your message here';
+            if (messageBodyPreviewEl) {
+                // Show the actual message body content (after the salutation and name)
+                if (messageBody) {
+                    // Extract content after "{{name}}, " to show the actual message
+                    const namePlaceholderIndex = messageBody.indexOf('{{name}}');
+                    if (namePlaceholderIndex !== -1) {
+                        const afterName = messageBody.substring(namePlaceholderIndex + '{{name}}'.length);
+                        // Remove leading comma and space if present
+                        const cleanAfterName = afterName.replace(/^,\s*/, '');
+                        messageBodyPreviewEl.textContent = cleanAfterName || 'your message here';
+                    } else {
+                        // If no {{name}} placeholder, show the whole message
+                        messageBodyPreviewEl.textContent = messageBody;
+                    }
+                } else {
+                    messageBodyPreviewEl.textContent = 'your message here';
+                }
+            }
         }
 
         // Function to update cost estimation
@@ -1507,16 +1529,26 @@
         }
 
         function validateManualRecipient() {
-            // Basic validation - could be enhanced
+            // Enhanced validation using shared utility
             const item = this.closest('.manual-recipient-item');
             const nameInput = item.querySelector('.recipient-name-input');
             const phoneInput = item.querySelector('.recipient-phone-input');
 
-            // Simple validation
-            if (nameInput.value.trim() && phoneInput.value.trim()) {
+            const name = nameInput.value.trim();
+            const phone = phoneInput.value.trim();
+
+            // Validate phone number format
+            const phoneValidation = validatePhoneNumber(phone);
+            
+            if (name && phone && phoneValidation.isValid) {
                 item.style.borderColor = '#4caf50';
+                item.style.borderWidth = '2px';
+            } else if (phone && !phoneValidation.isValid) {
+                item.style.borderColor = '#f44336';
+                item.style.borderWidth = '2px';
             } else {
                 item.style.borderColor = '#e8e8e8';
+                item.style.borderWidth = '1px';
             }
         }
 
@@ -1535,16 +1567,25 @@
                 const response = await window.apiClient.uploadContacts(formData);
 
                 if (response.error) {
-                    showToast(response.error, 'error');
+                    // Provide more specific error messages for common issues
+                    if (response.error.includes('file') || response.error.includes('File')) {
+                        showToast('Please select a valid file to upload', 'error');
+                    } else if (response.error.includes('format') || response.error.includes('Format')) {
+                        showToast('Invalid file format. Please upload CSV, TXT, or Excel files', 'error');
+                    } else if (response.error.includes('empty') || response.error.includes('Empty')) {
+                        showToast('The file is empty. Please upload a file with contact data', 'error');
+                    } else {
+                        showToast(response.error, 'error');
+                    }
                     return;
                 }
 
                 // Show import preview modal
-                showImportPreviewModal(response);
+                showImportPreviewModal(response.data);
 
             } catch (error) {
                 console.error('File upload error:', error);
-                showToast('Error uploading file', 'error');
+                showToast('Error uploading file. Please check the file format and try again', 'error');
             }
         });
 
@@ -1617,22 +1658,39 @@
                 const response = await window.apiClient.confirmContactImport(fileData, { nameColumn, phoneColumn }, fileName);
 
                 if (response.error) {
-                    showToast(response.error, 'error');
+                    // Provide more specific error messages for common issues
+                    if (response.error.includes('column') || response.error.includes('Column')) {
+                        showToast('Please select both name and phone columns', 'error');
+                    } else if (response.error.includes('file') || response.error.includes('File')) {
+                        showToast('File data is required. Please upload a file first', 'error');
+                    } else if (response.error.includes('format') || response.error.includes('Format')) {
+                        showToast('Invalid file format. Please check your file and try again', 'error');
+                    } else {
+                        showToast(response.error, 'error');
+                    }
                 } else {
-                    showToast(`Imported ${response.results.validRows} contacts successfully`, 'success');
+                    const validCount = response.results?.validRows || 0;
+                    const invalidCount = response.results?.invalidRows || 0;
+                    
+                    if (invalidCount > 0) {
+                        showToast(`Imported ${validCount} contacts successfully. ${invalidCount} contacts had errors and were skipped`, 'warning');
+                    } else {
+                        showToast(`Imported ${validCount} contacts successfully`, 'success');
+                    }
+                    
                     closeImportPreviewModal();
 
                     // Update UI
                     document.getElementById('filePreview').style.display = 'flex';
                     document.getElementById('uploadedFileName').textContent = fileName;
-                    uploadedContacts = response.results.importedContacts;
+                    uploadedContacts = response.results?.importedContacts || [];
 
                     // Update cost estimation when recipients change
                     updateCostEstimation();
                 }
             } catch (error) {
                 console.error('Import confirmation error:', error);
-                showToast('Error confirming import', 'error');
+                showToast('Error confirming import. Please check your file format and try again', 'error');
             }
         }
 
@@ -1872,6 +1930,30 @@
                 return;
             }
 
+            // Validate recipients
+            if (recipients.length === 0) {
+                showToast('Please add at least one recipient', 'error');
+                return;
+            }
+
+            // Check for valid phone numbers
+            const invalidRecipients = recipients.filter(r => {
+                const phoneValidation = validatePhoneNumber(r.phoneNumber);
+                return !phoneValidation.isValid;
+            });
+
+            if (invalidRecipients.length > 0) {
+                showToast(`Please fix invalid phone numbers: ${invalidRecipients.map(r => r.phoneNumber).join(', ')}`, 'error');
+                return;
+            }
+
+            // Check for missing names
+            const missingNameRecipients = recipients.filter(r => !r.recipientName || !r.recipientName.trim());
+            if (missingNameRecipients.length > 0) {
+                showToast('Please enter names for all recipients', 'error');
+                return;
+            }
+
             const submitBtn = sendMode === 'immediate' ?
                 document.getElementById('sendNowBtn') :
                 document.getElementById('scheduleBtn');
@@ -1981,6 +2063,24 @@
             document.querySelector('.tab-btn[data-tab="manual"]').click();
         }
 
+
+        // Convert Unicode to GSM-compatible text
+        function convertToGsmCompatible() {
+            const messageBodyEl = document.getElementById('messageBody');
+            if (!messageBodyEl) return;
+            
+            const originalMessage = messageBodyEl.value;
+            const convertedMessage = convertToGsmCompatibleText(originalMessage);
+            
+            if (convertedMessage !== originalMessage) {
+                messageBodyEl.value = convertedMessage;
+                // Trigger input event to update counters
+                messageBodyEl.dispatchEvent(new Event('input', { bubbles: true }));
+                showToast('Message converted to GSM-compatible text', 'success');
+            } else {
+                showToast('No Unicode characters to convert', 'info');
+            }
+        }
 
         // Close preview modal
         function closePreviewModal() {
@@ -2241,16 +2341,17 @@
             gap: 0.75rem;
             margin-top: 1rem;
             padding: 0.75rem 1rem;
-            background-color: #fff3e0;
-            border: 1px solid #ffcc02;
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
             border-radius: 8px;
-            color: #e65100;
+            color: #1565c0;
             font-size: 0.875rem;
         }
 
         .warning-icon {
             font-size: 1.1rem;
             line-height: 1;
+            color: #2196f3;
         }
 
         .warning-text {
@@ -2258,8 +2359,30 @@
             line-height: 1.4;
         }
 
+        .warning-text strong {
+            color: #0d47a1;
+        }
+
+        .convert-gsm-btn {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .convert-gsm-btn:hover {
+            background-color: #1976d2;
+        }
+
         .char-count-value.warning {
-            color: #f57c00;
+            color: #1976d2;
         }
 
         .char-count-value.danger {
