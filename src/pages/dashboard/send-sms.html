@@ -902,7 +902,7 @@
                     return;
                 }
                 
-                if (response.data && response.data.balance < 100) {
+                if (response.data && response.data.balance <= 3) {
                     const lowBalanceAlert = document.getElementById('lowBalanceAlert');
                     if (lowBalanceAlert) {
                         lowBalanceAlert.style.display = 'flex';
@@ -1687,6 +1687,9 @@
 
                     // Update cost estimation when recipients change
                     updateCostEstimation();
+
+                    // Switch to upload tab to show imported contacts
+                    document.querySelector('.tab-btn[data-tab="upload"]').click();
                 }
             } catch (error) {
                 console.error('Import confirmation error:', error);
