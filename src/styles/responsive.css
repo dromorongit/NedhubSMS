@@ -605,6 +605,10 @@ body .dashboard-content {
     flex-wrap: wrap;
 }
 
+.form-group .form-hint {
+    font-size: 0.85rem !important;
+}
+
 .tips-card {
     padding: var(--spacing-md) !important;
 }
