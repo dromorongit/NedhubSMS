@@ -610,6 +610,50 @@ body .dashboard-content {
 }
 
 /* ============================================
+   LIVE PREVIEW - DESKTOP LAYOUT
+   ============================================ */
+
+/* Desktop: Two-column layout for SMS form and preview */
+@media (min-width: 992px) {
+    .sms-form-card {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+    
+    .sms-form-card > #sendSmsForm {
+        display: contents;
+    }
+    
+    /* Form sections */
+    .message-composer-section,
+    .personalization-section,
+    .char-counter-wrapper,
+    .form-actions {
+        grid-column: 1;
+    }
+    
+    /* Preview section spans both columns at top? No, put it on right */
+    .live-preview-section {
+        grid-column: 2;
+        grid-row: 1 / -1;
+        position: sticky;
+        top: 2rem;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+        border-left: 1px solid var(--neutral-gray);
+        padding-left: 2rem;
+    }
+    
+    .mobile-preview-wrapper {
+        display: flex;
+        justify-content: center;
+    }
+}
+
+/* ============================================
    TOAST NOTIFICATIONS - MOBILE POSITION
    ============================================ */
 

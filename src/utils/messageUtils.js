@@ -5,7 +5,7 @@
  * @param {string} message - Message body
  * @returns {Object} Segment calculation result
  */
-export function calculateSmsSegments(message) {
+function calculateSmsSegments(message) {
   if (!message || message.length === 0) {
     return {
       segments: 1,
@@ -57,7 +57,7 @@ export function calculateSmsSegments(message) {
  * @param {string} message - Message to analyze
  * @returns {string} 'gsm7' or 'unicode'
  */
-export function determineEncoding(message) {
+function determineEncoding(message) {
   if (!message) return 'gsm7';
 
   // GSM-7 character set (basic characters)
@@ -86,7 +86,7 @@ export function determineEncoding(message) {
  * @param {string} message - Message to calculate
  * @returns {number} Byte length
  */
-export function calculateByteLength(message) {
+function calculateByteLength(message) {
   if (!message) return 0;
 
   // GSM-7 extended characters
@@ -112,7 +112,7 @@ export function calculateByteLength(message) {
  * @param {string} message - Message to analyze
  * @returns {Array} Array of detected special characters
  */
-export function detectUnicodeCharacters(message) {
+function detectUnicodeCharacters(message) {
   if (!message) return [];
 
   const gsm7BasicChars = new Set([
@@ -142,7 +142,7 @@ export function detectUnicodeCharacters(message) {
  * @param {string} message - Message to convert
  * @returns {string} Converted message
  */
-export function convertToGsmCompatible(message) {
+function convertToGsmCompatible(message) {
   if (!message) return message;
 
   const replacements = {
@@ -250,7 +250,7 @@ export function convertToGsmCompatible(message) {
  * @param {string} recipientName - The recipient name
  * @returns {string} Formatted message
  */
-export function formatPersonalizedMessage(messageBody, salutation, recipientName) {
+function formatPersonalizedMessage(messageBody, salutation, recipientName) {
   if (!messageBody) return '';
   
   const finalSalutation = salutation || 'Dear';
@@ -269,7 +269,7 @@ export function formatPersonalizedMessage(messageBody, salutation, recipientName
  * @param {string} phoneNumber - Phone number to validate
  * @returns {Object} Validation result with isValid, normalizedNumber, and error
  */
-export function validatePhoneNumber(phoneNumber) {
+function validatePhoneNumber(phoneNumber) {
   if (!phoneNumber) {
     return { isValid: false, normalizedNumber: null, error: 'Phone number is required' };
   }
@@ -309,7 +309,7 @@ export function validatePhoneNumber(phoneNumber) {
  * @param {string} phoneNumber - Raw phone number
  * @returns {string} Normalized phone number
  */
-export function normalizePhoneNumber(phoneNumber) {
+function normalizePhoneNumber(phoneNumber) {
   if (!phoneNumber) return '';
 
   let normalized = String(phoneNumber).replace(/\D/g, '');
@@ -324,3 +324,13 @@ export function normalizePhoneNumber(phoneNumber) {
 
   return normalized;
 }
+
+// Attach to window for global access
+window.calculateSmsSegments = calculateSmsSegments;
+window.determineEncoding = determineEncoding;
+window.calculateByteLength = calculateByteLength;
+window.detectUnicodeCharacters = detectUnicodeCharacters;
+window.convertToGsmCompatible = convertToGsmCompatible;
+window.formatPersonalizedMessage = formatPersonalizedMessage;
+window.validatePhoneNumber = validatePhoneNumber;
+window.normalizePhoneNumber = normalizePhoneNumber;

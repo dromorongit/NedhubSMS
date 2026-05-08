@@ -5,7 +5,7 @@
  * @param {string} phoneNumber - Raw phone number
  * @returns {string} Normalized phone number
  */
-export function normalizePhoneNumber(phoneNumber) {
+function normalizePhoneNumber(phoneNumber) {
   if (!phoneNumber) return '';
 
   let normalized = String(phoneNumber).replace(/\D/g, '');
@@ -26,7 +26,7 @@ export function normalizePhoneNumber(phoneNumber) {
  * @param {string} phoneNumber - Phone number to validate
  * @returns {Object} Validation result with isValid, normalizedNumber, and error
  */
-export function validatePhoneNumber(phoneNumber) {
+function validatePhoneNumber(phoneNumber) {
   if (!phoneNumber) {
     return { isValid: false, normalizedNumber: null, error: 'Phone number is required' };
   }
@@ -66,7 +66,7 @@ export function validatePhoneNumber(phoneNumber) {
  * @param {string} input - Raw input string
  * @returns {Object} Parsed recipient with name and phoneNumber
  */
-export function parseManualRecipientInput(input) {
+function parseManualRecipientInput(input) {
   if (!input || !input.trim()) {
     return { recipientName: '', phoneNumber: '', isValid: false, error: 'Input is required' };
   }
@@ -110,7 +110,7 @@ export function parseManualRecipientInput(input) {
  * @param {boolean} removeDuplicates - Whether to remove duplicates automatically
  * @returns {Object} {uniqueRecipients: Array, duplicates: Array, duplicateCount: number}
  */
-export function deduplicateRecipients(recipients, removeDuplicates = true) {
+function deduplicateRecipients(recipients, removeDuplicates = true) {
   const seen = new Map();
   const duplicates = [];
   const uniqueRecipients = [];
@@ -161,7 +161,7 @@ export function deduplicateRecipients(recipients, removeDuplicates = true) {
  * @param {Set} blacklistedSet - Set of blacklisted phone numbers
  * @returns {Object} {validRecipients: Array, invalidRecipients: Array, blacklistedRecipients: Array}
  */
-export function validateRecipients(recipients, blacklistedSet = new Set()) {
+function validateRecipients(recipients, blacklistedSet = new Set()) {
   const validRecipients = [];
   const invalidRecipients = [];
   const blacklistedRecipients = [];
@@ -211,7 +211,7 @@ export function validateRecipients(recipients, blacklistedSet = new Set()) {
  * @param {boolean} removeDuplicates - Whether to remove duplicates
  * @returns {Object} Processing results
  */
-export function processRecipientsForCampaign(recipients, blacklistedSet = new Set(), removeDuplicates = true) {
+function processRecipientsForCampaign(recipients, blacklistedSet = new Set(), removeDuplicates = true) {
   // First, deduplicate
   const dedupResult = deduplicateRecipients(recipients, removeDuplicates);
 
@@ -228,3 +228,11 @@ export function processRecipientsForCampaign(recipients, blacklistedSet = new Se
     finalCount: validationResult.validRecipients.length
   };
 }
+
+// Attach to window for global access
+window.normalizePhoneNumber = normalizePhoneNumber;
+window.validatePhoneNumber = validatePhoneNumber;
+window.parseManualRecipientInput = parseManualRecipientInput;
+window.deduplicateRecipients = deduplicateRecipients;
+window.validateRecipients = validateRecipients;
+window.processRecipientsForCampaign = processRecipientsForCampaign;

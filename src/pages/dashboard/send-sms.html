@@ -11,6 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
+    <script src="../../utils/messageUtils.js" defer></script>
+    <script src="../../utils/recipientUtils.js" defer></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -343,38 +345,40 @@
                                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
                              </svg>
                              <span>Or select from <a href="contacts.html">your contacts</a></span>
-                      <!-- Personalization Section -->
-                      <div class="personalization-section" style="display: none;">
-                          <h3 class="section-title">Message Personalization</h3>
- 
-                             <div class="form-row">
-                                 <div class="form-group">
-                                     <label for="salutation">Salutation</label>
-                                     <select id="salutation" name="salutation">
-                                         <option value="Dear">Dear</option>
-                                         <option value="Hello">Hello</option>
-                                         <option value="Hi">Hi</option>
-                                         <option value="Esteemed">Esteemed</option>
-                                         <option value="Honourable">Honourable</option>
-                                         <option value="Custom">Custom</option>
-                                     </select>
-                                 </div>
- 
-                                 <div class="form-group" id="customSalutationGroup" style="display: none;">
-                                     <label for="customSalutation">Custom Salutation</label>
-                                     <input type="text" id="customSalutation" name="customSalutation" placeholder="Enter custom salutation" maxlength="50">
-                                 </div>
-                             </div>
- 
-                             <div class="message-composer">
-                                 <div class="form-group">
-                                     <label for="messageBody">Message Body</label>
-                                     <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Your message will appear here with personalized salutation... Use {{name}} for recipient name."></textarea>
-                                     <small>The final message will be: <strong id="salutationPreview">Dear</strong> <strong>{{name}}</strong>, <span id="messageBodyPreview">your message here</span></small>
-                                 </div>
-                             </div>
-                         </div>
-    
+                        <!-- Message Composer Section (Always Visible) -->
+                        <div class="message-composer-section">
+                            <div class="form-group">
+                                <label for="messageBody">Message Body</label>
+                                <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Type your message here..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Personalization Section (only for personalized mode) -->
+                        <div class="personalization-section" style="display: none;">
+                            <h3 class="section-title">Message Personalization</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="salutation">Salutation</label>
+                                    <select id="salutation" name="salutation">
+                                        <option value="Dear">Dear</option>
+                                        <option value="Hello">Hello</option>
+                                        <option value="Hi">Hi</option>
+                                        <option value="Esteemed">Esteemed</option>
+                                        <option value="Honourable">Honourable</option>
+                                        <option value="Custom">Custom</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="customSalutationGroup" style="display: none;">
+                                    <label for="customSalutation">Custom Salutation</label>
+                                    <input type="text" id="customSalutation" name="customSalutation" placeholder="Enter custom salutation" maxlength="50">
+                                </div>
+                            </div>
+                            <small class="personalization-hint">
+                                The message will be personalized as: 
+                                <strong id="salutationPreview">Dear</strong> <strong>{{name}}</strong>, your message here
+                            </small>
+                        </div>
+                        
                         <!-- Character Counter and Cost Estimation -->
                         <div class="char-counter-wrapper">
                             <div class="char-counter">
@@ -400,21 +404,26 @@
                         </div>
                     </div>
 
-                        <!-- Message Preview Section -->
-                        <div class="preview-section">
-                            <h3 class="section-title">Message Preview</h3>
-                            <div class="preview-controls">
-                                <button type="button" class="btn-preview" id="generatePreviewBtn">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-                                    Generate Preview
-                                </button>
-                            </div>
-                            <div class="preview-results" id="previewResults" style="display: none;">
-                                <div class="preview-samples" id="previewSamples">
-                                    <!-- Preview messages will be shown here -->
+                        <!-- Live Mobile Preview Section -->
+                        <div class="live-preview-section">
+                            <h3 class="section-title">Live Preview</h3>
+                            <div class="mobile-preview-wrapper" id="mobilePreviewWrapper">
+                                <div class="phone-mockup">
+                                    <div class="phone-frame">
+                                        <div class="phone-notch"></div>
+                                        <div class="phone-screen">
+                                            <div class="sms-header-bar">
+                                                <div class="header-time" id="previewHeaderTime">12:30</div>
+                                                <div class="header-sender" id="previewHeaderSender">Sender ID</div>
+                                            </div>
+                                            <div class="sms-messages-container" id="previewMessagesContainer">
+                                                <div class="sms-message-bubble received">
+                                                    <span class="message-text" id="livePreviewText">Your message will appear here...</span>
+                                                    <span class="message-time" id="previewMessageTime">12:30 PM</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -963,8 +972,8 @@
                     updateCostEstimation();
                 }, 300);
 
-                // Update message preview
-                updateMessagePreview();
+                // Update live preview
+                schedulePreviewUpdate();
             });
         }
 
@@ -984,7 +993,7 @@
                         if (customSalutationEl) customSalutationEl.required = false;
                     }
                 }
-                updateMessagePreview();
+                schedulePreviewUpdate();
                 updateMessageBodyTemplate(); // Auto-update message when salutation changes
             });
             
@@ -998,7 +1007,7 @@
         // Custom salutation input handler
         if (customSalutationEl) {
             customSalutationEl.addEventListener('input', function() {
-                updateMessagePreview();
+                schedulePreviewUpdate();
                 updateMessageBodyTemplate(); // Auto-update message when custom salutation changes
             });
             
@@ -1151,11 +1160,14 @@
                   });
                   html += '</div>';
                   
-                  if (contactGroupsEl) {
-                      contactGroupsEl.innerHTML = html;
-                  }
-                  
-              } catch (error) {
+                   if (contactGroupsEl) {
+                       contactGroupsEl.innerHTML = html;
+                   }
+                   
+                   // Update preview after contacts are loaded
+                   schedulePreviewUpdate();
+                   
+               } catch (error) {
                   console.error('Error loading contacts:', error);
                   if (contactGroupsEl) {
                       contactGroupsEl.innerHTML = '<p class="error-text">Error loading contacts</p>';
@@ -1175,13 +1187,14 @@
                       recipientName: contactName,
                       phoneNumber: contactPhone
                   });
-              } else {
-                  selectedContacts = selectedContacts.filter(c => c.id !== contactId);
-              }
-              
-              updateSelectedContactsPreview();
-              updateCostEstimation();
-          }
+               } else {
+                   selectedContacts = selectedContacts.filter(c => c.id !== contactId);
+               }
+               
+               updateSelectedContactsPreview();
+               updateCostEstimation();
+               schedulePreviewUpdate();
+           }
           
           // Update selected contacts preview
           function updateSelectedContactsPreview() {
@@ -1205,19 +1218,20 @@
               }
           }
           
-          // Remove selected contact
-          function removeSelectedContact(contactId) {
-              selectedContacts = selectedContacts.filter(c => c.id !== contactId);
-              
-              // Uncheck the checkbox
-              const checkbox = document.querySelector(`#contactGroups input[value="${contactId}"]`);
-              if (checkbox) {
-                  checkbox.checked = false;
-              }
-              
-              updateSelectedContactsPreview();
-              updateCostEstimation();
-          }
+           // Remove selected contact
+           function removeSelectedContact(contactId) {
+               selectedContacts = selectedContacts.filter(c => c.id !== contactId);
+               
+               // Uncheck the checkbox
+               const checkbox = document.querySelector(`#contactGroups input[value="${contactId}"]`);
+               if (checkbox) {
+                   checkbox.checked = false;
+               }
+               
+               updateSelectedContactsPreview();
+               updateCostEstimation();
+               schedulePreviewUpdate();
+           }
           
           // Recipient source tabs event listener (FIXED: specific selector)
           document.querySelectorAll('.recipient-source-tabs .tab-btn').forEach(btn => {
@@ -1425,43 +1439,6 @@
             }
         }
 
-        // Function to update message preview
-        function updateMessagePreview() {
-            const salutationEl = document.getElementById('salutation');
-            const customSalutationEl = document.getElementById('customSalutation');
-            const messageBodyEl = document.getElementById('messageBody');
-            const salutationPreviewEl = document.getElementById('salutationPreview');
-            const messageBodyPreviewEl = document.getElementById('messageBodyPreview');
-            
-            if (!salutationEl || !messageBodyEl) return;
-            
-            const salutation = salutationEl.value;
-            const customSalutation = customSalutationEl ? customSalutationEl.value : '';
-            const messageBody = messageBodyEl.value;
-
-            const finalSalutation = salutation === 'Custom' ? customSalutation : salutation;
-
-            if (salutationPreviewEl) salutationPreviewEl.textContent = finalSalutation || 'Dear';
-            if (messageBodyPreviewEl) {
-                // Show the actual message body content (after the salutation and name)
-                if (messageBody) {
-                    // Extract content after "{{name}}, " to show the actual message
-                    const namePlaceholderIndex = messageBody.indexOf('{{name}}');
-                    if (namePlaceholderIndex !== -1) {
-                        const afterName = messageBody.substring(namePlaceholderIndex + '{{name}}'.length);
-                        // Remove leading comma and space if present
-                        const cleanAfterName = afterName.replace(/^,\s*/, '');
-                        messageBodyPreviewEl.textContent = cleanAfterName || 'your message here';
-                    } else {
-                        // If no {{name}} placeholder, show the whole message
-                        messageBodyPreviewEl.textContent = messageBody;
-                    }
-                } else {
-                    messageBodyPreviewEl.textContent = 'your message here';
-                }
-            }
-        }
-
         // Function to update cost estimation
         async function updateCostEstimation() {
             // Get elements with null checks
@@ -1607,14 +1584,14 @@
              if (currentValue.trim() === '' || hasExistingSalutation) {
                  // Preserve any additional content after the salutation
                  const preservedContent = hasExistingSalutation ? existingContent : '';
-                 messageBodyEl.value = salutation + ' {{name}}, ' + preservedContent;
-                 try {
-                     updateMessagePreview();
-                 } catch (e) {
-                     console.warn('Preview update skipped:', e);
-                 }
-             }
-         }
+                  messageBodyEl.value = salutation + ' {{name}}, ' + preservedContent;
+                  try {
+                      schedulePreviewUpdate();
+                  } catch (e) {
+                      console.warn('Preview update skipped:', e);
+                  }
+              }
+          }
          
          // Update message body template for default messaging mode (no name placeholder)
          function updateMessageBodyTemplateForDefaultMode() {
@@ -1664,14 +1641,14 @@
              if (currentValue.trim() === '' || hasExistingSalutation) {
                  // Preserve any additional content after the salutation
                  const preservedContent = hasExistingSalutation ? existingContent : '';
-                 messageBodyEl.value = salutation + ', ' + preservedContent;
-                 try {
-                     updateMessagePreview();
-                 } catch (e) {
-                     console.warn('Preview update skipped:', e);
-                 }
-             }
-         }
+                  messageBodyEl.value = salutation + ', ' + preservedContent;
+                  try {
+                      schedulePreviewUpdate();
+                  } catch (e) {
+                      console.warn('Preview update skipped:', e);
+                  }
+              }
+          }
 
         function addManualRecipient() {
             const template = document.querySelector('.manual-recipient-item.template');
@@ -1702,14 +1679,16 @@
                 updateMessageBodyTemplate();
             }
 
-            // Update cost estimation when recipients change
+            // Update cost estimation and live preview when recipients change
             updateCostEstimation();
+            schedulePreviewUpdate();
         }
 
         function removeManualRecipient(btn) {
             btn.closest('.manual-recipient-item').remove();
-            // Update cost estimation when recipients change
+            // Update cost estimation and live preview when recipients change
             updateCostEstimation();
+            schedulePreviewUpdate();
         }
 
         function validateManualRecipient() {
@@ -1873,10 +1852,13 @@
                     document.getElementById('uploadedFileName').textContent = fileName;
                     uploadedContacts = response.results?.importedContacts || [];
 
-                    // Update cost estimation when recipients change
-                    updateCostEstimation();
+                     // Update cost estimation when recipients change
+                     updateCostEstimation();
+                     
+                     // Update live preview
+                     schedulePreviewUpdate();
 
-                    // Switch to upload tab to show imported contacts
+                     // Switch to upload tab to show imported contacts
                     document.querySelector('.tab-btn[data-tab="upload"]').click();
                 }
             } catch (error) {
@@ -1893,162 +1875,398 @@
 
             // Update cost estimation when recipients change
             updateCostEstimation();
+            
+            // Update live preview
+            schedulePreviewUpdate();
         }
 
-        // Generate preview functionality
-        document.getElementById('generatePreviewBtn').addEventListener('click', generateMessagePreview);
-
-         async function generateMessagePreview() {
-             // Get active messaging mode
-             const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
-             const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
-             
-             const messageBodyEl = document.getElementById('messageBody');
-             const salutationEl = document.getElementById('salutation');
-             const customSalutationEl = document.getElementById('customSalutation');
-             
-             const messageBody = messageBodyEl ? messageBodyEl.value : '';
-             const salutation = salutationEl ? salutationEl.value : 'Dear';
-             const customSalutation = customSalutationEl ? customSalutationEl.value : '';
- 
-             // Validate message body
-             if (!messageBody || messageBody.trim().length === 0) {
-                 showToast('Please enter a message body first', 'warning');
-                 return;
-             }
- 
-             // Get sample recipients
-             const sampleRecipients = getSampleRecipients();
- 
-             // For personalized mode, we need at least one recipient with name
-             if (isPersonalizedMode && sampleRecipients.length === 0) {
-                 showToast('Please add at least one recipient with name and phone number to generate preview', 'warning');
-                 return;
-             }
- 
-             // For default mode, we can proceed even without names (just phone numbers)
-             if (!isPersonalizedMode && sampleRecipients.length === 0) {
-                 showToast('Please add at least one recipient to generate preview', 'warning');
-                 return;
-             }
- 
-             try {
-                 console.log('Sending to API:', { messageBody, salutation, customSalutation, sampleRecipients, mode: isPersonalizedMode ? 'personalized' : 'default' });
-                 
-                 let response;
-                 
-                 if (isPersonalizedMode) {
-                     // Personalized messaging mode
-                     response = await window.apiClient.generateMessagePreview(
-                         messageBody,
-                         salutation,
-                         customSalutation,
-                         sampleRecipients
-                     );
-                 } else {
-                     // Default messaging mode - generate a simple preview
-                     // We'll create a mock preview for default mode
-                     response = {
-                         data: {
-                             previewMessages: [{
-                                 recipientName: sampleRecipients[0]?.recipientName || 'Recipient',
-                                 phoneNumber: sampleRecipients[0]?.phoneNumber || '0000000000',
-                                 personalizedMessage: messageBody
-                             }]
-                         }
-                     };
-                 }
- 
-                 console.log('API Response:', response);
- 
-                 if (response.error) {
-                     showToast(response.error, 'error');
-                 } else {
-                     // Handle multiple response formats
-                     const responseData = response.data;
-                     let previewMessages = responseData?.previewMessages;
-                     console.log('Preview messages:', previewMessages);
-                     if (previewMessages && Array.isArray(previewMessages) && previewMessages.length > 0) {
-                         displayMessagePreview(previewMessages);
-                     } else {
-                         console.error('No preview messages found in response:', response);
-                         showToast('Unable to generate preview. Please ensure you have added at least one recipient with name and phone number.', 'error');
-                     }
-                 }
-             } catch (error) {
-                 console.error('Preview error:', error);
-                 showToast('Error generating preview', 'error');
-             }
-         }
-
-        function getSampleRecipients() {
-            const recipients = [];
-
-            // Check which recipient source tab is active
-            const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
-            const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
-            const isDefaultMode = currentMessagingMode === 'default';
-
-            if (activeTab === 'manual') {
-                // Get manual recipients
-                document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => {
-                    const name = item.querySelector('.recipient-name-input').value.trim();
-                    const phone = item.querySelector('.recipient-phone-input').value.trim();
-
-                    if (phone) {
-                        const phoneDigits = phone.replace(/\D/g, '');
-                        if (phoneDigits.length >= 9) {
-                            // In default mode, name is optional
-                            if (isDefaultMode || name) {
-                                recipients.push({ 
-                                    recipientName: name || 'Recipient', 
-                                    phoneNumber: phone 
-                                });
-                            }
-                        }
-                    }
-                });
-            } else if (activeTab === 'upload') {
-                // Use uploaded contacts
-                if (uploadedContacts.length > 0) {
-                    recipients.push(...uploadedContacts.slice(0, 3));
-                }
-            } else if (activeTab === 'contacts') {
-                // Use selected contacts
-                if (selectedContacts.length > 0) {
-                    recipients.push(...selectedContacts.slice(0, 3));
-                }
-            }
-
-            // If no recipients, use dummy data for preview
-            if (recipients.length === 0) {
-                recipients.push(
-                    { recipientName: 'John Doe', phoneNumber: '0241234567' },
-                    { recipientName: 'Jane Smith', phoneNumber: '0271234567' },
-                    { recipientName: 'Bob Johnson', phoneNumber: '0231234567' }
-                );
-            }
-
-            return recipients.slice(0, 3); // Limit to 3 for preview
+        // ============================================
+        // LIVE PREVIEW SYSTEM
+        // ============================================
+        
+        // Debounced live preview update
+        let previewUpdateTimeout;
+        function schedulePreviewUpdate() {
+            clearTimeout(previewUpdateTimeout);
+            previewUpdateTimeout = setTimeout(renderLivePreview, 150);
         }
-
-        function displayMessagePreview(previewMessages) {
-            const container = document.getElementById('previewSamples');
-
-            let html = '';
-            previewMessages.forEach(msg => {
-                html += `
-                    <div class="preview-sample">
-                        <strong>To: ${msg.recipientName} (${msg.phoneNumber})</strong><br>
-                        ${msg.personalizedMessage}
-                    </div>
-                `;
+        
+        // Centralized live preview renderer
+        function renderLivePreview() {
+            const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
+            const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
+            
+            const messageBodyEl = document.getElementById('messageBody');
+            const salutationEl = document.getElementById('salutation');
+            const customSalutationEl = document.getElementById('customSalutation');
+            const senderIdEl = document.getElementById('senderId');
+            
+            const messageBody = messageBodyEl ? messageBodyEl.value : '';
+            const salutation = salutationEl ? salutationEl.value : 'Dear';
+            const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+            const senderId = senderIdEl ? senderIdEl.value : '';
+            
+            // Get preview elements
+            const previewTextEl = document.getElementById('livePreviewText');
+            const headerSenderEl = document.getElementById('previewHeaderSender');
+            const headerTimeEl = document.getElementById('previewHeaderTime');
+            const messageTimeEl = document.getElementById('previewMessageTime');
+            const containerEl = document.getElementById('previewMessagesContainer');
+            const wrapperEl = document.getElementById('mobilePreviewWrapper');
+            
+            if (!previewTextEl || !containerEl) return;
+            
+            // Update sender ID in header
+            if (headerSenderEl) {
+                headerSenderEl.textContent = senderId || 'Sender ID';
+            }
+            
+            // Update time (current time)
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            if (headerTimeEl) headerTimeEl.textContent = timeString;
+            if (messageTimeEl) messageTimeEl.textContent = timeString;
+            
+            // Determine the message to display
+            let displayMessage = '';
+            let recipientName = '';
+            
+            if (isPersonalizedMode) {
+                // Personalized mode: show personalized message with recipient name
+                const finalSalutation = salutation === 'Custom' ? customSalutation : salutation;
+                
+                // Get first selected recipient
+                const firstRecipient = getFirstRecipient();
+                if (firstRecipient) {
+                    recipientName = firstRecipient.recipientName || firstRecipient.name || 'John';
+                } else {
+                    recipientName = 'John'; // placeholder
+                }
+                
+                // Replace {{name}} and {{salutation}} placeholders
+                displayMessage = messageBody
+                    .replace(/\{\{name\}\}/g, recipientName)
+                    .replace(/\{\{salutation\}\}/g, finalSalutation);
+                
+                // If message doesn't start with salutation, prepend it
+                if (!displayMessage.startsWith(finalSalutation)) {
+                    displayMessage = `${finalSalutation} ${recipientName}, ${displayMessage}`;
+                }
+            } else {
+                // Default mode: show the message as-is
+                displayMessage = messageBody || 'Your message will appear here...';
+            }
+            
+            // Update preview with animation
+            if (wrapperEl) wrapperEl.classList.add('preview-updating');
+            
+            setTimeout(() => {
+                if (previewTextEl) {
+                    previewTextEl.textContent = displayMessage;
+                }
+                if (wrapperEl) wrapperEl.classList.remove('preview-updating');
+            }, 100);
+        }
+        
+        // Get first recipient for preview
+        function getFirstRecipient() {
+            // Check manual recipients first
+            const manualItems = document.querySelectorAll('.manual-recipient-item:not(.template)');
+            for (const item of manualItems) {
+                const nameInput = item.querySelector('.recipient-name-input');
+                const phoneInput = item.querySelector('.recipient-phone-input');
+                const name = nameInput ? nameInput.value.trim() : '';
+                const phone = phoneInput ? phoneInput.value.trim() : '';
+                if (phone) {
+                    return { recipientName: name || 'Recipient', phoneNumber: phone };
+                }
+            }
+            
+            // Check uploaded contacts
+            if (uploadedContacts.length > 0) {
+                const contact = uploadedContacts[0];
+                return {
+                    recipientName: contact.recipientName || contact.name || 'Contact',
+                    phoneNumber: contact.phoneNumber || contact.phone || ''
+                };
+            }
+            
+            // Check selected contacts
+            if (selectedContacts.length > 0) {
+                const contact = selectedContacts[0];
+                return {
+                    recipientName: contact.recipientName || contact.name || 'Contact',
+                    phoneNumber: contact.phoneNumber || contact.phone || ''
+                };
+            }
+            
+            return null;
+        }
+        
+        // ============================================
+        // EVENT LISTENERS FOR LIVE PREVIEW
+        // ============================================
+        
+        // Message body input
+        const messageBodyEl = document.getElementById('messageBody');
+        if (messageBodyEl) {
+            messageBodyEl.addEventListener('input', function() {
+                // Update counters and cost
+                updateMessageCounters(this.value);
+                debouncedCostUpdate();
+                // Update preview
+                schedulePreviewUpdate();
             });
-
-            container.innerHTML = html;
-            document.getElementById('previewResults').style.display = 'block';
         }
-
+        
+        // Salutation change
+        const salutationEl = document.getElementById('salutation');
+        if (salutationEl) {
+            salutationEl.addEventListener('change', function() {
+                const customGroup = document.getElementById('customSalutationGroup');
+                if (customGroup) {
+                    customGroup.style.display = this.value === 'Custom' ? 'block' : 'none';
+                }
+                schedulePreviewUpdate();
+                updateMessageBodyTemplate();
+            });
+        }
+        
+        // Custom salutation input
+        const customSalutationEl = document.getElementById('customSalutation');
+        if (customSalutationEl) {
+            customSalutationEl.addEventListener('input', schedulePreviewUpdate);
+        }
+        
+        // Messaging mode switch
+        document.querySelectorAll('.messaging-mode-tabs .tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                setTimeout(() => {
+                    updateModeDependentUI();
+                    schedulePreviewUpdate();
+                }, 0);
+            });
+        });
+        
+        // Recipient changes (manual, contacts, upload)
+        // Manual recipient changes
+        const manualRecipientList = document.getElementById('manualRecipientList');
+        if (manualRecipientList) {
+            manualRecipientList.addEventListener('input', schedulePreviewUpdate);
+            manualRecipientList.addEventListener('change', schedulePreviewUpdate);
+        }
+        
+        // Contacts selection changes
+        const selectedContactsPreview = document.getElementById('selectedContactsPreview');
+        if (selectedContactsPreview) {
+            selectedContactsPreview.addEventListener('change', schedulePreviewUpdate);
+            selectedContactsPreview.addEventListener('click', schedulePreviewUpdate);
+        }
+        
+         // File upload changes
+         const contactFileInput = document.getElementById('contactFile');
+         if (contactFileInput) {
+             contactFileInput.addEventListener('change', schedulePreviewUpdate);
+         }
+         
+         // Recipient source tab changes
+         document.querySelectorAll('.recipient-source-tabs .tab-btn').forEach(btn => {
+             btn.addEventListener('click', function() {
+                 // Small delay to allow the tab content to become active
+                 setTimeout(schedulePreviewUpdate, 0);
+             });
+         });
+         
+         // Sender ID change
+        if (senderIdEl) {
+            senderIdEl.addEventListener('change', schedulePreviewUpdate);
+        }
+        
+        // ============================================
+        // HELPER FUNCTIONS
+        // ============================================
+        
+        // Update mode-dependent UI (show/hide personalization)
+        function updateModeDependentUI() {
+            const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
+            const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
+            
+            const personalizationSection = document.querySelector('.personalization-section');
+            const salutationPreviewEl = document.getElementById('salutationPreview');
+            
+            if (personalizationSection) {
+                personalizationSection.style.display = isPersonalizedMode ? 'block' : 'none';
+            }
+            
+            // Update salutation preview text
+            if (salutationPreviewEl) {
+                const salutation = salutationEl ? salutationEl.value : 'Dear';
+                const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+                const finalSalutation = salutation === 'Custom' ? customSalutation : salutation;
+                salutationPreviewEl.textContent = finalSalutation || 'Dear';
+            }
+            
+            // Update message body placeholder based on mode
+            if (messageBodyEl) {
+                if (isPersonalizedMode) {
+                    messageBodyEl.placeholder = 'Type your message here... Use {{name}} for recipient name.';
+                } else {
+                    messageBodyEl.placeholder = 'Type your message here...';
+                }
+            }
+            
+             // Update message body template if switching modes
+             if (isPersonalizedMode) {
+                 updateMessageBodyTemplate();
+             } else {
+                 // For default mode, ensure no {{name}} placeholder if auto-populated
+                 const currentValue = messageBodyEl ? messageBodyEl.value : '';
+                 if (currentValue.includes('{{name}}')) {
+                     // Remove {{name}} and fix formatting
+                     const cleaned = currentValue.replace(/\{\{name\}\},\s*/, '').replace(/\{\{name\}\}/, '');
+                     if (messageBodyEl) messageBodyEl.value = cleaned;
+                 }
+             }
+             
+             // Update live preview after mode change
+             schedulePreviewUpdate();
+         }
+        
+        // Update message counters (character count, encoding, segments)
+        function updateMessageCounters(message) {
+            const charCountEl = document.getElementById('charCount');
+            const encodingTypeEl = document.getElementById('encodingType');
+            const smsCountEl = document.getElementById('smsCount');
+            const costWarningsEl = document.getElementById('costWarnings');
+            const warningTextEl = document.getElementById('warningText');
+            
+            if (!charCountEl) return;
+            
+            const charCount = message.length;
+            charCountEl.textContent = charCount;
+            
+            if (charCount > 0) {
+                const segmentResult = calculateSmsSegments(message);
+                if (encodingTypeEl) {
+                    encodingTypeEl.textContent = segmentResult.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
+                    encodingTypeEl.className = 'encoding-value ' + (segmentResult.encoding === 'gsm7' ? '' : 'unicode-warning');
+                }
+                if (smsCountEl) {
+                    smsCountEl.textContent = segmentResult.segments;
+                }
+                
+                // Check for Unicode warning
+                if (costWarningsEl && warningTextEl) {
+                    const specialChars = detectUnicodeCharacters(message);
+                    if (specialChars.length > 0) {
+                        costWarningsEl.style.display = 'flex';
+                        warningTextEl.innerHTML = `Your message contains special characters (<strong>${specialChars.join(', ')}</strong>) which reduce SMS length from 160 to 70 characters per segment.`;
+                    } else {
+                        costWarningsEl.style.display = 'none';
+                    }
+                }
+            } else {
+                if (encodingTypeEl) {
+                    encodingTypeEl.textContent = 'GSM-7';
+                    encodingTypeEl.className = 'encoding-value';
+                }
+                if (smsCountEl) smsCountEl.textContent = '1';
+                if (costWarningsEl) costWarningsEl.style.display = 'none';
+            }
+        }
+        
+        // Debounced cost update
+        let costCalcTimeout;
+        function debouncedCostUpdate() {
+            clearTimeout(costCalcTimeout);
+            costCalcTimeout = setTimeout(updateCostEstimation, 300);
+        }
+        
+        // Update cost estimation (existing function - keep as is but ensure it works)
+        async function updateCostEstimation() {
+            const messageBodyEl = document.getElementById('messageBody');
+            if (!messageBodyEl) return;
+            
+            const message = messageBodyEl.value;
+            const recipientCount = getRecipientCount();
+            
+            const salutationEl = document.getElementById('salutation');
+            const customSalutationEl = document.getElementById('customSalutation');
+            const salutation = salutationEl ? salutationEl.value : 'Dear';
+            const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+            
+            const encodingTypeEl = document.getElementById('encodingType');
+            const smsCountEl = document.getElementById('smsCount');
+            const estimatedCostEl = document.getElementById('estimatedCost');
+            const costWarningsEl = document.getElementById('costWarnings');
+            const warningTextEl = document.getElementById('warningText');
+            
+            if (!message.trim()) {
+                if (encodingTypeEl) encodingTypeEl.textContent = 'GSM-7';
+                if (smsCountEl) smsCountEl.textContent = '1';
+                if (estimatedCostEl) estimatedCostEl.textContent = 'GHS 0.00';
+                if (costWarningsEl) costWarningsEl.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const params = new URLSearchParams({
+                    message: message,
+                    recipients: recipientCount.toString()
+                });
+                
+                if (salutation) params.append('salutation', salutation);
+                if (customSalutation) params.append('customSalutation', customSalutation);
+                
+                const response = await window.apiClient.getSmsCost(params);
+                
+                if (response.error) {
+                    console.error('Cost calculation error:', response.error);
+                    return;
+                }
+                
+                const data = response.data;
+                if (encodingTypeEl) encodingTypeEl.textContent = data.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
+                if (smsCountEl) smsCountEl.textContent = data.segments.minSegments && data.segments.maxSegments
+                    ? `${data.segments.minSegments}-${data.segments.maxSegments}`
+                    : data.avgSegments || 1;
+                if (estimatedCostEl) estimatedCostEl.textContent = `GHS ${data.estimatedCost.toFixed(2)}`;
+                
+                if (data.warnings && data.warnings.length > 0) {
+                    if (warningTextEl) warningTextEl.textContent = data.warnings.join('. ');
+                    if (costWarningsEl) costWarningsEl.style.display = 'flex';
+                } else {
+                    if (costWarningsEl) costWarningsEl.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error updating cost estimation:', error);
+            }
+            
+            // Also analyze recipients for duplicates
+            await analyzeRecipients();
+        }
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up initial state
+            updateModeDependentUI();
+            renderLivePreview();
+            
+            // Initial counters
+            const messageBodyEl = document.getElementById('messageBody');
+            if (messageBodyEl) {
+                updateMessageCounters(messageBodyEl.value);
+            }
+        });
+        
+        // ============================================
+        // REMAINING EXISTING FUNCTIONS
+        // ============================================
+        
         // Get all recipients from current active tab
         function getAllRecipients() {
             const recipients = [];
@@ -2315,7 +2533,6 @@
             document.getElementById('customSalutationGroup').style.display = 'none';
             const scheduleSettings = document.getElementById('scheduleSettings');
             if (scheduleSettings) scheduleSettings.style.display = 'none';
-            document.getElementById('previewResults').style.display = 'none';
 
             // Clear manual recipients
             document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => item.remove());
@@ -2358,7 +2575,7 @@
             if (!messageBodyEl) return;
             
             const originalMessage = messageBodyEl.value;
-            const convertedMessage = convertToGsmCompatibleText(originalMessage);
+            const convertedMessage = convertToGsmCompatible(originalMessage);
             
             if (convertedMessage !== originalMessage) {
                 messageBodyEl.value = convertedMessage;

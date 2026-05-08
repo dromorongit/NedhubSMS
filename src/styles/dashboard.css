@@ -1122,3 +1122,256 @@
     font-size: 0.85rem;
     color: #666;
 }
+
+/* ==========================================
+   LIVE MOBILE PREVIEW SECTION
+   ========================================== */
+.live-preview-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--neutral-gray);
+}
+
+.live-preview-section .section-title {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: var(--primary-dark);
+}
+
+.mobile-preview-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1rem 0;
+}
+
+/* Phone Mockup Frame */
+.phone-mockup {
+    width: 100%;
+    max-width: 320px;
+    perspective: 1000px;
+}
+
+.phone-frame {
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    max-height: 500px;
+    background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
+    border-radius: 36px;
+    padding: 12px;
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+    position: relative;
+    transform: rotateY(-5deg) rotateX(5deg);
+    transition: transform 0.4s ease;
+}
+
+.phone-frame:hover {
+    transform: rotateY(0deg) rotateX(0deg);
+}
+
+/* Phone Notch */
+.phone-notch {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 28px;
+    background: #000;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.phone-notch::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle, #333 40%, #1a1a1a 60%);
+    border-radius: 50%;
+    border: 2px solid #444;
+}
+
+/* Phone Screen */
+.phone-screen {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* SMS Header Bar */
+.sms-header-bar {
+    background: linear-gradient(135deg, #f7f7f8 0%, #e8e8e8 100%);
+    padding: 2.5rem 0.75rem 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    text-align: center;
+    position: relative;
+}
+
+.header-time {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #666;
+}
+
+.header-sender {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+    letter-spacing: 0.3px;
+}
+
+/* SMS Messages Container */
+.sms-messages-container {
+    flex: 1;
+    padding: 0.75rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+}
+
+/* SMS Message Bubble */
+.sms-message-bubble {
+    max-width: 90%;
+    padding: 0.6rem 0.75rem;
+    border-radius: 18px;
+    position: relative;
+    animation: messageSlideIn 0.3s ease-out;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.sms-message-bubble.received {
+    background: #e8e8ed;
+    color: #000;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.sms-message-bubble.received .message-text {
+    color: #000;
+}
+
+.sms-message-bubble.sent {
+    background: linear-gradient(135deg, #007aff 0%, #0051d5 100%);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.sms-message-bubble.sent .message-text {
+    color: #fff;
+}
+
+.message-text {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.message-time {
+    display: block;
+    font-size: 0.65rem;
+    color: #8e8e93;
+    text-align: right;
+    margin-top: 0.25rem;
+}
+
+.sms-message-bubble.sent .message-time {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Message Animation */
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Preview Wrapper for Responsive */
+.live-preview-wrapper {
+    width: 100%;
+}
+
+/* Responsive: Stack on mobile */
+@media (max-width: 768px) {
+    .live-preview-wrapper {
+        order: -1;
+        margin-bottom: 1.5rem;
+    }
+    
+    .phone-mockup {
+        max-width: 280px;
+        margin: 0 auto;
+    }
+    
+    .phone-frame {
+        max-height: 420px;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .phone-screen {
+        background: linear-gradient(180deg, #1c1c1e 0%, #2c2c2e 100%);
+    }
+    
+    .sms-header-bar {
+        background: linear-gradient(135deg, #2c2c2e 0%, #1c1c1e 100%);
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .header-time {
+        color: #8e8e93;
+    }
+    
+    .header-sender {
+        color: #fff;
+    }
+    
+    .sms-message-bubble.received {
+        background: #3a3a3c;
+        color: #fff;
+    }
+    
+    .sms-message-bubble.received .message-text {
+        color: #fff;
+    }
+    
+    .sms-message-bubble.sent {
+        background: linear-gradient(135deg, #0a84ff 0%, #0066cc 100%);
+    }
+}
+
+/* Smooth transitions for preview updates */
+#livePreviewText {
+    transition: opacity 0.2s ease;
+}
+
+.preview-updating #livePreviewText {
+    opacity: 0.6;
+}
