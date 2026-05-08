@@ -189,59 +189,58 @@
                                       <button type="button" class="tab-btn" data-tab="upload">Upload File</button>
                                   </div>
                               </div>
+                              <!-- Manual Recipients Section -->
+                              <div id="manualRecipientsSection" class="recipient-section active">
+                                  <div class="form-group">
+                                      <label for="manualRecipients">Recipients</label>
+                                      <div class="manual-recipient-list" id="manualRecipientList">
+                                          <!-- Manual recipients will be added here -->
+                                          <div class="manual-recipient-item template" style="display: none;">
+                                              <input type="text" placeholder="Recipient Name" class="recipient-name-input">
+                                              <input type="tel" placeholder="Phone Number (e.g., 0241234567)" class="recipient-phone-input">
+                                              <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">×</button>
+                                          </div>
+                                      </div>
+                                      <button type="button" class="btn-add-recipient" onclick="addManualRecipient()">
+                                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                              <line x1="12" y1="5" x2="12" y2="19"></line>
+                                              <line x1="5" y1="12" x2="19" y2="12"></line>
+                                          </svg>
+                                          Add Recipient
+                                      </button>
+                                  </div>
+                              </div>
+                              <!-- Saved Contacts Section -->
+                              <div id="contactsSection" class="recipient-section">
+                                  <div class="form-group">
+                                      <label>Select Contacts</label>
+                                      <div class="contacts-selector">
+                                          <div class="contact-groups" id="contactGroups">
+                                              <!-- Contact groups will be loaded here -->
+                                          </div>
+                                          <div class="selected-contacts-preview" id="selectedContactsPreview">
+                                              <p class="no-contacts">No contacts selected</p>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                              <!-- Upload File Section -->
+                              <div id="uploadSection" class="recipient-section">
+                                  <div class="form-group">
+                                      <label for="contactFile">Upload Contact File</label>
+                                      <div class="file-upload-wrapper">
+                                          <input type="file" id="contactFile" accept=".csv,.xlsx,.xls,.txt" required>
+                                          <small>Supported formats: CSV, Excel (.xlsx, .xls), TXT</small>
+                                      </div>
+                                      <div class="file-preview" id="filePreview" style="display: none;">
+                                          <span class="file-name" id="uploadedFileName"></span>
+                                          <button type="button" class="remove-file" onclick="removeUploadedFile()">×</button>
+                                      </div>
+                                  </div>
+                              </div>
                           </div>
-
-                        <!-- Manual Recipients Section -->
-                        <div id="manualRecipientsSection" class="recipient-section active">
-                            <div class="form-group">
-                                <label for="manualRecipients">Recipients</label>
-                                <div class="manual-recipient-list" id="manualRecipientList">
-                                    <!-- Manual recipients will be added here -->
-                                    <div class="manual-recipient-item template" style="display: none;">
-                                        <input type="text" placeholder="Recipient Name" class="recipient-name-input">
-                                        <input type="tel" placeholder="Phone Number (e.g., 0241234567)" class="recipient-phone-input">
-                                        <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">×</button>
-                                    </div>
-                                </div>
-                                <button type="button" class="btn-add-recipient" onclick="addManualRecipient()">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                    Add Recipient
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Saved Contacts Section -->
-                        <div id="contactsSection" class="recipient-section">
-                            <div class="form-group">
-                                <label>Select Contacts</label>
-                                <div class="contacts-selector">
-                                    <div class="contact-groups" id="contactGroups">
-                                        <!-- Contact groups will be loaded here -->
-                                    </div>
-                                    <div class="selected-contacts-preview" id="selectedContactsPreview">
-                                        <p class="no-contacts">No contacts selected</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Upload File Section -->
-                        <div id="uploadSection" class="recipient-section">
-                            <div class="form-group">
-                                <label for="contactFile">Upload Contact File</label>
-                                <div class="file-upload-wrapper">
-                                    <input type="file" id="contactFile" accept=".csv,.xlsx,.xls,.txt" required>
-                                    <small>Supported formats: CSV, Excel (.xlsx, .xls), TXT</small>
-                                </div>
-                                <div class="file-preview" id="filePreview" style="display: none;">
-                                    <span class="file-name" id="uploadedFileName"></span>
-                                    <button type="button" class="remove-file" onclick="removeUploadedFile()">×</button>
-                                </div>
-                            </div>
-                        </div>
+                          
+                         <!-- Duplicate Handling Section -->
 
                         <!-- Duplicate Handling Section -->
                         <div class="duplicate-handling-section" id="duplicateHandlingSection" style="display: none;">
