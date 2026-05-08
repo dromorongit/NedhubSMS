@@ -1290,6 +1290,9 @@
         async function analyzeRecipients() {
             const recipients = getAllRecipients();
 
+            // Declare element references at function scope to avoid ReferenceError
+            let senderIdEl, messageBodyEl, salutationEl;
+
             // Add null check for duplicateHandlingSection
             const duplicateHandlingSection = document.getElementById('duplicateHandlingSection');
             if (!duplicateHandlingSection) {
@@ -1304,9 +1307,9 @@
             try {
                 // Get campaign data for preview
                 const title = `Campaign ${new Date().toLocaleString()}`;
-                const senderIdEl = document.getElementById('senderId');
-                const messageBodyEl = document.getElementById('messageBody');
-                const salutationEl = document.getElementById('salutation');
+                senderIdEl = document.getElementById('senderId');
+                messageBodyEl = document.getElementById('messageBody');
+                salutationEl = document.getElementById('salutation');
                 
                 // Add null checks
                 if (!senderIdEl || !messageBodyEl || !salutationEl) {
@@ -1868,11 +1871,10 @@
             document.getElementById('contactFile').value = '';
             document.getElementById('filePreview').style.display = 'none';
             uploadedContacts = [];
-            uploadedRecipients = [];
 
             // Update cost estimation when recipients change
             updateCostEstimation();
-            
+
             // Update live preview
             schedulePreviewUpdate();
         }
@@ -2005,7 +2007,6 @@
         // ============================================
         
         // Message body input
-        const messageBodyEl = document.getElementById('messageBody');
         if (messageBodyEl) {
             messageBodyEl.addEventListener('input', function() {
                 // Update counters and cost
@@ -2017,7 +2018,6 @@
         }
         
         // Salutation change
-        const salutationEl = document.getElementById('salutation');
         if (salutationEl) {
             salutationEl.addEventListener('change', function() {
                 const customGroup = document.getElementById('customSalutationGroup');
@@ -2030,7 +2030,6 @@
         }
         
         // Custom salutation input
-        const customSalutationEl = document.getElementById('customSalutation');
         if (customSalutationEl) {
             customSalutationEl.addEventListener('input', schedulePreviewUpdate);
         }
@@ -2074,10 +2073,11 @@
              });
          });
          
-         // Sender ID change
-        if (senderIdEl) {
-            senderIdEl.addEventListener('change', schedulePreviewUpdate);
-        }
+          // Sender ID change
+         const senderIdEl = document.getElementById('senderId');
+         if (senderIdEl) {
+             senderIdEl.addEventListener('change', schedulePreviewUpdate);
+         }
         
         // ============================================
         // HELPER FUNCTIONS
@@ -2087,23 +2087,29 @@
         function updateModeDependentUI() {
             const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
             const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
-            
+
+            // Declare element references at function scope
+            let salutationEl, customSalutationEl, messageBodyEl;
+
             const personalizationSection = document.querySelector('.personalization-section');
             const salutationPreviewEl = document.getElementById('salutationPreview');
-            
+
             if (personalizationSection) {
                 personalizationSection.style.display = isPersonalizedMode ? 'block' : 'none';
             }
-            
+
             // Update salutation preview text
             if (salutationPreviewEl) {
+                salutationEl = document.getElementById('salutation');
+                customSalutationEl = document.getElementById('customSalutation');
                 const salutation = salutationEl ? salutationEl.value : 'Dear';
                 const customSalutation = customSalutationEl ? customSalutationEl.value : '';
                 const finalSalutation = salutation === 'Custom' ? customSalutation : salutation;
                 salutationPreviewEl.textContent = finalSalutation || 'Dear';
             }
-            
+
             // Update message body placeholder based on mode
+            messageBodyEl = document.getElementById('messageBody');
             if (messageBodyEl) {
                 if (isPersonalizedMode) {
                     messageBodyEl.placeholder = 'Type your message here... Use {{name}} for recipient name.';
@@ -2332,38 +2338,31 @@
         });
 
         // Schedule button handler
-        document.getElementById('scheduleBtn').addEventListener('click', async function() {
-            const recipients = getAllRecipients();
+         document.getElementById('scheduleBtn').addEventListener('click', async function() {
+             const recipients = getAllRecipients();
 
-            if (recipients.length === 0) {
-                showToast('Please add at least one recipient', 'error');
-                return;
-            }
+             if (recipients.length === 0) {
+                 showToast('Please add at least one recipient', 'error');
+                 return;
+             }
 
-            // Check if scheduling is selected
-            const sendMode = document.querySelector('input[name="sendMode"]:checked').value;
-            if (sendMode !== 'scheduled') {
-                showToast('Please select "Schedule for Later" option', 'warning');
-                return;
-            }
+             // Validate schedule time
+             const date = document.getElementById('scheduledDate').value;
+             const time = document.getElementById('scheduledTime').value;
 
-            // Validate schedule time
-            const date = document.getElementById('scheduledDate').value;
-            const time = document.getElementById('scheduledTime').value;
+             if (!date || !time) {
+                 showToast('Please select both date and time for scheduling', 'error');
+                 return;
+             }
 
-            if (!date || !time) {
-                showToast('Please select both date and time for scheduling', 'error');
-                return;
-            }
+             const scheduledAt = new Date(`${date}T${time}`);
+             if (scheduledAt <= new Date()) {
+                 showToast('Scheduled time must be in the future', 'error');
+                 return;
+             }
 
-            const scheduledAt = new Date(`${date}T${time}`);
-            if (scheduledAt <= new Date()) {
-                showToast('Scheduled time must be in the future', 'error');
-                return;
-            }
-
-            await sendOrScheduleCampaign('scheduled', recipients, scheduledAt);
-        });
+             await sendOrScheduleCampaign('scheduled', recipients, scheduledAt);
+         });
 
          async function sendOrScheduleCampaign(sendMode, recipients, scheduledAt = null) {
              // Get active messaging mode
@@ -2567,22 +2566,22 @@
 
 
         // Convert Unicode to GSM-compatible text
-        function convertToGsmCompatible() {
-            const messageBodyEl = document.getElementById('messageBody');
-            if (!messageBodyEl) return;
-            
-            const originalMessage = messageBodyEl.value;
-            const convertedMessage = convertToGsmCompatible(originalMessage);
-            
-            if (convertedMessage !== originalMessage) {
-                messageBodyEl.value = convertedMessage;
-                // Trigger input event to update counters
-                messageBodyEl.dispatchEvent(new Event('input', { bubbles: true }));
-                showToast('Message converted to GSM-compatible text', 'success');
-            } else {
-                showToast('No Unicode characters to convert', 'info');
-            }
-        }
+         function convertToGsmCompatible() {
+             const messageBodyEl = document.getElementById('messageBody');
+             if (!messageBodyEl) return;
+             
+             const originalMessage = messageBodyEl.value;
+             const convertedMessage = window.convertToGsmCompatible(originalMessage);
+             
+             if (convertedMessage !== originalMessage) {
+                 messageBodyEl.value = convertedMessage;
+                 // Trigger input event to update counters
+                 messageBodyEl.dispatchEvent(new Event('input', { bubbles: true }));
+                 showToast('Message converted to GSM-compatible text', 'success');
+             } else {
+                 showToast('No Unicode characters to convert', 'info');
+             }
+         }
 
         // Close preview modal
         function closePreviewModal() {
