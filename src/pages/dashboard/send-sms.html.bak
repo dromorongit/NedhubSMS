@@ -168,20 +168,11 @@
                                         Create New
                                     </button>
                                 </div>
-                                 <p class="sender-id-note" id="senderIdNote" style="display: none;">Your Sender ID is pending approval</p>
-                             </div>
-                         </div>
+                                <p class="sender-id-note" id="senderIdNote" style="display: none;">Your Sender ID is pending approval</p>
+                            </div>
+                        </div>
 
-                         <!-- Messaging Mode Tabs -->
-                         <div class="form-group">
-                             <label>Messaging Mode</label>
-                             <div class="messaging-mode-tabs">
-                                 <button type="button" class="tab-btn active" data-mode="default">Default Messaging</button>
-                                 <button type="button" class="tab-btn" data-mode="personalized">Personalized Messaging</button>
-                             </div>
-                         </div>
-
-                         <!-- Recipient Source Selection -->
+                        <!-- Recipient Source Selection -->
                         <div class="form-group">
                             <label>Recipient Source</label>
                             <div class="recipient-source-tabs">
@@ -370,9 +361,9 @@
                             </div>
                         </div>
 
-                         <!-- Personalization Section -->
-                         <div class="personalization-section" style="display: none;">
-                             <h3 class="section-title">Message Personalization</h3>
+                        <!-- Personalization Section -->
+                        <div class="personalization-section">
+                            <h3 class="section-title">Message Personalization</h3>
 
                             <div class="form-row">
                                 <div class="form-group">
@@ -1052,52 +1043,23 @@
             radio.addEventListener('change', analyzeRecipients);
         });
 
-         // Recipient source tabs
-         document.querySelectorAll('.tab-btn').forEach(btn => {
-             btn.addEventListener('click', function() {
-                 const tab = this.dataset.tab;
- 
-                 // Update active tab
-                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                 this.classList.add('active');
- 
-                 // Show corresponding section
-                 document.querySelectorAll('.recipient-section').forEach(section => {
-                     section.classList.remove('active');
-                 });
-                 const targetSection = document.getElementById(tab + 'Section');
-                 if (targetSection) targetSection.classList.add('active');
-             });
-         });
-         
-         // Messaging mode tabs
-         document.querySelectorAll('.messaging-mode-tabs .tab-btn').forEach(btn => {
-             btn.addEventListener('click', function() {
-                 const mode = this.dataset.mode;
- 
-                 // Update active tab
-                 document.querySelectorAll('.messaging-mode-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-                 this.classList.add('active');
- 
-                 // Show/hide sections based on mode
-                 if (mode === 'default') {
-                     // Hide personalization controls
-                     document.querySelector('.personalization-section').style.display = 'none';
-                     // Show salutation preview as static text
-                     document.getElementById('salutationPreview').textContent = 'Dear';
-                     // Update message body template to not require name
-                     updateMessageBodyTemplateForDefaultMode();
-                 } else if (mode === 'personalized') {
-                     // Show personalization controls
-                     document.querySelector('.personalization-section').style.display = 'block';
-                     // Update message body template for personalized mode
-                     updateMessageBodyTemplate();
-                 }
-                 
-                 // Update cost estimation
-                 updateCostEstimation();
-             });
-         });
+        // Recipient source tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tab = this.dataset.tab;
+
+                // Update active tab
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                // Show corresponding section
+                document.querySelectorAll('.recipient-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                const targetSection = document.getElementById(tab + 'Section');
+                if (targetSection) targetSection.classList.add('active');
+            });
+        });
 
         // Function to analyze recipients for duplicates
         async function analyzeRecipients() {
@@ -1469,120 +1431,63 @@
         // Manual recipient management
         let manualRecipients = [];
 
-         // Auto-populate message body with salutation and name placeholder
-         function updateMessageBodyTemplate() {
-             const messageBodyEl = document.getElementById('messageBody');
-             const salutationEl = document.getElementById('salutation');
-             const customSalutationEl = document.getElementById('customSalutation');
-             
-             if (!messageBodyEl || !salutationEl) return;
-             
-             // Get the current salutation value
-             let salutation = salutationEl.value;
-             if (salutation === 'Custom' && customSalutationEl) {
-                 salutation = customSalutationEl.value || 'Dear';
-             }
-             
-             if (!salutation) {
-                 salutation = 'Dear';
-             }
-             
-             // Always auto-populate/update message body with current salutation
-             // This ensures the message body reflects the selected salutation
-             const currentValue = messageBodyEl.value;
-             
-             // Check if current message starts with any salutation pattern followed by {{name}}
-             const salutations = ['Dear', 'Hello', 'Hi', 'Esteemed', 'Honourable'];
-             let hasExistingSalutation = false;
-             let existingContent = '';
-             
-             for (const sal of salutations) {
-                 const pattern = sal + ' {{name}}, ';
-                 if (currentValue.startsWith(pattern)) {
-                     hasExistingSalutation = true;
-                     existingContent = currentValue.substring(pattern.length);
-                     break;
-                 }
-             }
-             
-             // Also check for custom salutation pattern
-             if (!hasExistingSalutation && customSalutationEl && customSalutationEl.value) {
-                 const customPattern = customSalutationEl.value + ' {{name}}, ';
-                 if (currentValue.startsWith(customPattern)) {
-                     hasExistingSalutation = true;
-                     existingContent = currentValue.substring(customPattern.length);
-                 }
-             }
-             
-             // Only update if message is empty OR starts with a salutation pattern
-             if (currentValue.trim() === '' || hasExistingSalutation) {
-                 // Preserve any additional content after the salutation
-                 const preservedContent = hasExistingSalutation ? existingContent : '';
-                 messageBodyEl.value = salutation + ' {{name}}, ' + preservedContent;
-                 try {
-                     updateMessagePreview();
-                 } catch (e) {
-                     console.warn('Preview update skipped:', e);
-                 }
-             }
-         }
-         
-         // Update message body template for default messaging mode (no name placeholder)
-         function updateMessageBodyTemplateForDefaultMode() {
-             const messageBodyEl = document.getElementById('messageBody');
-             const salutationEl = document.getElementById('salutation');
-             const customSalutationEl = document.getElementById('customSalutation');
-             
-             if (!messageBodyEl || !salutationEl) return;
-             
-             // Get the current salutation value
-             let salutation = salutationEl.value;
-             if (salutation === 'Custom' && customSalutationEl) {
-                 salutation = customSalutationEl.value || 'Dear';
-             }
-             
-             if (!salutation) {
-                 salutation = 'Dear';
-             }
-             
-             // Always auto-populate/update message body with current salutation (no name placeholder)
-             const currentValue = messageBodyEl.value;
-             
-             // Check if current message starts with any salutation pattern (without {{name}})
-             const salutations = ['Dear', 'Hello', 'Hi', 'Esteemed', 'Honourable'];
-             let hasExistingSalutation = false;
-             let existingContent = '';
-             
-             for (const sal of salutations) {
-                 const pattern = sal + ', ';
-                 if (currentValue.startsWith(pattern)) {
-                     hasExistingSalutation = true;
-                     existingContent = currentValue.substring(pattern.length);
-                     break;
-                 }
-             }
-             
-             // Also check for custom salutation pattern
-             if (!hasExistingSalutation && customSalutationEl && customSalutationEl.value) {
-                 const customPattern = customSalutationEl.value + ', ';
-                 if (currentValue.startsWith(customPattern)) {
-                     hasExistingSalutation = true;
-                     existingContent = currentValue.substring(customPattern.length);
-                 }
-             }
-             
-             // Only update if message is empty OR starts with a salutation pattern
-             if (currentValue.trim() === '' || hasExistingSalutation) {
-                 // Preserve any additional content after the salutation
-                 const preservedContent = hasExistingSalutation ? existingContent : '';
-                 messageBodyEl.value = salutation + ', ' + preservedContent;
-                 try {
-                     updateMessagePreview();
-                 } catch (e) {
-                     console.warn('Preview update skipped:', e);
-                 }
-             }
-         }
+        // Auto-populate message body with salutation and name placeholder
+        function updateMessageBodyTemplate() {
+            const messageBodyEl = document.getElementById('messageBody');
+            const salutationEl = document.getElementById('salutation');
+            const customSalutationEl = document.getElementById('customSalutation');
+            
+            if (!messageBodyEl || !salutationEl) return;
+            
+            // Get the current salutation value
+            let salutation = salutationEl.value;
+            if (salutation === 'Custom' && customSalutationEl) {
+                salutation = customSalutationEl.value || 'Dear';
+            }
+            
+            if (!salutation) {
+                salutation = 'Dear';
+            }
+            
+            // Always auto-populate/update message body with current salutation
+            // This ensures the message body reflects the selected salutation
+            const currentValue = messageBodyEl.value;
+            
+            // Check if current message starts with any salutation pattern followed by {{name}}
+            const salutations = ['Dear', 'Hello', 'Hi', 'Esteemed', 'Honourable'];
+            let hasExistingSalutation = false;
+            let existingContent = '';
+            
+            for (const sal of salutations) {
+                const pattern = sal + ' {{name}}, ';
+                if (currentValue.startsWith(pattern)) {
+                    hasExistingSalutation = true;
+                    existingContent = currentValue.substring(pattern.length);
+                    break;
+                }
+            }
+            
+            // Also check for custom salutation pattern
+            if (!hasExistingSalutation && customSalutationEl && customSalutationEl.value) {
+                const customPattern = customSalutationEl.value + ' {{name}}, ';
+                if (currentValue.startsWith(customPattern)) {
+                    hasExistingSalutation = true;
+                    existingContent = currentValue.substring(customPattern.length);
+                }
+            }
+            
+            // Only update if message is empty OR starts with a salutation pattern
+            if (currentValue.trim() === '' || hasExistingSalutation) {
+                // Preserve any additional content after the salutation
+                const preservedContent = hasExistingSalutation ? existingContent : '';
+                messageBodyEl.value = salutation + ' {{name}}, ' + preservedContent;
+                try {
+                    updateMessagePreview();
+                } catch (e) {
+                    console.warn('Preview update skipped:', e);
+                }
+            }
+        }
 
         function addManualRecipient() {
             const template = document.querySelector('.manual-recipient-item.template');
@@ -1806,88 +1711,60 @@
         // Generate preview functionality
         document.getElementById('generatePreviewBtn').addEventListener('click', generateMessagePreview);
 
-         async function generateMessagePreview() {
-             // Get active messaging mode
-             const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
-             const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
-             
-             const messageBodyEl = document.getElementById('messageBody');
-             const salutationEl = document.getElementById('salutation');
-             const customSalutationEl = document.getElementById('customSalutation');
-             
-             const messageBody = messageBodyEl ? messageBodyEl.value : '';
-             const salutation = salutationEl ? salutationEl.value : 'Dear';
-             const customSalutation = customSalutationEl ? customSalutationEl.value : '';
- 
-             // Validate message body
-             if (!messageBody || messageBody.trim().length === 0) {
-                 showToast('Please enter a message body first', 'warning');
-                 return;
-             }
- 
-             // Get sample recipients
-             const sampleRecipients = getSampleRecipients();
- 
-             // For personalized mode, we need at least one recipient with name
-             if (isPersonalizedMode && sampleRecipients.length === 0) {
-                 showToast('Please add at least one recipient with name and phone number to generate preview', 'warning');
-                 return;
-             }
- 
-             // For default mode, we can proceed even without names (just phone numbers)
-             if (!isPersonalizedMode && sampleRecipients.length === 0) {
-                 showToast('Please add at least one recipient to generate preview', 'warning');
-                 return;
-             }
- 
-             try {
-                 console.log('Sending to API:', { messageBody, salutation, customSalutation, sampleRecipients, mode: isPersonalizedMode ? 'personalized' : 'default' });
-                 
-                 let response;
-                 
-                 if (isPersonalizedMode) {
-                     // Personalized messaging mode
-                     response = await window.apiClient.generateMessagePreview(
-                         messageBody,
-                         salutation,
-                         customSalutation,
-                         sampleRecipients
-                     );
-                 } else {
-                     // Default messaging mode - generate a simple preview
-                     // We'll create a mock preview for default mode
-                     response = {
-                         data: {
-                             previewMessages: [{
-                                 recipientName: sampleRecipients[0]?.recipientName || 'Recipient',
-                                 phoneNumber: sampleRecipients[0]?.phoneNumber || '0000000000',
-                                 personalizedMessage: messageBody
-                             }]
-                         }
-                     };
-                 }
- 
-                 console.log('API Response:', response);
- 
-                 if (response.error) {
-                     showToast(response.error, 'error');
-                 } else {
-                     // Handle multiple response formats
-                     const responseData = response.data;
-                     let previewMessages = responseData?.previewMessages;
-                     console.log('Preview messages:', previewMessages);
-                     if (previewMessages && Array.isArray(previewMessages) && previewMessages.length > 0) {
-                         displayMessagePreview(previewMessages);
-                     } else {
-                         console.error('No preview messages found in response:', response);
-                         showToast('Unable to generate preview. Please ensure you have added at least one recipient with name and phone number.', 'error');
-                     }
-                 }
-             } catch (error) {
-                 console.error('Preview error:', error);
-                 showToast('Error generating preview', 'error');
-             }
-         }
+        async function generateMessagePreview() {
+            const messageBodyEl = document.getElementById('messageBody');
+            const salutationEl = document.getElementById('salutation');
+            const customSalutationEl = document.getElementById('customSalutation');
+            
+            const messageBody = messageBodyEl ? messageBodyEl.value : '';
+            const salutation = salutationEl ? salutationEl.value : 'Dear';
+            const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+
+            // Validate message body
+            if (!messageBody || messageBody.trim().length === 0) {
+                showToast('Please enter a message body first', 'warning');
+                return;
+            }
+
+            // Get sample recipients
+            const sampleRecipients = getSampleRecipients();
+
+            if (sampleRecipients.length === 0) {
+                showToast('Please add at least one recipient to generate preview', 'warning');
+                return;
+            }
+
+            try {
+                console.log('Sending to API:', { messageBody, salutation, customSalutation, sampleRecipients });
+                
+                const response = await window.apiClient.generateMessagePreview(
+                    messageBody,
+                    salutation,
+                    customSalutation,
+                    sampleRecipients
+                );
+
+                console.log('API Response:', response);
+
+                if (response.error) {
+                    showToast(response.error, 'error');
+                } else {
+                    // Handle multiple response formats
+                    const responseData = response.data;
+                    let previewMessages = responseData?.previewMessages;
+                    console.log('Preview messages:', previewMessages);
+                    if (previewMessages && Array.isArray(previewMessages) && previewMessages.length > 0) {
+                        displayMessagePreview(previewMessages);
+                    } else {
+                        console.error('No preview messages found in response:', response);
+                        showToast('Unable to generate preview. Please ensure you have added at least one recipient with name and phone number.', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Preview error:', error);
+                showToast('Error generating preview', 'error');
+            }
+        }
 
         function getSampleRecipients() {
             const recipients = [];
@@ -2032,107 +1909,80 @@
             await sendOrScheduleCampaign('scheduled', recipients, scheduledAt);
         });
 
-         async function sendOrScheduleCampaign(sendMode, recipients, scheduledAt = null) {
-             // Get active messaging mode
-             const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
-             const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
-             
-             const title = `Campaign ${new Date().toLocaleString()}`;
-             const senderId = document.getElementById('senderId').value;
-             const messageBody = document.getElementById('messageBody').value;
-             const salutation = document.getElementById('salutation').value;
-             const customSalutation = document.getElementById('customSalutation').value;
-             const removeDuplicates = document.querySelector('input[name="duplicateHandling"]:checked')?.value === 'remove';
- 
-             // Validate required fields
-             if (!senderId) {
-                 showToast('Please select a Sender ID', 'error');
-                 return;
-             }
- 
-             if (!messageBody.trim()) {
-                 showToast('Please enter a message', 'error');
-                 return;
-             }
- 
-             // For personalized mode, validate salutation and names
-             if (isPersonalizedMode) {
-                 if (salutation === 'Custom' && !customSalutation.trim()) {
-                     showToast('Please enter a custom salutation', 'error');
-                     return;
-                 }
- 
-                 // Validate recipients
-                 if (recipients.length === 0) {
-                     showToast('Please add at least one recipient', 'error');
-                     return;
-                 }
- 
-                 // Check for valid phone numbers
-                 const invalidRecipients = recipients.filter(r => {
-                     const phoneValidation = validatePhoneNumber(r.phoneNumber);
-                     return !phoneValidation.isValid;
-                 });
- 
-                 if (invalidRecipients.length > 0) {
-                     showToast(`Please fix invalid phone numbers: ${invalidRecipients.map(r => r.phoneNumber).join(', ')}`, 'error');
-                     return;
-                 }
- 
-                 // Check for missing names
-                 const missingNameRecipients = recipients.filter(r => !r.recipientName || !r.recipientName.trim());
-                 if (missingNameRecipients.length > 0) {
-                     showToast('Please enter names for all recipients', 'error');
-                     return;
-                 }
-             }
- 
-             const submitBtn = sendMode === 'immediate' ?
-                 document.getElementById('sendNowBtn') :
-                 document.getElementById('scheduleBtn');
- 
-             submitBtn.disabled = true;
-             submitBtn.innerHTML = sendMode === 'immediate' ? '<span>Sending...</span>' : '<span>Scheduling...</span>';
- 
-             try {
-                 let result;
-                 
-                 if (isPersonalizedMode) {
-                     // Personalized messaging mode
-                     const campaignData = {
-                         title,
-                         messageBody,
-                         salutation,
-                         customSalutation,
-                         recipients,
-                         senderId,
-                         removeDuplicates
-                     };
- 
-                     if (sendMode === 'scheduled') {
-                         campaignData.scheduledAt = scheduledAt.toISOString();
-                         campaignData.timezone = 'UTC';
-                     }
- 
-                     result = sendMode === 'immediate' ?
-                         await window.apiClient.sendPersonalizedCampaign(campaignData) :
-                         await window.apiClient.schedulePersonalizedCampaign(campaignData);
-                 } else {
-                     // Default messaging mode
-                     const campaignData = {
-                         senderId,
-                         message: messageBody,
-                         recipients: recipients.map(r => r.phoneNumber)
-                     };
- 
-                     if (sendMode === 'scheduled') {
-                         campaignData.scheduledAt = scheduledAt.toISOString();
-                     }
- 
-                     result = sendMode === 'immediate' ?
-                         await window.apiClient.sendSMS(campaignData) :
-                         await window.apiClient.scheduleSMS(campaignData);
-                 }
+        async function sendOrScheduleCampaign(sendMode, recipients, scheduledAt = null) {
+            const title = `Campaign ${new Date().toLocaleString()}`;
+            const senderId = document.getElementById('senderId').value;
+            const messageBody = document.getElementById('messageBody').value;
+            const salutation = document.getElementById('salutation').value;
+            const customSalutation = document.getElementById('customSalutation').value;
+            const removeDuplicates = document.querySelector('input[name="duplicateHandling"]:checked')?.value === 'remove';
+
+            // Validate required fields
+            if (!senderId) {
+                showToast('Please select a Sender ID', 'error');
+                return;
+            }
+
+            if (!messageBody.trim()) {
+                showToast('Please enter a message', 'error');
+                return;
+            }
+
+            if (salutation === 'Custom' && !customSalutation.trim()) {
+                showToast('Please enter a custom salutation', 'error');
+                return;
+            }
+
+            // Validate recipients
+            if (recipients.length === 0) {
+                showToast('Please add at least one recipient', 'error');
+                return;
+            }
+
+            // Check for valid phone numbers
+            const invalidRecipients = recipients.filter(r => {
+                const phoneValidation = validatePhoneNumber(r.phoneNumber);
+                return !phoneValidation.isValid;
+            });
+
+            if (invalidRecipients.length > 0) {
+                showToast(`Please fix invalid phone numbers: ${invalidRecipients.map(r => r.phoneNumber).join(', ')}`, 'error');
+                return;
+            }
+
+            // Check for missing names
+            const missingNameRecipients = recipients.filter(r => !r.recipientName || !r.recipientName.trim());
+            if (missingNameRecipients.length > 0) {
+                showToast('Please enter names for all recipients', 'error');
+                return;
+            }
+
+            const submitBtn = sendMode === 'immediate' ?
+                document.getElementById('sendNowBtn') :
+                document.getElementById('scheduleBtn');
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = sendMode === 'immediate' ? '<span>Sending...</span>' : '<span>Scheduling...</span>';
+
+            try {
+                const campaignData = {
+                    title,
+                    messageBody,
+                    salutation,
+                    customSalutation,
+                    recipients,
+                    senderId,
+                    removeDuplicates
+                };
+
+                if (sendMode === 'scheduled') {
+                    campaignData.scheduledAt = scheduledAt.toISOString();
+                    campaignData.timezone = 'UTC';
+                }
+
+                const result = sendMode === 'immediate' ?
+                    await window.apiClient.sendPersonalizedCampaign(campaignData) :
+                    await window.apiClient.schedulePersonalizedCampaign(campaignData);
 
                 if (result.error) {
                     // Handle error response
