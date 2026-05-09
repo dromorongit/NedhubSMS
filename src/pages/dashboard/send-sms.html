@@ -2641,7 +2641,7 @@
                          messageBody,
                          salutation,
                          customSalutation,
-                         recipients,
+                         recipients: recipients.map(r => r.phoneNumber),
                          senderId,
                          removeDuplicates
                      };
