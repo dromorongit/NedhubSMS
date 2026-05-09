@@ -65,6 +65,7 @@ class SmsSchedulerService {
 
       // Update campaign
       campaign.status = 'scheduled';
+      campaign.scheduleStatus = 'scheduled';
       campaign.scheduledAt = scheduledTime;
       campaign.jobId = job.id;
       await campaign.save();
@@ -139,7 +140,9 @@ class SmsSchedulerService {
 
       // Update campaign
       campaign.status = 'cancelled';
+      campaign.scheduleStatus = 'cancelled';
       campaign.jobId = null;
+      campaign.cancelledAt = new Date();
       await campaign.save();
 
       console.log(`[SmsSchedulerService] Cancelled campaign ${campaignId}`);

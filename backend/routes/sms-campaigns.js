@@ -439,6 +439,19 @@ router.post('/schedule', authenticate, async (req, res) => {
       });
     }
 
+    // Check wallet balance before scheduling
+    const availableBalance = await WalletService.getAvailableBalance(userId);
+    if (availableBalance < costEstimation.estimatedCost) {
+      return res.status(402).json({
+        error: 'Insufficient available balance',
+        required: costEstimation.estimatedCost,
+        available: availableBalance
+      });
+    }
+
+    // Reserve funds immediately
+    const reservation = await WalletService.reserveFunds(userId, costEstimation.estimatedCost, null);
+
     // Create campaign
     const campaign = new SmsCampaign({
       userId,
@@ -450,8 +463,11 @@ router.post('/schedule', authenticate, async (req, res) => {
       isPersonalized: true,
       sendMode: 'scheduled',
       scheduledAt: scheduleDate,
+      scheduledTimezone: timezone || 'UTC',
       timezone: timezone || 'UTC',
       status: 'scheduled',
+      scheduleStatus: 'scheduled',
+      jobId: null, // will be set by scheduler
       recipientCount: processedRecipients.finalCount,
       validRecipientCount: processedRecipients.finalCount,
       invalidRecipientCount: processedRecipients.invalidRecipients.length,
@@ -459,11 +475,42 @@ router.post('/schedule', authenticate, async (req, res) => {
       duplicateCount: processedRecipients.duplicateCount,
       pendingCount: processedRecipients.finalCount,  // All start as pending
       totalSegments: costEstimation.totalSegments,
-      estimatedCost: costEstimation.estimatedCost
+      estimatedCost: costEstimation.estimatedCost,
+      walletChargeMode: 'reservation',
+      walletReservationId: reservation._id
     });
 
     await campaign.save();
 
+    // Create recipient records
+    const SmsRecipient = require('../models/SmsRecipient');
+    const sellPrice = await CostCalculatorService.getSellPricePerSms();
+    for (const recipient of processedRecipients.validRecipients) {
+      const personalizedMessage = MessagePersonalizationService.personalizeMessage(
+        messageBody,
+        salutation,
+        customSalutation,
+        recipient.recipientName
+      );
+
+      const segmentResult = CostCalculatorService.calculateSegments(personalizedMessage);
+      const recipientEstimatedCost = sellPrice * segmentResult.segments;
+
+      const smsRecipient = new SmsRecipient({
+        campaignId: campaign._id,
+        userId,
+        recipientName: recipient.recipientName,
+        phoneNumber: recipient.phoneNumber,
+        normalizedPhoneNumber: recipient.normalizedPhoneNumber,
+        personalizedMessage,
+        segments: segmentResult.segments,
+        estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
+      });
+
+      await smsRecipient.save();
+    }
+
+    // Schedule with BullMQ
     await SmsSchedulerService.scheduleCampaign(campaign._id, scheduleDate);
 
     // Create recipient records

@@ -295,4 +295,151 @@ router.post('/resend', authenticate, async (req, res) => {
   }
 });
 
+// Schedule default SMS campaign (bulk messaging)
+router.post('/schedule', authenticate, async (req, res) => {
+  try {
+    const { senderId, recipients, message, scheduledAt, timezone = 'UTC' } = req.body;
+    const userId = req.user.userId;
+
+    // Validate required fields
+    if (!senderId || !recipients || !message || !scheduledAt) {
+      return res.status(400).json({
+        error: 'Sender ID, recipients, message, and schedule time are required'
+      });
+    }
+
+    // Validate recipients format
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      return res.status(400).json({ error: 'Recipients must be a non-empty array' });
+    }
+
+    // Validate scheduled time
+    const scheduleDate = new Date(scheduledAt);
+    if (isNaN(scheduleDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid scheduled time format' });
+    }
+    if (scheduleDate <= new Date()) {
+      return res.status(400).json({ error: 'Scheduled time must be in the future' });
+    }
+
+    // Validate sender ID
+    const SenderId = require('../models/SenderId');
+    const validSender = await SenderId.findOne({ senderId, userId, status: 'approved' });
+    if (!validSender) {
+      return res.status(400).json({ error: 'Invalid or unapproved Sender ID' });
+    }
+
+    // Validate phone numbers and filter invalid ones
+    const naloSmsService = new (require('../services/NaloSmsService'))();
+    const validRecipients = [];
+    const invalidRecipients = [];
+
+    for (const recipient of recipients) {
+      if (naloSmsService.validateMsisdn(recipient)) {
+        validRecipients.push(recipient);
+      } else {
+        invalidRecipients.push(recipient);
+      }
+    }
+
+    if (validRecipients.length === 0) {
+      return res.status(400).json({
+        error: 'No valid phone numbers found',
+        invalidCount: invalidRecipients.length
+      });
+    }
+
+    // Calculate cost estimation
+    const CostCalculatorService = require('../services/CostCalculatorService');
+    const costEstimation = await CostCalculatorService.calculateLiveCost(
+      userId,
+      message,
+      validRecipients.length,
+      null
+    );
+
+    // Check wallet balance
+    const WalletService = require('../services/WalletService');
+    const availableBalance = await WalletService.getAvailableBalance(userId);
+    if (availableBalance < costEstimation.estimatedCost) {
+      return res.status(402).json({
+        error: 'Insufficient available balance',
+        required: costEstimation.estimatedCost,
+        available: availableBalance
+      });
+    }
+
+    // Reserve funds
+    const reservation = await WalletService.reserveFunds(userId, costEstimation.estimatedCost, null);
+
+    // Create campaign
+    const SmsCampaign = require('../models/SmsCampaign');
+    const campaign = new SmsCampaign({
+      userId,
+      title: `Bulk SMS - ${new Date().toLocaleString()}`,
+      senderId,
+      messageBody: message,
+      isPersonalized: false,
+      sendMode: 'scheduled',
+      scheduledAt: scheduleDate,
+      scheduledTimezone: timezone,
+      timezone: timezone,
+      status: 'scheduled',
+      scheduleStatus: 'scheduled',
+      recipientCount: validRecipients.length,
+      validRecipientCount: validRecipients.length,
+      invalidRecipientCount: invalidRecipients.length,
+      pendingCount: validRecipients.length,
+      totalSegments: costEstimation.totalSegments,
+      estimatedCost: costEstimation.estimatedCost,
+      walletChargeMode: 'reservation',
+      walletReservationId: reservation._id
+    });
+
+    await campaign.save();
+
+    // Create recipient records
+    const SmsRecipient = require('../models/SmsRecipient');
+    const sellPrice = await CostCalculatorService.getSellPricePerSms();
+    for (const phoneNumber of validRecipients) {
+      const segmentResult = CostCalculatorService.calculateSegments(message);
+      const recipientEstimatedCost = sellPrice * segmentResult.segments;
+
+      const smsRecipient = new SmsRecipient({
+        campaignId: campaign._id,
+        userId,
+        phoneNumber,
+        normalizedPhoneNumber: naloSmsService.formatPhoneNumber(phoneNumber),
+        personalizedMessage: message,
+        segments: segmentResult.segments,
+        estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
+      });
+
+      await smsRecipient.save();
+    }
+
+    // Schedule with BullMQ
+    const SmsSchedulerService = require('../services/SmsSchedulerService');
+    await SmsSchedulerService.scheduleCampaign(campaign._id, scheduleDate);
+
+    res.json({
+      success: true,
+      campaignId: campaign._id,
+      message: 'Campaign scheduled successfully',
+      scheduledAt: scheduleDate,
+      recipientCount: validRecipients.length,
+      estimatedCost: costEstimation.estimatedCost,
+      processingSummary: {
+        originalCount: recipients.length,
+        invalidRemoved: invalidRecipients.length,
+        finalCount: validRecipients.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Schedule SMS error:', error);
+    res.status(500).json({ error: 'Failed to schedule campaign: ' + error.message });
+  }
+});
+
 module.exports = router;

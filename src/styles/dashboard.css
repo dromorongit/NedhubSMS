@@ -969,6 +969,16 @@
     color: #c62828;
 }
 
+.status-badge.scheduled {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.status-badge.processing {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
 /* Filter Section */
 .filter-section {
     display: flex;
@@ -1410,7 +1420,101 @@
     }
 }
 
+/* ============================================
+   SCHEDULE SECTION
+   ============================================ */
+.schedule-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--neutral-gray);
+}
+
+.schedule-section .section-title {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: var(--primary-dark);
+}
+
+.schedule-section .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.schedule-section .form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.schedule-section .form-group label {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--primary-dark);
+}
+
+.schedule-section .form-group input[type="date"],
+.schedule-section .form-group input[type="time"] {
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: var(--neutral-white);
+    color: var(--primary-dark);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.schedule-section .form-group input[type="date"]:focus,
+.schedule-section .form-group input[type="time"]:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.1);
+}
+
+.schedule-section .form-group small {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.schedule-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background-color: #f9fafb;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-orange);
+}
+
+.timezone-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.timezone-display svg {
+    width: 16px;
+    height: 16px;
+    color: var(--accent-orange);
+}
+
+.schedule-preview {
+    font-size: 0.95rem;
+    color: var(--primary-dark);
+    font-weight: 500;
+    padding: var(--spacing-sm);
+    background-color: var(--neutral-white);
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
 /* Smooth transitions for preview updates */
+#livePreviewText {
+    transition: opacity 0.2s ease;
+}
 #livePreviewText {
     transition: opacity 0.2s ease;
 }

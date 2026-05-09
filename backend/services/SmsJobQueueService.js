@@ -7,6 +7,7 @@ const BatchProcessorService = require('./BatchProcessorService');
 const logger = require('../utils/logger');
 const MetricsService = require('./MetricsService');
 const AlertingService = require('../utils/alerting');
+const Sentry = require('../utils/sentry');
 
 class SmsJobQueueService {
   constructor() {
@@ -119,6 +120,16 @@ class SmsJobQueueService {
         MetricsService.incrementQueueFailed(job.data.campaignId, err);
         await AlertingService.alertQueueFailure(job.data.campaignId, err);
 
+        // Capture failure in Sentry
+        try {
+          Sentry.captureException(err, {
+            tags: { jobId: job.id, campaignId: job.data.campaignId, type: 'queue_failure' },
+            extra: { attemptsMade: job.attemptsMade, jobData: job.data }
+          });
+        } catch (sentryError) {
+          console.error('Failed to capture error in Sentry:', sentryError);
+        }
+
         // Dead letter queue: Move jobs that have exhausted retries
         if (job.attemptsMade >= job.opts.attempts) {
           try {
@@ -186,7 +197,22 @@ class SmsJobQueueService {
 
     const delay = Math.max(0, scheduledTime.getTime() - Date.now());
 
+    // Use deterministic job ID to prevent duplicates: "campaign-{campaignId}"
+    const jobId = `campaign-${campaignId}`;
+
+    // Remove any existing job with the same ID (idempotency)
+    try {
+      const existingJob = await this.queue.getJob(jobId);
+      if (existingJob) {
+        await existingJob.remove();
+        console.log(`[SmsJobQueueService] Removed existing job ${jobId} for rescheduling`);
+      }
+    } catch (error) {
+      console.warn(`[SmsJobQueueService] Could not check for existing job ${jobId}:`, error.message);
+    }
+
     const job = await this.queue.add('sendCampaign', { campaignId }, {
+      jobId,
       priority: 0, // Lower priority for scheduled sends
       delay,
       ...options,
@@ -339,6 +365,7 @@ class SmsJobQueueService {
 
     // Update campaign status to processing
     campaign.status = 'processing';
+    campaign.scheduleStatus = 'executing';
     await campaign.save();
 
     // Capture reservation if exists
@@ -420,10 +447,12 @@ class SmsJobQueueService {
         // Status should already be set by BatchProcessorService.finalizeCampaign
         // But ensure it's set correctly
         if (campaign.sentCount > 0) {
-          campaign.status = 'sent';
+          campaign.status = 'completed';
+          campaign.scheduleStatus = 'completed';
           campaign.sentAt = new Date();
         } else {
           campaign.status = 'failed';
+          campaign.scheduleStatus = 'failed';
         }
 
         await campaign.save();
@@ -445,6 +474,7 @@ class SmsJobQueueService {
     } catch (error) {
       console.error(`[SmsJobQueueService] Batch processing error for campaign ${campaign._id}:`, error);
       campaign.status = 'failed';
+      campaign.scheduleStatus = 'failed';
       await campaign.save();
       throw error;
     }

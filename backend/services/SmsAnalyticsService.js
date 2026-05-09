@@ -166,7 +166,7 @@ class SmsAnalyticsService {
     const recentCampaigns = await SmsCampaign.find(matchConditions)
       .sort({ sentAt: -1 })
       .limit(limit)
-      .select('title sentAt status sentCount deliveredCount failedCount actualCost deliveryRate')
+      .select('title sentAt status sentCount deliveredCount failedCount actualCost deliveryRate scheduledAt scheduledTimezone scheduleStatus jobId')
       .lean();
 
     // Top-performing campaigns (by delivery rate)
@@ -176,7 +176,7 @@ class SmsAnalyticsService {
     })
       .sort({ deliveredCount: -1, sentCount: -1 })
       .limit(limit)
-      .select('title sentAt status sentCount deliveredCount failedCount actualCost deliveryRate')
+      .select('title sentAt status sentCount deliveredCount failedCount actualCost deliveryRate scheduledAt scheduledTimezone scheduleStatus jobId')
       .lean();
 
     return {

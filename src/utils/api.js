@@ -261,10 +261,13 @@ class ApiClient {
   }
 
   async scheduleSMS(data) {
-    // Scheduling for default (non-personalized) SMS is not supported yet.
-    // Return an error response that the frontend will display.
-    return Promise.resolve({
-      error: 'Scheduling is not supported for Default Messaging. Please use Send Now or switch to Personalized Messaging for scheduling.'
+    const { senderId, recipients, message, scheduledAt, timezone } = data;
+    return this.request('POST', '/sms/schedule', {
+      senderId,
+      recipients,
+      message,
+      scheduledAt,
+      timezone: timezone || 'UTC'
     });
   }
 

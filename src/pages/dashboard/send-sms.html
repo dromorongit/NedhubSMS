@@ -417,47 +417,77 @@
                              <div class="warning-text" id="warningText"></div>
                          </div>
 
-                         <div class="form-actions">
-                             <button type="button" class="btn-secondary" id="sendNowBtn">
-                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                     <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
-                                 </svg>
-                                 Send Now
-                             </button>
-                             <button type="button" class="btn-secondary" id="scheduleBtn">
-                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                     <circle cx="12" cy="12" r="10"></circle>
-                                     <polyline points="12 6 12 12 16 14"></polyline>
-                                 </svg>
-                                 Schedule Message
-                             </button>
-                         </div>
-                     </form>
+                      <!-- Live Mobile Preview Section -->
+                      <div class="live-preview-section">
+                          <h3 class="section-title">Live Preview</h3>
+                          <div class="mobile-preview-wrapper" id="mobilePreviewWrapper">
+                              <div class="phone-mockup">
+                                  <div class="phone-frame">
+                                      <div class="phone-notch"></div>
+                                      <div class="phone-screen">
+                                          <div class="sms-header-bar">
+                                              <div class="header-time" id="previewHeaderTime">12:30</div>
+                                              <div class="header-sender" id="previewHeaderSender">Sender ID</div>
+                                          </div>
+                                          <div class="sms-messages-container" id="previewMessagesContainer">
+                                              <div class="sms-message-bubble received">
+                                                  <span class="message-text" id="livePreviewText">Your message will appear here...</span>
+                                                  <span class="message-time" id="previewMessageTime">12:30 PM</span>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
 
-                     <!-- Live Mobile Preview Section -->
-                     <div class="live-preview-section">
-                         <h3 class="section-title">Live Preview</h3>
-                         <div class="mobile-preview-wrapper" id="mobilePreviewWrapper">
-                             <div class="phone-mockup">
-                                 <div class="phone-frame">
-                                     <div class="phone-notch"></div>
-                                     <div class="phone-screen">
-                                         <div class="sms-header-bar">
-                                             <div class="header-time" id="previewHeaderTime">12:30</div>
-                                             <div class="header-sender" id="previewHeaderSender">Sender ID</div>
-                                         </div>
-                                         <div class="sms-messages-container" id="previewMessagesContainer">
-                                             <div class="sms-message-bubble received">
-                                                 <span class="message-text" id="livePreviewText">Your message will appear here...</span>
-                                                 <span class="message-time" id="previewMessageTime">12:30 PM</span>
-                                             </div>
-                                         </div>
-                                     </div>
-                                 </div>
-                             </div>
-                         </div>
-                     </div>
-                 </div>
+                      <!-- Schedule Date & Time Field -->
+                      <div class="schedule-section" id="scheduleSettings">
+                          <h3 class="section-title">Schedule Message</h3>
+                          <div class="form-row">
+                              <div class="form-group">
+                                  <label for="scheduledDate">Schedule Date</label>
+                                  <input type="date" id="scheduledDate" name="scheduledDate" required min="">
+                                  <small>Select the date to send this campaign</small>
+                              </div>
+                              <div class="form-group">
+                                  <label for="scheduledTime">Schedule Time</label>
+                                  <input type="time" id="scheduledTime" name="scheduledTime" required>
+                                  <small>Select the time to send (your local timezone)</small>
+                              </div>
+                          </div>
+                          <div class="schedule-info" id="scheduleInfo">
+                              <div class="timezone-display">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <circle cx="12" cy="12" r="10"></circle>
+                                      <polyline points="12 6 12 12 16 14"></polyline>
+                                  </svg>
+                                  <span id="timezoneDisplay">Detecting timezone...</span>
+                              </div>
+                              <div class="schedule-preview" id="schedulePreview">
+                                  <!-- Will show "Scheduled for Tomorrow at 9:00 AM" -->
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- Form Actions (Buttons) -->
+                      <div class="form-actions" id="formActions">
+                          <button type="button" class="btn-secondary" id="sendNowBtn">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                              </svg>
+                              Send Now
+                          </button>
+                          <button type="button" class="btn-secondary" id="scheduleBtn" disabled>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <circle cx="12" cy="12" r="10"></circle>
+                                  <polyline points="12 6 12 12 16 14"></polyline>
+                              </svg>
+                              Schedule Message
+                          </button>
+                      </div>
+                  </form>
+                  </div>
 
                  <!-- Quick Tips Card -->
                 <div class="tips-card">
@@ -668,6 +698,9 @@
             document.getElementById('defaultModeRecipients').style.display = 'block';
             document.getElementById('personalizedModeRecipients').style.display = 'none';
             switchRecipientSourceTab('manual', false);
+            
+            // Initialize schedule section
+            initScheduleSection();
         }
 
         async function loadUserProfile() {
@@ -708,6 +741,86 @@
             
             if (userNameEl) userNameEl.textContent = firstName;
             if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+        }
+
+        // Initialize schedule section: timezone detection, validation, preview
+        function initScheduleSection() {
+            const scheduledDate = document.getElementById('scheduledDate');
+            const scheduledTime = document.getElementById('scheduledTime');
+            const scheduleBtn = document.getElementById('scheduleBtn');
+            const timezoneDisplay = document.getElementById('timezoneDisplay');
+            const schedulePreview = document.getElementById('schedulePreview');
+            
+            if (!scheduledDate || !scheduledTime || !scheduleBtn || !timezoneDisplay || !schedulePreview) {
+                console.warn('[Schedule] One or more schedule elements not found');
+                return;
+            }
+            
+            // Detect user's timezone
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+            
+            // Calculate offset
+            const now = new Date();
+            const offsetMinutes = now.getTimezoneOffset();
+            const offsetHours = Math.abs(Math.floor(offsetMinutes / 60));
+            const offsetSign = offsetMinutes <= 0 ? '+' : '-';
+            const formattedOffset = `GMT${offsetSign}${offsetHours}`;
+            
+            timezoneDisplay.textContent = `Timezone: ${timezone} (${formattedOffset})`;
+            
+            // Set minimum date to today (prevent past dates)
+            const today = new Date().toISOString().split('T')[0];
+            scheduledDate.min = today;
+            
+            // Add event listeners for real-time validation
+            scheduledDate.addEventListener('input', validateAndUpdateSchedule);
+            scheduledTime.addEventListener('change', validateAndUpdateSchedule);
+            scheduledTime.addEventListener('input', validateAndUpdateSchedule);
+            
+            // Initial validation state
+            validateAndUpdateSchedule();
+            
+            console.log('[Schedule] Initialized with timezone:', timezone);
+        }
+        
+        function validateAndUpdateSchedule() {
+            const scheduledDate = document.getElementById('scheduledDate').value;
+            const scheduledTime = document.getElementById('scheduledTime').value;
+            const scheduleBtn = document.getElementById('scheduleBtn');
+            const schedulePreview = document.getElementById('schedulePreview');
+            
+            if (!scheduledDate || !scheduledTime) {
+                scheduleBtn.disabled = true;
+                schedulePreview.textContent = '';
+                return;
+            }
+            
+            const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`);
+            const now = new Date();
+            
+            // Check if datetime is in the future
+            if (scheduledAt <= now) {
+                scheduleBtn.disabled = true;
+                schedulePreview.textContent = 'Please select a future date and time';
+                schedulePreview.style.color = '#dc2626';
+                return;
+            }
+            
+            // Valid future datetime
+            scheduleBtn.disabled = false;
+            
+            // Format human-readable preview
+            const options = {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            };
+            const formatted = scheduledAt.toLocaleString(undefined, options);
+            schedulePreview.textContent = `Scheduled for ${formatted}`;
+            schedulePreview.style.color = '';
         }
 
         async function loadSenderIds() {
@@ -2609,6 +2722,9 @@
              const salutation = document.getElementById('salutation').value;
              const customSalutation = document.getElementById('customSalutation').value;
              const removeDuplicates = document.querySelector('input[name="duplicateHandling"]:checked')?.value === 'remove';
+             
+             // Get user's timezone for scheduling
+             const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
  
              // Validate required fields
              // Debug: log validation state before checks
@@ -2694,7 +2810,7 @@
  
                      if (sendMode === 'scheduled') {
                          campaignData.scheduledAt = scheduledAt.toISOString();
-                         campaignData.timezone = 'UTC';
+                         campaignData.timezone = userTimezone;
                      }
  
                      result = sendMode === 'immediate' ?
@@ -2710,6 +2826,7 @@
  
                      if (sendMode === 'scheduled') {
                          campaignData.scheduledAt = scheduledAt.toISOString();
+                         campaignData.timezone = userTimezone;
                      }
  
                      console.log('[Send] Campaign payload (default):', JSON.stringify(campaignData));

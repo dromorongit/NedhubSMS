@@ -384,6 +384,37 @@ body .dashboard-content {
     padding-top: var(--spacing-md) !important;
 }
 
+/* Schedule section responsive */
+.schedule-section {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--neutral-gray);
+}
+
+.schedule-section .form-row {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+}
+
+.schedule-section .form-group input[type="date"],
+.schedule-section .form-group input[type="time"] {
+    font-size: 16px; /* Prevent zoom on iOS */
+    padding: 0.875rem;
+}
+
+.schedule-info {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+}
+
+.timezone-display {
+    font-size: 0.85rem;
+}
+
+.schedule-preview {
+    font-size: 0.9rem;
+}
+
 .btn-secondary,
 .btn-primary {
     width: 100% !important;

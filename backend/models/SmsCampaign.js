@@ -44,7 +44,12 @@ const smsCampaignSchema = new mongoose.Schema({
     default: 'immediate'
   },
   scheduledAt: {
-    type: Date
+    type: Date,
+    index: true
+  },
+  scheduledTimezone: {
+    type: String,
+    default: 'UTC'
   },
   timezone: {
     type: String,
@@ -52,8 +57,26 @@ const smsCampaignSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'scheduled', 'processing', 'sent', 'failed', 'cancelled'],
+    enum: ['draft', 'scheduled', 'queued', 'processing', 'completed', 'failed', 'cancelled'],
     default: 'draft',
+    index: true
+  },
+  jobId: {
+    type: String,
+    index: true
+  },
+  scheduleStatus: {
+    type: String,
+    enum: ['pending', 'scheduled', 'executing', 'completed', 'failed', 'cancelled'],
+    default: 'pending',
+    index: true
+  },
+  executedAt: {
+    type: Date,
+    index: true
+  },
+  cancelledAt: {
+    type: Date,
     index: true
   },
   recipientCount: {
@@ -160,19 +183,51 @@ smsCampaignSchema.pre('save', function(next) {
   next();
 });
 
-// Method to check if campaign is scheduled
+// Method to check if campaign is scheduled for future
 smsCampaignSchema.methods.isScheduled = function() {
   return this.status === 'scheduled' && this.scheduledAt > new Date();
 };
 
-// Method to check if campaign can be sent
+// Method to check if campaign can be sent (immediate or scheduled execution)
 smsCampaignSchema.methods.canBeSent = function() {
-  return ['draft', 'scheduled'].includes(this.status);
+  return ['draft', 'scheduled', 'queued'].includes(this.status);
 };
 
 // Method to check if campaign can be cancelled
 smsCampaignSchema.methods.canBeCancelled = function() {
+  return (this.status === 'scheduled' || this.status === 'queued') && this.scheduledAt > new Date();
+};
+
+// Method to check if campaign can be rescheduled
+smsCampaignSchema.methods.canBeRescheduled = function() {
   return this.status === 'scheduled' && this.scheduledAt > new Date();
+};
+
+// Method to mark campaign as executing
+smsCampaignSchema.methods.markAsExecuting = function() {
+  this.status = 'processing';
+  this.scheduleStatus = 'executing';
+  this.executedAt = new Date();
+};
+
+// Method to mark campaign as completed
+smsCampaignSchema.methods.markAsCompleted = function() {
+  this.status = 'completed';
+  this.scheduleStatus = 'completed';
+  this.executedAt = this.executedAt || new Date();
+};
+
+// Method to mark campaign as failed
+smsCampaignSchema.methods.markAsFailed = function() {
+  this.status = 'failed';
+  this.scheduleStatus = 'failed';
+};
+
+// Method to mark campaign as cancelled
+smsCampaignSchema.methods.markAsCancelled = function() {
+  this.status = 'cancelled';
+  this.scheduleStatus = 'cancelled';
+  this.cancelledAt = new Date();
 };
 
 // Static method to find campaigns by user

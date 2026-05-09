@@ -243,9 +243,11 @@
                                     <th>Sender ID</th>
                                     <th>Status</th>
                                     <th>Recipients</th>
+                                    <th>Est. Cost</th>
                                     <th>Delivered</th>
                                     <th>Failed</th>
                                     <th>Created</th>
+                                    <th>Scheduled For</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -369,6 +371,58 @@
         </div>
     </div>
 
+    <!-- Reschedule Campaign Modal -->
+    <div class="modal" id="rescheduleModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close" id="closeRescheduleModal">&times;</button>
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                </div>
+                <h3>Reschedule Campaign</h3>
+                <p>Select a new date and time for this campaign</p>
+            </div>
+            
+            <form id="rescheduleForm" onsubmit="submitReschedule(event)">
+                <input type="hidden" id="rescheduleCampaignId" name="campaignId">
+                <div class="form-group">
+                    <label for="rescheduleDate">New Date & Time</label>
+                    <input type="datetime-local" id="rescheduleDate" name="scheduledAt" required>
+                    <small class="form-hint">Select the new date and time for campaign execution</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Timezone</label>
+                    <div class="timezone-display" id="rescheduleTimezoneDisplay">
+                        Africa/Accra
+                    </div>
+                    <small class="form-hint">Campaign will be scheduled in your local timezone</small>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeRescheduleModal()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-primary" id="rescheduleSubmitBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Reschedule
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         // Global variables
         let allCampaigns = [];
@@ -387,6 +441,15 @@
         const campaignDetailsModal = document.getElementById('campaignDetailsModal');
         const closeDetailsModal = document.getElementById('closeDetailsModal');
         const campaignDetailsContent = document.getElementById('campaignDetailsContent');
+
+        // Reschedule modal elements
+        const rescheduleModal = document.getElementById('rescheduleModal');
+        const closeRescheduleModal = document.getElementById('closeRescheduleModal');
+        const rescheduleForm = document.getElementById('rescheduleForm');
+        const rescheduleCampaignIdInput = document.getElementById('rescheduleCampaignId');
+        const rescheduleDateInput = document.getElementById('rescheduleDate');
+        const rescheduleTimezoneDisplay = document.getElementById('rescheduleTimezoneDisplay');
+        const rescheduleSubmitBtn = document.getElementById('rescheduleSubmitBtn');
 
         // Page elements
         const userAvatarEl = document.getElementById('userAvatar');
@@ -552,6 +615,11 @@
             campaignDetailsModal.style.display = 'none';
         });
 
+        // Close reschedule modal
+        closeRescheduleModal.addEventListener('click', () => {
+            rescheduleModal.style.display = 'none';
+        });
+
         function closeCampaignDetailsModal() {
             campaignDetailsModal.style.display = 'none';
         }
@@ -563,6 +631,9 @@
             }
             if (event.target === campaignDetailsModal) {
                 campaignDetailsModal.style.display = 'none';
+            }
+            if (event.target === rescheduleModal) {
+                rescheduleModal.style.display = 'none';
             }
         });
 
@@ -634,14 +705,34 @@
                             `;
                         }
 
+                        // Add cancel and reschedule for scheduled campaigns
+                        if (campaign.status === 'scheduled') {
+                            actionButtons += `
+                                <button class="btn-warning cancel-schedule-btn" data-campaign-id="${campaign._id}" title="Cancel Schedule">Cancel</button>
+                                <button class="btn-info reschedule-btn" data-campaign-id="${campaign._id}" title="Reschedule">Reschedule</button>
+                            `;
+                        }
+
+                        const scheduledFor = campaign.scheduledAt
+                            ? new Date(campaign.scheduledAt).toLocaleString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              })
+                            : '-';
+
                         row.innerHTML = `
                             <td>${campaign.title || campaign.name}</td>
                             <td>${campaign.senderId}</td>
                             <td><span class="status-badge ${campaign.status}">${campaign.status}</span></td>
                             <td>${campaign.recipientCount || campaign.recipientsCount || 0}</td>
+                            <td>GHS ${(campaign.estimatedCost || 0).toFixed(2)}</td>
                             <td class="text-success">${campaign.deliveredCount || 0}</td>
                             <td class="text-danger">${campaign.failedCount || 0}</td>
                             <td>${new Date(campaign.createdAt).toLocaleDateString()}</td>
+                            <td>${scheduledFor}</td>
                             <td>${actionButtons}</td>
                         `;
                         campaignsBody.appendChild(row);
@@ -689,6 +780,10 @@
                 await retryFailedRecipients(campaignId);
             } else if (target.classList.contains('duplicate-btn')) {
                 await duplicateWithFailed(campaignId);
+            } else if (target.classList.contains('cancel-schedule-btn')) {
+                await cancelScheduledCampaign(campaignId);
+            } else if (target.classList.contains('reschedule-btn')) {
+                await showRescheduleModal(campaignId);
             }
         });
 
@@ -800,6 +895,101 @@
                 console.error('Error duplicating campaign:', error);
                 window.showToast('Failed to duplicate campaign: ' + error.message, 'error');
             }
+        }
+
+        // Cancel scheduled campaign
+        async function cancelScheduledCampaign(campaignId) {
+            if (!confirm('Are you sure you want to cancel this scheduled campaign? This will release any reserved wallet balance.')) {
+                return;
+            }
+
+            try {
+                const response = await window.apiClient.cancelScheduledCampaign(campaignId);
+                if (response.error) {
+                    throw new Error(response.error);
+                }
+
+                window.showToast('Scheduled campaign cancelled successfully', 'success');
+                loadCampaigns();
+
+            } catch (error) {
+                console.error('Error cancelling scheduled campaign:', error);
+                window.showToast('Failed to cancel scheduled campaign: ' + error.message, 'error');
+            }
+        }
+
+        // Show reschedule modal
+        async function showRescheduleModal(campaignId) {
+            try {
+                const campaign = allCampaigns.find(c => c._id === campaignId);
+                if (!campaign) {
+                    window.showToast('Campaign not found', 'error');
+                    return;
+                }
+
+                // Populate modal with current schedule info
+                const currentDate = new Date(campaign.scheduledAt);
+                const formattedDate = currentDate.toISOString().slice(0, 16); // For datetime-local input
+
+                // Set minimum datetime to now (prevent past dates)
+                const now = new Date();
+                const minDateTime = now.toISOString().slice(0, 16);
+                rescheduleDateInput.min = minDateTime;
+
+                rescheduleCampaignIdInput.value = campaignId;
+                rescheduleDateInput.value = formattedDate;
+                rescheduleTimezoneDisplay.textContent = campaign.scheduledTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                rescheduleModal.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading reschedule modal:', error);
+                window.showToast('Failed to load reschedule modal', 'error');
+            }
+        }
+
+        // Handle reschedule form submission
+        async function submitReschedule(event) {
+            event.preventDefault();
+
+            try {
+                const campaignId = rescheduleCampaignIdInput.value;
+                const scheduledAt = rescheduleDateInput.value;
+
+                if (!scheduledAt) {
+                    window.showToast('Please select a valid date and time', 'error');
+                    return;
+                }
+
+                const scheduledDate = new Date(scheduledAt);
+                if (scheduledDate <= new Date()) {
+                    window.showToast('Scheduled time must be in the future', 'error');
+                    return;
+                }
+
+                const response = await window.apiClient.updateScheduledCampaign(campaignId, {
+                    scheduledAt,
+                    scheduledTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                });
+
+                if (response.error) {
+                    throw new Error(response.error);
+                }
+
+                window.showToast('Campaign rescheduled successfully', 'success');
+                closeRescheduleModal();
+                loadCampaigns();
+
+            } catch (error) {
+                console.error('Error rescheduling campaign:', error);
+                window.showToast('Failed to reschedule campaign: ' + error.message, 'error');
+            }
+        }
+
+        // Close reschedule modal
+        function closeRescheduleModal() {
+            rescheduleModal.style.display = 'none';
+            rescheduleForm.reset();
         }
 
         // Logout function
