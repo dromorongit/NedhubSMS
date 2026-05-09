@@ -2490,23 +2490,28 @@
         document.getElementById('sendNowBtn').addEventListener('click', async function() {
             // Validate default mode input before getting recipients
             if (currentMessagingMode === 'default') {
-                const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-                
-                // Block if exceeds maximum contacts
-                if (validationResult.originalCount > MAX_RECIPIENTS) {
-                    showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
-                    return;
-                }
-                
-                // Block if no valid phone numbers
-                if (validationResult.count === 0) {
-                    showToast('Please enter at least one valid phone number', 'error');
-                    return;
-                }
-                
-                // If there are invalid numbers, show a warning (but still allow send for valid ones)
-                if (validationResult.error) {
-                    showToast(validationResult.error, 'warning');
+                // Only validate comma-separated input if manual entry tab is active
+                const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
+                const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
+                if (activeTab === 'manual') {
+                    const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                    
+                    // Block if exceeds maximum contacts
+                    if (validationResult.originalCount > MAX_RECIPIENTS) {
+                        showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
+                        return;
+                    }
+                    
+                    // Block if no valid phone numbers
+                    if (validationResult.count === 0) {
+                        showToast('Please enter at least one valid phone number', 'error');
+                        return;
+                    }
+                    
+                    // If there are invalid numbers, show a warning (but still allow send for valid ones)
+                    if (validationResult.error) {
+                        showToast(validationResult.error, 'warning');
+                    }
                 }
             }
             
@@ -2514,6 +2519,12 @@
 
             if (recipients.length === 0) {
                 showToast('Please add at least one recipient', 'error');
+                return;
+            }
+            
+            // Enforce maximum recipients limit for all sources
+            if (recipients.length > MAX_RECIPIENTS) {
+                showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
                 return;
             }
 
@@ -2524,23 +2535,28 @@
          document.getElementById('scheduleBtn').addEventListener('click', async function() {
              // Validate default mode input before getting recipients
              if (currentMessagingMode === 'default') {
-                 const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-                 
-                 // Block if exceeds maximum contacts
-                 if (validationResult.originalCount > MAX_RECIPIENTS) {
-                     showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
-                     return;
-                 }
-                 
-                 // Block if no valid phone numbers
-                 if (validationResult.count === 0) {
-                     showToast('Please enter at least one valid phone number', 'error');
-                     return;
-                 }
-                 
-                 // If there are invalid numbers, show a warning (but still allow send for valid ones)
-                 if (validationResult.error) {
-                     showToast(validationResult.error, 'warning');
+                 // Only validate comma-separated input if manual entry tab is active
+                 const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
+                 const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
+                 if (activeTab === 'manual') {
+                     const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                     
+                     // Block if exceeds maximum contacts
+                     if (validationResult.originalCount > MAX_RECIPIENTS) {
+                         showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
+                         return;
+                     }
+                     
+                     // Block if no valid phone numbers
+                     if (validationResult.count === 0) {
+                         showToast('Please enter at least one valid phone number', 'error');
+                         return;
+                     }
+                     
+                     // If there are invalid numbers, show a warning (but still allow send for valid ones)
+                     if (validationResult.error) {
+                         showToast(validationResult.error, 'warning');
+                     }
                  }
              }
              
@@ -2550,7 +2566,13 @@
                  showToast('Please add at least one recipient', 'error');
                  return;
              }
-
+             
+             // Enforce maximum recipients limit for all sources
+             if (recipients.length > MAX_RECIPIENTS) {
+                 showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
+                 return;
+             }
+ 
              // Validate schedule time
              const date = document.getElementById('scheduledDate').value;
              const time = document.getElementById('scheduledTime').value;
@@ -2582,12 +2604,20 @@
              const removeDuplicates = document.querySelector('input[name="duplicateHandling"]:checked')?.value === 'remove';
  
              // Validate required fields
+             // Debug: log validation state before checks
+             console.log('[Send Validation] Mode:', isPersonalizedMode ? 'personalized' : 'default');
+             console.log('[Send Validation] Sender ID:', senderId);
+             console.log('[Send Validation] Recipient count:', recipients.length);
+             console.log('[Send Validation] Message length:', messageBody ? messageBody.length : 0);
+             
              if (!senderId) {
+                 console.log('[Send Validation] FAIL: Sender ID missing');
                  showToast('Please select a Sender ID', 'error');
                  return;
              }
  
              if (!messageBody.trim()) {
+                 console.log('[Send Validation] FAIL: Message empty');
                  showToast('Please enter a message', 'error');
                  return;
              }
@@ -2595,12 +2625,14 @@
              // For personalized mode, validate salutation and names
              if (isPersonalizedMode) {
                  if (salutation === 'Custom' && !customSalutation.trim()) {
+                     console.log('[Send Validation] FAIL: Custom salutation missing');
                      showToast('Please enter a custom salutation', 'error');
                      return;
                  }
  
                  // Validate recipients
                  if (recipients.length === 0) {
+                     console.log('[Send Validation] FAIL: No recipients in personalized mode');
                      showToast('Please add at least one recipient', 'error');
                      return;
                  }
@@ -2612,6 +2644,7 @@
                  });
  
                  if (invalidRecipients.length > 0) {
+                     console.log('[Send Validation] FAIL: Invalid phone numbers:', invalidRecipients.map(r => r.phoneNumber));
                      showToast(`Please fix invalid phone numbers: ${invalidRecipients.map(r => r.phoneNumber).join(', ')}`, 'error');
                      return;
                  }
@@ -2619,10 +2652,14 @@
                  // Check for missing names
                  const missingNameRecipients = recipients.filter(r => !r.recipientName || !r.recipientName.trim());
                  if (missingNameRecipients.length > 0) {
+                     console.log('[Send Validation] FAIL: Missing names for some recipients');
                      showToast('Please enter names for all recipients', 'error');
                      return;
                  }
              }
+ 
+             // All validation passed
+             console.log('[Send Validation] PASS: All validation checks passed');
  
              const submitBtn = sendMode === 'immediate' ?
                  document.getElementById('sendNowBtn') :

@@ -255,8 +255,17 @@ class ApiClient {
   }
 
   // SMS endpoints
-  async sendSMS(senderId, recipients, message) {
+  async sendSMS(data) {
+    const { senderId, recipients, message } = data;
     return this.request('POST', '/sms/send', { senderId, recipients, message });
+  }
+
+  async scheduleSMS(data) {
+    // Scheduling for default (non-personalized) SMS is not supported yet.
+    // Return an error response that the frontend will display.
+    return Promise.resolve({
+      error: 'Scheduling is not supported for Default Messaging. Please use Send Now or switch to Personalized Messaging for scheduling.'
+    });
   }
 
   async getMessageHistory() {
