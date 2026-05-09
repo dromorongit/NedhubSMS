@@ -14,7 +14,10 @@ class BrevoProvider {
     this.baseUrl = 'https://api.brevo.com/v3/smtp/email';
 
     if (!this.apiKey) {
-      throw new Error('[BREVO] BREVO_API_KEY is required in environment variables');
+      console.warn('[BREVO] BREVO_API_KEY is not set - email sending will be simulated');
+      this.isDummyMode = true;
+    } else {
+      this.isDummyMode = false;
     }
 
     console.log('[EMAIL] Provider: Brevo');
@@ -31,6 +34,12 @@ class BrevoProvider {
    * @returns {Promise<{success: boolean, error?: string, messageId?: string}>}
    */
   async sendEmail(to, subject, html, text, options = {}) {
+    // Simulate email sending in dummy mode
+    if (this.isDummyMode) {
+      console.log(`[EMAIL][BREVO] Dummy mode: Email would be sent to ${to} with subject: ${subject}`);
+      return { success: true };
+    }
+
     try {
       // Build Brevo-compatible request body
       const requestBody = {

@@ -75,6 +75,16 @@ class SmsJobQueueService {
         },
       });
 
+      // Handle queue errors
+      this.queue.on('error', (error) => {
+        console.error('[SmsJobQueueService] Queue error:', error.message);
+        try {
+          Sentry.captureException(error, {
+            tags: { component: 'bullmq-queue', queue: 'sms-campaigns' }
+          });
+        } catch (e) {}
+      });
+
       // Initialize dead letter queue
       this.deadLetterQueue = new Queue('sms-dead-letter', {
         connection: this.redisConnection,
@@ -82,6 +92,16 @@ class SmsJobQueueService {
           removeOnComplete: 0, // Keep all dead letter jobs
           removeOnFail: 0,
         },
+      });
+
+      // Handle dead letter queue errors
+      this.deadLetterQueue.on('error', (error) => {
+        console.error('[SmsJobQueueService] Dead letter queue error:', error.message);
+        try {
+          Sentry.captureException(error, {
+            tags: { component: 'bullmq-queue', queue: 'dead-letter' }
+          });
+        } catch (e) {}
       });
 
       // QueueScheduler removed in newer bullmq versions; queue handles delayed jobs natively
@@ -94,6 +114,20 @@ class SmsJobQueueService {
           max: 10, // Max 10 jobs per duration
           duration: 1000, // Per second
         },
+      });
+
+      // Handle worker errors to prevent process crash
+      this.worker.on('error', (error) => {
+        console.error('[SmsJobQueueService] Worker error:', error.message);
+        // Log to Sentry but don't crash
+        try {
+          Sentry.captureException(error, {
+            tags: { component: 'bullmq-worker' },
+            extra: { context: 'Worker initialization or runtime error' }
+          });
+        } catch (e) {
+          // Ignore Sentry errors
+        }
       });
 
       // Graceful shutdown handling

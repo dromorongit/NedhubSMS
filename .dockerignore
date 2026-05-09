@@ -1,0 +1,67 @@
+# Dependencies
+node_modules
+backend/node_modules
+npm-debug.log
+
+# Environment variables
+.env
+backend/.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+!DEPLOYMENT.md
+
+# Tests
+test
+tests
+*.test.js
+*.spec.js
+
+# CI/CD
+.github
+.gitlab
+.travis.yml
+.circleci
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Railway
+railway.json
+
+# Logs
+logs
+*.log
+
+# Uploads (handled at runtime)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist
+build
+coverage
+
+# Temporary files
+tmp
+temp
+*.tmp

@@ -295,9 +295,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Start server
-const server = app.listen(PORT, async () => {
-  logger.info('Server started', { port: PORT });
+// Start server - listen on all interfaces (0.0.0.0) for Docker/Railway compatibility
+const server = app.listen(PORT, '0.0.0.0', async () => {
+  logger.info('Server started', { port: PORT, address: server.address().address });
 
   // Try to start SMS scheduler service, but don't fail if Redis is unavailable
   try {
