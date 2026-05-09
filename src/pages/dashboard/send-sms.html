@@ -2897,8 +2897,14 @@
         function resetForm() {
             document.getElementById('sendSmsForm').reset();
             document.getElementById('customSalutationGroup').style.display = 'none';
-            const scheduleSettings = document.getElementById('scheduleSettings');
-            if (scheduleSettings) scheduleSettings.style.display = 'none';
+            // Keep schedule settings visible after reset (don't hide)
+            // Clear schedule fields and re-validate
+            const scheduledDate = document.getElementById('scheduledDate');
+            const scheduledTime = document.getElementById('scheduledTime');
+            if (scheduledDate) scheduledDate.value = '';
+            if (scheduledTime) scheduledTime.value = '';
+            // Re-validate to disable schedule button and clear preview
+            validateAndUpdateSchedule();
 
             // Clear manual recipients (personalized mode)
             document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => item.remove());

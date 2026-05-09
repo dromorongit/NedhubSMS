@@ -11,6 +11,7 @@ const CostCalculatorService = require('../services/CostCalculatorService');
 const SmsRecipientService = require('../services/SmsRecipientService');
 const SmsSchedulerService = require('../services/SmsSchedulerService');
 const SmsCampaignRetryService = require('../services/SmsCampaignRetryService');
+const logger = require('../utils/logger');
 
 // Preview personalized messages
 router.post('/preview-personalized', authenticate, async (req, res) => {
@@ -365,6 +366,9 @@ router.post('/send', authenticate, async (req, res) => {
 
 // Schedule personalized SMS campaign
 router.post('/schedule', authenticate, async (req, res) => {
+  let reservation = null;
+  let campaign = null;
+
   try {
     const {
       title,
@@ -380,16 +384,59 @@ router.post('/schedule', authenticate, async (req, res) => {
 
     const userId = req.user.userId;
 
+    logger.info('[Schedule] Received personalized schedule request', {
+      userId,
+      senderId,
+      recipientCount: recipients?.length || 0,
+      scheduledAt,
+      timezone
+    });
+
     // Validate required fields
     if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId || !scheduledAt) {
+      logger.warn('[Schedule] Validation failed: missing required fields', {
+        userId,
+        hasTitle: !!title,
+        hasMessageBody: !!messageBody,
+        hasRecipients: Array.isArray(recipients) && recipients.length > 0,
+        hasSenderId: !!senderId,
+        hasScheduledAt: !!scheduledAt
+      });
       return res.status(400).json({
         error: 'Title, message body, recipients, sender ID, and schedule time are required'
       });
     }
 
+    // Validate sender ID exists and is approved
+    const SenderId = require('../models/SenderId');
+    const sender = await SenderId.findOne({ senderId, userId, status: 'approved' });
+    if (!sender) {
+      logger.warn('[Schedule] Sender ID validation failed', { userId, senderId });
+      return res.status(400).json({
+        error: 'Sender ID not found or not approved. Please use an approved Sender ID.'
+      });
+    }
+
+    // Validate message body length (max 160 characters)
+    if (messageBody.length > 160) {
+      logger.warn('[Schedule] Message too long', { userId, length: messageBody.length });
+      return res.status(400).json({ error: 'Message exceeds maximum length of 160 characters' });
+    }
+
     // Validate scheduled time
     const scheduleDate = new Date(scheduledAt);
+    if (isNaN(scheduleDate.getTime())) {
+      logger.warn('[Schedule] Invalid scheduled time format', { userId, scheduledAt });
+      return res.status(400).json({
+        error: 'Invalid scheduled time format'
+      });
+    }
     if (scheduleDate <= new Date()) {
+      logger.warn('[Schedule] Scheduled time must be in the future', {
+        userId,
+        scheduledAt,
+        now: new Date().toISOString()
+      });
       return res.status(400).json({
         error: 'Scheduled time must be in the future'
       });
@@ -413,6 +460,13 @@ router.post('/schedule', authenticate, async (req, res) => {
 
     // Check if we have any valid recipients after processing
     if (processedRecipients.finalCount === 0) {
+      logger.warn('[Schedule] No valid recipients after processing', {
+        userId,
+        originalCount: processedRecipients.originalCount,
+        duplicateCount: processedRecipients.duplicateCount,
+        invalidCount: processedRecipients.invalidRecipients.length,
+        blacklistedCount: processedRecipients.blacklistedRecipients.length
+      });
       return res.status(400).json({
         error: 'No valid recipients found after processing. All recipients were either duplicates, invalid, or blacklisted.',
         details: {
@@ -422,6 +476,15 @@ router.post('/schedule', authenticate, async (req, res) => {
         }
       });
     }
+
+    logger.info('[Schedule] Recipient processing complete', {
+      userId,
+      originalCount: processedRecipients.originalCount,
+      finalCount: processedRecipients.finalCount,
+      duplicateCount: processedRecipients.duplicateCount,
+      invalidCount: processedRecipients.invalidRecipients.length,
+      blacklistedCount: processedRecipients.blacklistedRecipients.length
+    });
 
     // Calculate segments and cost based on final valid recipients
     const costEstimation = await CostCalculatorService.calculateLiveCost(
@@ -450,10 +513,15 @@ router.post('/schedule', authenticate, async (req, res) => {
     }
 
     // Reserve funds immediately
-    const reservation = await WalletService.reserveFunds(userId, costEstimation.estimatedCost, null);
+    logger.info('[Schedule] Reserving wallet funds', {
+      userId,
+      amount: costEstimation.estimatedCost,
+      campaignTitle: title
+    });
+    let reservation = await WalletService.reserveFunds(userId, costEstimation.estimatedCost, null);
 
     // Create campaign
-    const campaign = new SmsCampaign({
+    campaign = new SmsCampaign({
       userId,
       title,
       senderId,
@@ -481,6 +549,15 @@ router.post('/schedule', authenticate, async (req, res) => {
     });
 
     await campaign.save();
+
+    logger.info('[Schedule] Campaign created and saved', {
+      campaignId: campaign._id,
+      userId,
+      title,
+      recipientCount: processedRecipients.finalCount,
+      estimatedCost: costEstimation.estimatedCost,
+      scheduledAt: scheduleDate.toISOString()
+    });
 
     // Create recipient records
     const SmsRecipient = require('../models/SmsRecipient');
@@ -510,44 +587,40 @@ router.post('/schedule', authenticate, async (req, res) => {
       await smsRecipient.save();
     }
 
+    logger.info('[Schedule] Recipient records created', {
+      campaignId: campaign._id,
+      count: processedRecipients.finalCount
+    });
+
     // Schedule with BullMQ
-    await SmsSchedulerService.scheduleCampaign(campaign._id, scheduleDate);
+    logger.info('[Schedule] Scheduling campaign with BullMQ', {
+      campaignId: campaign._id,
+      scheduledAt: scheduleDate.toISOString()
+    });
+    const job = await SmsSchedulerService.scheduleCampaign(campaign._id, scheduleDate);
+    campaign.jobId = job.id;
+    await campaign.save();
 
-    // Create recipient records
-    const sellPrice = await CostCalculatorService.getSellPricePerSms();
-    for (const recipient of processedRecipients.validRecipients) {
-      const personalizedMessage = MessagePersonalizationService.personalizeMessage(
-        messageBody,
-        salutation,
-        customSalutation,
-        recipient.recipientName
-      );
+    logger.info('[Schedule] Campaign scheduled successfully', {
+      campaignId: campaign._id,
+      jobId: job.id,
+      scheduledAt: scheduleDate.toISOString()
+    });
 
-      // Calculate segments for this specific personalized message
-      const segmentResult = CostCalculatorService.calculateSegments(personalizedMessage);
-      const recipientEstimatedCost = sellPrice * segmentResult.segments;
-
-      const smsRecipient = new SmsRecipient({
-        campaignId: campaign._id,
-        userId,
-        recipientName: recipient.recipientName,
-        phoneNumber: recipient.phoneNumber,
-        normalizedPhoneNumber: recipient.normalizedPhoneNumber,
-        personalizedMessage,
-        segments: segmentResult.segments,
-        estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
-      });
-
-      await smsRecipient.save();
-    }
-
-    res.json({
+    res.status(201).json({
       success: true,
       campaignId: campaign._id,
       message: 'Campaign scheduled successfully',
-      scheduledAt: scheduleDate,
-      recipientCount: processedRecipients.finalCount,
+      scheduledAt: scheduleDate.toISOString(),
+      timezone: timezone || 'UTC',
+      jobId: job.id,
       estimatedCost: costEstimation.estimatedCost,
+      recipientCount: processedRecipients.originalCount,
+      validRecipientCount: processedRecipients.finalCount,
+      invalidRecipientCount: processedRecipients.invalidRecipients.length,
+      blacklistedCount: processedRecipients.blacklistedRecipients.length,
+      duplicateCount: processedRecipients.duplicateCount,
+      reservationId: reservation._id,
       processingSummary: {
         originalCount: processedRecipients.originalCount,
         duplicatesRemoved: processedRecipients.duplicateCount,
@@ -558,7 +631,49 @@ router.post('/schedule', authenticate, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Schedule campaign error:', error);
+    // Release reservation if it was made
+    if (reservation) {
+      try {
+        await WalletService.releaseReservation(reservation._id);
+        logger.info('[Schedule] Reservation released due to error', {
+          reservationId: reservation._id,
+          userId: req.user?.userId
+        });
+      } catch (releaseError) {
+        logger.error('[Schedule] Failed to release reservation', {
+          reservationId: reservation._id,
+          error: releaseError.message
+        });
+      }
+    }
+
+    // If campaign was already created, mark it as failed
+    if (campaign && campaign._id) {
+      try {
+        const campaignToUpdate = await SmsCampaign.findById(campaign._id);
+        if (campaignToUpdate) {
+          campaignToUpdate.status = 'failed';
+          campaignToUpdate.scheduleStatus = 'failed';
+          campaignToUpdate.errorMessage = error.message;
+          await campaignToUpdate.save();
+          logger.info('[Schedule] Campaign marked as failed', {
+            campaignId: campaign._id,
+            error: error.message
+          });
+        }
+      } catch (updateError) {
+        logger.error('[Schedule] Failed to update campaign status', {
+          campaignId: campaign._id,
+          error: updateError.message
+        });
+      }
+    }
+
+    logger.error('[Schedule] Error scheduling campaign', {
+      userId: req.user?.userId,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ error: 'Failed to schedule campaign: ' + error.message });
   }
 });
