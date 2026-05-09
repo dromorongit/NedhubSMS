@@ -193,21 +193,37 @@
                               <div id="manualRecipientsSection" class="recipient-section active">
                                   <div class="form-group">
                                       <label for="manualRecipients">Recipients</label>
-                                      <div class="manual-recipient-list" id="manualRecipientList">
-                                          <!-- Manual recipients will be added here -->
-                                          <div class="manual-recipient-item template" style="display: none;">
-                                              <input type="text" placeholder="Recipient Name" class="recipient-name-input">
-                                              <input type="tel" placeholder="Phone Number (e.g., 0241234567)" class="recipient-phone-input">
-                                              <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">×</button>
+                                      
+                                      <!-- Default Mode: Comma-separated input (shown only in default mode) -->
+                                      <div id="defaultModeRecipients" class="mode-recipients-container">
+                                          <textarea id="commaSeparatedRecipients"
+                                                    placeholder="Enter phone numbers separated by comma (max 20 contacts)&#10;Example: 0241234567, 0201234567, 0251234567"
+                                                    rows="4"
+                                                    maxlength="500"></textarea>
+                                          <div class="recipient-counter">
+                                              <span id="recipientCount">0</span>/20 contacts entered
                                           </div>
+                                          <div class="validation-message" id="recipientValidationMessage" style="display: none;"></div>
                                       </div>
-                                      <button type="button" class="btn-add-recipient" onclick="addManualRecipient()">
-                                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                              <line x1="12" y1="5" x2="12" y2="19"></line>
-                                              <line x1="5" y1="12" x2="19" y2="12"></line>
-                                          </svg>
-                                          Add Recipient
-                                      </button>
+                                      
+                                      <!-- Personalized Mode: Individual recipient items (shown only in personalized mode) -->
+                                      <div id="personalizedModeRecipients" class="mode-recipients-container" style="display: none;">
+                                          <div class="manual-recipient-list" id="manualRecipientList">
+                                              <!-- Manual recipients will be added here -->
+                                              <div class="manual-recipient-item template" style="display: none;">
+                                                  <input type="text" placeholder="Recipient Name" class="recipient-name-input">
+                                                  <input type="tel" placeholder="Phone Number (e.g., 0241234567)" class="recipient-phone-input">
+                                                  <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">×</button>
+                                              </div>
+                                          </div>
+                                          <button type="button" class="btn-add-recipient" onclick="addManualRecipient()">
+                                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                                              </svg>
+                                              Add Recipient
+                                          </button>
+                                      </div>
                                   </div>
                               </div>
                               <!-- Saved Contacts Section -->
@@ -648,8 +664,9 @@
             // Initialize recipient source tabs to default state
             console.log('[Init] Initializing recipient source tabs');
             currentMessagingMode = 'default';
-            // Set default mode class for manual recipients (hide name input)
-            document.getElementById('manualRecipientList').classList.add('manual-recipients-default-mode');
+            // Set initial visibility: default mode shows comma-separated input, personalized shows individual items
+            document.getElementById('defaultModeRecipients').style.display = 'block';
+            document.getElementById('personalizedModeRecipients').style.display = 'none';
             switchRecipientSourceTab('manual', false);
         }
 
@@ -1258,22 +1275,30 @@
                       document.getElementById('salutationPreview').textContent = 'Dear';
                       // Update message body template to not require name
                       updateMessageBodyTemplateForDefaultMode();
-                      // Hide name input in manual recipients
-                      document.getElementById('manualRecipientList').classList.add('manual-recipients-default-mode');
+                      // Show comma-separated input, hide individual recipient items
+                      document.getElementById('defaultModeRecipients').style.display = 'block';
+                      document.getElementById('personalizedModeRecipients').style.display = 'none';
                   } else if (mode === 'personalized') {
                       // Show personalization controls
                       document.querySelector('.personalization-section').style.display = 'block';
                       // Update message body template for personalized mode
                       updateMessageBodyTemplate();
-                      // Show name input in manual recipients
-                      document.getElementById('manualRecipientList').classList.remove('manual-recipients-default-mode');
+                      // Hide comma-separated input, show individual recipient items
+                      document.getElementById('defaultModeRecipients').style.display = 'none';
+                      document.getElementById('personalizedModeRecipients').style.display = 'block';
                   }
                   
-                  // Re-validate all manual recipient items to update borders
-                  document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => {
-                      const event = new Event('input', { bubbles: true });
-                      item.querySelector('.recipient-phone-input').dispatchEvent(event);
-                  });
+                  // Update validation based on mode
+                  if (mode === 'default') {
+                      // For default mode, update comma-separated input validation
+                      updateCommaSeparatedRecipients();
+                  } else {
+                      // For personalized mode, re-validate all manual recipient items to update borders
+                      document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => {
+                          const event = new Event('input', { bubbles: true });
+                          item.querySelector('.recipient-phone-input').dispatchEvent(event);
+                      });
+                  }
                   
                   // Restore recipient source tab state for this mode
                   const savedTab = recipientSourceState[mode] || 'manual';
@@ -1521,7 +1546,13 @@
             const activeTab = activeTabBtn.dataset.tab;
 
             if (activeTab === 'manual') {
-                return document.querySelectorAll('.manual-recipient-item:not(.template)').length;
+                const isDefaultMode = currentMessagingMode === 'default';
+                if (isDefaultMode) {
+                    const result = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                    return result.count;
+                } else {
+                    return document.querySelectorAll('.manual-recipient-item:not(.template)').length;
+                }
             } else if (activeTab === 'upload') {
                 return uploadedContacts.length;
             } else if (activeTab === 'contacts') {
@@ -1689,6 +1720,117 @@
             // Update cost estimation and live preview when recipients change
             updateCostEstimation();
             schedulePreviewUpdate();
+        }
+
+        // Comma-separated recipients handling for default mode
+        const commaSeparatedInput = document.getElementById('commaSeparatedRecipients');
+        const recipientCountEl = document.getElementById('recipientCount');
+        const validationMessageEl = document.getElementById('recipientValidationMessage');
+        
+        // Maximum allowed contacts
+        const MAX_RECIPIENTS = 20;
+
+        // Parse comma-separated phone numbers
+        function parseCommaSeparatedRecipients(input) {
+            if (!input || !input.trim()) {
+                return { recipients: [], count: 0, originalCount: 0, error: null };
+            }
+
+            // Split by comma and clean up
+            const rawNumbers = input.split(',').map(num => num.trim()).filter(num => num !== '');
+            
+            if (rawNumbers.length === 0) {
+                return { recipients: [], count: 0, originalCount: 0, error: null };
+            }
+
+            const originalCount = rawNumbers.length;
+
+            // Check max limit
+            if (rawNumbers.length > MAX_RECIPIENTS) {
+                return {
+                    recipients: [],
+                    count: 0,
+                    originalCount,
+                    error: `Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${rawNumbers.length}.`
+                };
+            }
+
+            // Validate each phone number
+            const recipients = [];
+            const invalidNumbers = [];
+            
+            for (let i = 0; i < rawNumbers.length; i++) {
+                const phone = rawNumbers[i];
+                const validation = validatePhoneNumber(phone);
+                
+                if (validation.isValid) {
+                    recipients.push({
+                        recipientName: 'Recipient', // Default name for default mode
+                        phoneNumber: validation.normalizedNumber
+                    });
+                } else {
+                    invalidNumbers.push(`${phone} (${validation.error})`);
+                }
+            }
+
+            // Generate error message if any invalid numbers found
+            let error = null;
+            if (invalidNumbers.length > 0) {
+                error = `Invalid numbers: ${invalidNumbers.join(', ')}`;
+            }
+
+            return {
+                recipients,
+                count: recipients.length,
+                originalCount,
+                error,
+                invalidCount: invalidNumbers.length
+            };
+        }
+
+        // Update recipient counter and validation
+        function updateCommaSeparatedRecipients() {
+            const input = commaSeparatedInput.value;
+            const result = parseCommaSeparatedRecipients(input);
+            
+            // Update counter (show total entries)
+            recipientCountEl.textContent = result.originalCount;
+            
+            // Update counter styling based on total entries
+            const counterContainer = recipientCountEl.parentElement;
+            counterContainer.classList.remove('warning', 'error');
+            if (result.originalCount >= MAX_RECIPIENTS) {
+                counterContainer.classList.add('error');
+            } else if (result.originalCount >= MAX_RECIPIENTS * 0.8) {
+                counterContainer.classList.add('warning');
+            }
+            
+            // Update validation message
+            // Remove success class first to reset state
+            validationMessageEl.classList.remove('success');
+            if (result.error) {
+                validationMessageEl.style.display = 'flex';
+                validationMessageEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> ${result.error}`;
+                commaSeparatedInput.classList.add('error');
+            } else if (result.count > 0) {
+                validationMessageEl.style.display = 'flex';
+                validationMessageEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ${result.count} valid phone number(s)`;
+                validationMessageEl.classList.add('success');
+                commaSeparatedInput.classList.remove('error');
+            } else {
+                validationMessageEl.style.display = 'none';
+                commaSeparatedInput.classList.remove('error');
+            }
+            
+            // Update cost estimation and preview
+            updateCostEstimation();
+            schedulePreviewUpdate();
+        }
+
+        // Initialize event listener for comma-separated input
+        if (commaSeparatedInput) {
+            commaSeparatedInput.addEventListener('input', updateCommaSeparatedRecipients);
+            commaSeparatedInput.addEventListener('blur', updateCommaSeparatedRecipients);
         }
 
         function validateManualRecipient() {
@@ -2098,6 +2240,20 @@
                 personalizationSection.style.display = isPersonalizedMode ? 'block' : 'none';
             }
 
+            // Update recipient input method visibility
+            const defaultModeRecipients = document.getElementById('defaultModeRecipients');
+            const personalizedModeRecipients = document.getElementById('personalizedModeRecipients');
+            
+            if (defaultModeRecipients && personalizedModeRecipients) {
+                if (isPersonalizedMode) {
+                    defaultModeRecipients.style.display = 'none';
+                    personalizedModeRecipients.style.display = 'block';
+                } else {
+                    defaultModeRecipients.style.display = 'block';
+                    personalizedModeRecipients.style.display = 'none';
+                }
+            }
+
             // Update salutation preview text
             if (salutationPreviewEl) {
                 salutationEl = document.getElementById('salutation');
@@ -2281,30 +2437,35 @@
             const activeTab = activeTabBtn.dataset.tab;
 
             if (activeTab === 'manual') {
-                // Get manual recipients
-                const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
                 const isDefaultMode = currentMessagingMode === 'default';
                 
-                items.forEach(item => {
-                    const nameInput = item.querySelector('.recipient-name-input');
-                    const phoneInput = item.querySelector('.recipient-phone-input');
-                    const name = nameInput ? nameInput.value.trim() : '';
-                    const phone = phoneInput ? phoneInput.value.trim() : '';
+                if (isDefaultMode) {
+                    // Default mode: use comma-separated input
+                    const result = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                    recipients.push(...result.recipients);
+                } else {
+                    // Personalized mode: use individual recipient items
+                    const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
+                    
+                    items.forEach(item => {
+                        const nameInput = item.querySelector('.recipient-name-input');
+                        const phoneInput = item.querySelector('.recipient-phone-input');
+                        const name = nameInput ? nameInput.value.trim() : '';
+                        const phone = phoneInput ? phoneInput.value.trim() : '';
 
-                    if (phone) {
-                        // Basic phone validation - must have at least 9 digits
-                        const phoneDigits = phone.replace(/\D/g, '');
-                        if (phoneDigits.length >= 9) {
-                            // In default mode, name is optional; in personalized, name is required
-                            if (isDefaultMode || (name && name.trim())) {
-                                recipients.push({ 
-                                    recipientName: name || 'Recipient', // fallback name for default mode
-                                    phoneNumber: phone 
-                                });
+                        if (phone) {
+                            const phoneDigits = phone.replace(/\D/g, '');
+                            if (phoneDigits.length >= 9) {
+                                if (name && name.trim()) {
+                                    recipients.push({
+                                        recipientName: name,
+                                        phoneNumber: phone
+                                    });
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                }
             } else if (activeTab === 'upload') {
                 // Use uploaded contacts - filter for valid phone numbers
                 uploadedContacts.forEach(contact => {
@@ -2327,6 +2488,28 @@
 
         // Send Now button handler
         document.getElementById('sendNowBtn').addEventListener('click', async function() {
+            // Validate default mode input before getting recipients
+            if (currentMessagingMode === 'default') {
+                const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                
+                // Block if exceeds maximum contacts
+                if (validationResult.originalCount > MAX_RECIPIENTS) {
+                    showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
+                    return;
+                }
+                
+                // Block if no valid phone numbers
+                if (validationResult.count === 0) {
+                    showToast('Please enter at least one valid phone number', 'error');
+                    return;
+                }
+                
+                // If there are invalid numbers, show a warning (but still allow send for valid ones)
+                if (validationResult.error) {
+                    showToast(validationResult.error, 'warning');
+                }
+            }
+            
             const recipients = getAllRecipients();
 
             if (recipients.length === 0) {
@@ -2339,6 +2522,28 @@
 
         // Schedule button handler
          document.getElementById('scheduleBtn').addEventListener('click', async function() {
+             // Validate default mode input before getting recipients
+             if (currentMessagingMode === 'default') {
+                 const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                 
+                 // Block if exceeds maximum contacts
+                 if (validationResult.originalCount > MAX_RECIPIENTS) {
+                     showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
+                     return;
+                 }
+                 
+                 // Block if no valid phone numbers
+                 if (validationResult.count === 0) {
+                     showToast('Please enter at least one valid phone number', 'error');
+                     return;
+                 }
+                 
+                 // If there are invalid numbers, show a warning (but still allow send for valid ones)
+                 if (validationResult.error) {
+                     showToast(validationResult.error, 'warning');
+                 }
+             }
+             
              const recipients = getAllRecipients();
 
              if (recipients.length === 0) {
@@ -2530,9 +2735,25 @@
             const scheduleSettings = document.getElementById('scheduleSettings');
             if (scheduleSettings) scheduleSettings.style.display = 'none';
 
-            // Clear manual recipients
+            // Clear manual recipients (personalized mode)
             document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => item.remove());
             manualRecipients = [];
+
+            // Clear comma-separated input (default mode) and reset validation
+            if (commaSeparatedInput) {
+                commaSeparatedInput.value = '';
+                // Reset counter
+                if (recipientCountEl) {
+                    recipientCountEl.textContent = '0';
+                    recipientCountEl.parentElement.classList.remove('warning', 'error');
+                }
+                // Hide validation message
+                if (validationMessageEl) {
+                    validationMessageEl.style.display = 'none';
+                    validationMessageEl.classList.remove('success');
+                }
+                commaSeparatedInput.classList.remove('error');
+            }
 
             // Clear uploaded files
             removeUploadedFile();
@@ -3719,6 +3940,70 @@
         .btn-add-recipient svg {
             width: 16px;
             height: 16px;
+        }
+
+        /* Default Mode: Comma-separated recipients */
+        .mode-recipients-container {
+            width: 100%;
+        }
+
+        #commaSeparatedRecipients {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #commaSeparatedRecipients:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+        }
+
+        #commaSeparatedRecipients.error {
+            border-color: #f44336;
+            box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+        }
+
+        .recipient-counter {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+            text-align: right;
+        }
+
+        .recipient-counter.warning {
+            color: #ff9800;
+            font-weight: 500;
+        }
+
+        .recipient-counter.error {
+            color: #f44336;
+            font-weight: 500;
+        }
+
+        .validation-message {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #f44336;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .validation-message.success {
+            color: #4caf50;
+        }
+
+        .validation-message svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
         }
 
         /* Contacts Selector Styles */
