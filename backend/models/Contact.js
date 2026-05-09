@@ -16,7 +16,7 @@ const contactSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a phone number'],
     match: [
-      /^(?:\+233|0)(?:20|50|24|54|27|57|26|56|23|53|28|58|25|55|59)[0-9]{7}$/,
+      /^(?:\+233|233|0)(?:20|50|24|54|27|57|26|56|23|53|28|58|25|55|59)[0-9]{7}$/,
       'Please add a valid Ghana phone number'
     ],
     index: true
@@ -73,6 +73,26 @@ contactSchema.statics.update = async function(id, recipientName, phoneNumber, gr
     updatedAt: new Date()
   }, { new: true });
 };
+
+// Auto-normalize phone number before validation (so required field is set)
+contactSchema.pre('validate', function(next) {
+  if (this.phoneNumber) {
+    let normalized = this.phoneNumber.replace(/\D/g, '');
+    
+    if (normalized.startsWith('233') && normalized.length === 12) {
+      // Already in 233 format
+    } else if (normalized.startsWith('0') && normalized.length === 10) {
+      // Convert 0XXXXXXXXX to 233XXXXXXXXX
+      normalized = '233' + normalized.substring(1);
+    } else if (normalized.length === 9) {
+      // Add country code
+      normalized = '233' + normalized;
+    }
+    
+    this.normalizedPhoneNumber = normalized;
+  }
+  next();
+});
 
 // Update the updatedAt field on save
 contactSchema.pre('save', function(next) {

@@ -1156,12 +1156,12 @@
                   loadedContacts.forEach(contact => {
                       const contactId = contact._id || contact.id;
                       const contactName = contact.recipientName || contact.name || 'Unknown';
-                      const contactPhone = contact.phoneNumber || contact.phone || '';
+                      const contactPhone = contact.normalizedPhoneNumber || contact.phoneNumber || contact.phone || '';
                       const isChecked = selectedContacts.some(c => c.id === contactId) ? 'checked' : '';
                       
                       html += `
                           <label class="contact-item">
-                              <input type="checkbox" 
+                              <input type="checkbox"
                                      value="${contactId}" 
                                      data-name="${contactName}" 
                                      data-phone="${contactPhone}"
@@ -2435,6 +2435,7 @@
             if (!activeTabBtn) return recipients;
             
             const activeTab = activeTabBtn.dataset.tab;
+            console.log('[Recipients] getAllRecipients - Mode:', currentMessagingMode, 'Tab:', activeTab);
 
             if (activeTab === 'manual') {
                 const isDefaultMode = currentMessagingMode === 'default';
@@ -2451,38 +2452,44 @@
                         const nameInput = item.querySelector('.recipient-name-input');
                         const phoneInput = item.querySelector('.recipient-phone-input');
                         const name = nameInput ? nameInput.value.trim() : '';
-                        const phone = phoneInput ? phoneInput.value.trim() : '';
-
-                        if (phone) {
-                            const phoneDigits = phone.replace(/\D/g, '');
-                            if (phoneDigits.length >= 9) {
-                                if (name && name.trim()) {
-                                    recipients.push({
-                                        recipientName: name,
-                                        phoneNumber: phone
-                                    });
-                                }
-                            }
+                        const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+                        
+                        // Skip completely empty rows
+                        if (!name && !rawPhone) {
+                            return;
                         }
+                        
+                        console.log('[Recipients] Manual entry raw values:', { name, rawPhone });
+                        
+                        // Push all non-empty rows; validation will be done later
+                        recipients.push({
+                            recipientName: name,
+                            phoneNumber: rawPhone
+                        });
                     });
                 }
             } else if (activeTab === 'upload') {
                 // Use uploaded contacts - filter for valid phone numbers
                 uploadedContacts.forEach(contact => {
-                    const phone = contact.phoneNumber || contact.phone || '';
+                    const rawPhone = contact.phoneNumber || contact.phone || '';
                     const name = contact.recipientName || contact.name || '';
-                    const phoneDigits = phone.replace(/\D/g, '');
-                    if (name && phone && phoneDigits.length >= 9) {
-                        recipients.push({ recipientName: name, phoneNumber: phone });
+                    if (name && rawPhone) {
+                        const validation = validatePhoneNumber(rawPhone);
+                        if (validation.isValid) {
+                            recipients.push({ recipientName: name, phoneNumber: validation.normalizedNumber });
+                            console.log('[Recipients] Uploaded contact added:', { recipientName: name, phoneNumber: validation.normalizedNumber });
+                        } else {
+                            console.warn('[Recipients] Uploaded contact invalid:', { name, rawPhone, error: validation.error });
+                        }
                     }
                 });
             } else if (activeTab === 'contacts') {
                 // Return selected contacts from saved contacts
-                console.log('[DEBUG] Selected contacts:', selectedContacts);
+                console.log('[Recipients] Selected contacts:', selectedContacts);
                 return selectedContacts;
             }
 
-            console.log('[DEBUG] Final recipients:', recipients);
+            console.log('[Recipients] Final normalized recipients:', JSON.stringify(recipients));
             return recipients;
         }
 
@@ -2673,15 +2680,17 @@
                  
                  if (isPersonalizedMode) {
                      // Personalized messaging mode
+                     console.log('[Send] Preparing personalized campaign. Recipients (raw):', JSON.stringify(recipients));
                      const campaignData = {
                          title,
                          messageBody,
                          salutation,
                          customSalutation,
-                         recipients: recipients.map(r => r.phoneNumber),
+                         recipients: recipients.map(r => ({ recipientName: r.recipientName, phoneNumber: r.phoneNumber })),
                          senderId,
                          removeDuplicates
                      };
+                     console.log('[Send] Campaign payload (personalized):', JSON.stringify(campaignData));
  
                      if (sendMode === 'scheduled') {
                          campaignData.scheduledAt = scheduledAt.toISOString();
@@ -2703,11 +2712,13 @@
                          campaignData.scheduledAt = scheduledAt.toISOString();
                      }
  
+                     console.log('[Send] Campaign payload (default):', JSON.stringify(campaignData));
                      result = sendMode === 'immediate' ?
                          await window.apiClient.sendSMS(campaignData) :
                          await window.apiClient.scheduleSMS(campaignData);
                  }
 
+                console.log('[Send] API response:', result);
                 if (result.error) {
                     // Handle error response
                     let errorMessage = result.error;
