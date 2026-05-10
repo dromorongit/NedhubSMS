@@ -653,7 +653,8 @@ body .dashboard-content {
     .sms-form-card {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 2rem;
+        column-gap: 2rem;
+        row-gap: 1rem;
         align-items: start;
     }
     
@@ -668,6 +669,14 @@ body .dashboard-content {
     .form-actions,
     .send-now-action {
         grid-column: 1;
+    }
+    
+    /* Reduce space between message composer and char counter */
+    .message-composer-section {
+        margin-bottom: 0.5rem;
+    }
+    .char-counter-wrapper {
+        margin-top: 0;
     }
     
     /* Preview section on right */
