@@ -1,0 +1,210 @@
+[NaloSmsService] Using dummy API key - SMS sending will be simulated
+Hubtel transfer credentials not configured
+Hubtel credentials not configured
+Hubtel Commission Services credentials not configured
+[SendGrid] Using dummy API key - Email sending will be simulated
+[SmsJobQueueService] Redis connection error: AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+[SmsJobQueueService] Queue error: 
+[SmsJobQueueService] Dead letter queue error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Worker error: Connection is closed.
+[SmsJobQueueService] Queue error: Connection is closed.
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Redis connection error: AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+[SmsJobQueueService] Queue error: 
+[SmsJobQueueService] Dead letter queue error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Redis connection error: AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+[SmsJobQueueService] Queue error: 
+[SmsJobQueueService] Dead letter queue error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Redis connection error: AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+[SmsJobQueueService] Queue error: 
+[SmsJobQueueService] Dead letter queue error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Redis connection error: AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+[SmsJobQueueService] Queue error: 
+[SmsJobQueueService] Dead letter queue error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Redis connection error: AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+[SmsJobQueueService] Queue error: 
+[SmsJobQueueService] Dead letter queue error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Worker error: 
+[SmsJobQueueService] Redis connection error: AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+[SmsJobQueueService] Queue error: 
+[SmsJobQueueService] Dead letter queue error: 
+[SmsJobQueueService] Worker error: 

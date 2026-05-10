@@ -1,0 +1,9 @@
+[EMAIL] SendGrid provider initialized
+[EMAIL]   From: Nedhub <support@nedhubgh.com>
+[EMAIL] Email service initialized with Resend provider
+[EMAIL] Admin notifications will be sent to: info@nedhubgh.com
+[EMAIL] Email service initialized with Resend API
+[32minfo[39m: Server started {"address":"0.0.0.0","port":3000,"timestamp":"2026-05-10T00:50:07.485Z"}
+[SmsJobQueueService] Queue service initialized successfully
+[SmsSchedulerService] Scheduler started - BullMQ queue initialized
+[32minfo[39m: SMS Scheduler service started {"timestamp":"2026-05-10T00:50:07.520Z"}

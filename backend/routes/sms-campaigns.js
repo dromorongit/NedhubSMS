@@ -502,16 +502,6 @@ router.post('/schedule', authenticate, async (req, res) => {
       });
     }
 
-    // Check wallet balance before scheduling
-    const availableBalance = await WalletService.getAvailableBalance(userId);
-    if (availableBalance < costEstimation.estimatedCost) {
-      return res.status(402).json({
-        error: 'Insufficient available balance',
-        required: costEstimation.estimatedCost,
-        available: availableBalance
-      });
-    }
-
     // Reserve funds immediately
     logger.info('[Schedule] Reserving wallet funds', {
       userId,
