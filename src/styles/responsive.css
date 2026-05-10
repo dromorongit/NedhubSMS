@@ -665,7 +665,8 @@ body .dashboard-content {
     .message-composer-section,
     .personalization-section,
     .char-counter-wrapper,
-    .form-actions {
+    .form-actions,
+    .send-now-action {
         grid-column: 1;
     }
     
