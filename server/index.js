@@ -44,6 +44,11 @@ const EmailService = new EmailServiceClass();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Simple health check endpoint for Railway (must be before other middleware)
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Trust proxy - needed for express-rate-limit to work correctly with Railway's reverse proxy
 app.set('trust proxy', 1);
 
