@@ -181,67 +181,76 @@
                                       <button type="button" class="tab-btn" data-mode="personalized">Personalized Messaging</button>
                                   </div>
                               </div>
-                              <!-- Recipient Source Selection -->
-                              <div class="form-group">
-                                  <label>Recipient Source</label>
-                                  <div class="recipient-source-tabs">
-                                      <button type="button" class="tab-btn active" data-tab="manual">Manual Entry</button>
-                                      <button type="button" class="tab-btn" data-tab="contacts">Saved Contacts</button>
-                                      <button type="button" class="tab-btn" data-tab="upload">Upload File</button>
-                                  </div>
-                              </div>
-                              <!-- Manual Recipients Section -->
-                              <div id="manualRecipientsSection" class="recipient-section active">
-                                  <div class="form-group">
-                                      <label for="manualRecipients">Recipients</label>
-                                      
-                                      <!-- Default Mode: Comma-separated input (shown only in default mode) -->
-                                      <div id="defaultModeRecipients" class="mode-recipients-container">
-                                          <textarea id="commaSeparatedRecipients"
-                                                    placeholder="Enter phone numbers separated by comma (max 20 contacts)&#10;Example: 0241234567, 0201234567, 0251234567"
-                                                    rows="4"
-                                                    maxlength="500"></textarea>
-                                          <div class="recipient-counter">
-                                              <span id="recipientCount">0</span>/20 contacts entered
-                                          </div>
-                                          <div class="validation-message" id="recipientValidationMessage" style="display: none;"></div>
-                                      </div>
-                                      
-                                      <!-- Personalized Mode: Individual recipient items (shown only in personalized mode) -->
-                                      <div id="personalizedModeRecipients" class="mode-recipients-container" style="display: none;">
-                                          <div class="manual-recipient-list" id="manualRecipientList">
-                                              <!-- Manual recipients will be added here -->
-                                              <div class="manual-recipient-item template" style="display: none;">
-                                                  <input type="text" placeholder="Recipient Name" class="recipient-name-input">
-                                                  <input type="tel" placeholder="Phone Number (e.g., 0241234567)" class="recipient-phone-input">
-                                                  <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">×</button>
-                                              </div>
-                                          </div>
-                                          <button type="button" class="btn-add-recipient" onclick="addManualRecipient()">
-                                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                                                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                                              </svg>
-                                              Add Recipient
-                                          </button>
-                                      </div>
-                                  </div>
-                              </div>
-                              <!-- Saved Contacts Section -->
-                              <div id="contactsSection" class="recipient-section">
-                                  <div class="form-group">
-                                      <label>Select Contacts</label>
-                                      <div class="contacts-selector">
-                                          <div class="contact-groups" id="contactGroups">
-                                              <!-- Contact groups will be loaded here -->
-                                          </div>
-                                          <div class="selected-contacts-preview" id="selectedContactsPreview">
-                                              <p class="no-contacts">No contacts selected</p>
-                                          </div>
-                                      </div>
-                                  </div>
-                              </div>
-                              <!-- Upload File Section -->
+                                <!-- Recipient Source Selection -->
+                                <div class="form-group">
+                                    <label>Recipient Source</label>
+                                    <div class="recipient-source-tabs">
+                                        <button type="button" class="tab-btn active" data-tab="manual">Manual Entry</button>
+                                        <button type="button" class="tab-btn" data-tab="upload">Upload File</button>
+                                    </div>
+                                </div>
+                               <!-- Manual Recipients Section -->
+                               <div id="manualRecipientsSection" class="recipient-section active">
+                                   <div class="form-group">
+                                       <label for="manualRecipients">Recipients</label>
+                                       
+                                       <!-- Contacts Selector Button & Recipient Chips Display -->
+                                       <div class="contacts-selector-wrapper">
+                                           <button type="button" class="btn-contacts-picker" id="openContactsModalBtn">
+                                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                   <circle cx="9" cy="7" r="4"></circle>
+                                                   <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                               </svg>
+                                               Your Contacts
+                                           </button>
+                                           <span class="selector-hint">Select from your saved contacts</span>
+                                       </div>
+                                       
+                                       <!-- Recipient Chips Display Area -->
+                                       <div class="recipient-chips-container" id="recipientChipsContainer">
+                                           <div class="recipient-chips" id="recipientChips">
+                                               <!-- Recipient chips will be dynamically added here -->
+                                               <p class="no-recipients-message" id="noRecipientsMessage">No recipients added yet. Add contacts manually or select from your contacts.</p>
+                                           </div>
+                                           <div class="recipient-stats">
+                                               <span class="recipient-total-badge" id="recipientTotalBadge">0 recipients</span>
+                                           </div>
+                                       </div>
+                                       
+                                       <!-- Default Mode: Comma-separated input (shown only in default mode) -->
+                                       <div id="defaultModeRecipients" class="mode-recipients-container">
+                                           <textarea id="commaSeparatedRecipients"
+                                                     placeholder="Enter phone numbers separated by comma (max 20 contacts)&#10;Example: 0241234567, 0201234567, 0251234567"
+                                                     rows="4"
+                                                     maxlength="500"></textarea>
+                                           <div class="recipient-counter">
+                                               <span id="recipientCount">0</span>/20 contacts entered
+                                           </div>
+                                           <div class="validation-message" id="recipientValidationMessage" style="display: none;"></div>
+                                       </div>
+                                       
+                                       <!-- Personalized Mode: Individual recipient items (shown only in personalized mode) -->
+                                       <div id="personalizedModeRecipients" class="mode-recipients-container" style="display: none;">
+                                           <div class="manual-recipient-list" id="manualRecipientList">
+                                               <!-- Manual recipients will be added here -->
+                                               <div class="manual-recipient-item template" style="display: none;">
+                                                   <input type="text" placeholder="Recipient Name" class="recipient-name-input">
+                                                   <input type="tel" placeholder="Phone Number (e.g., 0241234567)" class="recipient-phone-input">
+                                                   <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">×</button>
+                                               </div>
+                                           </div>
+                                           <button type="button" class="btn-add-recipient" onclick="addManualRecipient()">
+                                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                   <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                   <line x1="5" y1="12" x2="19" y2="12"></line>
+                                               </svg>
+                                               Add Recipient
+                                           </button>
+                                       </div>
+                                   </div>
+                               </div>
+                               <!-- Upload File Section -->
                               <div id="uploadSection" class="recipient-section">
                                   <div class="form-group">
                                       <label for="contactFile">Upload Contact File</label>
@@ -373,18 +382,10 @@
                          
                          <!-- Message Composer Section (Always Visible) -->
                           <div class="message-composer-section">
-                              <div class="form-group">
-                                  <label for="messageBody">Message Body</label>
-                                  <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Type your message here..."></textarea>
-                                  <div class="form-hint">
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                          <circle cx="9" cy="7" r="4"></circle>
-                                          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                      </svg>
-                                      <span>Or select from <a href="contacts.html">your contacts</a></span>
-                                  </div>
-                              </div>
+                                <div class="form-group">
+                                    <label for="messageBody">Message Body</label>
+                                    <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Type your message here..."></textarea>
+                                </div>
                           </div>
                         
                         <!-- Personalization Section (only for personalized mode) -->
@@ -699,6 +700,77 @@
         </div>
     </div>
 
+    <!-- Contacts Picker Modal -->
+    <div class="modal" id="contactsPickerModal">
+        <div class="modal-content contacts-modal-content">
+            <button class="modal-close" onclick="closeContactsPickerModal()">&times;</button>
+            <div class="modal-header">
+                <h3>Select Contacts</h3>
+                <p>Choose contacts to add to your recipient list</p>
+            </div>
+
+            <!-- Search & Filter Bar -->
+            <div class="contacts-toolbar">
+                <div class="contacts-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="contactsSearchInput" placeholder="Search contacts by name or phone...">
+                </div>
+                <div class="contacts-actions">
+                    <label class="select-all-label">
+                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                        <span>Select All</span>
+                    </label>
+                    <button type="button" class="btn-deselect-all" onclick="deselectAllContacts()">Deselect All</button>
+                </div>
+            </div>
+
+            <!-- Selected Count -->
+            <div class="contacts-selected-info">
+                <span id="selectedContactsCount">0</span> contacts selected
+            </div>
+
+            <!-- Contacts List (Scrollable) -->
+            <div class="contacts-list-container" id="contactsListContainer">
+                <div class="contacts-list" id="contactsList">
+                    <!-- Contacts will be dynamically loaded here -->
+                    <div class="loading-state">Loading contacts...</div>
+                </div>
+            </div>
+
+            <!-- Pagination (if needed) -->
+            <div class="contacts-pagination" id="contactsPagination" style="display: none;">
+                <button type="button" class="btn-pagination" id="prevPageBtn" onclick="prevPage()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Previous
+                </button>
+                <span class="page-info" id="pageInfo">Page 1 of 1</span>
+                <button type="button" class="btn-pagination" id="nextPageBtn" onclick="nextPage()">
+                    Next
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Actions -->
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeContactsPickerModal()">Cancel</button>
+                <button type="button" class="btn-primary" id="addSelectedContactsBtn" onclick="addSelectedContacts()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Selected Contacts
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthAndLoad();
@@ -725,6 +797,9 @@
             
             // Initialize schedule section
             initScheduleSection();
+            
+            // Initialize recipient chips display
+            updateRecipientChips();
         }
 
         async function loadUserProfile() {
@@ -1204,10 +1279,23 @@
           // Track selected contacts
           let selectedContacts = [];
           
-          // Track loaded contacts
-          let loadedContacts = [];
-          
-          // Function to switch recipient source tab
+           // Track loaded contacts
+           let loadedContacts = [];
+           
+           // ============================================
+           // CONTACTS PICKER MODAL STATE
+           // ============================================
+           
+           // All contacts from server (with pagination)
+           let allUserContacts = [];
+           let filteredContacts = [];
+           let contactsCurrentPage = 1;
+           let contactsPerPage = 50;
+           let contactsTotalPages = 1;
+           let contactsSearchQuery = '';
+           let contactsModalSelectedIds = new Set();
+           
+           // Function to switch recipient source tab
           function switchRecipientSourceTab(tabName, saveState = true) {
               // Save state for current mode before switching
               if (saveState && currentMessagingMode) {
@@ -1225,25 +1313,25 @@
                   section.classList.remove('active');
               });
               
-              // Map tab to correct section ID
-              let targetSectionId;
-              if (tabName === 'manual') {
-                  targetSectionId = 'manualRecipientsSection';
-              } else {
-                  targetSectionId = tabName + 'Section';
-              }
-              
-              const targetSection = document.getElementById(targetSectionId);
-              if (targetSection) {
-                  targetSection.classList.add('active');
-                  console.log(`[RecipientSource] Switched to ${tabName} section (${targetSectionId})`);
-              }
-              
-              // Load saved contacts if switching to contacts tab
-              if (tabName === 'contacts') {
-                  loadSavedContacts();
-              }
-          }
+                // Map tab to correct section ID
+                let targetSectionId;
+                if (tabName === 'manual') {
+                    targetSectionId = 'manualRecipientsSection';
+                } else if (tabName === 'upload') {
+                    targetSectionId = 'uploadSection';
+                }
+                
+                const targetSection = document.getElementById(targetSectionId);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    console.log(`[RecipientSource] Switched to ${tabName} section (${targetSectionId})`);
+                }
+                
+                // Update recipient chips when switching to manual tab
+                if (tabName === 'manual') {
+                    updateRecipientChips();
+                }
+            }
           
           // Load saved contacts from API
           async function loadSavedContacts() {
@@ -1395,9 +1483,864 @@
                updateSelectedContactsPreview();
                updateCostEstimation();
                schedulePreviewUpdate();
+            }
+           
+           // ============================================
+           // CONTACTS PICKER MODAL FUNCTIONS
+           // ============================================
+           
+           // Open contacts picker modal
+           async function openContactsPickerModal() {
+               console.log('[ContactsModal] Opening modal');
+               const modal = document.getElementById('contactsPickerModal');
+               if (!modal) {
+                   console.error('[ContactsModal] Modal element not found');
+                   return;
+               }
+               
+               // Reset modal state
+               contactsModalSelectedIds.clear();
+               contactsSearchQuery = '';
+               contactsCurrentPage = 1;
+               
+               // Clear search input
+               const searchInput = document.getElementById('contactsSearchInput');
+               if (searchInput) searchInput.value = '';
+               
+               // Show modal
+               modal.style.display = 'flex';
+               
+               // Load contacts if not already loaded
+               if (allUserContacts.length === 0) {
+                   await loadAllContactsForModal();
+               } else {
+                   // Use cached contacts
+                   filterAndRenderContacts();
+               }
+               
+               // Update selected count
+               updateModalSelectedCount();
            }
-          
-          // Recipient source tabs event listener (FIXED: specific selector)
+           
+           // Close contacts picker modal
+           function closeContactsPickerModal() {
+               const modal = document.getElementById('contactsPickerModal');
+               if (modal) {
+                   modal.style.display = 'none';
+               }
+
+               console.log('[ContactsModal] Modal closed', {
+                   hadSelections: contactsModalSelectedIds.size > 0,
+                   selectedCount: contactsModalSelectedIds.size
+               });
+           }
+           
+           // Load all contacts from API (for modal)
+           async function loadAllContactsForModal() {
+               console.log('[ContactsModal] Loading contacts from API');
+               const listContainer = document.getElementById('contactsList');
+               
+               try {
+                   // Show loading state
+                   if (listContainer) {
+                       listContainer.innerHTML = '<div class="loading-state">Loading contacts...</div>';
+                   }
+                   
+                   const response = await window.apiClient.getContacts();
+                   
+                   if (response.error) {
+                       console.error('[ContactsModal] Load failed', { error: response.error });
+                       if (listContainer) {
+                           listContainer.innerHTML = `<div class="empty-state"><p>Error loading contacts: ${response.error}</p></div>`;
+                       }
+                       return;
+                   }
+                   
+                   const contacts = response.data?.contacts || response.data || [];
+                   allUserContacts = Array.isArray(contacts) ? contacts : [];
+                   
+                   console.log('[ContactsModal] Contacts loaded', {
+                       totalCount: allUserContacts.length,
+                       sample: allUserContacts.slice(0, 3).map(c => ({
+                           name: c.recipientName,
+                           phone: c.phoneNumber
+                       }))
+                   });
+                   
+                   // Initialize filtered contacts
+                   filteredContacts = [...allUserContacts];
+                   
+                   // Calculate pagination
+                   contactsTotalPages = Math.ceil(filteredContacts.length / contactsPerPage);
+                   
+                   // Render contacts
+                   filterAndRenderContacts();
+                   
+               } catch (error) {
+                   console.error('[ContactsModal] Load exception', { message: error.message });
+                   if (listContainer) {
+                       listContainer.innerHTML = '<div class="empty-state"><p>Error loading contacts</p></div>';
+                   }
+               }
+           }
+           
+            // Filter and render contacts (with search and pagination)
+            function filterAndRenderContacts() {
+                const listContainer = document.getElementById('contactsList');
+                if (!listContainer) return;
+
+                console.log('[ContactsModal] Filtering contacts', {
+                    searchQuery: contactsSearchQuery,
+                    totalContacts: allUserContacts.length
+                });
+
+                // Apply search filter
+                if (contactsSearchQuery.trim()) {
+                    const query = contactsSearchQuery.toLowerCase().trim();
+                    filteredContacts = allUserContacts.filter(contact => {
+                        const name = (contact.recipientName || '').toLowerCase();
+                        const phone = (contact.phoneNumber || '').toLowerCase();
+                        const normalized = (contact.normalizedPhoneNumber || '').toLowerCase();
+                        return name.includes(query) || phone.includes(query) || normalized.includes(query);
+                    });
+                } else {
+                    filteredContacts = [...allUserContacts];
+                }
+
+                console.log('[ContactsModal] Filter results', {
+                    filteredCount: filteredContacts.length
+                });
+
+                // Update pagination
+                contactsTotalPages = Math.ceil(filteredContacts.length / contactsPerPage);
+                if (contactsCurrentPage > contactsTotalPages) {
+                    contactsCurrentPage = Math.max(1, contactsTotalPages);
+                }
+
+                // Get current page items
+                const startIndex = (contactsCurrentPage - 1) * contactsPerPage;
+                const endIndex = startIndex + contactsPerPage;
+                const pageContacts = filteredContacts.slice(startIndex, endIndex);
+
+                // Render
+                renderContactsList(pageContacts, startIndex);
+                updatePaginationControls();
+            }
+           
+            // Render contacts list
+            function renderContactsList(contacts, startIndex) {
+                const listContainer = document.getElementById('contactsList');
+                if (!listContainer) return;
+
+                console.log('[ContactsModal] Rendering contacts list', {
+                    contactsCount: contacts.length,
+                    page: contactsCurrentPage,
+                    totalPages: contactsTotalPages
+                });
+
+                if (contacts.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            <p>No contacts found</p>
+                            <small>${contactsSearchQuery ? 'Try a different search' : 'Add contacts from the Contacts page'}</small>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '<div class="contacts-list">';
+                contacts.forEach((contact, index) => {
+                    const contactId = contact._id || contact.id;
+                    const contactName = contact.recipientName || 'Unknown';
+                    const contactPhone = contact.normalizedPhoneNumber || contact.phoneNumber || '';
+                    const isChecked = contactsModalSelectedIds.has(contactId);
+
+                    html += `
+                        <label class="contact-item-modal">
+                            <input type="checkbox"
+                                   value="${contactId}"
+                                   data-name="${escapeHtml(contactName)}"
+                                   data-phone="${escapeHtml(contactPhone)}"
+                                   ${isChecked ? 'checked' : ''}
+                                   onchange="handleModalContactSelection(this)">
+                            <div class="contact-info">
+                                <span class="contact-name">${escapeHtml(contactName)}</span>
+                                <span class="contact-phone">${escapeHtml(contactPhone)}</span>
+                            </div>
+                        </label>
+                    `;
+                });
+                html += '</div>';
+
+                listContainer.innerHTML = html;
+            }
+           
+            // Handle contact selection in modal
+            function handleModalContactSelection(checkbox) {
+                const contactId = checkbox.value;
+                const contactName = checkbox.dataset.name;
+                const contactPhone = checkbox.dataset.phone;
+
+                if (checkbox.checked) {
+                    contactsModalSelectedIds.add(contactId);
+                    console.log('[ContactsModal] Contact selected', {
+                        name: contactName,
+                        phone: contactPhone,
+                        selectedCount: contactsModalSelectedIds.size
+                    });
+                } else {
+                    contactsModalSelectedIds.delete(contactId);
+                    console.log('[ContactsModal] Contact deselected', {
+                        name: contactName,
+                        phone: contactPhone,
+                        selectedCount: contactsModalSelectedIds.size
+                    });
+                }
+
+                updateModalSelectedCount();
+            }
+           
+            // Toggle select all (only for current page)
+            function toggleSelectAll() {
+                const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                const checkboxes = document.querySelectorAll('#contactsList input[type="checkbox"]');
+
+                checkboxes.forEach(cb => {
+                    cb.checked = selectAllCheckbox.checked;
+                    const contactId = cb.value;
+                    if (selectAllCheckbox.checked) {
+                        contactsModalSelectedIds.add(contactId);
+                    } else {
+                        contactsModalSelectedIds.delete(contactId);
+                    }
+                });
+
+                console.log('[ContactsModal] Toggle select all', {
+                    checked: selectAllCheckbox.checked,
+                    selectedCount: contactsModalSelectedIds.size
+                });
+
+                updateModalSelectedCount();
+            }
+           
+            // Deselect all contacts
+            function deselectAllContacts() {
+                const checkboxes = document.querySelectorAll('#contactsList input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                });
+                contactsModalSelectedIds.clear();
+
+                const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
+
+                console.log('[ContactsModal] All contacts deselected');
+
+                updateModalSelectedCount();
+            }
+           
+           // Update selected count display
+           function updateModalSelectedCount() {
+               const countEl = document.getElementById('selectedContactsCount');
+               if (countEl) {
+                   countEl.textContent = contactsModalSelectedIds.size;
+               }
+               console.log('[ContactsModal] Selection count updated', {
+                   selectedCount: contactsModalSelectedIds.size
+               });
+           }
+           
+           // Pagination functions
+           function prevPage() {
+               if (contactsCurrentPage > 1) {
+                   contactsCurrentPage--;
+                   console.log('[ContactsModal] Navigate to page', { page: contactsCurrentPage });
+                   filterAndRenderContacts();
+               }
+           }
+
+           function nextPage() {
+               if (contactsCurrentPage < contactsTotalPages) {
+                   contactsCurrentPage++;
+                   console.log('[ContactsModal] Navigate to page', { page: contactsCurrentPage });
+                   filterAndRenderContacts();
+               }
+           }
+
+           // Update pagination controls
+           function updatePaginationControls() {
+               const paginationEl = document.getElementById('contactsPagination');
+               const prevBtn = document.getElementById('prevPageBtn');
+               const nextBtn = document.getElementById('nextPageBtn');
+               const pageInfoEl = document.getElementById('pageInfo');
+
+               if (!paginationEl) return;
+
+               // Show/hide pagination
+               if (contactsTotalPages <= 1) {
+                   paginationEl.style.display = 'none';
+                   return;
+               } else {
+                   paginationEl.style.display = 'flex';
+               }
+
+               // Update buttons
+               if (prevBtn) prevBtn.disabled = contactsCurrentPage === 1;
+               if (nextBtn) nextBtn.disabled = contactsCurrentPage === contactsTotalPages;
+               if (pageInfoEl) pageInfoEl.textContent = `Page ${contactsCurrentPage} of ${contactsTotalPages}`;
+
+               console.log('[ContactsModal] Pagination updated', {
+                   currentPage: contactsCurrentPage,
+                   totalPages: contactsTotalPages
+               });
+           }
+           
+            // Add selected contacts from modal to recipients
+            function addSelectedContacts() {
+                if (contactsModalSelectedIds.size === 0) {
+                    showToast('Please select at least one contact', 'warning');
+                    return;
+                }
+
+                console.log('[ContactsModal] Adding selected contacts', {
+                    selectedCount: contactsModalSelectedIds.size
+                });
+
+                // Get selected contact objects
+                const selectedContactsArray = allUserContacts.filter(c => {
+                    const id = c._id || c.id;
+                    return contactsModalSelectedIds.has(id);
+                });
+
+                // Convert to canonical recipient format with deduplication
+                const newRecipients = selectedContactsArray.map(c => ({
+                    recipientName: c.recipientName || 'Contact',
+                    phoneNumber: c.normalizedPhoneNumber || c.phoneNumber,
+                    normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
+                    source: 'contacts-modal'
+                }));
+
+                // Add to recipients with deduplication
+                const addedCount = addRecipientsWithDeduplication(newRecipients);
+
+                console.log('[RecipientSelection] Contacts added from modal', {
+                    selected: selectedContactsArray.length,
+                    added: addedCount,
+                    duplicatesSkipped: selectedContactsArray.length - addedCount
+                });
+
+                // Show toast
+                if (addedCount > 0) {
+                    showToast(`Added ${addedCount} contact(s) to recipients`, 'success');
+                }
+
+                // Close modal
+                closeContactsPickerModal();
+
+                // Update UI
+                updateRecipientChips();
+                updateCostEstimation();
+                schedulePreviewUpdate();
+            }
+           
+           // ============================================
+           // RECIPIENT CHIPS MANAGEMENT
+           // ============================================
+           
+           // Unified recipient storage (canonical schema: {recipientName, phoneNumber, normalizedPhoneNumber, source, id?})
+           let allRecipients = [];
+           
+           // Add recipients with automatic deduplication
+           function addRecipientsWithDeduplication(newRecipients) {
+               let addedCount = 0;
+               let duplicateCount = 0;
+               let invalidCount = 0;
+
+               console.log('[RecipientSelection] Adding recipients with deduplication', {
+                   newCount: newRecipients.length
+               });
+
+               newRecipients.forEach(recipient => {
+                   // Normalize phone number
+                   const validation = validatePhoneNumber(recipient.phoneNumber);
+                   if (!validation.isValid) {
+                       console.warn('[RecipientSelection] Invalid phone number skipped', {
+                           phone: recipient.phoneNumber,
+                           name: recipient.recipientName
+                       });
+                       invalidCount++;
+                       return;
+                   }
+
+                   const normalizedPhone = validation.normalizedNumber;
+
+                   // Check for duplicate
+                   const isDuplicate = allRecipients.some(r =>
+                       r.normalizedPhoneNumber === normalizedPhone
+                   );
+
+                   if (isDuplicate) {
+                       duplicateCount++;
+                       console.log('[RecipientSelection] Duplicate skipped', {
+                           phone: recipient.phoneNumber,
+                           normalized: normalizedPhone
+                       });
+                   } else {
+                       allRecipients.push({
+                           recipientName: recipient.recipientName || 'Contact',
+                           phoneNumber: recipient.phoneNumber,
+                           normalizedPhoneNumber: normalizedPhone,
+                           source: recipient.source || 'manual'
+                       });
+                       addedCount++;
+                   }
+               });
+
+               if (duplicateCount > 0) {
+                   showToast(`${duplicateCount} duplicate contact(s) skipped`, 'info');
+               }
+
+               if (invalidCount > 0) {
+                   console.log('[RecipientSelection] Summary', {
+                       added: addedCount,
+                       duplicates: duplicateCount,
+                       invalid: invalidCount
+                   });
+               }
+
+               return addedCount;
+           }
+           
+            // Remove recipient by normalized phone number (searches across all sources)
+            function removeRecipientByNormalizedPhone(normalizedPhone) {
+                console.log('[RecipientSelection] Removing recipient', { normalizedPhone });
+
+                // Try to remove from allRecipients first
+                const initialCount = allRecipients.length;
+                allRecipients = allRecipients.filter(r => r.normalizedPhoneNumber !== normalizedPhone);
+
+                if (allRecipients.length < initialCount) {
+                    // Found and removed from allRecipients
+                    console.log('[RecipientSelection] Removed from allRecipients');
+                    updateRecipientChips();
+                    updateCostEstimation();
+                    schedulePreviewUpdate();
+                    return;
+                }
+
+                // Try to remove from uploadedContacts
+                if (uploadedContacts.length > 0) {
+                    const initialUploaded = uploadedContacts.length;
+                    uploadedContacts = uploadedContacts.filter(c => {
+                        const norm = normalizePhoneNumber(c.normalizedPhoneNumber || c.phoneNumber);
+                        return norm !== normalizedPhone;
+                    });
+                    if (uploadedContacts.length < initialUploaded) {
+                        console.log('[RecipientSelection] Removed from uploadedContacts');
+                        updateRecipientChips();
+                        updateCostEstimation();
+                        schedulePreviewUpdate();
+                        return;
+                    }
+                }
+
+                // Try to remove from selectedContacts
+                if (selectedContacts.length > 0) {
+                    const initialSelected = selectedContacts.length;
+                    selectedContacts = selectedContacts.filter(c => {
+                        const norm = normalizePhoneNumber(c.normalizedPhoneNumber || c.phoneNumber);
+                        return norm !== normalizedPhone;
+                    });
+                    // Also uncheck in UI if contacts modal is open or contacts tab is active
+                    const checkbox = document.querySelector(`#contactGroups input[value]`) ?
+                        document.querySelector(`#contactGroups input[value][data-phone]`) : null;
+                    if (selectedContacts.length < initialSelected) {
+                        console.log('[RecipientSelection] Removed from selectedContacts');
+                        updateRecipientChips();
+                        updateCostEstimation();
+                        schedulePreviewUpdate();
+                        return;
+                    }
+                }
+
+                // For manual inputs (default mode: comma-separated), we can't easily remove individual items
+                // The user will need to manually edit the textarea. We'll show a helpful message.
+                if (currentMessagingMode === 'default') {
+                    showToast('Please manually remove the number from your comma-separated list', 'info');
+                } else {
+                    // For personalized mode, we need to find and remove the manual recipient item
+                    const manualItems = document.querySelectorAll('.manual-recipient-item:not(.template)');
+                    manualItems.forEach(item => {
+                        const phoneInput = item.querySelector('.recipient-phone-input');
+                        if (phoneInput) {
+                            const norm = normalizePhoneNumber(phoneInput.value);
+                            if (norm === normalizedPhone) {
+                                item.remove();
+                                updateCostEstimation();
+                                schedulePreviewUpdate();
+                            }
+                        }
+                    });
+                }
+
+                // Final update
+                updateRecipientChips();
+                updateCostEstimation();
+                schedulePreviewUpdate();
+            }
+           
+            // Update recipient chips display
+            function updateRecipientChips() {
+                const chipsContainer = document.getElementById('recipientChips');
+                const noMessage = document.getElementById('noRecipientsMessage');
+                const totalBadge = document.getElementById('recipientTotalBadge');
+
+                if (!chipsContainer) return;
+
+                console.log('[RecipientsField] Updating chips display');
+
+                // Collect ALL recipients from all sources
+                const allSourcesRecipients = collectAllRecipientsForDisplay();
+
+                console.log('[RecipientSync] Collected recipients for display', {
+                    total: allSourcesRecipients.length,
+                    sources: allSourcesRecipients.map(r => ({ name: r.recipientName, phone: r.phoneNumber, source: r.source }))
+                });
+
+                // Show/hide no message
+                if (noMessage) {
+                    noMessage.style.display = allSourcesRecipients.length === 0 ? 'block' : 'none';
+                }
+
+                // Clear existing chips (except no-message)
+                const existingChips = chipsContainer.querySelectorAll('.recipient-chip');
+                existingChips.forEach(chip => chip.remove());
+
+                // Add chips for each recipient
+                allSourcesRecipients.forEach((recipient, index) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'recipient-chip';
+                    chip.setAttribute('data-index', index);
+                    chip.setAttribute('data-phone', recipient.normalizedPhoneNumber);
+                    chip.setAttribute('data-source', recipient.source);
+                    chip.setAttribute('data-source-id', recipient.sourceId || '');
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'chip-name';
+                    nameSpan.textContent = recipient.recipientName;
+
+                    const phoneSpan = document.createElement('span');
+                    phoneSpan.className = 'chip-phone';
+                    phoneSpan.textContent = `(${recipient.phoneNumber})`;
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'chip-remove';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.setAttribute('aria-label', `Remove ${recipient.recipientName}`);
+                    removeBtn.onclick = () => removeRecipientByNormalizedPhone(recipient.normalizedPhoneNumber);
+
+                    chip.appendChild(nameSpan);
+                    chip.appendChild(phoneSpan);
+                    chip.appendChild(removeBtn);
+
+                    chipsContainer.appendChild(chip);
+                });
+
+                // Update total badge
+                if (totalBadge) {
+                    totalBadge.textContent = `${allSourcesRecipients.length} recipient${allSourcesRecipients.length !== 1 ? 's' : ''}`;
+                }
+
+                console.log('[RecipientsField] Chips updated', {
+                    total: allSourcesRecipients.length
+                });
+            }
+           
+            // Collect all recipients from every source for display
+            function collectAllRecipientsForDisplay() {
+                const collected = [];
+                const seen = new Set(); // Deduplicate by normalized phone
+                const sourceStats = {};
+
+                // Helper to add recipient if not duplicate, with source tracking
+                const addRecipient = (recipient, source = 'unknown', sourceId = null) => {
+                    const validation = validatePhoneNumber(recipient.phoneNumber);
+                    const normalized = validation.isValid ? validation.normalizedNumber : normalizePhoneNumber(recipient.phoneNumber);
+
+                    if (!seen.has(normalized)) {
+                        seen.add(normalized);
+                        collected.push({
+                            recipientName: recipient.recipientName || 'Contact',
+                            phoneNumber: recipient.phoneNumber,
+                            normalizedPhoneNumber: normalized,
+                            source: source,
+                            sourceId: sourceId
+                        });
+                        sourceStats[source] = (sourceStats[source] || 0) + 1;
+                    }
+                };
+
+                // 1. Add from unified allRecipients (imported + contacts modal selections)
+                allRecipients.forEach(r => addRecipient(r, r.source || 'import', r._id));
+
+                // 2. Add from uploadedContacts (if on upload tab or just in case)
+                uploadedContacts.forEach(contact => {
+                    addRecipient({
+                        recipientName: contact.recipientName,
+                        phoneNumber: contact.normalizedPhoneNumber || contact.phoneNumber
+                    }, 'upload', contact._id || contact.id);
+                });
+
+                // 3. Add from selectedContacts (saved contacts selection)
+                selectedContacts.forEach(contact => {
+                    addRecipient({
+                        recipientName: contact.recipientName,
+                        phoneNumber: contact.normalizedPhoneNumber || contact.phoneNumber
+                    }, 'saved', contact._id || contact.id);
+                });
+
+                // 4. Add from manual inputs (default mode: comma-separated)
+                const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
+                if (activeTabBtn && activeTabBtn.dataset.tab === 'manual') {
+                    if (currentMessagingMode === 'default') {
+                        const result = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                        result.recipients.forEach(r => {
+                            const norm = normalizePhoneNumber(r.phoneNumber);
+                            addRecipient(r, 'manual-default', norm);
+                        });
+                    } else {
+                        // Personalized mode: individual items
+                        const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
+                        items.forEach((item, idx) => {
+                            const nameInput = item.querySelector('.recipient-name-input');
+                            const phoneInput = item.querySelector('.recipient-phone-input');
+                            const name = nameInput ? nameInput.value.trim() : '';
+                            const phone = phoneInput ? phoneInput.value.trim() : '';
+                            if (phone) {
+                                const norm = normalizePhoneNumber(phone);
+                                addRecipient({
+                                    recipientName: name || 'Recipient',
+                                    phoneNumber: phone
+                                }, 'manual-personalized', `item-${idx}-${norm}`);
+                            }
+                        });
+                    }
+                }
+
+                console.log('[RecipientSync] Collected recipients', {
+                    total: collected.length,
+                    sources: sourceStats
+                });
+
+                return collected;
+            }
+           
+           // ============================================
+           // AUTO-POPULATE AFTER IMPORT
+           // ============================================
+           
+           // Auto-populate recipients from imported contacts
+           function autoPopulateFromImport(importedContacts) {
+               if (!importedContacts || importedContacts.length === 0) {
+                   console.warn('[Import] Auto-populate called with no contacts');
+                   return;
+               }
+
+               console.log('[Import] Auto-populating recipients from import', {
+                   importedCount: importedContacts.length
+               });
+
+               // Convert imported contacts to recipient format
+               const importRecipients = importedContacts.map(c => ({
+                   recipientName: c.recipientName || 'Contact',
+                   phoneNumber: c.normalizedPhoneNumber || c.phoneNumber,
+                   normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
+                   source: 'import'
+               }));
+
+               // Add with deduplication
+               const addedCount = addRecipientsWithDeduplication(importRecipients);
+
+               console.log('[Import] Auto-population complete', {
+                   imported: importedContacts.length,
+                   added: addedCount,
+                   duplicatesSkipped: importedContacts.length - addedCount,
+                   totalRecipients: allRecipients.length
+               });
+
+               // Update UI
+               updateRecipientChips();
+               updateCostEstimation();
+               schedulePreviewUpdate();
+           }
+           
+           // ============================================
+           // GET ALL RECIPIENTS (UPDATED)
+           // ============================================
+           
+           // Get all recipients from unified storage + manual inputs
+           function getAllRecipients() {
+               const recipients = [];
+
+               // Check which recipient source tab is active
+               const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
+               if (!activeTabBtn) {
+                   console.log('[RecipientsField] No active tab, returning allRecipients only', { count: allRecipients.length });
+                   return allRecipients;
+               }
+
+               const activeTab = activeTabBtn.dataset.tab;
+
+               console.log('[RecipientsField] getAllRecipients called', {
+                   mode: currentMessagingMode,
+                   source: activeTab,
+                   unifiedCount: allRecipients.length
+               });
+
+               if (activeTab === 'manual') {
+                   const isDefaultMode = currentMessagingMode === 'default';
+
+                   if (isDefaultMode) {
+                       // Default mode: use comma-separated input + unified recipients
+                       const result = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                       recipients.push(...result.recipients);
+                       console.log('[RecipientsField] Default mode recipients', {
+                           commaSeparatedCount: result.recipients.length,
+                           unifiedCount: allRecipients.length
+                       });
+                   } else {
+                       // Personalized mode: use individual recipient items + unified recipients
+                       const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
+
+                       items.forEach(item => {
+                           const nameInput = item.querySelector('.recipient-name-input');
+                           const phoneInput = item.querySelector('.recipient-phone-input');
+                           const name = nameInput ? nameInput.value.trim() : '';
+                           const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+
+                           if (!name && !rawPhone) {
+                               return;
+                           }
+
+                           recipients.push({
+                               recipientName: name,
+                               phoneNumber: rawPhone
+                           });
+                       });
+                       console.log('[RecipientsField] Personalized mode recipients', {
+                           manualItemsCount: recipients.length,
+                           unifiedCount: allRecipients.length
+                       });
+                   }
+               } else if (activeTab === 'upload') {
+                   // Use uploaded contacts
+                   uploadedContacts.forEach(contact => {
+                       const rawPhone = contact.phoneNumber || '';
+                       const name = contact.recipientName || '';
+                       if (name && rawPhone) {
+                           const validation = validatePhoneNumber(rawPhone);
+                           if (validation.isValid) {
+                               recipients.push({
+                                   recipientName: name,
+                                   phoneNumber: validation.normalizedNumber || rawPhone
+                               });
+                           }
+                       }
+                   });
+                   console.log('[RecipientsField] Upload tab recipients', {
+                       uploadedCount: recipients.length,
+                       unifiedCount: allRecipients.length
+                   });
+               } else if (activeTab === 'contacts') {
+                   // Return selected contacts from saved contacts (these are already in selectedContacts)
+                   console.log('[RecipientsField] Contacts tab, returning selectedContacts', {
+                       selectedCount: selectedContacts.length
+                   });
+                   return selectedContacts;
+               }
+
+               // Combine with unified recipients (excluding duplicates based on normalized phone)
+               const combined = [...allRecipients];
+               const normalizedSet = new Set(allRecipients.map(r => r.normalizedPhoneNumber));
+
+               recipients.forEach(r => {
+                   const validation = validatePhoneNumber(r.phoneNumber);
+                   const normalized = validation.isValid ? validation.normalizedNumber : r.phoneNumber;
+                   if (!normalizedSet.has(normalized)) {
+                       combined.push({
+                           recipientName: r.recipientName,
+                           phoneNumber: r.phoneNumber,
+                           normalizedPhoneNumber: normalized
+                       });
+                   }
+               });
+
+               console.log('[RecipientsField] getAllRecipients result', {
+                   total: combined.length,
+                   fromUnified: allRecipients.length,
+                   fromActiveTab: recipients.length
+               });
+
+               return combined;
+           }
+           
+           // ============================================
+           // EVENT LISTENERS
+           // ============================================
+           
+           // Open contacts modal button
+           document.addEventListener('DOMContentLoaded', function() {
+               const openBtn = document.getElementById('openContactsModalBtn');
+               if (openBtn) {
+                   openBtn.addEventListener('click', function() {
+                       console.log('[ContactsModal] Open button clicked');
+                       openContactsPickerModal();
+                   });
+               }
+               
+               // Search input with debounce
+               const searchInput = document.getElementById('contactsSearchInput');
+               if (searchInput) {
+                   let searchTimeout;
+
+                   searchInput.addEventListener('input', function() {
+                       clearTimeout(searchTimeout);
+                       searchTimeout = setTimeout(() => {
+                           contactsSearchQuery = this.value;
+                           contactsCurrentPage = 1;
+                           console.log('[ContactsModal] Search query changed', { query: contactsSearchQuery });
+                           filterAndRenderContacts();
+                       }, 300);
+                   });
+               }
+               
+               // Close modal on outside click
+               const contactsModal = document.getElementById('contactsPickerModal');
+               if (contactsModal) {
+                   contactsModal.addEventListener('click', function(e) {
+                       if (e.target === contactsModal) {
+                           console.log('[ContactsModal] Closed via outside click');
+                           closeContactsPickerModal();
+                       }
+                   });
+
+                   // Close on Escape key
+                   document.addEventListener('keydown', function(e) {
+                       if (e.key === 'Escape' && contactsModal.style.display === 'flex') {
+                           console.log('[ContactsModal] Closed via Escape key');
+                           closeContactsPickerModal();
+                       }
+                   });
+               }
+           });
+           
+           // Recipient source tabs event listener (FIXED: specific selector)
           document.querySelectorAll('.recipient-source-tabs .tab-btn').forEach(btn => {
               btn.addEventListener('click', function() {
                   const tab = this.dataset.tab;
@@ -1619,10 +2562,15 @@
             // Get elements with null checks
             const messageBodyEl = document.getElementById('messageBody');
             if (!messageBodyEl) return;
-            
+
             const message = messageBodyEl.value;
             const recipientCount = getRecipientCount();
-            
+
+            console.log('[CostEstimation] Updating cost estimation', {
+                recipientCount,
+                messageLength: message.length
+            });
+
             const salutationEl = document.getElementById('salutation');
             const customSalutationEl = document.getElementById('customSalutation');
             const salutation = salutationEl ? salutationEl.value : 'Dear';
@@ -1676,6 +2624,12 @@
                     if (costWarningsEl) costWarningsEl.style.display = 'none';
                 }
 
+                console.log('[CostEstimation] Updated', {
+                    encoding: data.encoding,
+                    segments: data.segments,
+                    cost: data.estimatedCost
+                });
+
             } catch (error) {
                 console.error('Error updating cost estimation:', error);
             }
@@ -1686,31 +2640,10 @@
 
         // Function to get current recipient count
         function getRecipientCount() {
-            // Use specific selector for recipient source tabs
-            const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
-            
-            if (!activeTabBtn) {
-                return 1; // Default fallback
-            }
-            
-            const activeTab = activeTabBtn.dataset.tab;
-
-            if (activeTab === 'manual') {
-                const isDefaultMode = currentMessagingMode === 'default';
-                if (isDefaultMode) {
-                    const result = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-                    return result.count;
-                } else {
-                    return document.querySelectorAll('.manual-recipient-item:not(.template)').length;
-                }
-            } else if (activeTab === 'upload') {
-                return uploadedContacts.length;
-            } else if (activeTab === 'contacts') {
-                // Return count of selected contacts
-                return selectedContacts.length;
-            }
-
-            return 1; // Default fallback
+            // Return total count from ALL sources (unified count)
+            const allRecipients = collectAllRecipientsForDisplay();
+            console.log('[RecipientsField] getRecipientCount', { total: allRecipients.length });
+            return allRecipients.length;
         }
 
         // Manual recipient management
@@ -1832,6 +2765,8 @@
           }
 
         function addManualRecipient() {
+            console.log('[RecipientSelection] Adding manual recipient');
+
             const template = document.querySelector('.manual-recipient-item.template');
             const newItem = template.cloneNode(true);
             newItem.style.display = 'flex';
@@ -1845,7 +2780,7 @@
                 validateManualRecipient.call(this);
                 updateMessageBodyTemplate(); // Auto-update message when name is entered
             });
-            
+
             // Also trigger on change (when user finishes typing or leaves field)
             nameInput.addEventListener('change', function() {
                 updateMessageBodyTemplate(); // Update message body when name is completed
@@ -1863,14 +2798,17 @@
             // Update cost estimation and live preview when recipients change
             updateCostEstimation();
             schedulePreviewUpdate();
+            updateRecipientChips();
         }
 
-        function removeManualRecipient(btn) {
-            btn.closest('.manual-recipient-item').remove();
-            // Update cost estimation and live preview when recipients change
-            updateCostEstimation();
-            schedulePreviewUpdate();
-        }
+          function removeManualRecipient(btn) {
+              console.log('[RecipientSelection] Removing manual recipient');
+              btn.closest('.manual-recipient-item').remove();
+              // Update cost estimation and live preview when recipients change
+              updateCostEstimation();
+              schedulePreviewUpdate();
+              updateRecipientChips();
+          }
 
         // Comma-separated recipients handling for default mode
         const commaSeparatedInput = document.getElementById('commaSeparatedRecipients');
@@ -1942,10 +2880,16 @@
         function updateCommaSeparatedRecipients() {
             const input = commaSeparatedInput.value;
             const result = parseCommaSeparatedRecipients(input);
-            
+
+            console.log('[RecipientsField] Comma-separated recipients updated', {
+                originalCount: result.originalCount,
+                validCount: result.count,
+                invalidCount: result.invalidCount || 0
+            });
+
             // Update counter (show total entries)
             recipientCountEl.textContent = result.originalCount;
-            
+
             // Update counter styling based on total entries
             const counterContainer = recipientCountEl.parentElement;
             counterContainer.classList.remove('warning', 'error');
@@ -1954,7 +2898,7 @@
             } else if (result.originalCount >= MAX_RECIPIENTS * 0.8) {
                 counterContainer.classList.add('warning');
             }
-            
+
             // Update validation message
             // Remove success class first to reset state
             validationMessageEl.classList.remove('success');
@@ -1972,10 +2916,11 @@
                 commaSeparatedInput.classList.remove('error');
             }
             
-            // Update cost estimation and preview
-            updateCostEstimation();
-            schedulePreviewUpdate();
-        }
+              // Update cost estimation and preview
+              updateCostEstimation();
+              schedulePreviewUpdate();
+              updateRecipientChips();
+          }
 
         // Initialize event listener for comma-separated input
         if (commaSeparatedInput) {
@@ -2465,6 +3410,9 @@
                     updateCostEstimation();
                     schedulePreviewUpdate();
 
+                    // Auto-populate recipients from imported contacts
+                    autoPopulateFromImport(importedContacts);
+
                     if (loadedContacts && loadedContacts.length >= 0) {
                         const newContacts = importedContacts.map(c => ({
                             _id: c.id,
@@ -2627,17 +3575,26 @@
                 };
             }
 
-            // Check selected contacts (already canonical)
-            if (selectedContacts.length > 0) {
-                const contact = selectedContacts[0];
-                return {
-                    recipientName: contact.recipientName || 'Contact',
-                    phoneNumber: contact.phoneNumber || contact.normalizedPhoneNumber || ''
-                };
-            }
-
-            return null;
-        }
+              // Check selected contacts (already canonical)
+              if (selectedContacts.length > 0) {
+                  const contact = selectedContacts[0];
+                  return {
+                      recipientName: contact.recipientName || 'Contact',
+                      phoneNumber: contact.phoneNumber || contact.normalizedPhoneNumber || ''
+                  };
+              }
+              
+              // Check unified allRecipients (imported + contacts modal selections)
+              if (allRecipients.length > 0) {
+                  const contact = allRecipients[0];
+                  return {
+                      recipientName: contact.recipientName || 'Contact',
+                      phoneNumber: contact.phoneNumber || contact.normalizedPhoneNumber || ''
+                  };
+              }
+              
+              return null;
+          }
         
         // ============================================
         // EVENT LISTENERS FOR LIVE PREVIEW
@@ -2920,81 +3877,6 @@
         // ============================================
         // REMAINING EXISTING FUNCTIONS
         // ============================================
-        
-        // Get all recipients from current active tab
-        function getAllRecipients() {
-            const recipients = [];
-
-            // Check which recipient source tab is active
-            const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
-            if (!activeTabBtn) return recipients;
-            
-            const activeTab = activeTabBtn.dataset.tab;
-
-            if (window.loggers && window.loggers.recipients) {
-                window.loggers.recipients.debug('getAllRecipients called', {
-                    mode: currentMessagingMode,
-                    source: activeTab
-                });
-            }
-
-            if (activeTab === 'manual') {
-                const isDefaultMode = currentMessagingMode === 'default';
-                
-                if (isDefaultMode) {
-                    // Default mode: use comma-separated input
-                    const result = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-                    recipients.push(...result.recipients);
-                } else {
-                    // Personalized mode: use individual recipient items
-                    const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
-                    
-                    items.forEach(item => {
-                        const nameInput = item.querySelector('.recipient-name-input');
-                        const phoneInput = item.querySelector('.recipient-phone-input');
-                        const name = nameInput ? nameInput.value.trim() : '';
-                        const rawPhone = phoneInput ? phoneInput.value.trim() : '';
-                        
-                        // Skip completely empty rows
-                        if (!name && !rawPhone) {
-                            return;
-                        }
-                        
-                        recipients.push({
-                            recipientName: name,
-                            phoneNumber: rawPhone
-                        });
-                    });
-                }
-            } else if (activeTab === 'upload') {
-                // Use uploaded contacts - canonical schema: recipientName, phoneNumber
-                uploadedContacts.forEach(contact => {
-                    const rawPhone = contact.phoneNumber || '';
-                    const name = contact.recipientName || '';
-                    if (name && rawPhone) {
-                        const validation = validatePhoneNumber(rawPhone);
-                        if (validation.isValid) {
-                            recipients.push({
-                                recipientName: name,
-                                phoneNumber: validation.normalizedNumber || rawPhone
-                            });
-                        }
-                    }
-                });
-            } else if (activeTab === 'contacts') {
-                // Return selected contacts from saved contacts
-                return selectedContacts;
-            }
-
-            if (window.loggers && window.loggers.recipients) {
-                window.loggers.recipients.debug('Collected recipients', {
-                    count: recipients.length,
-                    sample: recipients.slice(0, 3)
-                });
-            }
-
-            return recipients;
-        }
 
         // Send Now button handler
         document.getElementById('sendNowBtn').addEventListener('click', async function() {
@@ -3123,24 +4005,31 @@
              // Get active messaging mode
              const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
              const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
-             
+
+             console.log('[SendSms] sendOrScheduleCampaign called', {
+                 sendMode,
+                 recipientCount: recipients.length,
+                 isPersonalizedMode,
+                 scheduledAt: scheduledAt ? scheduledAt.toISOString() : 'immediate'
+             });
+
              const title = `Campaign ${new Date().toLocaleString()}`;
              const senderId = document.getElementById('senderId').value;
              const messageBody = document.getElementById('messageBody').value;
              const salutation = document.getElementById('salutation').value;
              const customSalutation = document.getElementById('customSalutation').value;
              const removeDuplicates = document.querySelector('input[name="duplicateHandling"]:checked')?.value === 'remove';
-             
+
              // Get user's timezone for scheduling
              const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
- 
+
              // Validate required fields
              // Debug: log validation state before checks
              console.log('[Send Validation] Mode:', isPersonalizedMode ? 'personalized' : 'default');
              console.log('[Send Validation] Sender ID:', senderId);
              console.log('[Send Validation] Recipient count:', recipients.length);
              console.log('[Send Validation] Message length:', messageBody ? messageBody.length : 0);
-             
+
              if (!senderId) {
                  console.log('[Send Validation] FAIL: Sender ID missing');
                  showToast('Please select a Sender ID', 'error');
