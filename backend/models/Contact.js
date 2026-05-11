@@ -40,12 +40,7 @@ const contactSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
-  },
-    // Compound indexes for efficient queries
-    index: [
-      { userId: 1, normalizedPhoneNumber: 1 }, // Unique per user + fast lookup
-      { userId: 1, recipientName: 1 } // For sorting and filtering
-    ]
+  }
   }, {
     toJSON: {
       transform: function(doc, ret) {
