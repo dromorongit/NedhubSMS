@@ -1,48 +1,107 @@
+// Early error logging to file and console (before anything else)
+const fs = require('fs');
+const path = require('path');
+const earlyLogFile = path.join(__dirname, '../backend/logs/early-startup.log');
+
+function earlyLog(message) {
+  try {
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] ${message}\n`;
+    // Write to file
+    try {
+      fs.appendFileSync(earlyLogFile, logLine, { flag: 'a' });
+    } catch (e) {
+      // Ignore file logging errors
+    }
+    // Also write to stdout for Railway logs
+    console.log(message);
+  } catch (e) {
+    // Ignore all logging errors
+  }
+}
+
+earlyLog('========== SERVER STARTING ==========');
+
 // Load environment variables - make it optional for Docker/Railway
 try {
   require('dotenv').config({ path: '../backend/.env' });
+  earlyLog('Environment variables loaded');
 } catch (e) {
-  // Ignore if .env file doesn't exist (e.g., in Docker container)
+  earlyLog('dotenv load failed (expected in Docker): ' + e.message);
 }
 
 // Initialize Sentry first
-require('../backend/utils/sentry');
+let Sentry;
+try {
+  Sentry = require('../backend/utils/sentry');
+  earlyLog('Sentry initialized');
+} catch (e) {
+  earlyLog('Sentry initialization failed: ' + e.message);
+}
 
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
 const { connectDB } = require('../backend/utils/database');
 const logger = require('../backend/utils/logger');
-const authRoutes = require('../backend/routes/auth');
-const contactRoutes = require('../backend/routes/contacts');
-const smsRoutes = require('../backend/routes/sms');
-const naloSmsRoutes = require('../backend/routes/naloSms');
-const walletRoutes = require('../backend/routes/wallet');
-const transferRoutes = require('../backend/routes/transfers');
-const senderIdRoutes = require('../backend/routes/senderIds');
-const templateRoutes = require('../backend/routes/templates');
-const campaignRoutes = require('../backend/routes/campaigns');
-const smsCampaignRoutes = require('../backend/routes/sms-campaigns');
-const analyticsRoutes = require('../backend/routes/analytics');
-const reportsRoutes = require('../backend/routes/reports');
-const adminRoutes = require('../backend/routes/admin');
-const paymentRoutes = require('../backend/routes/payments');
-const utilityRoutes = require('../backend/routes/utility');
-const blacklistRoutes = require('../backend/routes/blacklist');
-const seedRoutes = require('../backend/routes/seed');
-const healthRoutes = require('../backend/routes/health');
-const metricsRoutes = require('../backend/routes/metrics');
-const hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
-const EmailServiceClass = require('../backend/services/EmailService');
-const SmsSchedulerService = require('../backend/services/SmsSchedulerService');
-const Sentry = require('../backend/utils/sentry');
+earlyLog('Core modules loaded');
 
-// Instantiate email service
-const EmailService = new EmailServiceClass();
+// Load services (must be after routes to avoid circular dependencies)
+let EmailServiceClass;
+let SmsSchedulerService;
+try {
+  EmailServiceClass = require('../backend/services/EmailService');
+  SmsSchedulerService = require('../backend/services/SmsSchedulerService');
+  earlyLog('Services loaded');
+} catch (e) {
+  earlyLog('Service loading failed: ' + e.message + '\n' + e.stack);
+  throw e;
+}
+
+// Load routes - declare variables in outer scope for use in app.use()
+let authRoutes, contactRoutes, smsRoutes, naloSmsRoutes, walletRoutes, transferRoutes;
+let senderIdRoutes, templateRoutes, campaignRoutes, smsCampaignRoutes, analyticsRoutes;
+let reportsRoutes, adminRoutes, paymentRoutes, utilityRoutes, blacklistRoutes;
+let seedRoutes, healthRoutes, metricsRoutes, hubtelCallbackController;
+try {
+  authRoutes = require('../backend/routes/auth');
+  contactRoutes = require('../backend/routes/contacts');
+  smsRoutes = require('../backend/routes/sms');
+  naloSmsRoutes = require('../backend/routes/naloSms');
+  walletRoutes = require('../backend/routes/wallet');
+  transferRoutes = require('../backend/routes/transfers');
+  senderIdRoutes = require('../backend/routes/senderIds');
+  templateRoutes = require('../backend/routes/templates');
+  campaignRoutes = require('../backend/routes/campaigns');
+  smsCampaignRoutes = require('../backend/routes/sms-campaigns');
+  analyticsRoutes = require('../backend/routes/analytics');
+  reportsRoutes = require('../backend/routes/reports');
+  adminRoutes = require('../backend/routes/admin');
+  paymentRoutes = require('../backend/routes/payments');
+  utilityRoutes = require('../backend/routes/utility');
+  blacklistRoutes = require('../backend/routes/blacklist');
+  seedRoutes = require('../backend/routes/seed');
+  healthRoutes = require('../backend/routes/health');
+  metricsRoutes = require('../backend/routes/metrics');
+  hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
+  earlyLog('Routes loaded');
+} catch (e) {
+  earlyLog('Route loading failed: ' + e.message + '\n' + e.stack);
+  throw e;
+}
+
+try {
+  // Instantiate email service
+  const EmailService = new EmailServiceClass();
+  earlyLog('Email service instantiated');
+} catch (e) {
+  earlyLog('Email service instantiation failed: ' + e.message);
+  throw e;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+earlyLog(`Server will listen on port ${PORT}`);
 
 // Simple health check endpoint for Railway (must be before other middleware)
 app.get('/healthz', (req, res) => {
@@ -53,9 +112,15 @@ app.get('/healthz', (req, res) => {
 app.set('trust proxy', 1);
 
 // Connect to MongoDB in the background (non-blocking)
-connectDB().catch(err => {
-  logger.warn('MongoDB connection failed, continuing without database', { error: err.message });
-});
+try {
+  connectDB().catch(err => {
+    earlyLog('MongoDB connection failed: ' + err.message);
+    logger.warn('MongoDB connection failed, continuing without database', { error: err.message });
+  });
+  earlyLog('MongoDB connection initiated');
+} catch (e) {
+  earlyLog('MongoDB connection setup failed: ' + e.message);
+}
 
 // CORS configuration - allow requests from frontend
 const corsOptions = {
@@ -308,21 +373,48 @@ app.use((err, req, res, next) => {
 });
 
 // Start server - listen on all interfaces (0.0.0.0) for Docker/Railway compatibility
-const server = app.listen(PORT, '0.0.0.0', async () => {
-  logger.info('Server started', { port: PORT, address: server.address().address });
+try {
+  const server = app.listen(PORT, '0.0.0.0', async () => {
+    earlyLog(`Server listening on 0.0.0.0:${PORT}`);
+    logger.info('Server started', { port: PORT, address: server.address().address });
 
-  // Try to start SMS scheduler service, but don't fail if Redis is unavailable
-  try {
-    const started = await SmsSchedulerService.start();
-    if (started) {
-      logger.info('SMS Scheduler service started');
-    } else {
+    // Try to start SMS scheduler service, but don't fail if Redis is unavailable
+    try {
+      const started = await SmsSchedulerService.start();
+      if (started) {
+        logger.info('SMS Scheduler service started');
+      } else {
+        logger.warn('Application starting without queue service (Redis may be unavailable)');
+      }
+    } catch (error) {
+      logger.error('Failed to start SMS Scheduler service', { error: error.message });
       logger.warn('Application starting without queue service (Redis may be unavailable)');
     }
-  } catch (error) {
-    logger.error('Failed to start SMS Scheduler service', { error: error.message });
-    logger.warn('Application starting without queue service (Redis may be unavailable)');
-  }
+    earlyLog('Server startup complete');
+  });
+
+  // Handle server errors
+  server.on('error', (err) => {
+    earlyLog('Server error: ' + err.message);
+    logger.error('Server error', { error: err });
+  });
+} catch (error) {
+  earlyLog('Failed to start server: ' + error.message + '\n' + error.stack);
+  console.error('FATAL: Server startup failed:', error);
+  process.exit(1);
+}
+
+// Global error handlers
+process.on('uncaughtException', (error) => {
+  earlyLog('UNCAUGHT EXCEPTION: ' + error.message + '\n' + error.stack);
+  console.error('UNCAUGHT EXCEPTION:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  earlyLog('UNHANDLED REJECTION at: ' + promise + ' reason: ' + reason);
+  console.error('UNHANDLED REJECTION:', reason);
+  // Don't exit - let the app continue
 });
 
 // Graceful shutdown handling
