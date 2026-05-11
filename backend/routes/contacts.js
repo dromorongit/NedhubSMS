@@ -118,18 +118,19 @@ router.post('/import/confirm', authenticate, async (req, res) => {
       // Use previously stored data - reconstruct from the import record
       // This path is for when the import was already processed
       return res.json({
+        success: true,
         message: 'Import already completed from previous session',
-        results: {
+        summary: {
           totalRows: storedImport.totalRows,
           validRows: storedImport.validRows,
           invalidRows: storedImport.invalidRows,
           duplicateRows: storedImport.duplicateRows,
           blacklistedRows: storedImport.blacklistedRows,
           importedRows: storedImport.importedRows,
-          skippedRows: storedImport.skippedRows,
-          importedContacts: [],
-          errors: []
-        }
+          skippedRows: storedImport.skippedRows
+        },
+        importedContacts: [],
+        errors: []
       });
     }
 
@@ -166,18 +167,19 @@ router.post('/import/confirm', authenticate, async (req, res) => {
 
     // Return comprehensive summary
     res.json({
+      success: true,
       message: 'Import completed',
-      results: {
+      summary: {
         totalRows: results.totalRows,
         validRows: results.validRows,
         invalidRows: results.invalidRows,
         duplicateRows: results.duplicateRows,
         blacklistedRows: results.blacklistedRows,
         importedRows: results.importedRows,
-        skippedRows: results.skippedRows,
-        importedContacts: results.importedContacts,
-        errors: results.errors.slice(0, 50) // Return first 50 errors only
-      }
+        skippedRows: results.skippedRows
+      },
+      importedContacts: results.importedContacts,
+      errors: results.errors.slice(0, 50) // Return first 50 errors only
     });
   } catch (error) {
     console.error('[Import] Unexpected error:', error);

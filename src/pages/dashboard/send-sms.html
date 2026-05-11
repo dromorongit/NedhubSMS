@@ -2291,19 +2291,20 @@
         }
 
         // Show import summary with counts and errors
-        function showImportSummary(results) {
-            console.log('[Import] Showing summary:', results);
+        function showImportSummary(result) {
+            console.log('[ImportUI] Showing summary UI', result);
+            const summary = result.summary;
             
             // Populate counts
-            document.getElementById('summaryTotal').textContent = results.totalRows || 0;
-            document.getElementById('summaryImported').textContent = results.importedRows || 0;
-            document.getElementById('summaryInvalid').textContent = results.invalidRows || 0;
-            document.getElementById('summaryDuplicates').textContent = results.duplicateRows || 0;
-            document.getElementById('summaryBlacklisted').textContent = results.blacklistedRows || 0;
-            document.getElementById('summarySkipped').textContent = results.skippedRows || 0;
+            document.getElementById('summaryTotal').textContent = summary.totalRows || 0;
+            document.getElementById('summaryImported').textContent = summary.importedRows || 0;
+            document.getElementById('summaryInvalid').textContent = summary.invalidRows || 0;
+            document.getElementById('summaryDuplicates').textContent = summary.duplicateRows || 0;
+            document.getElementById('summaryBlacklisted').textContent = summary.blacklistedRows || 0;
+            document.getElementById('summarySkipped').textContent = summary.skippedRows || 0;
             
             // Populate errors (first 10)
-            const errors = results.errors || [];
+            const errors = result.errors || [];
             const errorListEl = document.getElementById('errorList');
             const errorsSection = document.getElementById('importErrors');
             
@@ -2354,12 +2355,20 @@
             }
 
             try {
+                console.log('[ImportConfirm] Sending import confirmation', {
+                    fileName,
+                    fileDataCount: fileData.length,
+                    columnMapping: { nameColumn, phoneColumn }
+                });
                 const response = await window.apiClient.confirmContactImport(fileData, { nameColumn, phoneColumn }, fileName);
+
+                console.log('[ImportConfirm] API response received', { hasError: !!response.error });
 
                 if (response.error) {
                     if (window.loggers && window.loggers.import) {
                         window.loggers.import.error('Import failed', { error: response.error });
                     }
+                    console.error('[ImportConfirm] Import failed', { error: response.error });
                     if (response.error.includes('column') || response.error.includes('Column')) {
                         showToast('Please select both name and phone columns', 'error');
                     } else if (response.error.includes('file') || response.error.includes('File')) {
@@ -2370,33 +2379,80 @@
                         showToast(response.error, 'error');
                     }
                 } else {
-                    const results = response.results;
-                    
-                    if (window.loggers && window.loggers.import) {
-                        window.loggers.import.log('Import completed', results);
+                    const result = response.data;
+                    console.log('[ImportResult] Import result', result);
+
+                    if (result.success === false) {
+                        showToast(result.message || 'Import failed', 'error');
+                        return;
                     }
 
-                    const validCount = results.validRows || 0;
-                    const invalidCount = results.invalidRows || 0;
-                    const duplicateCount = results.duplicateRows || 0;
-                    const blacklistedCount = results.blacklistedRows || 0;
-                    
-                    if (invalidCount > 0 || duplicateCount > 0 || blacklistedCount > 0) {
-                        const parts = [];
-                        if (invalidCount > 0) parts.push(`${invalidCount} invalid`);
-                        if (duplicateCount > 0) parts.push(`${duplicateCount} duplicates`);
-                        if (blacklistedCount > 0) parts.push(`${blacklistedCount} blacklisted`);
-                        showToast(`Imported ${validCount} contacts. Skipped: ${parts.join(', ')}`, 'warning');
-                    } else {
-                        showToast(`Successfully imported all ${validCount} contacts!`, 'success');
+                    const summary = result.summary;
+                    const importedContacts = result.importedContacts || [];
+                    const errors = result.errors || [];
+
+                    console.log('[ImportResult] Summary counts', {
+                        total: summary.totalRows,
+                        imported: summary.importedRows,
+                        valid: summary.validRows,
+                        invalid: summary.invalidRows,
+                        duplicates: summary.duplicateRows,
+                        blacklisted: summary.blacklistedRows,
+                        skipped: summary.skippedRows
+                    });
+
+                    if (window.loggers && window.loggers.import) {
+                        window.loggers.import.log('Import completed', {
+                            summary,
+                            importedContactsCount: importedContacts.length,
+                            errorsCount: errors.length
+                        });
                     }
-                    
+
+                    let toastMessage;
+                    let toastType;
+                    const { importedRows = 0, duplicateRows = 0, blacklistedRows = 0, invalidRows = 0 } = summary;
+
+                    if (importedRows > 0) {
+                        if (duplicateRows > 0 || blacklistedRows > 0 || invalidRows > 0) {
+                            const parts = [];
+                            if (duplicateRows > 0) parts.push(`${duplicateRows} duplicates`);
+                            if (blacklistedRows > 0) parts.push(`${blacklistedRows} blacklisted`);
+                            if (invalidRows > 0) parts.push(`${invalidRows} invalid`);
+                            toastMessage = `${importedRows} contacts imported successfully. ${parts.join(', ')} skipped.`;
+                            toastType = 'success';
+                        } else {
+                            toastMessage = `Successfully imported all ${importedRows} contacts!`;
+                            toastType = 'success';
+                        }
+                    } else {
+                        if (duplicateRows > 0 && invalidRows === 0 && blacklistedRows === 0) {
+                            toastMessage = 'All contacts already exist. No new contacts were imported.';
+                            toastType = 'info';
+                        } else if (blacklistedRows > 0 && duplicateRows === 0 && invalidRows === 0) {
+                            toastMessage = 'All contacts are blacklisted. No contacts imported.';
+                            toastType = 'info';
+                        } else if (invalidRows > 0 && duplicateRows === 0 && blacklistedRows === 0) {
+                            toastMessage = 'No valid contacts found to import.';
+                            toastType = 'warning';
+                        } else {
+                            const parts = [];
+                            if (duplicateRows > 0) parts.push(`${duplicateRows} duplicates`);
+                            if (blacklistedRows > 0) parts.push(`${blacklistedRows} blacklisted`);
+                            if (invalidRows > 0) parts.push(`${invalidRows} invalid`);
+                            toastMessage = `No contacts imported. ${parts.join(', ')}.`;
+                            toastType = 'warning';
+                        }
+                    }
+
+                    console.log('[ImportUI] Toast', { type: toastType, message: toastMessage, summary });
+                    showToast(toastMessage, toastType);
+
                     closeImportPreviewModal();
 
-                    // Update UI
                     document.getElementById('filePreview').style.display = 'flex';
                     document.getElementById('uploadedFileName').textContent = fileName;
-                    uploadedContacts = results.importedContacts || [];
+                    uploadedContacts = importedContacts;
 
                     if (window.loggers && window.loggers.contacts) {
                         window.loggers.contacts.log('Imported contacts updated in UI', {
@@ -2405,14 +2461,12 @@
                         });
                     }
 
-                    showImportSummary(results);
+                    showImportSummary(result);
                     updateCostEstimation();
                     schedulePreviewUpdate();
 
-                    // Refresh saved contacts list if it's already been loaded
                     if (loadedContacts && loadedContacts.length >= 0) {
-                        // Append newly imported contacts to loadedContacts for immediate visibility
-                        const newContacts = results.importedContacts.map(c => ({
+                        const newContacts = importedContacts.map(c => ({
                             _id: c.id,
                             recipientName: c.recipientName,
                             phoneNumber: c.phoneNumber,
@@ -2420,24 +2474,26 @@
                             groupIds: []
                         }));
                         loadedContacts = [...newContacts, ...loadedContacts];
-                        
-                        // If contacts tab is currently active, refresh the UI
                         const contactsSection = document.getElementById('contactsSection');
                         if (contactsSection && contactsSection.classList.contains('active')) {
-                            loadSavedContacts(); // Refresh from server for consistency
+                            loadSavedContacts();
                         } else {
-                            // Otherwise just update the cached list for when user switches to contacts tab
                             console.log('[Contacts] Import completed, cached contacts will be refreshed on tab switch');
                         }
                     }
 
-                    // Switch to upload tab
                     document.querySelector('.tab-btn[data-tab="upload"]').click();
 
-                    // Clear session
                     currentImportSession = { fileData: [], fileName: null, detectedColumns: null, preview: null };
+
+                    console.log('[ImportUI] Final UI state', {
+                        uploadedContactsCount: uploadedContacts.length,
+                        loadedContactsCount: loadedContacts.length,
+                        tab: 'upload'
+                    });
                 }
             } catch (error) {
+                console.error('[ImportConfirm] Exception', { error: error.message, stack: error.stack });
                 if (window.loggers && window.loggers.import) {
                     window.loggers.import.error('Import exception', { message: error.message });
                 }
