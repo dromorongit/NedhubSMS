@@ -97,7 +97,11 @@ router.get('/health/detailed', async (req, res) => {
   // Redis/Queue - try to connect but don't fail the health check
   try {
     const queue = new Queue('sms-queue', { connection: redisConfig });
-    await queue.waitUntilReady();
+    // Add timeout to prevent hanging if Redis is unavailable
+    await Promise.race([
+      queue.waitUntilReady(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Redis connection timeout')), 3000))
+    ]);
     health.services.redis = { status: 'up' };
     await queue.close(); // Clean up
   } catch (error) {

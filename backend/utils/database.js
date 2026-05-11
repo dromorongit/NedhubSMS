@@ -4,13 +4,13 @@ const logger = require('./logger');
 // Set strictQuery option to avoid deprecation warning in Mongoose 7
 mongoose.set('strictQuery', false);
 
-const connectDB = async (retries = 5, delay = 5000) => {
+const connectDB = async (retries = 3, delay = 1000) => {
   const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/nedhub_bulk_messaging';
   
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const conn = await mongoose.connect(mongoURI, {
-        serverSelectionTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 3000,
         socketTimeoutMS: 45000,
       });
 

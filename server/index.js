@@ -1,4 +1,9 @@
-require('dotenv').config({ path: '../backend/.env' });
+// Load environment variables - make it optional for Docker/Railway
+try {
+  require('dotenv').config({ path: '../backend/.env' });
+} catch (e) {
+  // Ignore if .env file doesn't exist (e.g., in Docker container)
+}
 
 // Initialize Sentry first
 require('../backend/utils/sentry');
@@ -42,8 +47,10 @@ const PORT = process.env.PORT || 3000;
 // Trust proxy - needed for express-rate-limit to work correctly with Railway's reverse proxy
 app.set('trust proxy', 1);
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB in the background (non-blocking)
+connectDB().catch(err => {
+  logger.warn('MongoDB connection failed, continuing without database', { error: err.message });
+});
 
 // CORS configuration - allow requests from frontend
 const corsOptions = {
@@ -301,8 +308,12 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
 
   // Try to start SMS scheduler service, but don't fail if Redis is unavailable
   try {
-    await SmsSchedulerService.start();
-    logger.info('SMS Scheduler service started');
+    const started = await SmsSchedulerService.start();
+    if (started) {
+      logger.info('SMS Scheduler service started');
+    } else {
+      logger.warn('Application starting without queue service (Redis may be unavailable)');
+    }
   } catch (error) {
     logger.error('Failed to start SMS Scheduler service', { error: error.message });
     logger.warn('Application starting without queue service (Redis may be unavailable)');

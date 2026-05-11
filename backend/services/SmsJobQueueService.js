@@ -20,11 +20,12 @@ class SmsJobQueueService {
 
   /**
    * Initialize the queue service with Redis connection
+   * Returns true if successful, false if Redis is unavailable (non-fatal)
    */
   async initialize() {
     if (this.isInitialized) {
       logger.info('Queue service already initialized');
-      return;
+      return true;
     }
 
     try {
@@ -34,6 +35,7 @@ class SmsJobQueueService {
           maxRetriesPerRequest: null,
           retryDelayOnFailover: 100,
           lazyConnect: true,
+          connectTimeout: 3000,
         });
       } else {
         this.redisConnection = new IORedis({
@@ -45,6 +47,7 @@ class SmsJobQueueService {
           retryDelayOnFailover: 100,
           maxRetriesPerRequest: null,
           lazyConnect: true,
+          connectTimeout: 3000,
         });
       }
 
@@ -60,6 +63,29 @@ class SmsJobQueueService {
       this.redisConnection.on('ready', () => {
         console.log('[SmsJobQueueService] Redis connection ready');
       });
+
+      // Test Redis connection with timeout
+      try {
+        // Add a timeout wrapper to prevent blocking server startup
+        const connectWithTimeout = async () => {
+          return Promise.race([
+            (async () => {
+              await this.redisConnection.connect();
+              await this.redisConnection.ping();
+              return true;
+            })(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Redis connection timeout')), 3000)
+            )
+          ]);
+        };
+        
+        await connectWithTimeout();
+      } catch (redisError) {
+        console.warn('[SmsJobQueueService] Redis connection failed, continuing without queue service:', redisError.message);
+        this.redisConnection = null;
+        return false;
+      }
 
       // Initialize queue
       this.queue = new Queue('sms-campaigns', {
@@ -130,19 +156,6 @@ class SmsJobQueueService {
         }
       });
 
-      // Graceful shutdown handling
-      process.on('SIGTERM', async () => {
-        console.log('[SmsJobQueueService] Received SIGTERM, initiating graceful shutdown');
-        await this.shutdown();
-        process.exit(0);
-      });
-
-      process.on('SIGINT', async () => {
-        console.log('[SmsJobQueueService] Received SIGINT, initiating graceful shutdown');
-        await this.shutdown();
-        process.exit(0);
-      });
-
       // Handle worker events
       this.worker.on('completed', (job) => {
         logger.info('Queue job completed', { jobId: job.id, campaignId: job.data.campaignId });
@@ -187,10 +200,12 @@ class SmsJobQueueService {
 
       this.isInitialized = true;
       console.log('[SmsJobQueueService] Queue service initialized successfully');
+      return true;
 
     } catch (error) {
-      console.error('[SmsJobQueueService] Failed to initialize queue service:', error);
-      throw error;
+      console.warn('[SmsJobQueueService] Failed to initialize queue service, continuing without it:', error.message);
+      this.isInitialized = false;
+      return false;
     }
   }
 

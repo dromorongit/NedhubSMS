@@ -11,20 +11,27 @@ class SmsSchedulerService {
 
   /**
    * Start the scheduler (initialize queue service)
+   * Returns true if successful, false if Redis is unavailable
    */
   async start() {
     if (this.isRunning) {
       console.log('[SmsSchedulerService] Scheduler is already running');
-      return;
+      return true;
     }
 
     try {
-      await SmsJobQueueService.initialize();
-      this.isRunning = true;
-      console.log('[SmsSchedulerService] Scheduler started - BullMQ queue initialized');
+      const initialized = await SmsJobQueueService.initialize();
+      if (initialized) {
+        this.isRunning = true;
+        console.log('[SmsSchedulerService] Scheduler started - BullMQ queue initialized');
+        return true;
+      } else {
+        console.warn('[SmsSchedulerService] Scheduler not started - Redis unavailable');
+        return false;
+      }
     } catch (error) {
       console.error('[SmsSchedulerService] Failed to start scheduler:', error);
-      throw error;
+      return false;
     }
   }
 
