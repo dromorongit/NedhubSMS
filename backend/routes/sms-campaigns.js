@@ -74,6 +74,13 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
 
     const userId = req.user.userId;
 
+    console.log('[Campaign] Preview requested:', {
+      userId,
+      title,
+      recipientsCount: recipients?.length,
+      senderId
+    });
+
     // Validate required fields
     if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
       return res.status(400).json({
@@ -91,6 +98,7 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
     }
 
     // Process recipients for deduplication and validation
+    console.log('[Campaign] Processing recipients...');
     const processedRecipients = await SmsRecipientService.processRecipientsForCampaign(
       recipients,
       userId,
@@ -106,6 +114,7 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
         processedRecipients.finalCount,
         { salutation, customSalutation }
       );
+      console.log('[Campaign] Cost estimation:', costEstimation);
     }
 
     // Generate preview messages for first few recipients
@@ -118,6 +127,14 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
         sampleRecipients,
         ''
       ) : [];
+
+    console.log('[Campaign] Preview ready:', {
+      original: processedRecipients.originalCount,
+      valid: processedRecipients.finalCount,
+      duplicates: processedRecipients.duplicateCount,
+      blacklisted: processedRecipients.blacklistedRecipients.length,
+      invalid: processedRecipients.invalidRecipients.length
+    });
 
     res.json({
       success: true,
@@ -136,16 +153,16 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
         invalidCount: processedRecipients.invalidRecipients.length,
         blacklistedCount: processedRecipients.blacklistedRecipients.length,
         finalValidCount: processedRecipients.finalCount,
-        duplicates: processedRecipients.duplicates.slice(0, 10), // Show first 10 duplicates
-        invalidRecipients: processedRecipients.invalidRecipients.slice(0, 10), // Show first 10 invalid
-        blacklistedRecipients: processedRecipients.blacklistedRecipients.slice(0, 10) // Show first 10 blacklisted
+        duplicates: processedRecipients.duplicates.slice(0, 10),
+        invalidRecipients: processedRecipients.invalidRecipients.slice(0, 10),
+        blacklistedRecipients: processedRecipients.blacklistedRecipients.slice(0, 10)
       },
       costEstimation,
       previewMessages,
       canProceed: processedRecipients.finalCount > 0
     });
   } catch (error) {
-    console.error('Campaign preview error:', error);
+    console.error('[Campaign] Preview error:', error);
     res.status(500).json({ error: 'Failed to generate campaign preview: ' + error.message });
   }
 });
@@ -165,6 +182,14 @@ router.post('/send', authenticate, async (req, res) => {
 
     const userId = req.user.userId;
 
+    console.log('[Campaign] Send campaign requested:', {
+      userId,
+      title,
+      recipientsCount: recipients?.length,
+      senderId,
+      removeDuplicates
+    });
+
     // Validate required fields
     if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
       return res.status(400).json({
@@ -182,22 +207,20 @@ router.post('/send', authenticate, async (req, res) => {
     }
 
     // Process recipients for deduplication and validation
-    console.log('[DEBUG] Processing recipients, count:', recipients.length);
-    console.log('[DEBUG] First few recipients:', JSON.stringify(recipients.slice(0, 3)));
-    console.log('[DEBUG] userId:', userId);
-    console.log('[DEBUG] removeDuplicates:', removeDuplicates);
-    
+    console.log('[Campaign] Processing recipients...');
     const processedRecipients = await SmsRecipientService.processRecipientsForCampaign(
       recipients,
       userId,
       removeDuplicates
     );
 
-    console.log('[DEBUG] Processed recipients result:');
-    console.log('  originalCount:', processedRecipients.originalCount);
-    console.log('  duplicateCount:', processedRecipients.duplicateCount);
-    console.log('  finalCount:', processedRecipients.finalCount);
-    console.log('  validRecipients count:', processedRecipients.validRecipients.length);
+    console.log('[Campaign] Recipient processing complete:', {
+      original: processedRecipients.originalCount,
+      duplicates: processedRecipients.duplicateCount,
+      valid: processedRecipients.finalCount,
+      invalid: processedRecipients.invalidRecipients.length,
+      blacklisted: processedRecipients.blacklistedRecipients.length
+    });
     console.log('  invalidRecipients count:', processedRecipients.invalidRecipients.length);
     console.log('  blacklistedRecipients count:', processedRecipients.blacklistedRecipients.length);
     if (processedRecipients.invalidRecipients.length > 0) {
@@ -292,7 +315,7 @@ router.post('/send', authenticate, async (req, res) => {
         // Send SMS
         const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
           userId,
-          msisdn: recipient.phoneNumber,
+          phoneNumber: recipient.phoneNumber,
           senderId,
           message: personalizedMessage,
           recipientsCount: 1

@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
+    <script src="../../utils/logger.js" defer></script>
     <script src="../../utils/messageUtils.js" defer></script>
     <script src="../../utils/recipientUtils.js" defer></script>
 </head>
@@ -252,6 +253,22 @@
                                           <span class="file-name" id="uploadedFileName"></span>
                                           <button type="button" class="remove-file" onclick="removeUploadedFile()">×</button>
                                       </div>
+                                      <!-- Import Summary (shown after successful import) -->
+                                      <div class="import-summary" id="importSummary" style="display: none; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                          <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #1a202c;">Import Summary</h4>
+                                          <div class="summary-stats" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+                                              <div class="stat-item"><span style="color: #666;">Total:</span> <strong id="summaryTotal">0</strong></div>
+                                              <div class="stat-item" style="color: #22c55e;"><span>Imported:</span> <strong id="summaryImported">0</strong></div>
+                                              <div class="stat-item" style="color: #f59e0b;"><span>Invalid:</span> <strong id="summaryInvalid">0</strong></div>
+                                              <div class="stat-item" style="color: #ef4444;"><span>Duplicates:</span> <strong id="summaryDuplicates">0</strong></div>
+                                              <div class="stat-item" style="color: #8b5cf6;"><span>Blacklisted:</span> <strong id="summaryBlacklisted">0</strong></div>
+                                              <div class="stat-item"><span>Skipped:</span> <strong id="summarySkipped">0</strong></div>
+                                          </div>
+                                          <div class="import-errors" id="importErrors" style="display: none;">
+                                              <h5 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Errors (first 10):</h5>
+                                              <ul id="errorList" style="max-height: 200px; overflow-y: auto; font-size: 0.85rem; color: #dc2626; padding-left: 1.25rem; margin: 0;"></ul>
+                                          </div>
+                                      </div>
                                   </div>
                               </div>
                           </div>
@@ -339,8 +356,11 @@
                                             <select id="phoneColumnSelect"></select>
                                         </div>
                                     </div>
+                                    <div class="preview-summary" id="previewSummary">
+                                        <!-- Summary stats will be injected here -->
+                                    </div>
                                     <div class="preview-table-container">
-                                        <h4>Preview (First 5 rows)</h4>
+                                        <h4>Preview (Sample rows)</h4>
                                         <table class="preview-table" id="previewTable"></table>
                                     </div>
                                 </div>
@@ -1229,28 +1249,38 @@
           async function loadSavedContacts() {
               const contactGroupsEl = document.getElementById('contactGroups');
               const selectedPreviewEl = document.getElementById('selectedContactsPreview');
-              
+
               // Show loading state
               if (contactGroupsEl) {
                   contactGroupsEl.innerHTML = '<p class="loading-text">Loading contacts...</p>';
               }
-              
+
               try {
                   const response = await window.apiClient.getContacts();
-                  
+
                   if (response.error) {
-                      console.error('Error loading contacts:', response.error);
+                      if (window.loggers && window.loggers.contacts) {
+                          window.loggers.contacts.error('Failed to load contacts', { error: response.error });
+                      }
                       if (contactGroupsEl) {
                           contactGroupsEl.innerHTML = `<p class="error-text">Error loading contacts: ${response.error}</p>`;
                       }
                       return;
                   }
-                  
+
                   const contacts = response.data?.contacts || response.data || [];
                   loadedContacts = Array.isArray(contacts) ? contacts : [];
-                  
-                  console.log(`[Contacts] Loaded ${loadedContacts.length} contacts`);
-                  
+
+                  if (window.loggers && window.loggers.contacts) {
+                      window.loggers.contacts.log('Contacts loaded', {
+                          count: loadedContacts.length,
+                          sample: loadedContacts.slice(0, 3).map(c => ({
+                              name: c.recipientName,
+                              phone: c.phoneNumber
+                          }))
+                      });
+                  }
+
                   if (loadedContacts.length === 0) {
                       if (contactGroupsEl) {
                           contactGroupsEl.innerHTML = `
@@ -1267,44 +1297,47 @@
                       }
                       return;
                   }
-                  
+
                   // Build contacts list with checkboxes, preserving checked state
                   let html = '<div class="contacts-list">';
                   loadedContacts.forEach(contact => {
                       const contactId = contact._id || contact.id;
-                      const contactName = contact.recipientName || contact.name || 'Unknown';
-                      const contactPhone = contact.normalizedPhoneNumber || contact.phoneNumber || contact.phone || '';
+                      // Use canonical field names
+                      const contactName = contact.recipientName || 'Unknown';
+                      const contactPhone = contact.normalizedPhoneNumber || contact.phoneNumber || '';
                       const isChecked = selectedContacts.some(c => c.id === contactId) ? 'checked' : '';
-                      
+
                       html += `
                           <label class="contact-item">
                               <input type="checkbox"
-                                     value="${contactId}" 
-                                     data-name="${contactName}" 
-                                     data-phone="${contactPhone}"
+                                     value="${contactId}"
+                                     data-name="${escapeHtml(contactName)}"
+                                     data-phone="${escapeHtml(contactPhone)}"
                                      ${isChecked}
                                      onchange="handleContactSelection(this)">
-                              <span class="contact-name">${contactName}</span>
-                              <span class="contact-phone">${contactPhone}</span>
+                              <span class="contact-name">${escapeHtml(contactName)}</span>
+                              <span class="contact-phone">${escapeHtml(contactPhone)}</span>
                           </label>
                       `;
                   });
                   html += '</div>';
-                  
-                   if (contactGroupsEl) {
-                       contactGroupsEl.innerHTML = html;
+
+                    if (contactGroupsEl) {
+                        contactGroupsEl.innerHTML = html;
+                    }
+
+                    // Update preview after contacts are loaded
+                    schedulePreviewUpdate();
+
+                } catch (error) {
+                   if (window.loggers && window.loggers.contacts) {
+                       window.loggers.contacts.error('Error loading contacts', { message: error.message });
                    }
-                   
-                   // Update preview after contacts are loaded
-                   schedulePreviewUpdate();
-                   
-               } catch (error) {
-                  console.error('Error loading contacts:', error);
-                  if (contactGroupsEl) {
-                      contactGroupsEl.innerHTML = '<p class="error-text">Error loading contacts</p>';
-                  }
-              }
-          }
+                   if (contactGroupsEl) {
+                       contactGroupsEl.innerHTML = '<p class="error-text">Error loading contacts</p>';
+                   }
+               }
+           }
           
           // Handle contact selection
           function handleContactSelection(checkbox) {
@@ -1981,10 +2014,26 @@
         // File upload handling
         let uploadedContacts = [];
         let detectedColumns = {};
+        // Persistent import session data (survives modal close/reopen)
+        let currentImportSession = {
+            fileData: null,
+            fileName: null,
+            detectedColumns: null,
+            preview: null
+        };
 
         document.getElementById('contactFile').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return;
+
+            // Hide any previous import summary
+            hideImportSummary();
+
+            if (window.loggers && window.loggers.upload) {
+                window.loggers.upload.log('File selected', { fileName: file.name, size: file.size, type: file.type });
+            } else {
+                console.log('[Upload] File selected:', file.name, 'Size:', file.size);
+            }
 
             const formData = new FormData();
             formData.append('file', file);
@@ -1993,6 +2042,9 @@
                 const response = await window.apiClient.uploadContacts(formData);
 
                 if (response.error) {
+                    if (window.loggers && window.loggers.upload) {
+                        window.loggers.upload.error('Upload failed', { error: response.error });
+                    }
                     // Provide more specific error messages for common issues
                     if (response.error.includes('file') || response.error.includes('File')) {
                         showToast('Please select a valid file to upload', 'error');
@@ -2006,85 +2058,308 @@
                     return;
                 }
 
+                if (window.loggers && window.loggers.upload) {
+                    window.loggers.upload.log('Upload successful', {
+                        fileName: response.data.fileName,
+                        rows: response.data.fileData?.length,
+                        columns: response.data.detectedColumns
+                    });
+                }
+
+                // Store in persistent session (survives modal close/reopen)
+                currentImportSession = {
+                    fileData: response.data.fileData || [],
+                    fileName: response.data.fileName,
+                    detectedColumns: response.data.detectedColumns,
+                    preview: response.data.preview
+                };
+
                 // Show import preview modal
                 showImportPreviewModal(response.data);
 
             } catch (error) {
-                console.error('File upload error:', error);
+                if (window.loggers && window.loggers.upload) {
+                    window.loggers.upload.error('Upload exception', { message: error.message });
+                }
                 showToast('Error uploading file. Please check the file format and try again', 'error');
             }
         });
 
+        // Utility function to escape HTML and prevent XSS
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         function showImportPreviewModal(data) {
+            console.log('[Preview] Modal opening with data:', {
+                fileName: data.fileName,
+                totalRows: data.fileData?.length,
+                previewCount: data.preview?.length,
+                detectedColumns: data.detectedColumns
+            });
+            
             const modal = document.getElementById('importPreviewModal');
             const nameSelect = document.getElementById('nameColumnSelect');
             const phoneSelect = document.getElementById('phoneColumnSelect');
             const table = document.getElementById('previewTable');
+            const summaryDiv = document.getElementById('previewSummary');
+
+            // Use persistent session data if available (survives modal close/reopen)
+            const sessionData = currentImportSession.fileData ? currentImportSession : {
+                fileData: data.fileData || [],
+                fileName: data.fileName,
+                detectedColumns: data.detectedColumns,
+                preview: data.preview
+            };
+
+            // Update session if new data provided
+            if (data.fileData && data.fileName) {
+                currentImportSession = {
+                    fileData: data.fileData,
+                    fileName: data.fileName,
+                    detectedColumns: data.detectedColumns,
+                    preview: data.preview
+                };
+            }
 
             // Populate column selects
             nameSelect.innerHTML = '<option value="">Select name column</option>';
             phoneSelect.innerHTML = '<option value="">Select phone column</option>';
 
-            data.headers.forEach(header => {
-                nameSelect.innerHTML += `<option value="${header}">${header}</option>`;
-                phoneSelect.innerHTML += `<option value="${header}">${header}</option>`;
-            });
+            // Get headers from fileData
+            const headers = sessionData.fileData.length > 0 ? Object.keys(sessionData.fileData[0]) : [];
+            if (headers.length === 0 && data.headers) {
+                data.headers.forEach(header => {
+                    const escapedHeader = escapeHtml(header);
+                    nameSelect.innerHTML += `<option value="${escapedHeader}">${escapedHeader}</option>`;
+                    phoneSelect.innerHTML += `<option value="${escapedHeader}">${escapedHeader}</option>`;
+                });
+            } else {
+                headers.forEach(header => {
+                    const escapedHeader = escapeHtml(header);
+                    nameSelect.innerHTML += `<option value="${escapedHeader}">${escapedHeader}</option>`;
+                    phoneSelect.innerHTML += `<option value="${escapedHeader}">${escapedHeader}</option>`;
+                });
+            }
 
             // Pre-select detected columns
-            if (data.detectedColumns.detectedNameColumn) {
-                nameSelect.value = data.detectedColumns.detectedNameColumn;
-            }
-            if (data.detectedColumns.detectedPhoneColumn) {
-                phoneSelect.value = data.detectedColumns.detectedPhoneColumn;
-            }
+            const detectedName = sessionData.detectedColumns?.detectedNameColumn || data.detectedColumns?.detectedNameColumn;
+            const detectedPhone = sessionData.detectedColumns?.detectedPhoneColumn || data.detectedColumns?.detectedPhoneColumn;
+            
+            if (detectedName) nameSelect.value = detectedName;
+            if (detectedPhone) phoneSelect.value = detectedPhone;
 
-            // Populate preview table
-            let tableHtml = '<thead><tr>';
-            data.headers.forEach(header => {
-                tableHtml += `<th>${header}</th>`;
-            });
-            tableHtml += '<th>Validation</th></tr></thead><tbody>';
+            // Initial render
+            const initialPreview = sessionData.preview || generatePreviewClientSide(sessionData.fileData, nameSelect.value, phoneSelect.value);
+            renderPreviewTable(initialPreview);
+            updatePreviewSummary({ fileData: sessionData.fileData, preview: initialPreview }, summaryDiv);
 
-            data.preview.forEach(row => {
-                tableHtml += '<tr>';
-                data.headers.forEach(header => {
-                    tableHtml += `<td>${row[header] || ''}</td>`;
-                });
-                tableHtml += `<td class="validation-status ${row.validationStatus}">${row.validationStatus}</td>`;
-                tableHtml += '</tr>';
-            });
-            tableHtml += '</tbody>';
-
-            table.innerHTML = tableHtml;
-
-            // Store data for confirmation
-            modal.dataset.fileData = JSON.stringify(data.fileData || []);
-            modal.dataset.fileName = data.fileName;
+            // Add change listeners for dynamic column mapping updates
+            nameSelect.onchange = regenerateAndRenderPreviewFromSession;
+            phoneSelect.onchange = regenerateAndRenderPreviewFromSession;
 
             modal.style.display = 'block';
         }
 
+        function regenerateAndRenderPreview(modal, fileData, nameColumn, phoneColumn) {
+            if (!nameColumn || !phoneColumn) {
+                return; // Don't regenerate until both columns are selected
+            }
+
+            console.log('[Preview] Column mapping changed:', { nameColumn, phoneColumn });
+
+            // Generate preview client-side for instant feedback
+            const preview = generatePreviewClientSide(fileData, nameColumn, phoneColumn);
+            renderPreviewTable(preview);
+            updatePreviewSummary({ fileData, preview }, document.getElementById('previewSummary'));
+        }
+
+        function regenerateAndRenderPreviewFromSession() {
+            const nameColumn = document.getElementById('nameColumnSelect').value;
+            const phoneColumn = document.getElementById('phoneColumnSelect').value;
+            if (!nameColumn || !phoneColumn || !currentImportSession.fileData) {
+                return;
+            }
+            regenerateAndRenderPreview(null, currentImportSession.fileData, nameColumn, phoneColumn);
+        }
+
+        // Client-side preview generator (mirrors backend ContactImportService.generatePreview)
+        function generatePreviewClientSide(rows, nameColumn, phoneColumn) {
+          const preview = [];
+          const maxPreviewRows = Math.min(rows.length, 500);
+
+          for (let i = 0; i < maxPreviewRows; i++) {
+            const row = rows[i];
+            const recipientName = row[nameColumn]?.toString().trim() || '';
+            const rawPhone = row[phoneColumn]?.toString().trim() || '';
+
+            // Use the shared validatePhoneNumber function from recipientUtils
+            const phoneValidation = typeof validatePhoneNumber === 'function' 
+              ? validatePhoneNumber(rawPhone) 
+              : { isValid: false, normalizedNumber: null, error: 'Validator not available' };
+
+            preview.push({
+              recipientName: recipientName || '-',
+              phoneNumber: rawPhone || '-',
+              normalizedPhoneNumber: phoneValidation.isValid ? phoneValidation.normalizedNumber : '-',
+              validationStatus: phoneValidation.isValid ? 'valid' : 'invalid',
+              validationMessage: phoneValidation.isValid ? 'Valid' : (phoneValidation.error || 'Invalid')
+            });
+          }
+
+          return preview;
+        }
+
+        function renderPreviewTable(previewData) {
+            const table = document.getElementById('previewTable');
+            if (!table) return;
+
+            // Virtual scrolling: limit to 500 rows for performance
+            const maxPreviewRows = 500;
+            const displayRows = previewData.slice(0, maxPreviewRows);
+            const totalRows = previewData.length;
+
+            let tableHtml = '<thead><tr>' +
+                '<th>Recipient Name</th>' +
+                '<th>Original Phone Number</th>' +
+                '<th>Normalized Phone Number</th>' +
+                '<th>Status</th>' +
+                '<th>Message</th>' +
+                '</tr></thead><tbody>';
+
+            displayRows.forEach(row => {
+                const statusClass = row.validationStatus === 'valid' ? 'status-valid' : 'status-invalid';
+                const statusIcon = row.validationStatus === 'valid' 
+                    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+                    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+                
+                tableHtml += '<tr>' +
+                    `<td>${escapeHtml(row.recipientName) || '-'}</td>` +
+                    `<td>${escapeHtml(row.phoneNumber) || '-'}</td>` +
+                    `<td>${escapeHtml(row.normalizedPhoneNumber) || '-'}</td>` +
+                    `<td class="validation-status ${statusClass}">${statusIcon} ${escapeHtml(row.validationStatus)}</td>` +
+                    `<td>${escapeHtml(row.validationMessage) || '-'}</td>` +
+                    '</tr>';
+            });
+
+            if (totalRows > 500) {
+                tableHtml += `<tr><td colspan="5" class="virtual-scroll-notice">Showing first 500 of ${totalRows} rows (virtual scrolling enabled for performance)</td></tr>`;
+            }
+
+            tableHtml += '</tbody>';
+            table.innerHTML = tableHtml;
+        }
+
+        function updatePreviewSummary(data, container) {
+            const totalContacts = data.fileData ? data.fileData.length : data.totalRows || 0;
+            const validPreview = data.preview.filter(r => r.validationStatus === 'valid').length;
+            const invalidPreview = data.preview.filter(r => r.validationStatus === 'invalid').length;
+
+            container.innerHTML = `
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Rows</span>
+                        <span class="stat-value">${totalContacts}</span>
+                    </div>
+                    <div class="stat-item stat-valid">
+                        <span class="stat-label">Valid (preview)</span>
+                        <span class="stat-value">${validPreview}</span>
+                    </div>
+                    <div class="stat-item stat-invalid">
+                        <span class="stat-label">Invalid (preview)</span>
+                        <span class="stat-value">${invalidPreview}</span>
+                    </div>
+                    <div class="stat-item stat-duplicate">
+                        <span class="stat-label">Duplicates (checked on import)</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                </div>
+            `;
+        }
+
         function closeImportPreviewModal() {
-            document.getElementById('importPreviewModal').style.display = 'none';
+            const modal = document.getElementById('importPreviewModal');
+            modal.style.display = 'none';
+            // DO NOT clear currentImportSession - it persists for resuming import
+            console.log('[Preview] Modal closed, session data preserved for', currentImportSession.fileData?.length, 'rows');
+        }
+
+        // Show import summary with counts and errors
+        function showImportSummary(results) {
+            console.log('[Import] Showing summary:', results);
+            
+            // Populate counts
+            document.getElementById('summaryTotal').textContent = results.totalRows || 0;
+            document.getElementById('summaryImported').textContent = results.importedRows || 0;
+            document.getElementById('summaryInvalid').textContent = results.invalidRows || 0;
+            document.getElementById('summaryDuplicates').textContent = results.duplicateRows || 0;
+            document.getElementById('summaryBlacklisted').textContent = results.blacklistedRows || 0;
+            document.getElementById('summarySkipped').textContent = results.skippedRows || 0;
+            
+            // Populate errors (first 10)
+            const errors = results.errors || [];
+            const errorListEl = document.getElementById('errorList');
+            const errorsSection = document.getElementById('importErrors');
+            
+            if (errors.length > 0) {
+                errorListEl.innerHTML = errors.slice(0, 10).map(err =>
+                    `<li>Row ${err.row}: ${err.error}${err.data ? ' - ' + JSON.stringify(err.data) : ''}</li>`
+                ).join('');
+                errorsSection.style.display = 'block';
+            } else {
+                errorsSection.style.display = 'none';
+            }
+            
+            // Show summary
+            document.getElementById('importSummary').style.display = 'block';
+        }
+
+        function hideImportSummary() {
+            document.getElementById('importSummary').style.display = 'none';
         }
 
         async function confirmImport() {
             const modal = document.getElementById('importPreviewModal');
             const nameColumn = document.getElementById('nameColumnSelect').value;
             const phoneColumn = document.getElementById('phoneColumnSelect').value;
-            const fileData = JSON.parse(modal.dataset.fileData);
-            const fileName = modal.dataset.fileName;
+            // Use persistent session data (survives modal close)
+            const fileData = currentImportSession.fileData;
+            const fileName = currentImportSession.fileName;
+
+            if (!fileData || !Array.isArray(fileData) || fileData.length === 0) {
+                showToast('No file data available. Please upload a file first.', 'error');
+                if (window.loggers && window.loggers.import) {
+                    window.loggers.import.warn('Import attempted without file data');
+                }
+                return;
+            }
 
             if (!nameColumn || !phoneColumn) {
                 showToast('Please select both name and phone columns', 'error');
                 return;
             }
 
+            if (window.loggers && window.loggers.import) {
+                window.loggers.import.log('Import starting', {
+                    fileName,
+                    rows: fileData.length,
+                    columns: { nameColumn, phoneColumn }
+                });
+            }
+
             try {
                 const response = await window.apiClient.confirmContactImport(fileData, { nameColumn, phoneColumn }, fileName);
 
                 if (response.error) {
-                    // Provide more specific error messages for common issues
+                    if (window.loggers && window.loggers.import) {
+                        window.loggers.import.error('Import failed', { error: response.error });
+                    }
                     if (response.error.includes('column') || response.error.includes('Column')) {
                         showToast('Please select both name and phone columns', 'error');
                     } else if (response.error.includes('file') || response.error.includes('File')) {
@@ -2095,13 +2370,25 @@
                         showToast(response.error, 'error');
                     }
                 } else {
-                    const validCount = response.results?.validRows || 0;
-                    const invalidCount = response.results?.invalidRows || 0;
+                    const results = response.results;
                     
-                    if (invalidCount > 0) {
-                        showToast(`Imported ${validCount} contacts successfully. ${invalidCount} contacts had errors and were skipped`, 'warning');
+                    if (window.loggers && window.loggers.import) {
+                        window.loggers.import.log('Import completed', results);
+                    }
+
+                    const validCount = results.validRows || 0;
+                    const invalidCount = results.invalidRows || 0;
+                    const duplicateCount = results.duplicateRows || 0;
+                    const blacklistedCount = results.blacklistedRows || 0;
+                    
+                    if (invalidCount > 0 || duplicateCount > 0 || blacklistedCount > 0) {
+                        const parts = [];
+                        if (invalidCount > 0) parts.push(`${invalidCount} invalid`);
+                        if (duplicateCount > 0) parts.push(`${duplicateCount} duplicates`);
+                        if (blacklistedCount > 0) parts.push(`${blacklistedCount} blacklisted`);
+                        showToast(`Imported ${validCount} contacts. Skipped: ${parts.join(', ')}`, 'warning');
                     } else {
-                        showToast(`Imported ${validCount} contacts successfully`, 'success');
+                        showToast(`Successfully imported all ${validCount} contacts!`, 'success');
                     }
                     
                     closeImportPreviewModal();
@@ -2109,20 +2396,30 @@
                     // Update UI
                     document.getElementById('filePreview').style.display = 'flex';
                     document.getElementById('uploadedFileName').textContent = fileName;
-                    uploadedContacts = response.results?.importedContacts || [];
+                    uploadedContacts = results.importedContacts || [];
 
-                     // Update cost estimation when recipients change
-                     updateCostEstimation();
-                     
-                     // Update live preview
-                     schedulePreviewUpdate();
+                    if (window.loggers && window.loggers.contacts) {
+                        window.loggers.contacts.log('Imported contacts updated in UI', {
+                            count: uploadedContacts.length,
+                            sample: uploadedContacts.slice(0, 3)
+                        });
+                    }
 
-                     // Switch to upload tab to show imported contacts
+                    showImportSummary(results);
+                    updateCostEstimation();
+                    schedulePreviewUpdate();
+
+                    // Switch to upload tab
                     document.querySelector('.tab-btn[data-tab="upload"]').click();
+
+                    // Clear session
+                    currentImportSession = { fileData: [], fileName: null, detectedColumns: null, preview: null };
                 }
             } catch (error) {
-                console.error('Import confirmation error:', error);
-                showToast('Error confirming import. Please check your file format and try again', 'error');
+                if (window.loggers && window.loggers.import) {
+                    window.loggers.import.error('Import exception', { message: error.message });
+                }
+                showToast('Error confirming import. Please try again', 'error');
             }
         }
 
@@ -2130,6 +2427,9 @@
             document.getElementById('contactFile').value = '';
             document.getElementById('filePreview').style.display = 'none';
             uploadedContacts = [];
+            // Clear persistent import session
+            currentImportSession = { fileData: [], fileName: null, detectedColumns: null, preview: null };
+            hideImportSummary();
 
             // Update cost estimation when recipients change
             updateCostEstimation();
@@ -2226,7 +2526,7 @@
             }, 100);
         }
         
-        // Get first recipient for preview
+        // Get first recipient for preview (canonical schema: recipientName, phoneNumber)
         function getFirstRecipient() {
             // Check manual recipients first
             const manualItems = document.querySelectorAll('.manual-recipient-item:not(.template)');
@@ -2239,25 +2539,25 @@
                     return { recipientName: name || 'Recipient', phoneNumber: phone };
                 }
             }
-            
-            // Check uploaded contacts
+
+            // Check uploaded contacts (from import - canonical schema)
             if (uploadedContacts.length > 0) {
                 const contact = uploadedContacts[0];
                 return {
-                    recipientName: contact.recipientName || contact.name || 'Contact',
-                    phoneNumber: contact.phoneNumber || contact.phone || ''
+                    recipientName: contact.recipientName || 'Contact',
+                    phoneNumber: contact.phoneNumber || contact.normalizedPhoneNumber || ''
                 };
             }
-            
-            // Check selected contacts
+
+            // Check selected contacts (already canonical)
             if (selectedContacts.length > 0) {
                 const contact = selectedContacts[0];
                 return {
-                    recipientName: contact.recipientName || contact.name || 'Contact',
-                    phoneNumber: contact.phoneNumber || contact.phone || ''
+                    recipientName: contact.recipientName || 'Contact',
+                    phoneNumber: contact.phoneNumber || contact.normalizedPhoneNumber || ''
                 };
             }
-            
+
             return null;
         }
         
@@ -2547,12 +2847,18 @@
         function getAllRecipients() {
             const recipients = [];
 
-            // Check which recipient source tab is active (specific selector to avoid conflicts)
+            // Check which recipient source tab is active
             const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
             if (!activeTabBtn) return recipients;
             
             const activeTab = activeTabBtn.dataset.tab;
-            console.log('[Recipients] getAllRecipients - Mode:', currentMessagingMode, 'Tab:', activeTab);
+
+            if (window.loggers && window.loggers.recipients) {
+                window.loggers.recipients.debug('getAllRecipients called', {
+                    mode: currentMessagingMode,
+                    source: activeTab
+                });
+            }
 
             if (activeTab === 'manual') {
                 const isDefaultMode = currentMessagingMode === 'default';
@@ -2576,9 +2882,6 @@
                             return;
                         }
                         
-                        console.log('[Recipients] Manual entry raw values:', { name, rawPhone });
-                        
-                        // Push all non-empty rows; validation will be done later
                         recipients.push({
                             recipientName: name,
                             phoneNumber: rawPhone
@@ -2586,27 +2889,32 @@
                     });
                 }
             } else if (activeTab === 'upload') {
-                // Use uploaded contacts - filter for valid phone numbers
+                // Use uploaded contacts - canonical schema: recipientName, phoneNumber
                 uploadedContacts.forEach(contact => {
-                    const rawPhone = contact.phoneNumber || contact.phone || '';
-                    const name = contact.recipientName || contact.name || '';
+                    const rawPhone = contact.phoneNumber || '';
+                    const name = contact.recipientName || '';
                     if (name && rawPhone) {
                         const validation = validatePhoneNumber(rawPhone);
                         if (validation.isValid) {
-                            recipients.push({ recipientName: name, phoneNumber: validation.normalizedNumber });
-                            console.log('[Recipients] Uploaded contact added:', { recipientName: name, phoneNumber: validation.normalizedNumber });
-                        } else {
-                            console.warn('[Recipients] Uploaded contact invalid:', { name, rawPhone, error: validation.error });
+                            recipients.push({
+                                recipientName: name,
+                                phoneNumber: validation.normalizedNumber || rawPhone
+                            });
                         }
                     }
                 });
             } else if (activeTab === 'contacts') {
                 // Return selected contacts from saved contacts
-                console.log('[Recipients] Selected contacts:', selectedContacts);
                 return selectedContacts;
             }
 
-            console.log('[Recipients] Final normalized recipients:', JSON.stringify(recipients));
+            if (window.loggers && window.loggers.recipients) {
+                window.loggers.recipients.debug('Collected recipients', {
+                    count: recipients.length,
+                    sample: recipients.slice(0, 3)
+                });
+            }
+
             return recipients;
         }
 
@@ -2619,33 +2927,42 @@
                 const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
                 if (activeTab === 'manual') {
                     const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-                    
+
                     // Block if exceeds maximum contacts
                     if (validationResult.originalCount > MAX_RECIPIENTS) {
                         showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
                         return;
                     }
-                    
+
                     // Block if no valid phone numbers
                     if (validationResult.count === 0) {
                         showToast('Please enter at least one valid phone number', 'error');
                         return;
                     }
-                    
+
                     // If there are invalid numbers, show a warning (but still allow send for valid ones)
                     if (validationResult.error) {
                         showToast(validationResult.error, 'warning');
                     }
                 }
             }
-            
-            const recipients = getAllRecipients();
+
+            let recipients = getAllRecipients();
+
+            // Normalize all recipient phone numbers using the shared utility
+            recipients = recipients.map(r => {
+                const validation = validatePhoneNumber(r.phoneNumber);
+                return {
+                    recipientName: r.recipientName || '',
+                    phoneNumber: validation.isValid ? validation.normalizedNumber : r.phoneNumber
+                };
+            });
 
             if (recipients.length === 0) {
                 showToast('Please add at least one recipient', 'error');
                 return;
             }
-            
+
             // Enforce maximum recipients limit for all sources
             if (recipients.length > MAX_RECIPIENTS) {
                 showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
@@ -2657,49 +2974,58 @@
 
         // Schedule button handler
          document.getElementById('scheduleBtn').addEventListener('click', async function() {
-             // Validate default mode input before getting recipients
-             if (currentMessagingMode === 'default') {
-                 // Only validate comma-separated input if manual entry tab is active
-                 const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
-                 const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
-                 if (activeTab === 'manual') {
-                     const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-                     
-                     // Block if exceeds maximum contacts
-                     if (validationResult.originalCount > MAX_RECIPIENTS) {
-                         showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
-                         return;
-                     }
-                     
-                     // Block if no valid phone numbers
-                     if (validationResult.count === 0) {
-                         showToast('Please enter at least one valid phone number', 'error');
-                         return;
-                     }
-                     
-                     // If there are invalid numbers, show a warning (but still allow send for valid ones)
-                     if (validationResult.error) {
-                         showToast(validationResult.error, 'warning');
-                     }
-                 }
-             }
-             
-             const recipients = getAllRecipients();
+              // Validate default mode input before getting recipients
+              if (currentMessagingMode === 'default') {
+                  // Only validate comma-separated input if manual entry tab is active
+                  const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
+                  const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
+                  if (activeTab === 'manual') {
+                      const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
 
-             if (recipients.length === 0) {
-                 showToast('Please add at least one recipient', 'error');
-                 return;
-             }
-             
-             // Enforce maximum recipients limit for all sources
-             if (recipients.length > MAX_RECIPIENTS) {
-                 showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
-                 return;
-             }
- 
-             // Validate schedule time
-             const date = document.getElementById('scheduledDate').value;
-             const time = document.getElementById('scheduledTime').value;
+                      // Block if exceeds maximum contacts
+                      if (validationResult.originalCount > MAX_RECIPIENTS) {
+                          showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
+                          return;
+                      }
+
+                      // Block if no valid phone numbers
+                      if (validationResult.count === 0) {
+                          showToast('Please enter at least one valid phone number', 'error');
+                          return;
+                      }
+
+                      // If there are invalid numbers, show a warning (but still allow send for valid ones)
+                      if (validationResult.error) {
+                          showToast(validationResult.error, 'warning');
+                      }
+                  }
+              }
+
+              let recipients = getAllRecipients();
+
+              // Normalize all recipient phone numbers using the shared utility
+              recipients = recipients.map(r => {
+                  const validation = validatePhoneNumber(r.phoneNumber);
+                  return {
+                      recipientName: r.recipientName || '',
+                      phoneNumber: validation.isValid ? validation.normalizedNumber : r.phoneNumber
+                  };
+              });
+
+              if (recipients.length === 0) {
+                  showToast('Please add at least one recipient', 'error');
+                  return;
+              }
+
+              // Enforce maximum recipients limit for all sources
+              if (recipients.length > MAX_RECIPIENTS) {
+                  showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
+                  return;
+              }
+
+              // Validate schedule time
+              const date = document.getElementById('scheduledDate').value;
+              const time = document.getElementById('scheduledTime').value;
 
              if (!date || !time) {
                  showToast('Please select both date and time for scheduling', 'error');

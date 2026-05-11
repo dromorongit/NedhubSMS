@@ -2,10 +2,13 @@ const SmsCampaign = require('../models/SmsCampaign');
 const SmsMessage = require('../models/SmsMessage');
 const SmsRecipient = require('../models/SmsRecipient');
 const Message = require('../models/Message');
+const logger = require('../utils/logger');
 
 class SmsAnalyticsService {
   // Get overall SMS analytics summary
   async getSmsSummary(userId, startDate = null, endDate = null) {
+    logger.info('[Analytics] Getting SMS summary', { userId, startDate, endDate });
+
     const campaignMatchConditions = { userId };
     const recipientMatchConditions = { userId };
     const messageMatchConditions = { userId };
@@ -149,11 +152,13 @@ class SmsAnalyticsService {
 
   // Get analytics by date range (for filtering)
   async getAnalyticsByDateRange(userId, startDate, endDate) {
+    logger.info('[Analytics] Getting analytics by date range', { userId, startDate, endDate });
     return await this.getSmsSummary(userId, startDate, endDate);
   }
 
   // Get recent and top-performing campaigns
   async getCampaignsAnalytics(userId, startDate = null, endDate = null, limit = 10) {
+    logger.info('[Analytics] Getting campaigns analytics', { userId, startDate, endDate, limit });
     const matchConditions = { userId };
 
     if (startDate || endDate) {

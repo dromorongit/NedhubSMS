@@ -2,6 +2,7 @@ const SmsCampaign = require('../models/SmsCampaign');
 const SmsRecipient = require('../models/SmsRecipient');
 const SmsJobQueueService = require('./SmsJobQueueService');
 const RateLimiterService = require('./RateLimiterService');
+const logger = require('../utils/logger');
 
 class SmsSchedulerService {
   constructor() {

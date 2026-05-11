@@ -7,9 +7,14 @@ const smsMessageSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  msisdn: {
+  phoneNumber: {
     type: String,
     required: true
+  },
+  normalizedPhoneNumber: {
+    type: String,
+    required: true,
+    index: true
   },
   senderId: {
     type: String,
@@ -88,6 +93,23 @@ const smsMessageSchema = new mongoose.Schema({
   deliveredAt: {
     type: Date
   }
+});
+
+// Auto-normalize phone number before save
+smsMessageSchema.pre('save', function(next) {
+  if (this.phoneNumber) {
+    let normalized = this.phoneNumber.replace(/\D/g, '');
+    if (normalized.startsWith('233') && normalized.length === 12) {
+      // already good
+    } else if (normalized.startsWith('0') && normalized.length === 10) {
+      normalized = '233' + normalized.substring(1);
+    } else if (normalized.length === 9) {
+      normalized = '233' + normalized;
+    }
+    this.normalizedPhoneNumber = normalized;
+  }
+  this.updatedAt = new Date();
+  next();
 });
 
 // Update the updatedAt field on save

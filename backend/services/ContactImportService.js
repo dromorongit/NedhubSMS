@@ -1,6 +1,8 @@
 const xlsx = require('xlsx');
 const Contact = require('../models/Contact');
 const ContactImport = require('../models/ContactImport');
+const BlacklistedNumber = require('../models/BlacklistedNumber');
+const logger = require('../utils/logger');
 
 class ContactImportService {
   constructor() {
@@ -12,7 +14,9 @@ class ContactImportService {
       /^last.?name$/i,
       /^contact.?name$/i,
       /^customer.?name$/i,
-      /^person.?name$/i
+      /^person.?name$/i,
+      /^contact$/i,
+      /^whatsapp.?name$/i
     ];
 
     this.phoneColumnPatterns = [
@@ -20,12 +24,15 @@ class ContactImportService {
       /^phone.?number$/i,
       /^mobile$/i,
       /^mobile.?number$/i,
-      /^contact$/i,
       /^contact.?number$/i,
       /^number$/i,
       /^telephone$/i,
       /^tel$/i,
-      /^msisdn$/i
+      /^msisdn$/i,
+      /^cell$/i,
+      /^cell.?number$/i,
+      /^whatsapp$/i,
+      /^whatsapp.?number$/i
     ];
   }
 
@@ -36,17 +43,33 @@ class ContactImportService {
    * @returns {Array} - Array of parsed rows
    */
   async parseFile(fileBuffer, fileName) {
+    console.log('[Upload] Starting file parse:', { fileName, bufferSize: fileBuffer.length });
     const ext = this.getFileExtension(fileName);
 
-    switch (ext) {
-      case 'csv':
-      case 'txt':
-        return this.parseCSV(fileBuffer);
-      case 'xlsx':
-      case 'xls':
-        return this.parseExcel(fileBuffer);
-      default:
-        throw new Error(`Unsupported file type: ${ext}`);
+    try {
+      let rows;
+      switch (ext) {
+        case 'csv':
+        case 'txt':
+          rows = this.parseCSV(fileBuffer);
+          break;
+        case 'xlsx':
+        case 'xls':
+          rows = this.parseExcel(fileBuffer);
+          break;
+        default:
+          throw new Error(`Unsupported file type: ${ext}`);
+      }
+
+      console.log('[Upload] Successfully parsed file:', {
+        fileName,
+        rowsCount: rows.length,
+        sample: rows.slice(0, 3)
+      });
+      return rows;
+    } catch (error) {
+      console.error('[Upload] Parse error:', { fileName, error: error.message });
+      throw error;
     }
   }
 
@@ -66,6 +89,7 @@ class ContactImportService {
     // Parse header
     const headerLine = lines[0];
     const headers = this.parseCSVLine(headerLine);
+    console.log('[Upload] CSV headers detected:', headers);
 
     // Parse data rows
     const rows = [];
@@ -83,6 +107,7 @@ class ContactImportService {
       }
     }
 
+    console.log('[Upload] Parsed', rows.length, 'rows from CSV');
     return rows;
   }
 
@@ -135,7 +160,7 @@ class ContactImportService {
 
     // Convert to JSON
     const rows = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
-
+    console.log('[Upload] Parsed', rows.length, 'rows from Excel');
     return rows;
   }
 
@@ -145,53 +170,137 @@ class ContactImportService {
    * @returns {Object} - Object with detectedNameColumn and detectedPhoneColumn
    */
   detectColumns(headers) {
-    let nameColumn = null;
-    let phoneColumn = null;
+    console.log('[Preview] Starting column detection. Headers:', headers);
 
-    // First pass: exact pattern matching
-    for (const header of headers) {
-      const headerStr = String(header).toLowerCase().trim();
+    // Score ALL columns (don't stop at first match)
+    const headerScores = headers.map(header => {
+      const lower = String(header).toLowerCase().trim();
+      let nameScore = 0;
+      let phoneScore = 0;
 
-      if (!nameColumn && this.nameColumnPatterns.some(pattern => pattern.test(headerStr))) {
-        nameColumn = header;
-      }
-
-      if (!phoneColumn && this.phoneColumnPatterns.some(pattern => pattern.test(headerStr))) {
-        phoneColumn = header;
-      }
-
-      if (nameColumn && phoneColumn) break;
-    }
-
-    // Second pass: fuzzy matching if exact match failed
-    if (!nameColumn || !phoneColumn) {
-      for (const header of headers) {
-        const headerStr = String(header).toLowerCase().trim();
-
-        if (!nameColumn && (headerStr.includes('name') || headerStr.includes('recipient'))) {
-          nameColumn = nameColumn || header;
-        }
-
-        if (!phoneColumn && (headerStr.includes('phone') || headerStr.includes('mobile') ||
-                            headerStr.includes('contact') || headerStr.includes('number'))) {
-          phoneColumn = phoneColumn || header;
+      // Score name columns - check all patterns
+      for (const pattern of this.nameColumnPatterns) {
+        if (pattern.test(lower)) {
+          nameScore = 1;
+          break;
         }
       }
-    }
+      // Exact matches get higher score
+      if (nameScore > 0) {
+        if (lower === 'name' || lower === 'full name' || lower === 'recipient name') {
+          nameScore = 2;
+        }
+      }
 
-    // Third pass: positional fallback
+      // Score phone columns - check all patterns
+      for (const pattern of this.phoneColumnPatterns) {
+        if (pattern.test(lower)) {
+          phoneScore = 1;
+          break;
+        }
+      }
+      // Prioritize common phone column names
+      if (phoneScore > 0) {
+        if (lower === 'phone' || lower === 'phone number' || lower === 'mobile') {
+          phoneScore = 2;
+        } else if (lower === 'msisdn') {
+          phoneScore = 3; // MSISDN is unambiguous and preferred
+        }
+      }
+
+      return {
+        original: header,
+        lower,
+        nameScore,
+        phoneScore
+      };
+    });
+
+    // Select best name column (highest score, first in file if tied)
+    const bestName = headerScores
+      .filter(item => item.nameScore > 0)
+      .sort((a, b) => b.nameScore - a.nameScore || headers.indexOf(a.original) - headers.indexOf(b.original))[0];
+
+    // Select best phone column (highest score, first in file if tied)
+    const bestPhone = headerScores
+      .filter(item => item.phoneScore > 0)
+      .sort((a, b) => b.phoneScore - a.phoneScore || headers.indexOf(a.original) - headers.indexOf(b.original))[0];
+
+    let nameColumn = bestName ? bestName.original : null;
+    let phoneColumn = bestPhone ? bestPhone.original : null;
+
+    // Fallback: positional detection
     if (!nameColumn && headers.length >= 1) {
-      nameColumn = headers[0]; // Assume first column is name
+      nameColumn = headers[0];
+      console.log('[Preview] Name column fallback to first column:', nameColumn);
     }
 
     if (!phoneColumn && headers.length >= 2) {
-      phoneColumn = headers[1]; // Assume second column is phone
+      phoneColumn = headers[1];
+      console.log('[Preview] Phone column fallback to second column:', phoneColumn);
     }
 
-    return {
+    const result = {
       detectedNameColumn: nameColumn,
       detectedPhoneColumn: phoneColumn
     };
+
+    console.log('[Preview] Column detection complete:', result);
+    return result;
+  }
+
+  /**
+   * Generate preview data for import modal
+   * @param {Array} rows - Array of parsed row objects
+   * @param {Object} columnMapping - { nameColumn, phoneColumn }
+   * @returns {Array} - Array of preview objects with canonical schema
+   */
+  generatePreview(rows, columnMapping) {
+    const { nameColumn, phoneColumn } = columnMapping;
+    console.log('[Preview] Generating preview for', rows.length, 'rows using columns:', { nameColumn, phoneColumn });
+
+    const preview = [];
+    const maxPreviewRows = Math.min(rows.length, 500); // Limit preview to 500 rows for performance
+
+    for (let i = 0; i < maxPreviewRows; i++) {
+      const row = rows[i];
+      const rowNumber = i + 1;
+
+      const recipientName = row[nameColumn]?.toString().trim() || '';
+      const rawPhone = row[phoneColumn]?.toString().trim() || '';
+
+      // Validate and normalize
+      const phoneValidation = this.validateAndNormalizePhone(rawPhone);
+
+      const previewRow = {
+        recipientName: recipientName || '-',
+        phoneNumber: rawPhone || '-',
+        normalizedPhoneNumber: phoneValidation.isValid ? phoneValidation.normalizedNumber : '-',
+        validationStatus: phoneValidation.isValid ? 'valid' : 'invalid',
+        validationMessage: phoneValidation.isValid ? 'Valid' : (phoneValidation.error || 'Invalid')
+      };
+
+      preview.push(previewRow);
+
+      if (i < 3) {
+        console.log(`[Preview] Row ${rowNumber} sample:`, {
+          name: previewRow.recipientName,
+          phone: previewRow.phoneNumber,
+          normalized: previewRow.normalizedPhoneNumber,
+          status: previewRow.validationStatus
+        });
+      }
+    }
+
+    const validCount = preview.filter(r => r.validationStatus === 'valid').length;
+    const invalidCount = preview.filter(r => r.validationStatus === 'invalid').length;
+
+    console.log('[Preview] Generated', preview.length, 'rows:', {
+      valid: validCount,
+      invalid: invalidCount
+    });
+
+    return preview;
   }
 
   /**
@@ -246,18 +355,22 @@ class ContactImportService {
    * @param {Array} rows - Array of row objects
    * @param {Object} columnMapping - Column mapping object
    * @param {string} fileName - Original file name
-   * @returns {Object} - Import results
+   * @returns {Object} - Import results with comprehensive statistics
    */
   async processImport(userId, rows, columnMapping, fileName) {
     const { nameColumn, phoneColumn } = columnMapping;
-    const results = {
-      totalRows: rows.length,
-      validRows: 0,
-      invalidRows: 0,
-      importedContacts: [],
-      errors: []
-    };
+    
+    console.log('[Import] Starting import process:', { 
+      userId, 
+      fileName, 
+      totalRows: rows.length, 
+      nameColumn, 
+      phoneColumn,
+      timestamp: new Date().toISOString()
+    });
+    console.log('[Import] Sample raw rows (first 3):', rows.slice(0, 3));
 
+    // Create import record for tracking
     const importRecord = await ContactImport.createImport(
       userId,
       fileName,
@@ -265,6 +378,40 @@ class ContactImportService {
       { name: nameColumn, phone: phoneColumn }
     );
 
+    console.log('[Import] Created import record:', importRecord._id);
+
+    // Load blacklisted numbers for this user (including global blacklist)
+    console.log('[Validation] Loading blacklisted numbers for user:', userId);
+    const blacklistedNumbers = await BlacklistedNumber.find({
+      $or: [{ userId }, { userId: null }]
+    }).select('normalizedPhoneNumber');
+    const blacklistedSet = new Set(blacklistedNumbers.map(b => b.normalizedPhoneNumber));
+    console.log('[Validation] Loaded', blacklistedSet.size, 'blacklisted numbers');
+
+    // Pre-load existing contacts for this user to detect duplicates (single query)
+    console.log('[Validation] Loading existing contacts for duplicate detection...');
+    const existingContacts = await Contact.find({ userId }).select('phoneNumber normalizedPhoneNumber');
+    const existingPhones = new Set(existingContacts.map(c => c.normalizedPhoneNumber));
+    console.log('[Validation] Loaded', existingPhones.size, 'existing contacts for comparison');
+
+    // Track duplicates within the uploaded file
+    const seenInFile = new Map();
+    const duplicateWithinFile = new Set();
+
+    const results = {
+      totalRows: rows.length,
+      validRows: 0,
+      invalidRows: 0,
+      duplicateRows: 0,
+      blacklistedRows: 0,
+      importedRows: 0,
+      skippedRows: 0, // Will be calculated as total - imported
+      importedContacts: [],
+      errors: []
+    };
+
+    console.log('[Import] Beginning row-by-row processing...');
+    
     // Process each row
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -272,56 +419,112 @@ class ContactImportService {
 
       try {
         const recipientName = row[nameColumn]?.toString().trim();
-        const phoneNumber = row[phoneColumn]?.toString().trim();
+        let phoneNumber = row[phoneColumn]?.toString().trim();
+
+        if (i < 5) {
+          console.log(`[Import] Row ${rowNumber}: Processing`, { recipientName, phoneNumber });
+        }
 
         // Validate name
         if (!recipientName) {
-          results.errors.push({
-            row: rowNumber,
-            error: 'Name is required',
-            data: { recipientName, phoneNumber }
-          });
+          const error = { 
+            row: rowNumber, 
+            error: 'Name is required', 
+            data: { recipientName, phoneNumber } 
+          };
+          results.errors.push(error);
           results.invalidRows++;
+          console.log(`[Validation] Row ${rowNumber} FAILED: Name required`);
           continue;
         }
 
         // Validate and normalize phone
         const phoneValidation = this.validateAndNormalizePhone(phoneNumber);
         if (!phoneValidation.isValid) {
-          results.errors.push({
-            row: rowNumber,
-            error: phoneValidation.error,
-            data: { recipientName, phoneNumber }
-          });
+          const error = { 
+            row: rowNumber, 
+            error: phoneValidation.error, 
+            data: { recipientName, phoneNumber } 
+          };
+          results.errors.push(error);
           results.invalidRows++;
+          console.log(`[Validation] Row ${rowNumber} FAILED: Invalid phone -`, phoneValidation.error);
           continue;
         }
 
-        // Check for duplicates (same user, same phone number)
-        const existingContact = await Contact.findOne({
-          userId,
-          phoneNumber: phoneValidation.normalizedNumber
-        });
+        const normalizedPhone = phoneValidation.normalizedNumber;
 
-        if (existingContact) {
+        // Check for duplicates within the uploaded file
+        if (seenInFile.has(normalizedPhone)) {
+          results.duplicateRows++;
           results.errors.push({
             row: rowNumber,
-            error: 'Duplicate phone number (contact already exists)',
+            error: 'Duplicate phone number within uploaded file',
             data: { recipientName, phoneNumber }
           });
-          results.invalidRows++;
+          console.log(`[Validation] Row ${rowNumber} SKIPPED: Duplicate within file (normalized: ${normalizedPhone})`);
+          continue;
+        }
+        seenInFile.set(normalizedPhone, rowNumber);
+
+        // Check for duplicates against existing contacts
+        if (existingPhones.has(normalizedPhone)) {
+          results.duplicateRows++;
+          results.errors.push({
+            row: rowNumber,
+            error: 'Phone number already exists in your contacts',
+            data: { recipientName, phoneNumber }
+          });
+          console.log(`[Validation] Row ${rowNumber} SKIPPED: Duplicate with existing contacts (normalized: ${normalizedPhone})`);
           continue;
         }
 
-        // Create contact
-        const contactId = await Contact.create(userId, recipientName, phoneValidation.normalizedNumber, 'Imported');
+        // Check blacklist
+        if (blacklistedSet.has(normalizedPhone)) {
+          results.blacklistedRows++;
+          results.errors.push({
+            row: rowNumber,
+            error: 'Phone number is blacklisted',
+            data: { recipientName, phoneNumber }
+          });
+          console.log(`[Validation] Row ${rowNumber} SKIPPED: Blacklisted (normalized: ${normalizedPhone})`);
+          continue;
+        }
 
-        results.validRows++;
-        results.importedContacts.push({
-          id: contactId,
-          recipientName,
-          phoneNumber: phoneValidation.normalizedNumber
-        });
+        // All validations passed - create contact with atomic operation
+        try {
+          const contactId = await Contact.create(userId, recipientName, normalizedPhone, 'Imported');
+          
+          results.validRows++;
+          results.importedRows++;
+          results.importedContacts.push({
+            id: contactId,
+            recipientName,
+            phoneNumber: normalizedPhone
+          });
+          
+          // Update existing phones set to prevent duplicates in same batch
+          existingPhones.add(normalizedPhone);
+          
+          console.log(`[Contacts] Row ${rowNumber} SUCCESS: Imported contact`, {
+            contactId,
+            recipientName,
+            normalizedPhone
+          });
+        } catch (dbError) {
+          // Handle potential race condition or duplicate key error
+          if (dbError.code === 11000) { // MongoDB duplicate key error
+            results.duplicateRows++;
+            results.errors.push({
+              row: rowNumber,
+              error: 'Duplicate phone number (race condition)',
+              data: { recipientName, phoneNumber }
+            });
+            console.log(`[Contacts] Row ${rowNumber} SKIPPED: Duplicate key error (race condition)`);
+          } else {
+            throw dbError;
+          }
+        }
 
       } catch (error) {
         results.errors.push({
@@ -330,11 +533,34 @@ class ContactImportService {
           data: row
         });
         results.invalidRows++;
+        console.error(`[Import] Row ${rowNumber} ERROR:`, error.message);
       }
     }
 
-    // Update import record with statistics
-    await importRecord.updateStats(results.totalRows, results.validRows, results.invalidRows);
+    // Calculate skipped rows (duplicates + blacklisted)
+    results.skippedRows = results.duplicateRows + results.blacklistedRows;
+
+    console.log('[Import] Import completed:', {
+      total: results.totalRows,
+      valid: results.validRows,
+      invalid: results.invalidRows,
+      duplicates: results.duplicateRows,
+      blacklisted: results.blacklistedRows,
+      imported: results.importedRows,
+      skipped: results.skippedRows,
+      timestamp: new Date().toISOString()
+    });
+    console.log('[Import] Sample imported contacts:', results.importedContacts.slice(0, 3));
+
+    // Update import record with comprehensive statistics
+    await importRecord.updateStats(
+      results.totalRows,
+      results.validRows,
+      results.invalidRows,
+      results.duplicateRows,
+      results.blacklistedRows,
+      results.importedRows
+    );
 
     return results;
   }
@@ -346,37 +572,6 @@ class ContactImportService {
    */
   getFileExtension(fileName) {
     return fileName.split('.').pop().toLowerCase();
-  }
-
-  /**
-   * Generate preview of import data
-   * @param {Array} rows - Array of row objects
-   * @param {Object} columnMapping - Column mapping
-   * @param {number} limit - Maximum number of preview rows
-   * @returns {Array} - Preview data
-   */
-  generatePreview(rows, columnMapping, limit = 10) {
-    const { nameColumn, phoneColumn } = columnMapping;
-    const preview = [];
-
-    for (let i = 0; i < Math.min(rows.length, limit); i++) {
-      const row = rows[i];
-
-      const recipientName = row[nameColumn]?.toString().trim() || '';
-      const phoneNumber = row[phoneColumn]?.toString().trim() || '';
-
-      const phoneValidation = this.validateAndNormalizePhone(phoneNumber);
-
-      preview.push({
-        rowNumber: i + 1,
-        detectedName: recipientName,
-        detectedNumber: phoneNumber,
-        validationStatus: phoneValidation.isValid ? 'valid' : 'invalid',
-        errorMessage: phoneValidation.error || null
-      });
-    }
-
-    return preview;
   }
 }
 

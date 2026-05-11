@@ -7,11 +7,11 @@ const NALO_ENDPOINT = '/smsbackend/Resl_Nalo/send-message/';
 /**
  * Convert phone number to Ghana format (233XXXXXXXXX)
  */
-const formatPhoneNumber = (msisdn) => {
-  if (!msisdn) return null;
-  
+const formatPhoneNumber = (phoneNumber) => {
+  if (!phoneNumber) return null;
+
   // Remove any spaces, dashes, plus signs
-  let cleaned = msisdn.replace(/[\s\-+]/g, '');
+  let cleaned = phoneNumber.replace(/[\s\-+]/g, '');
   
   // If starts with 0, replace with 233
   if (cleaned.startsWith('0')) {
@@ -29,20 +29,20 @@ const formatPhoneNumber = (msisdn) => {
 const sendSMS = async (senderId, recipients, message) => {
   try {
     // Handle both single recipient (string) and array of recipients
-    let msisdn;
+    let phoneNumber;
     if (Array.isArray(recipients)) {
       // If array, use the first recipient (for backward compatibility)
       // The caller should loop through recipients for bulk sends
-      msisdn = recipients[0];
+      phoneNumber = recipients[0];
     } else {
-      msisdn = recipients;
+      phoneNumber = recipients;
     }
     
-    const formattedMsisdn = formatPhoneNumber(msisdn);
+    const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
     
     const payload = {
       key: NALO_API_KEY,
-      msisdn: formattedMsisdn,
+      msisdn: formattedPhoneNumber,
       sender_id: senderId,
       message: message
     };

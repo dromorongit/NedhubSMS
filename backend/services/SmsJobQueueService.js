@@ -437,7 +437,7 @@ class SmsJobQueueService {
         // Send SMS
         const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
           userId: campaign.userId,
-          msisdn: recipient.phoneNumber,
+          phoneNumber: recipient.phoneNumber,
           senderId: campaign.senderId,
           message: recipient.personalizedMessage,
           recipientsCount: 1,

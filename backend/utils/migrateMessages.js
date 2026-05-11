@@ -30,7 +30,7 @@ async function migrateMessages() {
 
           const newMessage = new SmsMessage({
             userId: legacy.userId,
-            msisdn: recipient,
+            phoneNumber: recipient,
             senderId: legacy.senderId,
             message: legacy.messageBody,
             provider: 'nalo',

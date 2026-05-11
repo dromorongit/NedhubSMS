@@ -9,6 +9,7 @@
 
 const SmsMessage = require('../models/SmsMessage');
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 
 class CostCalculatorService {
   constructor() {
@@ -305,6 +306,8 @@ class CostCalculatorService {
    * @returns {Object} Financial breakdown
    */
   async calculateFinancialBreakdown(userId, message, recipientsCount, personalizationData = null) {
+    logger.info('[Cost] Calculating financial breakdown', { userId, recipientsCount, hasPersonalization: !!personalizationData });
+
     // Get monthly volume for tier selection
     const monthlyVolume = await this.getMonthlyVolume(userId);
 

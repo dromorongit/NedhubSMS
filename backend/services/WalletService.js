@@ -1,6 +1,7 @@
 const Wallet = require('../models/Wallet');
 const Transaction = require('../models/Transaction');
 const WalletReservation = require('../models/WalletReservation');
+const logger = require('../utils/logger');
 
 /**
  * WalletService
@@ -60,7 +61,7 @@ class WalletService {
 
       await transaction.save();
 
-      console.log(`[WalletService] Wallet credited: ${userId}, amount: ${amount}, new balance: ${balanceBefore + amount}`);
+      logger.info('[Wallet] Wallet credited', { userId, amount, newBalance: balanceBefore + amount });
 
       return {
         wallet: updatedWallet,
@@ -68,7 +69,7 @@ class WalletService {
         newBalance: balanceBefore + amount
       };
     } catch (error) {
-      console.error('[WalletService] Credit error:', error);
+      logger.error('[Wallet] Credit error', { userId, error: error.message });
       throw error;
     }
   }
@@ -174,7 +175,7 @@ class WalletService {
 
       await transaction.save();
 
-      console.log(`[WalletService] SMS GHS deducted: ${userId}, amount: ${totalChargedToUser}, segments: ${segments}, new balance: ${balanceBefore - totalChargedToUser}`);
+      logger.info('[Wallet] SMS GHS deducted', { userId, amount: totalChargedToUser, segments, newBalance: balanceBefore - totalChargedToUser });
 
       return {
         success: true,
@@ -184,7 +185,7 @@ class WalletService {
         amountDeducted: totalChargedToUser
       };
     } catch (error) {
-      console.error('[WalletService] Debit operation failed:', error);
+      logger.error('[Wallet] Debit operation failed', { userId, error: error.message });
       throw error;
     }
   }

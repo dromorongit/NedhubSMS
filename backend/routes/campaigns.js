@@ -91,7 +91,7 @@ router.post('/', authenticate, async (req, res) => {
         
           const smsMessage = new SmsMessage({
             userId,
-            msisdn: recipient,
+            phoneNumber: recipient,
             senderId,
             message: messageContent,
             status: 'sent',

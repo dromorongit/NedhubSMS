@@ -65,7 +65,7 @@ class SmsCampaignRetryService {
           // Send retry SMS
           const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
             userId,
-            msisdn: recipient.phoneNumber,
+            phoneNumber: recipient.phoneNumber,
             senderId: campaign.senderId,
             message: recipient.personalizedMessage,
             recipientsCount: 1
@@ -243,7 +243,7 @@ class SmsCampaignRetryService {
         try {
           const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
             userId,
-            msisdn: recipient.phoneNumber,
+            phoneNumber: recipient.phoneNumber,
             senderId: newCampaign.senderId,
             message: recipient.personalizedMessage,
             recipientsCount: 1

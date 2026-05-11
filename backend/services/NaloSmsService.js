@@ -33,11 +33,11 @@ class NaloSmsService {
   /**
    * Convert phone number to Ghana format (233XXXXXXXXX)
    */
-  formatPhoneNumber(msisdn) {
-    if (!msisdn) return null;
+  formatPhoneNumber(phoneNumber) {
+    if (!phoneNumber) return null;
     
     // Remove any spaces, dashes, plus signs
-    let cleaned = msisdn.replace(/[\s\-+]/g, '');
+    let cleaned = phoneNumber.replace(/[\s\-+]/g, '');
     
     // If starts with 0, replace with 233
     if (cleaned.startsWith('0')) {
@@ -55,8 +55,8 @@ class NaloSmsService {
   /**
    * Validate phone number format (Ghana format: 233XXXXXXXXX)
    */
-  validateMsisdn(msisdn) {
-    const formatted = this.formatPhoneNumber(msisdn);
+  validatePhoneNumber(phoneNumber) {
+    const formatted = this.formatPhoneNumber(phoneNumber);
     const ghanaRegex = /^233[0-9]{9}$/;
     return ghanaRegex.test(formatted);
   }
@@ -123,12 +123,12 @@ class NaloSmsService {
    * Send SMS using Nalo API with full financial tracking
    */
   async sendSmsWithFinancialTracking(request) {
-    const { userId, msisdn, senderId, message, recipientsCount = 1, skipDeduction = false } = request;
+    const { userId, phoneNumber, senderId, message, recipientsCount = 1, skipDeduction = false } = request;
 
     try {
       // Validate phone number
-      const formattedMsisdn = this.formatPhoneNumber(msisdn);
-      if (!this.validateMsisdn(msisdn)) {
+      const formattedPhoneNumber = this.formatPhoneNumber(phoneNumber);
+      if (!this.validatePhoneNumber(phoneNumber)) {
         return {
           success: false,
           error: 'Invalid phone number format. Use Ghana format: 233XXXXXXXXX',
@@ -204,7 +204,7 @@ class NaloSmsService {
       // Send SMS via Nalo API or simulate in dummy mode
       const payload = {
         key: this.apiKey,
-        msisdn: formattedMsisdn,
+        msisdn: formattedPhoneNumber,
         sender_id: senderId,
         message: message.trim()
       };
@@ -277,7 +277,7 @@ class NaloSmsService {
         // Create SMS record
       const smsMessageData = {
         userId: userId,
-        msisdn: formattedMsisdn,
+        phoneNumber: formattedPhoneNumber,
         senderId: senderId,
         message: message.trim(),
         provider: 'nalo',

@@ -368,6 +368,17 @@
     </div>
 
     <script>
+        // Utility function to escape HTML and prevent XSS
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            return String(text)
+                .replace(/&/g, '&')
+                .replace(/</g, '<')
+                .replace(/>/g, '>')
+                .replace(/"/g, '"')
+                .replace(/'/g, '&#039;');
+        }
+
         let contacts = [];
         let filteredContacts = [];
         let editingContactId = null;
@@ -501,14 +512,16 @@
             contactsToRender.forEach(contact => {
                 const row = document.createElement('tr');
                 const date = contact.createdAt ? new Date(contact.createdAt).toLocaleDateString() : '-';
+                const recipientName = contact.recipientName || 'Unknown';
+                const displayName = recipientName.charAt(0).toUpperCase();
                 
                 row.innerHTML = `
                     <td class="contact-name">
-                        <div class="contact-avatar">${contact.name.charAt(0).toUpperCase()}</div>
-                        <span>${contact.name}</span>
+                        <div class="contact-avatar">${displayName}</div>
+                        <span>${escapeHtml(recipientName)}</span>
                     </td>
-                    <td class="contact-phone">${contact.phoneNumber}</td>
-                    <td><span class="group-badge">${contact.groupName || 'Ungrouped'}</span></td>
+                    <td class="contact-phone">${escapeHtml(contact.phoneNumber)}</td>
+                    <td><span class="group-badge">${contact.groupName || 'General'}</span></td>
                     <td class="contact-date">${date}</td>
                     <td class="contact-actions">
                         <button class="action-btn edit-btn" data-id="${contact._id}" title="Edit">
@@ -554,8 +567,8 @@
             
             editingContactId = contactId;
             document.getElementById('contactId').value = contactId;
-            document.getElementById('contactName').value = contact.name;
-            document.getElementById('contactPhone').value = contact.phoneNumber;
+            document.getElementById('contactName').value = contact.recipientName || '';
+            document.getElementById('contactPhone').value = contact.phoneNumber || '';
             document.getElementById('contactGroup').value = contact.groupName || '';
             document.getElementById('contactModalTitle').textContent = 'Edit Contact';
             document.getElementById('contactModalSubtitle').textContent = 'Update contact information';
@@ -606,7 +619,7 @@
             e.preventDefault();
             
             const contactId = document.getElementById('contactId').value;
-            const name = document.getElementById('contactName').value;
+            const recipientName = document.getElementById('contactName').value;
             const phoneNumber = document.getElementById('contactPhone').value;
             const groupName = document.getElementById('contactGroup').value;
             const submitBtn = document.getElementById('contactSubmitBtn');
@@ -619,9 +632,9 @@
             try {
                 let result;
                 if (contactId) {
-                    result = await window.apiClient.updateContact(contactId, name, phoneNumber, groupName);
+                    result = await window.apiClient.updateContact(contactId, recipientName, phoneNumber, groupName);
                 } else {
-                    result = await window.apiClient.createContact(name, phoneNumber, groupName);
+                    result = await window.apiClient.createContact(recipientName, phoneNumber, groupName);
                 }
                 
                 if (result.error) {
@@ -785,9 +798,9 @@
             const groupFilter = document.getElementById('groupFilter').value;
             
             filteredContacts = contacts.filter(contact => {
-                const matchesSearch = 
-                    contact.name.toLowerCase().includes(searchTerm) ||
-                    contact.phoneNumber.includes(searchTerm) ||
+                const matchesSearch =
+                    (contact.recipientName || '').toLowerCase().includes(searchTerm) ||
+                    (contact.phoneNumber || '').includes(searchTerm) ||
                     (contact.groupName && contact.groupName.toLowerCase().includes(searchTerm));
                 
                 const matchesGroup = !groupFilter || contact.groupName === groupFilter;

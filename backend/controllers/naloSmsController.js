@@ -8,21 +8,21 @@ const naloService = NaloSmsService;
  */
 const sendSms = async (req, res) => {
   try {
-    const { msisdn, senderId, message, recipientsCount = 1 } = req.body;
+    const { phoneNumber, senderId, message, recipientsCount = 1 } = req.body;
     const userId = req.user?.userId;
 
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    if (!msisdn || !senderId || !message) {
-      return res.status(400).json({ error: 'msisdn, senderId, and message are required' });
+    if (!phoneNumber || !senderId || !message) {
+      return res.status(400).json({ error: 'phoneNumber, senderId, and message are required' });
     }
 
     // Use the new method with financial tracking
     const result = await naloService.sendSmsWithFinancialTracking({
       userId,
-      msisdn,
+      phoneNumber,
       senderId,
       message,
       recipientsCount
@@ -83,7 +83,7 @@ const sendBulkSms = async (req, res) => {
     for (const recipient of recipients) {
       const result = await naloService.sendSmsWithFinancialTracking({
         userId,
-        msisdn: recipient,
+        phoneNumber: recipient,
         senderId,
         message,
         recipientsCount: 1

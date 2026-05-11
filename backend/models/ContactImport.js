@@ -40,6 +40,26 @@ const contactImportSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  duplicateRows: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  blacklistedRows: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  skippedRows: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  importedRows: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -70,10 +90,14 @@ contactImportSchema.statics.createImport = async function(userId, fileName, sour
 };
 
 // Method to update import statistics
-contactImportSchema.methods.updateStats = async function(totalRows, validRows, invalidRows) {
+contactImportSchema.methods.updateStats = async function(totalRows, validRows, invalidRows, duplicateRows, blacklistedRows, importedRows) {
   this.totalRows = totalRows;
   this.validRows = validRows;
   this.invalidRows = invalidRows;
+  this.duplicateRows = duplicateRows || 0;
+  this.blacklistedRows = blacklistedRows || 0;
+  this.importedRows = importedRows || 0;
+  this.skippedRows = (duplicateRows || 0) + (blacklistedRows || 0);
   await this.save();
   return this;
 };

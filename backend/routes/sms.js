@@ -9,10 +9,18 @@ const validator = require('validator');
 const logger = require('../utils/logger');
 
 // Send SMS (handles both single and multiple recipients)
+// Supports both string phone numbers and canonical recipient objects {recipientName, phoneNumber}
 router.post('/send', authenticate, async (req, res) => {
   try {
     const { senderId, recipients, message } = req.body;
     const userId = req.user.userId;
+
+    console.log('[SendSMS] Request received:', {
+      userId,
+      senderId,
+      recipientCount: recipients?.length || 0,
+      hasMessage: !!message
+    });
 
     // Validate input
     if (!senderId || !recipients || !message) {
@@ -31,35 +39,67 @@ router.post('/send', authenticate, async (req, res) => {
       return res.status(402).json({ error: 'Insufficient SMS balance with provider' });
     }
 
+    // Normalize recipients: extract phoneNumber from either string or object format
+    const normalizedRecipients = recipients.map(r => {
+      if (typeof r === 'string') {
+        return { phoneNumber: r, recipientName: r };
+      }
+      // Canonical object: { recipientName, phoneNumber }
+      return {
+        phoneNumber: r.phoneNumber || r.recipient || r,
+        recipientName: r.recipientName || r.name || r.phoneNumber || r
+      };
+    });
+
+    console.log('[SendSMS] Normalized recipients (sample):', normalizedRecipients.slice(0, 3));
+
     // Send SMS to ALL recipients (not just the first one)
     const results = [];
     let successCount = 0;
     let failedCount = 0;
 
-    for (const recipient of recipients) {
+    for (const recipient of normalizedRecipients) {
       try {
         // Use NaloSmsService for proper tracking and webhook support
         // Note: NaloSmsService handles wallet deduction internally
         const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
           userId,
-          msisdn: recipient,
+          phoneNumber: recipient.phoneNumber,
           senderId,
           message,
-          recipientsCount: 1
+          recipientsCount: normalizedRecipients.length
         });
         
         if (smsResult.success) {
-          results.push({ recipient, success: true, messageId: smsResult.messageId, jobId: smsResult.jobId });
+          results.push({ 
+            recipient: recipient.phoneNumber, 
+            recipientName: recipient.recipientName,
+            success: true, 
+            messageId: smsResult.messageId, 
+            jobId: smsResult.jobId 
+          });
           successCount++;
         } else {
-          results.push({ recipient, success: false, error: smsResult.error });
+          results.push({ 
+            recipient: recipient.phoneNumber,
+            recipientName: recipient.recipientName, 
+            success: false, 
+            error: smsResult.error 
+          });
           failedCount++;
         }
       } catch (error) {
-        results.push({ recipient, success: false, error: error.message });
+        results.push({ 
+          recipient: recipient.phoneNumber,
+          recipientName: recipient.recipientName,
+          success: false, 
+          error: error.message 
+        });
         failedCount++;
       }
     }
+
+    console.log('[SendSMS] Completed:', { total: recipients.length, success: successCount, failed: failedCount });
 
     res.json({
       success: failedCount === 0,
@@ -72,10 +112,10 @@ router.post('/send', authenticate, async (req, res) => {
       message: failedCount === 0 ? 'SMS sent successfully' : 'Some SMS failed to send'
     });
   } catch (error) {
-      console.error(error);
+      console.error('[SendSMS] Error:', error);
       res.status(500).json({ error: error.message || 'Internal server error' });
-    }
-  });
+  }
+});
   
   // Schedule default SMS for future sending
   router.post('/schedule', authenticate, async (req, res) => {
@@ -153,20 +193,24 @@ router.post('/send', authenticate, async (req, res) => {
         });
       }
 
-      // Process recipients (deduplication, validation, blacklist check)
-      const SmsRecipientService = require('../services/SmsRecipientService');
+      // Normalize recipients from various formats to canonical schema
+    const normalizedRecipients = recipients.map(r => {
+      if (typeof r === 'string') {
+        return { recipientName: r, phoneNumber: r };
+      }
+      return {
+        recipientName: r.recipientName || r.name || r.phoneNumber || r,
+        phoneNumber: r.phoneNumber || r.recipient || r
+      };
+    });
 
-      // Transform recipients to objects for processing
-      const recipientsForProcessing = recipients.map(phone => ({
-        recipientName: phone,
-        phoneNumber: phone
-      }));
-
-      const processedRecipients = await SmsRecipientService.processRecipientsForCampaign(
-        recipientsForProcessing,
-        userId,
-        true
-      );
+    // Process recipients (deduplication, validation, blacklist check)
+    const SmsRecipientService = require('../services/SmsRecipientService');
+    const processedRecipients = await SmsRecipientService.processRecipientsForCampaign(
+      normalizedRecipients,
+      userId,
+      true
+    );
 
       logger.info('[Schedule] Recipient processing complete', {
         userId,
@@ -425,7 +469,7 @@ router.get('/logs', authenticate, async (req, res) => {
         return {
           _id: msg._id,
           senderId: msg.senderId,
-          recipient: msg.msisdn,
+          recipient: msg.phoneNumber,
           recipients: msg.recipientsCount,
           message: msg.message,
           status: msg.status,
@@ -569,7 +613,7 @@ router.post('/resend', authenticate, async (req, res) => {
       messageText = messageData.messageBody;
     } else if (source === 'new') {
       senderId = messageData.senderId;
-      recipient = messageData.msisdn;
+      recipient = messageData.phoneNumber;
       messageText = messageData.message;
     } else {
       senderId = messageData.senderId || 'Campaign';
@@ -591,7 +635,7 @@ router.post('/resend', authenticate, async (req, res) => {
     // Resend the message using NaloSmsService
     const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
       userId,
-      msisdn: recipient,
+      phoneNumber: recipient,
       senderId,
       message: messageText,
       recipientsCount: 1
@@ -647,18 +691,54 @@ router.post('/schedule', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Invalid or unapproved Sender ID' });
     }
 
-    // Validate phone numbers and filter invalid ones
+    // Normalize and validate recipients using canonical schema
     const naloSmsService = new (require('../services/NaloSmsService'))();
     const validRecipients = [];
     const invalidRecipients = [];
 
+    logger.info('[Schedule] Validating and normalizing recipients:', {
+      userId,
+      totalRecipients: recipients.length
+    });
+
     for (const recipient of recipients) {
-      if (naloSmsService.validateMsisdn(recipient)) {
-        validRecipients.push(recipient);
+      // Extract name and phone from various input formats
+      let recipientName = '';
+      let phoneNumber;
+
+      if (typeof recipient === 'string') {
+        recipientName = recipient;
+        phoneNumber = recipient;
+      } else {
+        recipientName = recipient.recipientName || recipient.name || '';
+        phoneNumber = recipient.phoneNumber || recipient.recipient || String(recipient);
+      }
+
+      // Normalize phone number to canonical 233XXXXXXXXX format
+      let normalizedPhone = String(phoneNumber).replace(/\D/g, '');
+      if (normalizedPhone.startsWith('233') && normalizedPhone.length === 12) {
+        // Already in international format
+      } else if (normalizedPhone.startsWith('0') && normalizedPhone.length === 10) {
+        normalizedPhone = '233' + normalizedPhone.substring(1);
+      } else if (normalizedPhone.length === 9) {
+        normalizedPhone = '233' + normalizedPhone;
+      }
+
+      if (naloSmsService.validateMsisdn(normalizedPhone)) {
+        validRecipients.push({
+          recipientName,
+          phoneNumber: normalizedPhone,
+          normalizedPhoneNumber: normalizedPhone
+        });
       } else {
         invalidRecipients.push(recipient);
       }
     }
+
+    logger.info('[Schedule] Recipient validation complete:', {
+      validCount: validRecipients.length,
+      invalidCount: invalidRecipients.length
+    });
 
     if (validRecipients.length === 0) {
       return res.status(400).json({
@@ -716,18 +796,19 @@ router.post('/schedule', authenticate, async (req, res) => {
 
     await campaign.save();
 
-    // Create recipient records
+    // Create recipient records with canonical schema
     const SmsRecipient = require('../models/SmsRecipient');
     const sellPrice = await CostCalculatorService.getSellPricePerSms();
-    for (const phoneNumber of validRecipients) {
+    for (const recipient of validRecipients) {
       const segmentResult = CostCalculatorService.calculateSegments(message);
       const recipientEstimatedCost = sellPrice * segmentResult.segments;
 
       const smsRecipient = new SmsRecipient({
         campaignId: campaign._id,
         userId,
-        phoneNumber,
-        normalizedPhoneNumber: naloSmsService.formatPhoneNumber(phoneNumber),
+        recipientName: recipient.recipientName || '',
+        phoneNumber: recipient.phoneNumber,
+        normalizedPhoneNumber: recipient.normalizedPhoneNumber,
         personalizedMessage: message,
         segments: segmentResult.segments,
         estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
@@ -745,8 +826,12 @@ router.post('/schedule', authenticate, async (req, res) => {
       campaignId: campaign._id,
       message: 'Campaign scheduled successfully',
       scheduledAt: scheduleDate,
-      recipientCount: validRecipients.length,
+      timezone,
+      jobId: job.id,
       estimatedCost: costEstimation.estimatedCost,
+      recipientCount: validRecipients.length,
+      validRecipientCount: validRecipients.length,
+      invalidRecipientCount: invalidRecipients.length,
       processingSummary: {
         originalCount: recipients.length,
         invalidRemoved: invalidRecipients.length,

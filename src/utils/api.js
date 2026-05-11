@@ -164,6 +164,10 @@ class ApiClient {
     return this.request('POST', '/contacts/import/confirm', { fileData, columnMapping, fileName });
   }
 
+  async regenerateContactPreview(fileData, columnMapping) {
+    return this.request('POST', '/contacts/preview', { fileData, columnMapping });
+  }
+
   // Template endpoints
   async getTemplates() {
     return this.request('GET', '/templates');

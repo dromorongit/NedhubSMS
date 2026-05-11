@@ -36,7 +36,7 @@ class SmsRecipientService {
    * @returns {Object} {uniqueRecipients: Array, duplicates: Array, duplicateCount: number}
    */
   static deduplicateRecipients(recipients, removeDuplicates = true) {
-    console.log('[Deduplicate] Starting deduplication. Input count:', recipients.length);
+    console.log('[Recipients] Starting deduplication. Input count:', recipients.length);
     const seen = new Map();
     const duplicates = [];
     const uniqueRecipients = [];
@@ -52,7 +52,7 @@ class SmsRecipientService {
           duplicateOf: seen.get(normalizedPhone).originalIndex
         };
         duplicates.push(dupInfo);
-        console.log('[Deduplicate] Duplicate detected:', dupInfo);
+        console.log('[Recipients] Duplicate detected:', dupInfo);
       } else {
         seen.set(normalizedPhone, {
           recipientName: recipient.recipientName,
@@ -91,8 +91,7 @@ class SmsRecipientService {
    * @returns {Object} {validRecipients: Array, invalidRecipients: Array, blacklistedRecipients: Array}
    */
   static async validateRecipients(recipients, userId) {
-    console.log('[Validate] validateRecipients called with:', recipients.length, 'recipients');
-    console.log('[Validate] userId:', userId);
+    console.log('[Validation] validateRecipients called with:', recipients.length, 'recipients, userId:', userId);
     
     const validRecipients = [];
     const invalidRecipients = [];
@@ -106,45 +105,39 @@ class SmsRecipientService {
       ]
     }).select('phoneNumber');
 
-    console.log('[Validate] Blacklisted numbers found:', blacklistedNumbers.length);
+    console.log('[Validation] Blacklisted numbers found:', blacklistedNumbers.length);
 
     const blacklistedSet = new Set(
       blacklistedNumbers.map(b => this.normalizePhoneNumber(b.phoneNumber))
     );
 
-    console.log('[Validate] Blacklisted set:', Array.from(blacklistedSet));
-
     // Regex for valid Ghanaian phone numbers (accepts +233, 233, or 0 prefix)
     const phoneRegex = /^(?:\+233|233|0)(?:20|50|24|54|27|57|26|56|23|53|28|58|25|55|59)[0-9]{7}$/;
 
     for (const recipient of recipients) {
-      console.log('[Validate] Processing recipient:', recipient);
-      
       const normalizedPhone = this.normalizePhoneNumber(recipient.phoneNumber);
-      console.log('[Validate] Normalized phone:', normalizedPhone, 'Original:', recipient.phoneNumber);
 
       // Check if blacklisted
       if (blacklistedSet.has(normalizedPhone)) {
-        console.log('[Validate] Number is blacklisted:', normalizedPhone);
         blacklistedRecipients.push({
           ...recipient,
           normalizedPhoneNumber: normalizedPhone,
           reason: 'Blacklisted number'
         });
+        console.log('[Validation] Blacklisted:', recipient.phoneNumber, '|', recipient.recipientName);
         continue;
       }
 
       // Validate phone number format using normalized number
       const isValid = phoneRegex.test(normalizedPhone);
-      console.log('[Validate] Testing normalized phone:', normalizedPhone, 'regex valid:', isValid);
       
       if (!isValid) {
-        console.log('[Validate] Invalid phone format for:', recipient.phoneNumber, 'normalized:', normalizedPhone);
         invalidRecipients.push({
           ...recipient,
           normalizedPhoneNumber: normalizedPhone,
           reason: 'Invalid phone number format'
         });
+        console.log('[Validation] Invalid format:', recipient.phoneNumber, '->', normalizedPhone, '|', recipient.recipientName);
         continue;
       }
 
@@ -154,17 +147,13 @@ class SmsRecipientService {
       });
     }
 
-    console.log('[Validate] Validation results:');
-    console.log('  validRecipients:', validRecipients.length);
-    console.log('  invalidRecipients:', invalidRecipients.length);
-    console.log('  blacklistedRecipients:', blacklistedRecipients.length);
-    if (invalidRecipients.length > 0) {
-      console.log('[Validate] Invalid details:', invalidRecipients.map(i => ({ phone: i.phoneNumber, reason: i.reason })));
-    }
-    if (blacklistedRecipients.length > 0) {
-      console.log('[Validate] Blacklisted details:', blacklistedRecipients.map(b => b.phoneNumber));
-    }
-
+    console.log('[Validation] Results:', {
+      total: recipients.length,
+      valid: validRecipients.length,
+      invalid: invalidRecipients.length,
+      blacklisted: blacklistedRecipients.length
+    });
+    
     return {
       validRecipients,
       invalidRecipients,
@@ -180,13 +169,23 @@ class SmsRecipientService {
    * @returns {Object} Processing results
    */
   static async processRecipientsForCampaign(recipients, userId, removeDuplicates = true) {
+    console.log('[Recipients] Processing for campaign:', {
+      totalRecipients: recipients.length,
+      removeDuplicates
+    });
+
     // First, deduplicate
     const dedupResult = this.deduplicateRecipients(recipients, removeDuplicates);
+    console.log('[Recipients] Deduplication:', {
+      original: recipients.length,
+      unique: dedupResult.uniqueRecipients.length,
+      duplicates: dedupResult.duplicateCount
+    });
 
     // Then validate the unique recipients
     const validationResult = await this.validateRecipients(dedupResult.uniqueRecipients, userId);
 
-    return {
+    const result = {
       originalCount: recipients.length,
       duplicateCount: dedupResult.duplicateCount,
       validRecipients: validationResult.validRecipients,
@@ -195,6 +194,16 @@ class SmsRecipientService {
       duplicates: dedupResult.duplicates,
       finalCount: validationResult.validRecipients.length
     };
+
+    console.log('[Recipients] Processing complete:', {
+      original: result.originalCount,
+      duplicates: result.duplicateCount,
+      valid: result.finalCount,
+      invalid: validationResult.invalidRecipients.length,
+      blacklisted: validationResult.blacklistedRecipients.length
+    });
+
+    return result;
   }
 }
 
