@@ -41,6 +41,12 @@ const contactSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+    // Compound indexes for efficient queries
+    index: [
+      { userId: 1, normalizedPhoneNumber: 1 }, // Unique per user + fast lookup
+      { userId: 1, recipientName: 1 } // For sorting and filtering
+    ]
+  }, {
     toJSON: {
       transform: function(doc, ret) {
         // Add groupName as comma-separated string from groupIds
@@ -58,13 +64,8 @@ const contactSchema = new mongoose.Schema({
         }
         return ret;
       }
-    },
-      // Compound indexes for efficient queries
-      index: [
-        { userId: 1, normalizedPhoneNumber: 1 }, // Unique per user + fast lookup
-        { userId: 1, recipientName: 1 } // For sorting and filtering
-      ]
-    });
+    }
+  });
 
     // Add unique compound index to prevent duplicate phone numbers per user
     contactSchema.index({ userId: 1, normalizedPhoneNumber: 1 }, { unique: true });
