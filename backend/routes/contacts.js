@@ -28,7 +28,11 @@ const upload = multer({
 router.post('/import', authenticate, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     const userId = req.user.userId;
@@ -52,7 +56,11 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
     });
 
     if (rows.length === 0) {
-      return res.status(400).json({ error: 'No data found in file' });
+      return res.status(400).json({
+        success: false,
+        message: 'No data found in file',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Get headers from first row
@@ -112,7 +120,9 @@ router.post('/import/confirm', authenticate, async (req, res) => {
       const storedImport = await ContactImport.findOne({ userId }).sort({ createdAt: -1 });
       if (!storedImport || !storedImport.importedRows || storedImport.importedRows === 0) {
         return res.status(400).json({
-          error: 'File data is required. Please upload a file first'
+          success: false,
+          message: 'File data is required. Please upload a file first',
+          error: { code: 'VALIDATION_ERROR' }
         });
       }
       // Use previously stored data - reconstruct from the import record
@@ -135,7 +145,11 @@ router.post('/import/confirm', authenticate, async (req, res) => {
     }
 
     if (!columnMapping || !columnMapping.nameColumn || !columnMapping.phoneColumn) {
-      return res.status(400).json({ error: 'Column mapping is required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Column mapping is required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Process the import with comprehensive validation
@@ -183,7 +197,14 @@ router.post('/import/confirm', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('[Import] Unexpected error:', error);
-    res.status(500).json({ error: 'Failed to complete import: ' + error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to complete import',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -194,23 +215,42 @@ router.post('/', authenticate, async (req, res) => {
     const { recipientName, phoneNumber, groupName } = req.body;
     const userId = req.user.userId;
 
-    // Validate input
-    if (!recipientName || !phoneNumber) {
-      return res.status(400).json({ error: 'Recipient name and phone number are required' });
-    }
+     // Validate input
+     if (!recipientName || !phoneNumber) {
+       return res.status(400).json({
+         success: false,
+         message: 'Recipient name and phone number are required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate Ghana phone number format
-    if (!validator.isMobilePhone(phoneNumber, 'any', { strictMode: false })) {
-      return res.status(400).json({ error: 'Invalid phone number format' });
-    }
+     // Validate Ghana phone number format
+     if (!validator.isMobilePhone(phoneNumber, 'any', { strictMode: false })) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid phone number format',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Create contact
-    const contactId = await Contact.create(userId, recipientName, phoneNumber, groupName);
+     // Create contact
+     const contactId = await Contact.create(userId, recipientName, phoneNumber, groupName);
 
-    res.status(201).json({ contactId, message: 'Contact created successfully' });
+     res.status(201).json({
+       success: true,
+       message: 'Contact created successfully',
+       data: { contactId }
+     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -218,11 +258,15 @@ router.post('/', authenticate, async (req, res) => {
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
-    // Populate groupIds to get group names
-    const contacts = await Contact.find({ userId })
-      .populate('groupIds', 'name')
-      .sort({ createdAt: -1 });
-    res.json(contacts);
+     // Populate groupIds to get group names
+     const contacts = await Contact.find({ userId })
+       .populate('groupIds', 'name')
+       .sort({ createdAt: -1 });
+     res.json({
+       success: true,
+       message: 'Contacts retrieved successfully',
+       data: contacts
+     });
   } catch (error) {
     console.error('[Contacts] Error fetching contacts:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -238,22 +282,40 @@ router.put('/:id', authenticate, async (req, res) => {
 
     // Validate input
     if (!recipientName || !phoneNumber) {
-      return res.status(400).json({ error: 'Recipient name and phone number are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Recipient name and phone number are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Check if contact exists and belongs to user
     const contact = await Contact.findById(contactId);
     if (!contact || contact.userId.toString() !== userId) {
-      return res.status(404).json({ error: 'Contact not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Contact not found',
+        error: { code: 'NOT_FOUND' }
+      });
     }
 
-    // Update contact
-    await Contact.update(contactId, recipientName, phoneNumber, groupName);
+     // Update contact
+     await Contact.update(contactId, recipientName, phoneNumber, groupName);
 
-    res.json({ message: 'Contact updated successfully' });
+     res.json({
+       success: true,
+       message: 'Contact updated successfully'
+     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -263,19 +325,33 @@ router.delete('/:id', authenticate, async (req, res) => {
     const contactId = req.params.id;
     const userId = req.user.userId;
 
-    // Check if contact exists and belongs to user
-    const contact = await Contact.findById(contactId);
-    if (!contact || contact.userId.toString() !== userId) {
-      return res.status(404).json({ error: 'Contact not found' });
-    }
+     // Check if contact exists and belongs to user
+     const contact = await Contact.findById(contactId);
+     if (!contact || contact.userId.toString() !== userId) {
+       return res.status(404).json({
+         success: false,
+         message: 'Contact not found',
+         error: { code: 'NOT_FOUND' }
+       });
+     }
 
-    // Delete contact
-    await Contact.delete(contactId);
+     // Delete contact
+     await Contact.delete(contactId);
 
-    res.json({ message: 'Contact deleted successfully' });
+     res.json({
+       success: true,
+       message: 'Contact deleted successfully'
+     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -285,12 +361,20 @@ router.post('/preview', authenticate, async (req, res) => {
     const { fileData, columnMapping } = req.body;
     const userId = req.user.userId;
 
-    if (!fileData || !Array.isArray(fileData) || fileData.length === 0) {
-      return res.status(400).json({ error: 'File data is required' });
-    }
+     if (!fileData || !Array.isArray(fileData) || fileData.length === 0) {
+       return res.status(400).json({
+         success: false,
+         message: 'File data is required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
     if (!columnMapping || !columnMapping.nameColumn || !columnMapping.phoneColumn) {
-      return res.status(400).json({ error: 'Column mapping is required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Column mapping is required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     console.log('[Preview] Regenerate request:', {

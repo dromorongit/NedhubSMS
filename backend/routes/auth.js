@@ -60,21 +60,37 @@ router.post('/register', async (req, res) => {
 
     // Validate input
     if (!name || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     if (!validator.isEmail(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Create user as 'pending' - user cannot login until they verify email
@@ -99,14 +115,21 @@ router.post('/register', async (req, res) => {
       .then(() => console.log('[AUTH] Verification email sent successfully'))
       .catch(err => console.error('[AUTH] Failed to send verification email:', err.message));
 
-    res.status(201).json({ 
+    res.status(201).json({
       success: true,
       message: 'Verification code sent to your email. Please verify to activate your account.',
-      email: email
+      data: { email }
     });
   } catch (error) {
     console.error('[AUTH] Registration error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Registration failed',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -120,20 +143,30 @@ router.post('/login', async (req, res) => {
     // Validate input
     if (!email || !password) {
       console.log('[AUTH] Missing email or password');
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       console.log('[AUTH] User not found:', email);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials',
+        error: { code: 'INVALID_CREDENTIALS' }
+      });
     }
 
     // Check if user account is pending (not verified yet)
     if (user.status === 'pending') {
-      return res.status(403).json({ 
-        error: 'Please verify your email first. Check your inbox for the verification code.',
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email first. Check your inbox for the verification code.',
+        error: { code: 'EMAIL_NOT_VERIFIED' },
         requiresVerification: true,
         email: user.email
       });
@@ -141,7 +174,11 @@ router.post('/login', async (req, res) => {
 
     // Check if user account is suspended
     if (user.status === 'suspended') {
-      return res.status(403).json({ error: 'Your account has been suspended. Contact support.' });
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been suspended. Contact support.',
+        error: { code: 'ACCOUNT_SUSPENDED' }
+      });
     }
 
     console.log('[AUTH] User found:', user._id, 'Role:', user.role);
@@ -152,28 +189,43 @@ router.post('/login', async (req, res) => {
     
     if (!isMatch) {
       console.log('[AUTH] Password mismatch for user:', email);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials',
+        error: { code: 'INVALID_CREDENTIALS' }
+      });
     }
 
     // Generate JWT token
     const token = generateToken(user._id, user.role);
     console.log('[AUTH] Login successful for:', email, 'Role:', user.role);
 
-    res.json({ 
-      token, 
-      userId: user._id, 
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        userId: user._id,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status
+        }
       }
     });
-  } catch (error) {
-    console.error('[AUTH] Login error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+    } catch (error) {
+      console.error('[AUTH] Login error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Login failed',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message
+        }
+      });
+    }
 });
 
 // Verify email with OTP
@@ -183,18 +235,30 @@ router.post('/verify-email', async (req, res) => {
 
     // Validate input
     if (!email || !otp) {
-      return res.status(400).json({ error: 'Email and OTP are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Email and OTP are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     if (!validator.isEmail(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Find and verify OTP
     const result = await OTP.findAndVerifyOTP(email, otp, 'email_verification');
 
     if (!result.success) {
-      return res.status(400).json({ error: result.message });
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+        error: { code: 'INVALID_OTP' }
+      });
     }
 
     // Update user email verification status and activate account
@@ -205,7 +269,11 @@ router.post('/verify-email', async (req, res) => {
     ).select('-password');
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        error: { code: 'NOT_FOUND' }
+      });
     }
 
     // Generate JWT token
@@ -222,16 +290,25 @@ router.post('/verify-email', async (req, res) => {
         console.error(`[AUTH][ERROR] Failed to send admin notification:`, err.message);
       });
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Email verified successfully',
-      token,
-      user
+      data: {
+        token,
+        user
+      }
     });
-  } catch (error) {
-    console.error('[AUTH] Email verification error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+    } catch (error) {
+      console.error('[AUTH] Email verification error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Email verification failed',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message
+        }
+      });
+    }
 });
 
 // Request password reset OTP
@@ -241,27 +318,40 @@ router.post('/request-password-reset', async (req, res) => {
 
     // Validate input
     if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     if (!validator.isEmail(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Check rate limit for forgot password
     const rateLimitCheck = checkRateLimit('forgotPassword', email, 60000, 3); // 1 minute cooldown, 3 attempts
     if (!rateLimitCheck.allowed) {
-      return res.status(429).json({ error: rateLimitCheck.message });
+      return res.status(429).json({
+        success: false,
+        message: rateLimitCheck.message,
+        error: { code: 'RATE_LIMIT_EXCEEDED' }
+      });
     }
 
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       // Don't reveal if user exists or not for security
-      return res.json({ 
-        success: true,
-        message: 'If an account exists with this email, you will receive a password reset code'
-      });
+      return    res.json({
+      success: true,
+      message: 'If an account exists with this email, you will receive a password reset code',
+      data: { email }
+    });
     }
 
     // Delete any existing OTPs for this email and purpose
@@ -278,14 +368,22 @@ router.post('/request-password-reset', async (req, res) => {
     // Send password reset email
     await EmailService.sendPasswordResetOTP(email, user.name, otp);
 
-    res.json({ 
+    res.json({
       success: true,
-      message: 'If an account exists with this email, you will receive a password reset code'
+      message: 'If an account exists with this email, you will receive a password reset code',
+      data: { email }
     });
-  } catch (error) {
-    console.error('[AUTH] Password reset request error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+    } catch (error) {
+      console.error('[AUTH] Password reset request error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Password reset request failed',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message
+        }
+      });
+    }
 });
 
 // Reset password with OTP
@@ -295,42 +393,70 @@ router.post('/reset-password', async (req, res) => {
 
     // Validate input
     if (!email || !otp || !newPassword) {
-      return res.status(400).json({ error: 'Email, OTP, and new password are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Email, OTP, and new password are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     if (!validator.isEmail(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     if (newPassword.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Find and verify OTP
     const result = await OTP.findAndVerifyOTP(email, otp, 'password_reset');
 
     if (!result.success) {
-      return res.status(400).json({ error: result.message });
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+        error: { code: 'INVALID_OTP' }
+      });
     }
 
     // Find user and update password
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        error: { code: 'NOT_FOUND' }
+      });
     }
 
     // Update password (will be hashed by pre-save hook)
     user.password = newPassword;
     await user.save();
 
-    res.json({ 
+    res.json({
       success: true,
-      message: 'Password reset successfully'
+      message: 'Password reset successfully',
+      data: { email }
     });
-  } catch (error) {
-    console.error('[AUTH] Password reset error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+    } catch (error) {
+      console.error('[AUTH] Password reset error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Password reset failed',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message
+        }
+      });
+    }
 });
 
 // Resend OTP
@@ -340,34 +466,58 @@ router.post('/resend-otp', async (req, res) => {
 
     // Validate input
     if (!email || !purpose) {
-      return res.status(400).json({ error: 'Email and purpose are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Email and purpose are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     if (!validator.isEmail(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     if (!['email_verification', 'password_reset'].includes(purpose)) {
-      return res.status(400).json({ error: 'Invalid purpose' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid purpose',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Check rate limit for resend verification
     if (purpose === 'email_verification') {
       const rateLimitCheck = checkRateLimit('resendVerification', email, 60000, 3); // 1 minute cooldown, 3 attempts
       if (!rateLimitCheck.allowed) {
-        return res.status(429).json({ error: rateLimitCheck.message });
+        return res.status(429).json({
+          success: false,
+          message: rateLimitCheck.message,
+          error: { code: 'RATE_LIMIT_EXCEEDED' }
+        });
       }
     }
 
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        error: { code: 'NOT_FOUND' }
+      });
     }
 
     // If purpose is email_verification but user is already verified
     if (purpose === 'email_verification' && user.isEmailVerified) {
-      return res.status(400).json({ error: 'Email is already verified' });
+      return res.status(400).json({
+        success: false,
+        message: 'Email is already verified',
+        error: { code: 'EMAIL_ALREADY_VERIFIED' }
+      });
     }
 
     // Delete any existing OTPs for this email and purpose
@@ -388,14 +538,22 @@ router.post('/resend-otp', async (req, res) => {
       await EmailService.sendPasswordResetOTP(email, user.name, otp);
     }
 
-    res.json({ 
+    res.json({
       success: true,
-      message: 'OTP sent successfully'
+      message: 'OTP sent successfully',
+      data: { email }
     });
-  } catch (error) {
-    console.error('[AUTH] Resend OTP error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+    } catch (error) {
+      console.error('[AUTH] Resend OTP error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to resend OTP',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message
+        }
+      });
+    }
 });
 
 // Verify token

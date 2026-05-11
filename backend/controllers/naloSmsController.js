@@ -12,11 +12,19 @@ const sendSms = async (req, res) => {
     const userId = req.user?.userId;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        error: { code: 'UNAUTHORIZED' }
+      });
     }
 
     if (!phoneNumber || !senderId || !message) {
-      return res.status(400).json({ error: 'phoneNumber, senderId, and message are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'phoneNumber, senderId, and message are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Use the new method with financial tracking
@@ -31,23 +39,34 @@ const sendSms = async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        messageId: result.messageId,
-        jobId: result.jobId,
-        financial: result.financial,
-        message: 'SMS sent successfully'
+        message: 'SMS sent successfully',
+        data: {
+          messageId: result.messageId,
+          jobId: result.jobId,
+          financial: result.financial
+        }
       });
     } else {
       const statusCode = result.code === 'INSUFFICIENT_BALANCE' ? 402 : 400;
       res.status(statusCode).json({
         success: false,
-        error: result.error,
-        code: result.code
+        message: result.error,
+        error: {
+          code: result.code || 'SMS_SEND_FAILED'
+        }
       });
     }
 
   } catch (error) {
     console.error('SMS send controller error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send SMS',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 };
 
@@ -61,15 +80,27 @@ const sendBulkSms = async (req, res) => {
     const userId = req.user?.userId;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        error: { code: 'UNAUTHORIZED' }
+      });
     }
 
     if (!senderId || !recipients || !message) {
-      return res.status(400).json({ error: 'senderId, recipients, and message are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'senderId, recipients, and message are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     if (!Array.isArray(recipients) || recipients.length === 0) {
-      return res.status(400).json({ error: 'Recipients must be a non-empty array' });
+      return res.status(400).json({
+        success: false,
+        message: 'Recipients must be a non-empty array',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Process each recipient with financial tracking
@@ -125,7 +156,14 @@ const sendBulkSms = async (req, res) => {
 
   } catch (error) {
     console.error('Bulk SMS send controller error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send bulk SMS',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 };
 

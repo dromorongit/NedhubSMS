@@ -299,6 +299,27 @@ const limiter = rateLimit({
   trustProxy: true,
   keyGenerator: (req) => {
     return req.headers['x-forwarded-for'] || req.ip;
+  },
+  handler: (req, res) => {
+    const logger = require('./backend/utils/logger');
+    logger.ratelimit.warn('Rate limit exceeded', {
+      ip: req.ip,
+      forwardedFor: req.headers['x-forwarded-for'],
+      url: req.url,
+      method: req.method,
+      userAgent: req.get('User-Agent')
+    });
+    
+    const resetTime = new Date(Date.now() + (parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000));
+    res.status(429).json({
+      success: false,
+      message: 'Too many requests. Please try again later.',
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000) / 1000),
+        resetTime: resetTime.toISOString()
+      }
+    });
   }
 });
 app.use(limiter);
@@ -306,7 +327,28 @@ app.use(limiter);
 // Admin rate limiting (stricter)
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50 // limit each IP to 50 requests per windowMs for admin routes
+  max: 50, // limit each IP to 50 requests per windowMs for admin routes
+  handler: (req, res) => {
+    const logger = require('./backend/utils/logger');
+    logger.ratelimit.warn('Admin rate limit exceeded', {
+      ip: req.ip,
+      forwardedFor: req.headers['x-forwarded-for'],
+      url: req.url,
+      method: req.method,
+      userAgent: req.get('User-Agent')
+    });
+    
+    const resetTime = new Date(Date.now() + (15 * 60 * 1000));
+    res.status(429).json({
+      success: false,
+      message: 'Too many requests. Please try again later.',
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: Math.ceil((15 * 60 * 1000) / 1000),
+        resetTime: resetTime.toISOString()
+      }
+    });
+  }
 });
 
 // Routes
@@ -369,7 +411,14 @@ app.use((err, req, res, next) => {
     userId: req.user?.id
   });
 
-  res.status(500).json({ error: 'Something went wrong!' });
+  res.status(500).json({
+    success: false,
+    message: 'Something went wrong!',
+    error: {
+      code: 'INTERNAL_SERVER_ERROR',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    }
+  });
 });
 
 // Start server - listen on all interfaces (0.0.0.0) for Docker/Railway compatibility

@@ -14,39 +14,67 @@ router.post('/airtime', authenticate, async (req, res) => {
     const userId = req.user.userId;
     const { phoneNumber, network, amount } = req.body;
 
-    // Server-side validation
-    if (!phoneNumber) {
-      return res.status(400).json({ error: 'Phone number is required' });
-    }
-    if (!network) {
-      return res.status(400).json({ error: 'Network is required' });
-    }
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Amount must be a positive number' });
-    }
+     // Server-side validation
+     if (!phoneNumber) {
+       return res.status(400).json({
+         success: false,
+         message: 'Phone number is required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
+     if (!network) {
+       return res.status(400).json({
+         success: false,
+         message: 'Network is required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
+     if (!amount || amount <= 0) {
+       return res.status(400).json({
+         success: false,
+         message: 'Amount must be a positive number',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate minimum amount
-    if (amount < 1) {
-      return res.status(400).json({ error: 'Minimum airtime amount is GHS 1.00' });
-    }
+     // Validate minimum amount
+     if (amount < 1) {
+       return res.status(400).json({
+         success: false,
+         message: 'Minimum airtime amount is GHS 1.00',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate maximum amount
-    const maxAmount = parseFloat(process.env.MAX_AIRTIME_AMOUNT) || 500;
-    if (amount > maxAmount) {
-      return res.status(400).json({ error: `Maximum airtime amount is GHS ${maxAmount}` });
-    }
+     // Validate maximum amount
+     const maxAmount = parseFloat(process.env.MAX_AIRTIME_AMOUNT) || 500;
+     if (amount > maxAmount) {
+       return res.status(400).json({
+         success: false,
+         message: `Maximum airtime amount is GHS ${maxAmount}`,
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate network
-    const validNetworks = ['MTN', 'TELECEL', 'AIRTELTIGO', 'VODAFONE'];
-    if (!validNetworks.includes(network.toUpperCase())) {
-      return res.status(400).json({ error: 'Invalid network. Supported: MTN, Telecel, AirtelTigo, Vodafone' });
-    }
+     // Validate network
+     const validNetworks = ['MTN', 'TELECEL', 'AIRTELTIGO', 'VODAFONE'];
+     if (!validNetworks.includes(network.toUpperCase())) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid network. Supported: MTN, Telecel, AirtelTigo, Vodafone',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Check wallet balance
-    const wallet = await Wallet.findOne({ userId });
-    if (!wallet || wallet.balance < amount) {
-      return res.status(400).json({ error: 'Insufficient wallet balance' });
-    }
+     // Check wallet balance
+     const wallet = await Wallet.findOne({ userId });
+     if (!wallet || wallet.balance < amount) {
+       return res.status(400).json({
+         success: false,
+         message: 'Insufficient wallet balance',
+         error: { code: 'INSUFFICIENT_BALANCE' }
+       });
+     }
 
     const balanceBefore = wallet.balance;
     const clientReference = HubtelTransferService.generateClientReference('AIRTIME');
@@ -62,7 +90,11 @@ router.post('/airtime', authenticate, async (req, res) => {
     );
 
     if (!updatedWallet) {
-      return res.status(400).json({ error: 'Insufficient balance' });
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient balance',
+        error: { code: 'INSUFFICIENT_BALANCE' }
+      });
     }
 
     // Create transaction record
@@ -121,7 +153,14 @@ router.post('/airtime', authenticate, async (req, res) => {
 
   } catch (error) {
     console.error('[Transfer] Buy Airtime Error:', error);
-    res.status(500).json({ error: error.message || 'Failed to buy airtime' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to buy airtime',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -134,39 +173,67 @@ router.post('/data', authenticate, async (req, res) => {
     const userId = req.user.userId;
     const { phoneNumber, network, bundleCode, price } = req.body;
 
-    // Server-side validation
-    if (!phoneNumber) {
-      return res.status(400).json({ error: 'Phone number is required' });
-    }
-    if (!network) {
-      return res.status(400).json({ error: 'Network is required' });
-    }
-    if (!bundleCode) {
-      return res.status(400).json({ error: 'Data bundle code is required' });
-    }
-    if (!price || price <= 0) {
-      return res.status(400).json({ error: 'Bundle price is required' });
-    }
+     // Server-side validation
+     if (!phoneNumber) {
+       return res.status(400).json({
+         success: false,
+         message: 'Phone number is required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
+     if (!network) {
+       return res.status(400).json({
+         success: false,
+         message: 'Network is required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
+     if (!bundleCode) {
+       return res.status(400).json({
+         success: false,
+         message: 'Data bundle code is required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
+     if (!price || price <= 0) {
+       return res.status(400).json({
+         success: false,
+         message: 'Bundle price is required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate network
-    const validNetworks = ['MTN', 'TELECEL', 'AIRTELTIGO', 'VODAFONE'];
-    if (!validNetworks.includes(network.toUpperCase())) {
-      return res.status(400).json({ error: 'Invalid network' });
-    }
+     // Validate network
+     const validNetworks = ['MTN', 'TELECEL', 'AIRTELTIGO', 'VODAFONE'];
+     if (!validNetworks.includes(network.toUpperCase())) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid network',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Get available bundles for validation
-    const bundles = HubtelTransferService.getDataBundles(network);
-    const selectedBundle = bundles.find(b => b.code === bundleCode);
-    
-    if (!selectedBundle) {
-      return res.status(400).json({ error: 'Invalid bundle code' });
-    }
+     // Get available bundles for validation
+     const bundles = HubtelTransferService.getDataBundles(network);
+     const selectedBundle = bundles.find(b => b.code === bundleCode);
+     
+     if (!selectedBundle) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid bundle code',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Check wallet balance
-    const wallet = await Wallet.findOne({ userId });
-    if (!wallet || wallet.balance < price) {
-      return res.status(400).json({ error: 'Insufficient wallet balance' });
-    }
+     // Check wallet balance
+     const wallet = await Wallet.findOne({ userId });
+     if (!wallet || wallet.balance < price) {
+       return res.status(400).json({
+         success: false,
+         message: 'Insufficient wallet balance',
+         error: { code: 'INSUFFICIENT_BALANCE' }
+       });
+     }
 
     const balanceBefore = wallet.balance;
     const clientReference = HubtelTransferService.generateClientReference('DATA');
@@ -182,7 +249,11 @@ router.post('/data', authenticate, async (req, res) => {
     );
 
     if (!updatedWallet) {
-      return res.status(400).json({ error: 'Insufficient balance' });
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient balance',
+        error: { code: 'INSUFFICIENT_BALANCE' }
+      });
     }
 
     // Create transaction record
@@ -244,7 +315,14 @@ router.post('/data', authenticate, async (req, res) => {
 
   } catch (error) {
     console.error('[Transfer] Buy Data Error:', error);
-    res.status(500).json({ error: error.message || 'Failed to buy data bundle' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to buy data bundle',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 

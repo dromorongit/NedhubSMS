@@ -16,7 +16,11 @@ const handleDeliveryStatusWebhook = async (req, res) => {
 
     // Validate webhook payload structure
     if (!webhookData || typeof webhookData !== 'object') {
-      return res.status(400).json({ error: 'Invalid webhook payload' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid webhook payload',
+        error: { code: 'INVALID_WEBHOOK_PAYLOAD' }
+      });
     }
 
     // Handle different possible payload formats from Nalo
@@ -32,7 +36,9 @@ const handleDeliveryStatusWebhook = async (req, res) => {
 
     if (!message_id || !status) {
       return res.status(400).json({
-        error: 'Missing required fields: message_id and status'
+        success: false,
+        message: 'Missing required fields: message_id and status',
+        error: { code: 'MISSING_REQUIRED_FIELDS' }
       });
     }
 
@@ -41,7 +47,10 @@ const handleDeliveryStatusWebhook = async (req, res) => {
 
     if (!normalizedStatus) {
       console.warn(`[Webhook] Unknown status received: ${status}`);
-      return res.status(200).json({ message: 'Unknown status ignored' });
+      return res.status(200).json({
+        success: true,
+        message: 'Unknown status ignored'
+      });
     }
 
     // Find and update the recipient
@@ -79,22 +88,36 @@ const handleDeliveryStatusWebhook = async (req, res) => {
     if (!result.success) {
       // If only recipient update failed but SmsMessage update succeeded, still return success
       if (message_id) {
-        return res.status(200).json({ message: 'Delivery status updated (via SmsMessage)' });
+        return res.status(200).json({
+          success: true,
+          message: 'Delivery status updated (via SmsMessage)'
+        });
       }
-      return res.status(500).json({ error: 'Failed to process delivery status update' });
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to process delivery status update',
+        error: { code: 'WEBHOOK_PROCESSING_FAILED' }
+      });
     }
 
     console.log(`[Webhook] Successfully updated recipient ${result.recipientId} to status ${normalizedStatus}`);
 
     res.status(200).json({
+      success: true,
       message: 'Delivery status updated successfully',
-      recipientId: result.recipientId,
-      status: normalizedStatus
+      data: {
+        recipientId: result.recipientId,
+        status: normalizedStatus
+      }
     });
 
   } catch (error) {
     console.error('[Webhook] Error processing delivery status:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: { code: 'INTERNAL_SERVER_ERROR', details: error.message }
+    });
   }
 };
 

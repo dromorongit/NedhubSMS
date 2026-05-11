@@ -11,28 +11,34 @@ router.post('/', authenticate, async (req, res) => {
     const { phoneNumber, reason, source = 'user' } = req.body;
     const userId = req.user.userId;
 
-    if (!phoneNumber || !reason) {
-      return res.status(400).json({
-        error: 'Phone number and reason are required'
-      });
-    }
+     if (!phoneNumber || !reason) {
+       return res.status(400).json({
+         success: false,
+         message: 'Phone number and reason are required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Normalize phone number
-    const normalizedPhoneNumber = SmsRecipientService.normalizePhoneNumber(phoneNumber);
+     // Normalize phone number
+     const normalizedPhoneNumber = SmsRecipientService.normalizePhoneNumber(phoneNumber);
 
-    if (!normalizedPhoneNumber) {
-      return res.status(400).json({
-        error: 'Invalid phone number format'
-      });
-    }
+     if (!normalizedPhoneNumber) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid phone number format',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Check if already blacklisted
-    const existing = await BlacklistedNumber.isBlacklisted(userId, normalizedPhoneNumber);
-    if (existing) {
-      return res.status(409).json({
-        error: 'Phone number is already blacklisted'
-      });
-    }
+     // Check if already blacklisted
+     const existing = await BlacklistedNumber.isBlacklisted(userId, normalizedPhoneNumber);
+     if (existing) {
+       return res.status(409).json({
+         success: false,
+         message: 'Phone number is already blacklisted',
+         error: { code: 'ALREADY_BLACKLISTED' }
+       });
+     }
 
     // Create blacklisted number
     const blacklistedNumber = new BlacklistedNumber({
@@ -63,7 +69,14 @@ router.post('/', authenticate, async (req, res) => {
 
   } catch (error) {
     console.error('Add to blacklist error:', error);
-    res.status(500).json({ error: 'Failed to add number to blacklist: ' + error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add number to blacklist',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 

@@ -4,6 +4,9 @@ const API_BASE_URL = 'http://localhost:3000/api';
 interface ApiResponse<T> {
   data?: T;
   error?: string;
+  status?: number;
+  isParseError?: boolean;
+  rawResponse?: string;
 }
 
 class ApiClient {
@@ -36,22 +39,58 @@ class ApiClient {
     }
 
     try {
+      console.log(`[API] ${method} ${url}`);
+      
       const response = await fetch(url, {
         method,
         headers,
-        body: data ? JSON.stringify(data) : undefined
+        body: data ? JSON.stringify(data) : undefined,
+        credentials: 'include'
       });
 
-      const result = await response.json();
+      console.log(`[API] Response status: ${response.status}`);
+      console.log(`[API] Response headers:`, {
+        'content-type': response.headers.get('content-type')
+      });
+
+      // Read response as text first for safe parsing
+      const responseText = await response.text();
+      console.log(`[API] Raw response preview:`, responseText.substring(0, 200));
+
+      let result: any;
+      let parseError = null;
+
+      if (responseText.trim()) {
+        try {
+          result = JSON.parse(responseText);
+        } catch (e) {
+          parseError = e;
+          console.error('[API] JSON parse error:', e instanceof Error ? e.message : String(e));
+          console.error('[API] Raw response that failed parsing:', responseText);
+          
+          // Return a structured error instead of crashing
+          return {
+            error: 'Invalid server response format',
+            status: response.status,
+            rawResponse: responseText.substring(0, 500),
+            isParseError: true
+          };
+        }
+      } else {
+        // Empty response
+        result = { message: 'Request successful with empty response' };
+      }
 
       if (!response.ok) {
-        return { error: result.error || 'Request failed' };
+        // Extract error message from parsed JSON or use default
+        const errorMessage = result?.error || result?.message || 'Request failed';
+        return { error: errorMessage, status: response.status, data: result };
       }
 
       return { data: result };
     } catch (error) {
-      console.error('API request error:', error);
-      return { error: 'Network error' };
+      console.error('[API] Request error:', error instanceof Error ? error.message : String(error));
+      return { error: 'Network error: ' + (error instanceof Error ? error.message : String(error)) };
     }
   }
 

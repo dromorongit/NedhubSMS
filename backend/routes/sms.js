@@ -24,19 +24,31 @@ router.post('/send', authenticate, async (req, res) => {
 
     // Validate input
     if (!senderId || !recipients || !message) {
-      return res.status(400).json({ error: 'Sender ID, recipients, and message are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Sender ID, recipients, and message are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Validate recipients format
     if (!Array.isArray(recipients) || recipients.length === 0) {
-      return res.status(400).json({ error: 'Recipients must be a non-empty array' });
+      return res.status(400).json({
+        success: false,
+        message: 'Recipients must be a non-empty array',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // NaloSmsService handles wallet deduction internally, so we don't need to deduct here
     // Check Nalo SMS balance
     const naloBalance = await checkBalance();
     if (naloBalance <= 0) {
-      return res.status(402).json({ error: 'Insufficient SMS balance with provider' });
+      return res.status(402).json({
+        success: false,
+        message: 'Insufficient SMS balance with provider',
+        error: { code: 'INSUFFICIENT_PROVIDER_BALANCE' }
+      });
     }
 
     // Normalize recipients: extract phoneNumber from either string or object format
@@ -103,18 +115,27 @@ router.post('/send', authenticate, async (req, res) => {
 
     res.json({
       success: failedCount === 0,
-      summary: {
-        total: recipients.length,
-        success: successCount,
-        failed: failedCount
-      },
-      results,
-      message: failedCount === 0 ? 'SMS sent successfully' : 'Some SMS failed to send'
+      message: failedCount === 0 ? 'SMS sent successfully' : 'Some SMS failed to send',
+      data: {
+        summary: {
+          total: recipients.length,
+          success: successCount,
+          failed: failedCount
+        },
+        results
+      }
     });
-  } catch (error) {
-      console.error('[SendSMS] Error:', error);
-      res.status(500).json({ error: error.message || 'Internal server error' });
-  }
+    } catch (error) {
+        console.error('[SendSMS] Error:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to send SMS',
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            details: error.message
+          }
+        });
+    }
 });
   
   // Schedule default SMS for future sending
@@ -144,14 +165,20 @@ router.post('/send', authenticate, async (req, res) => {
           hasScheduledAt: !!scheduledAt
         });
         return res.status(400).json({
-          error: 'Sender ID, recipients, message, and schedule time are required'
+          success: false,
+          message: 'Sender ID, recipients, message, and schedule time are required',
+          error: { code: 'VALIDATION_ERROR' }
         });
       }
   
       // Validate recipients format
       if (!Array.isArray(recipients) || recipients.length === 0) {
         logger.warn('[Schedule] Invalid recipients format', { userId, recipientsType: typeof recipients });
-        return res.status(400).json({ error: 'Recipients must be a non-empty array' });
+        return res.status(400).json({
+          success: false,
+          message: 'Recipients must be a non-empty array',
+          error: { code: 'VALIDATION_ERROR' }
+        });
       }
 
       // Enforce maximum recipient limit for safety
@@ -159,8 +186,9 @@ router.post('/send', authenticate, async (req, res) => {
       if (recipients.length > MAX_RECIPIENTS) {
         logger.warn('[Schedule] Recipient limit exceeded', { userId, count: recipients.length, limit: MAX_RECIPIENTS });
         return res.status(400).json({
-          error: `Maximum ${MAX_RECIPIENTS} recipients allowed per campaign`,
-          limit: MAX_RECIPIENTS
+          success: false,
+          message: `Maximum ${MAX_RECIPIENTS} recipients allowed per campaign`,
+          error: { code: 'VALIDATION_ERROR', limit: MAX_RECIPIENTS }
         });
       }
 
@@ -168,9 +196,13 @@ router.post('/send', authenticate, async (req, res) => {
       const scheduledUtc = new Date(scheduledAt);
       if (isNaN(scheduledUtc.getTime())) {
         logger.warn('[Schedule] Invalid scheduled time format', { userId, scheduledAt });
-        return res.status(400).json({ error: 'Invalid scheduled time format' });
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid scheduled time format',
+          error: { code: 'VALIDATION_ERROR' }
+        });
       }
-  
+   
       // Ensure scheduled time is in the future (using UTC)
       if (scheduledUtc <= new Date()) {
         logger.warn('[Schedule] Scheduled time must be in the future', {
@@ -179,7 +211,9 @@ router.post('/send', authenticate, async (req, res) => {
           now: new Date().toISOString()
         });
         return res.status(400).json({
-          error: 'Scheduled time must be in the future'
+          success: false,
+          message: 'Scheduled time must be in the future',
+          error: { code: 'VALIDATION_ERROR' }
         });
       }
 
@@ -189,7 +223,9 @@ router.post('/send', authenticate, async (req, res) => {
       if (!sender) {
         logger.warn('[Schedule] Sender ID validation failed', { userId, senderId });
         return res.status(400).json({
-          error: 'Sender ID not found or not approved. Please use an approved Sender ID.'
+          success: false,
+          message: 'Sender ID not found or not approved. Please use an approved Sender ID.',
+          error: { code: 'VALIDATION_ERROR' }
         });
       }
 
@@ -231,11 +267,15 @@ router.post('/send', authenticate, async (req, res) => {
           blacklistedCount: processedRecipients.blacklistedRecipients.length
         });
         return res.status(400).json({
-          error: 'No valid recipients found after processing',
-          details: {
-            duplicateCount: processedRecipients.duplicateCount,
-            invalidCount: processedRecipients.invalidRecipients.length,
-            blacklistedCount: processedRecipients.blacklistedRecipients.length
+          success: false,
+          message: 'No valid recipients found after processing',
+          error: {
+            code: 'NO_VALID_RECIPIENTS',
+            details: {
+              duplicateCount: processedRecipients.duplicateCount,
+              invalidCount: processedRecipients.invalidRecipients.length,
+              blacklistedCount: processedRecipients.blacklistedRecipients.length
+            }
           }
         });
       }
@@ -243,7 +283,11 @@ router.post('/send', authenticate, async (req, res) => {
       // Validate message length (max 160 characters)
       if (message.length > 160) {
         logger.warn('[Schedule] Message too long', { userId, length: message.length });
-        return res.status(400).json({ error: 'Message exceeds maximum length of 160 characters' });
+        return res.status(400).json({
+          success: false,
+          message: 'Message exceeds maximum length of 160 characters',
+          error: { code: 'VALIDATION_ERROR' }
+        });
       }
 
       // Check Nalo SMS balance
@@ -251,7 +295,11 @@ router.post('/send', authenticate, async (req, res) => {
       const naloBalance = await checkBalance();
       if (naloBalance <= 0) {
         logger.warn('[Schedule] Insufficient Nalo SMS balance', { userId });
-        return res.status(402).json({ error: 'Insufficient SMS balance with provider' });
+        return res.status(402).json({
+          success: false,
+          message: 'Insufficient SMS balance with provider',
+          error: { code: 'INSUFFICIENT_PROVIDER_BALANCE' }
+        });
       }
 
       // Calculate cost estimation based on valid recipients
@@ -280,9 +328,13 @@ router.post('/send', authenticate, async (req, res) => {
           available: availableBalance
         });
         return res.status(402).json({
-          error: 'Insufficient available balance',
-          required: costEstimation.estimatedCost,
-          available: availableBalance
+          success: false,
+          message: 'Insufficient available balance',
+          error: {
+            code: 'INSUFFICIENT_BALANCE',
+            required: costEstimation.estimatedCost,
+            available: availableBalance
+          }
         });
       }
 
@@ -374,18 +426,20 @@ router.post('/send', authenticate, async (req, res) => {
 
       res.status(201).json({
         success: true,
-        campaignId: campaign._id,
         message: 'Campaign scheduled successfully',
-        scheduledAt: scheduledUtc.toISOString(),
-        timezone: timezone || 'UTC',
-        jobId: job.id,
-        estimatedCost: costEstimation.estimatedCost,
-        recipientCount: processedRecipients.originalCount,
-        validRecipientCount: processedRecipients.finalCount,
-        invalidRecipientCount: processedRecipients.invalidRecipients.length,
-        blacklistedCount: processedRecipients.blacklistedRecipients.length,
-        duplicateCount: processedRecipients.duplicateCount,
-        reservationId: reservation._id
+        data: {
+          campaignId: campaign._id,
+          scheduledAt: scheduledUtc.toISOString(),
+          timezone: timezone || 'UTC',
+          jobId: job.id,
+          estimatedCost: costEstimation.estimatedCost,
+          recipientCount: processedRecipients.originalCount,
+          validRecipientCount: processedRecipients.finalCount,
+          invalidRecipientCount: processedRecipients.invalidRecipients.length,
+          blacklistedCount: processedRecipients.blacklistedRecipients.length,
+          duplicateCount: processedRecipients.duplicateCount,
+          reservationId: reservation._id
+        }
       });
   
     } catch (error) {
@@ -434,7 +488,14 @@ router.post('/send', authenticate, async (req, res) => {
         error: error.message,
         stack: error.stack
       });
-      res.status(500).json({ error: 'Failed to schedule SMS: ' + error.message });
+      res.status(500).json({
+        success: false,
+        message: 'Failed to schedule SMS',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message
+        }
+      });
     }
   });
 
@@ -504,10 +565,17 @@ router.get('/logs', authenticate, async (req, res) => {
       ...recipients.map(msg => transformMessage(msg, 'recipient'))
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
-    res.json(allMessages);
+     res.json(allMessages);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve message logs',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -519,13 +587,21 @@ router.get('/calculate-cost', authenticate, async (req, res) => {
 
     // Validate input
     if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Message is required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     const recipientCount = parseInt(recipients) || 1;
 
     if (recipientCount < 1 || recipientCount > 10000) {
-      return res.status(400).json({ error: 'Recipient count must be between 1 and 10000' });
+      return res.status(400).json({
+        success: false,
+        message: 'Recipient count must be between 1 and 10000',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Prepare personalization data if provided
@@ -542,10 +618,21 @@ router.get('/calculate-cost', authenticate, async (req, res) => {
       Object.keys(personalizationData).length > 0 ? personalizationData : null
     );
 
-    res.json(costEstimation);
+    res.json({
+      success: true,
+      message: 'Cost calculated successfully',
+      data: costEstimation
+    });
   } catch (error) {
     console.error('Cost calculation error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to calculate cost',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -575,12 +662,16 @@ router.post('/callback', async (req, res) => {
 // Resend a failed message
 router.post('/resend', authenticate, async (req, res) => {
   try {
-    const { messageId } = req.body;
-    const userId = req.user.userId;
+     const { messageId } = req.body;
+     const userId = req.user.userId;
 
-    if (!messageId) {
-      return res.status(400).json({ error: 'Message ID is required' });
-    }
+     if (!messageId) {
+       return res.status(400).json({
+         success: false,
+         message: 'Message ID is required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
     // Try to find the message in all three models
     let message = await Message.findByUserId(userId).find(m => m._id.toString() === messageId);
@@ -600,9 +691,13 @@ router.post('/resend', authenticate, async (req, res) => {
       source = 'recipient';
     }
 
-    if (!messageData) {
-      return res.status(404).json({ error: 'Message not found' });
-    }
+     if (!messageData) {
+       return res.status(404).json({
+         success: false,
+         message: 'Message not found',
+         error: { code: 'NOT_FOUND' }
+       });
+     }
 
     // Extract message details based on source
     let senderId, recipient, messageText;
@@ -621,16 +716,24 @@ router.post('/resend', authenticate, async (req, res) => {
       messageText = messageData.personalizedMessage;
     }
 
-    if (!senderId || !recipient || !messageText) {
-      return res.status(400).json({ error: 'Incomplete message data. Cannot resend.' });
-    }
+     if (!senderId || !recipient || !messageText) {
+       return res.status(400).json({
+         success: false,
+         message: 'Incomplete message data. Cannot resend.',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Check wallet balance
-    const User = require('../models/User');
-    const user = await User.findById(userId);
-    if (!user || user.walletBalance <= 0) {
-      return res.status(402).json({ error: 'Insufficient wallet balance. Please top up your wallet.' });
-    }
+     // Check wallet balance
+     const User = require('../models/User');
+     const user = await User.findById(userId);
+     if (!user || user.walletBalance <= 0) {
+       return res.status(402).json({
+         success: false,
+         message: 'Insufficient wallet balance. Please top up your wallet.',
+         error: { code: 'INSUFFICIENT_BALANCE' }
+       });
+     }
 
     // Resend the message using NaloSmsService
     const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
@@ -641,20 +744,33 @@ router.post('/resend', authenticate, async (req, res) => {
       recipientsCount: 1
     });
 
-    if (smsResult.success) {
-      res.json({
-        success: true,
-        message: 'Message resent successfully',
-        newMessageId: smsResult.messageId,
-        jobId: smsResult.jobId
-      });
-    } else {
-      res.status(400).json({ error: smsResult.error || 'Failed to resend message' });
-    }
-  } catch (error) {
-    console.error('Resend message error:', error);
-    res.status(500).json({ error: error.message || 'Failed to resend message' });
-  }
+     if (smsResult.success) {
+       res.json({
+         success: true,
+         message: 'Message resent successfully',
+         data: {
+           newMessageId: smsResult.messageId,
+           jobId: smsResult.jobId
+         }
+       });
+     } else {
+       res.status(400).json({
+         success: false,
+         message: smsResult.error || 'Failed to resend message',
+         error: { code: 'SMS_SEND_FAILED' }
+       });
+     }
+   } catch (error) {
+     console.error('Resend message error:', error);
+     res.status(500).json({
+       success: false,
+       message: 'Failed to resend message',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Schedule default SMS campaign (bulk messaging)
@@ -663,33 +779,51 @@ router.post('/schedule', authenticate, async (req, res) => {
     const { senderId, recipients, message, scheduledAt, timezone = 'UTC' } = req.body;
     const userId = req.user.userId;
 
-    // Validate required fields
-    if (!senderId || !recipients || !message || !scheduledAt) {
-      return res.status(400).json({
-        error: 'Sender ID, recipients, message, and schedule time are required'
-      });
-    }
+     // Validate required fields
+     if (!senderId || !recipients || !message || !scheduledAt) {
+       return res.status(400).json({
+         success: false,
+         message: 'Sender ID, recipients, message, and schedule time are required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate recipients format
-    if (!Array.isArray(recipients) || recipients.length === 0) {
-      return res.status(400).json({ error: 'Recipients must be a non-empty array' });
-    }
+     // Validate recipients format
+     if (!Array.isArray(recipients) || recipients.length === 0) {
+       return res.status(400).json({
+         success: false,
+         message: 'Recipients must be a non-empty array',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate scheduled time
-    const scheduleDate = new Date(scheduledAt);
-    if (isNaN(scheduleDate.getTime())) {
-      return res.status(400).json({ error: 'Invalid scheduled time format' });
-    }
-    if (scheduleDate <= new Date()) {
-      return res.status(400).json({ error: 'Scheduled time must be in the future' });
-    }
+     // Validate scheduled time
+     const scheduleDate = new Date(scheduledAt);
+     if (isNaN(scheduleDate.getTime())) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid scheduled time format',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
+     if (scheduleDate <= new Date()) {
+       return res.status(400).json({
+         success: false,
+         message: 'Scheduled time must be in the future',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate sender ID
-    const SenderId = require('../models/SenderId');
-    const validSender = await SenderId.findOne({ senderId, userId, status: 'approved' });
-    if (!validSender) {
-      return res.status(400).json({ error: 'Invalid or unapproved Sender ID' });
-    }
+     // Validate sender ID
+     const SenderId = require('../models/SenderId');
+     const validSender = await SenderId.findOne({ senderId, userId, status: 'approved' });
+     if (!validSender) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid or unapproved Sender ID',
+         error: { code: 'INVALID_SENDER_ID' }
+       });
+     }
 
     // Normalize and validate recipients using canonical schema
     const naloSmsService = new (require('../services/NaloSmsService'))();

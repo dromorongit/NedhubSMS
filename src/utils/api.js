@@ -58,12 +58,42 @@ class ApiClient {
       }
 
       console.log(`[API] Response status: ${response.status}`);
-      
-      const result = await response.json();
-      console.log(`[API] Response data:`, result);
+      console.log(`[API] Response headers:`, {
+        'content-type': response.headers.get('content-type')
+      });
+
+      // Read response as text first for safe parsing
+      const responseText = await response.text();
+      console.log(`[API] Raw response preview:`, responseText.substring(0, 200));
+
+      let result;
+      let parseError = null;
+
+      if (responseText.trim()) {
+        try {
+          result = JSON.parse(responseText);
+        } catch (e) {
+          parseError = e;
+          console.error('[API] JSON parse error:', e.message);
+          console.error('[API] Raw response that failed parsing:', responseText);
+          
+          // Return a structured error instead of crashing
+          return {
+            error: 'Invalid server response format',
+            status: response.status,
+            rawResponse: responseText.substring(0, 500),
+            isParseError: true
+          };
+        }
+      } else {
+        // Empty response
+        result = { message: 'Request successful with empty response' };
+      }
 
       if (!response.ok) {
-        return { error: result.error || 'Request failed', status: response.status };
+        // Extract error message from parsed JSON or use default
+        const errorMessage = result?.error || result?.message || 'Request failed';
+        return { error: errorMessage, status: response.status, data: result };
       }
 
       return { data: result };

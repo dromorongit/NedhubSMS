@@ -27,7 +27,9 @@ router.post('/preview-personalized', authenticate, async (req, res) => {
     // Validate required fields
     if (!messageBody || !Array.isArray(sampleRecipients) || sampleRecipients.length === 0) {
       return res.status(400).json({
-        error: 'Message body and sample recipients are required'
+        success: false,
+        message: 'Message body and sample recipients are required',
+        error: { code: 'VALIDATION_ERROR' }
       });
     }
 
@@ -35,8 +37,12 @@ router.post('/preview-personalized', authenticate, async (req, res) => {
     const validation = MessagePersonalizationService.validateMessageTemplate(messageBody);
     if (!validation.isValid) {
       return res.status(400).json({
-        error: 'Invalid message template',
-        details: validation.errors
+        success: false,
+        message: 'Invalid message template',
+        error: {
+          code: 'VALIDATION_ERROR',
+          details: validation.errors
+        }
       });
     }
 
@@ -55,7 +61,14 @@ router.post('/preview-personalized', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Preview error:', error);
-    res.status(500).json({ error: 'Failed to generate preview: ' + error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate preview',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -84,7 +97,9 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
     // Validate required fields
     if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
       return res.status(400).json({
-        error: 'Title, message body, recipients, and sender ID are required'
+        success: false,
+        message: 'Title, message body, recipients, and sender ID are required',
+        error: { code: 'VALIDATION_ERROR' }
       });
     }
 
@@ -92,8 +107,12 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
     const validation = MessagePersonalizationService.validateMessageTemplate(messageBody);
     if (!validation.isValid) {
       return res.status(400).json({
-        error: 'Invalid message template',
-        details: validation.errors
+        success: false,
+        message: 'Invalid message template',
+        error: {
+          code: 'VALIDATION_ERROR',
+          details: validation.errors
+        }
       });
     }
 
@@ -163,7 +182,14 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('[Campaign] Preview error:', error);
-    res.status(500).json({ error: 'Failed to generate campaign preview: ' + error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate campaign preview',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -193,7 +219,9 @@ router.post('/send', authenticate, async (req, res) => {
     // Validate required fields
     if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
       return res.status(400).json({
-        error: 'Title, message body, recipients, and sender ID are required'
+        success: false,
+        message: 'Title, message body, recipients, and sender ID are required',
+        error: { code: 'VALIDATION_ERROR' }
       });
     }
 
@@ -201,8 +229,12 @@ router.post('/send', authenticate, async (req, res) => {
     const validation = MessagePersonalizationService.validateMessageTemplate(messageBody);
     if (!validation.isValid) {
       return res.status(400).json({
-        error: 'Invalid message template',
-        details: validation.errors
+        success: false,
+        message: 'Invalid message template',
+        error: {
+          code: 'VALIDATION_ERROR',
+          details: validation.errors
+        }
       });
     }
 
@@ -234,11 +266,15 @@ router.post('/send', authenticate, async (req, res) => {
     if (processedRecipients.finalCount === 0) {
       console.log('[DEBUG] No valid recipients found - returning 400 error');
       return res.status(400).json({
-        error: 'No valid recipients found after processing. All recipients were either duplicates, invalid, or blacklisted.',
-        details: {
-          duplicateCount: processedRecipients.duplicateCount,
-          invalidCount: processedRecipients.invalidRecipients.length,
-          blacklistedCount: processedRecipients.blacklistedRecipients.length
+        success: false,
+        message: 'No valid recipients found after processing. All recipients were either duplicates, invalid, or blacklisted.',
+        error: {
+          code: 'NO_VALID_RECIPIENTS',
+          details: {
+            duplicateCount: processedRecipients.duplicateCount,
+            invalidCount: processedRecipients.invalidRecipients.length,
+            blacklistedCount: processedRecipients.blacklistedRecipients.length
+          }
         }
       });
     }
@@ -368,17 +404,20 @@ router.post('/send', authenticate, async (req, res) => {
 
     res.json({
       success: successCount > 0,
-      campaignId: campaign._id,
-      summary: {
-        total: processedRecipients.finalCount,
-        success: successCount,
-        failed: processedRecipients.finalCount - successCount,
-        duplicatesRemoved: processedRecipients.duplicateCount,
-        invalidRemoved: processedRecipients.invalidRecipients.length,
-        blacklistedRemoved: processedRecipients.blacklistedRecipients.length
-      },
-      totalCost,
-      results
+      message: successCount > 0 ? 'Campaign sent successfully' : 'Campaign failed to send',
+      data: {
+        campaignId: campaign._id,
+        summary: {
+          total: processedRecipients.finalCount,
+          success: successCount,
+          failed: processedRecipients.finalCount - successCount,
+          duplicatesRemoved: processedRecipients.duplicateCount,
+          invalidRemoved: processedRecipients.invalidRecipients.length,
+          blacklistedRemoved: processedRecipients.blacklistedRecipients.length
+        },
+        totalCost,
+        results
+      }
     });
 
   } catch (error) {
@@ -436,14 +475,20 @@ router.post('/schedule', authenticate, async (req, res) => {
     if (!sender) {
       logger.warn('[Schedule] Sender ID validation failed', { userId, senderId });
       return res.status(400).json({
-        error: 'Sender ID not found or not approved. Please use an approved Sender ID.'
+        success: false,
+        message: 'Sender ID not found or not approved. Please use an approved Sender ID.',
+        error: { code: 'VALIDATION_ERROR' }
       });
     }
 
     // Validate message body length (max 160 characters)
     if (messageBody.length > 160) {
       logger.warn('[Schedule] Message too long', { userId, length: messageBody.length });
-      return res.status(400).json({ error: 'Message exceeds maximum length of 160 characters' });
+      return res.status(400).json({
+        success: false,
+        message: 'Message exceeds maximum length of 160 characters',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Validate scheduled time
@@ -451,7 +496,9 @@ router.post('/schedule', authenticate, async (req, res) => {
     if (isNaN(scheduleDate.getTime())) {
       logger.warn('[Schedule] Invalid scheduled time format', { userId, scheduledAt });
       return res.status(400).json({
-        error: 'Invalid scheduled time format'
+        success: false,
+        message: 'Invalid scheduled time format',
+        error: { code: 'VALIDATION_ERROR' }
       });
     }
     if (scheduleDate <= new Date()) {
@@ -461,7 +508,9 @@ router.post('/schedule', authenticate, async (req, res) => {
         now: new Date().toISOString()
       });
       return res.status(400).json({
-        error: 'Scheduled time must be in the future'
+        success: false,
+        message: 'Scheduled time must be in the future',
+        error: { code: 'VALIDATION_ERROR' }
       });
     }
 
@@ -469,8 +518,12 @@ router.post('/schedule', authenticate, async (req, res) => {
     const validation = MessagePersonalizationService.validateMessageTemplate(messageBody);
     if (!validation.isValid) {
       return res.status(400).json({
-        error: 'Invalid message template',
-        details: validation.errors
+        success: false,
+        message: 'Invalid message template',
+        error: {
+          code: 'VALIDATION_ERROR',
+          details: validation.errors
+        }
       });
     }
 
@@ -520,8 +573,13 @@ router.post('/schedule', authenticate, async (req, res) => {
     const availableBalance = await WalletService.getAvailableBalance(userId);
     if (availableBalance < costEstimation.estimatedCost) {
       return res.status(402).json({
-        error: 'Insufficient available balance',
-        required: costEstimation.estimatedCost
+        success: false,
+        message: 'Insufficient available balance',
+        error: {
+          code: 'INSUFFICIENT_BALANCE',
+          required: costEstimation.estimatedCost,
+          available: availableBalance
+        }
       });
     }
 
@@ -622,24 +680,26 @@ router.post('/schedule', authenticate, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      campaignId: campaign._id,
       message: 'Campaign scheduled successfully',
-      scheduledAt: scheduleDate.toISOString(),
-      timezone: timezone || 'UTC',
-      jobId: job.id,
-      estimatedCost: costEstimation.estimatedCost,
-      recipientCount: processedRecipients.originalCount,
-      validRecipientCount: processedRecipients.finalCount,
-      invalidRecipientCount: processedRecipients.invalidRecipients.length,
-      blacklistedCount: processedRecipients.blacklistedRecipients.length,
-      duplicateCount: processedRecipients.duplicateCount,
-      reservationId: reservation._id,
-      processingSummary: {
-        originalCount: processedRecipients.originalCount,
-        duplicatesRemoved: processedRecipients.duplicateCount,
-        invalidRemoved: processedRecipients.invalidRecipients.length,
-        blacklistedRemoved: processedRecipients.blacklistedRecipients.length,
-        finalCount: processedRecipients.finalCount
+      data: {
+        campaignId: campaign._id,
+        scheduledAt: scheduleDate.toISOString(),
+        timezone: timezone || 'UTC',
+        jobId: job.id,
+        estimatedCost: costEstimation.estimatedCost,
+        recipientCount: processedRecipients.originalCount,
+        validRecipientCount: processedRecipients.finalCount,
+        invalidRecipientCount: processedRecipients.invalidRecipients.length,
+        blacklistedCount: processedRecipients.blacklistedRecipients.length,
+        duplicateCount: processedRecipients.duplicateCount,
+        reservationId: reservation._id,
+        processingSummary: {
+          originalCount: processedRecipients.originalCount,
+          duplicatesRemoved: processedRecipients.duplicateCount,
+          invalidRemoved: processedRecipients.invalidRecipients.length,
+          blacklistedRemoved: processedRecipients.blacklistedRecipients.length,
+          finalCount: processedRecipients.finalCount
+        }
       }
     });
 
@@ -687,7 +747,14 @@ router.post('/schedule', authenticate, async (req, res) => {
       error: error.message,
       stack: error.stack
     });
-    res.status(500).json({ error: 'Failed to schedule campaign: ' + error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to schedule campaign',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -699,11 +766,21 @@ router.get('/scheduled', authenticate, async (req, res) => {
     const campaigns = await SmsCampaign.findByUserId(userId);
     const scheduledCampaigns = campaigns.filter(c => c.status === 'scheduled' || c.scheduledAt > new Date());
 
-    res.json(scheduledCampaigns);
-  } catch (error) {
-    console.error('Get scheduled campaigns error:', error);
-    res.status(500).json({ error: 'Failed to fetch scheduled campaigns' });
-  }
+    res.json({
+      success: true,
+      data: scheduledCampaigns
+    });
+   } catch (error) {
+     console.error('Get scheduled campaigns error:', error);
+     res.status(500).json({
+       success: false,
+       message: 'Failed to fetch scheduled campaigns',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Update scheduled campaign
@@ -716,18 +793,30 @@ router.patch('/scheduled/:id', authenticate, async (req, res) => {
     const campaign = await SmsCampaign.findOne({ _id: campaignId, userId });
 
     if (!campaign) {
-      return res.status(404).json({ error: 'Campaign not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Campaign not found',
+        error: { code: 'NOT_FOUND' }
+      });
     }
 
     if (!campaign.canBeCancelled()) {
-      return res.status(400).json({ error: 'Campaign cannot be modified' });
+      return res.status(400).json({
+        success: false,
+        message: 'Campaign cannot be modified',
+        error: { code: 'INVALID_STATE' }
+      });
     }
 
     // Validate new schedule time if provided
     if (updates.scheduledAt) {
       const newScheduleDate = new Date(updates.scheduledAt);
       if (newScheduleDate <= new Date()) {
-        return res.status(400).json({ error: 'New scheduled time must be in the future' });
+        return res.status(400).json({
+          success: false,
+          message: 'New scheduled time must be in the future',
+          error: { code: 'VALIDATION_ERROR' }
+        });
       }
       updates.scheduledAt = newScheduleDate;
     }
@@ -742,13 +831,21 @@ router.patch('/scheduled/:id', authenticate, async (req, res) => {
 
     res.json({
       success: true,
-      campaign
+      message: 'Campaign updated successfully',
+      data: { campaign }
     });
 
-  } catch (error) {
-    console.error('Update scheduled campaign error:', error);
-    res.status(500).json({ error: 'Failed to update campaign' });
-  }
+   } catch (error) {
+     console.error('Update scheduled campaign error:', error);
+     res.status(500).json({
+       success: false,
+       message: 'Failed to update campaign',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Cancel scheduled campaign
@@ -760,11 +857,19 @@ router.delete('/scheduled/:id', authenticate, async (req, res) => {
     const campaign = await SmsCampaign.findOne({ _id: campaignId, userId });
 
     if (!campaign) {
-      return res.status(404).json({ error: 'Campaign not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Campaign not found',
+        error: { code: 'NOT_FOUND' }
+      });
     }
 
     if (!campaign.canBeCancelled()) {
-      return res.status(400).json({ error: 'Campaign cannot be cancelled' });
+      return res.status(400).json({
+        success: false,
+        message: 'Campaign cannot be cancelled',
+        error: { code: 'INVALID_STATE' }
+      });
     }
 
     await SmsSchedulerService.cancelScheduledCampaign(campaignId);
@@ -781,13 +886,21 @@ router.delete('/scheduled/:id', authenticate, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Campaign cancelled successfully'
+      message: 'Campaign cancelled successfully',
+      data: { campaignId: campaignId }
     });
 
-  } catch (error) {
-    console.error('Cancel campaign error:', error);
-    res.status(500).json({ error: 'Failed to cancel campaign' });
-  }
+   } catch (error) {
+     console.error('Cancel campaign error:', error);
+     res.status(500).json({
+       success: false,
+       message: 'Failed to cancel campaign',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Retry failed recipients from a campaign
@@ -798,11 +911,22 @@ router.post('/:id/retry-failed', authenticate, async (req, res) => {
 
     const result = await SmsCampaignRetryService.retryFailedRecipients(campaignId, userId);
 
-    res.json(result);
-  } catch (error) {
-    console.error('Retry failed recipients error:', error);
-    res.status(500).json({ error: error.message || 'Failed to retry failed recipients' });
-  }
+    res.json({
+      success: true,
+      message: 'Retry operation completed',
+      data: result
+    });
+   } catch (error) {
+     console.error('Retry failed recipients error:', error);
+     res.status(500).json({
+       success: false,
+       message: 'Failed to retry failed recipients',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Duplicate campaign with failed recipients
@@ -813,10 +937,21 @@ router.post('/:id/duplicate', authenticate, async (req, res) => {
 
     const result = await SmsCampaignRetryService.duplicateCampaignWithFailed(campaignId, userId);
 
-    res.json(result);
+    res.json({
+      success: true,
+      message: 'Campaign duplicated successfully',
+      data: result
+    });
   } catch (error) {
     console.error('Duplicate campaign error:', error);
-    res.status(500).json({ error: error.message || 'Failed to duplicate campaign with failed recipients' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to duplicate campaign with failed recipients',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 

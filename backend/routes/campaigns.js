@@ -17,13 +17,21 @@ router.post('/', authenticate, async (req, res) => {
 
     // Validate input
     if (!name || !senderId || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
-      return res.status(400).json({ error: 'Name, sender ID, and recipients are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Name, sender ID, and recipients are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Check if Sender ID is approved
     const senderIdDoc = await SenderId.findOne({ userId, senderId });
     if (!senderIdDoc || !senderIdDoc.isApproved()) {
-      return res.status(400).json({ error: 'Sender ID is not approved' });
+      return res.status(400).json({
+        success: false,
+        message: 'Sender ID is not approved',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Get message content (from template or custom)
@@ -31,11 +39,19 @@ router.post('/', authenticate, async (req, res) => {
     if (templateId) {
       const template = await Template.findOne({ _id: templateId, userId });
       if (!template) {
-        return res.status(400).json({ error: 'Template not found' });
+        return res.status(400).json({
+          success: false,
+          message: 'Template not found',
+          error: { code: 'NOT_FOUND' }
+        });
       }
       messageContent = template.content;
     } else if (!customMessage) {
-      return res.status(400).json({ error: 'Either template ID or custom message is required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Either template ID or custom message is required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
 
     // Calculate cost
@@ -46,13 +62,25 @@ router.post('/', authenticate, async (req, res) => {
       await deductCredits(userId, cost, `Campaign: ${name}`);
     } catch (error) {
       if (error.message === 'Insufficient balance') {
-        return res.status(402).json({ error: 'Insufficient wallet balance' });
+        return res.status(402).json({
+          success: false,
+          message: 'Insufficient wallet balance',
+          error: { code: 'INSUFFICIENT_BALANCE' }
+        });
       }
       if (error.message === 'Daily SMS limit reached') {
-        return res.status(429).json({ error: 'Daily SMS limit reached' });
+        return res.status(429).json({
+          success: false,
+          message: 'Daily SMS limit reached',
+          error: { code: 'DAILY_LIMIT_EXCEEDED' }
+        });
       }
       if (error.message === 'Monthly SMS limit reached') {
-        return res.status(429).json({ error: 'Monthly SMS limit reached' });
+        return res.status(429).json({
+          success: false,
+          message: 'Monthly SMS limit reached',
+          error: { code: 'MONTHLY_LIMIT_EXCEEDED' }
+        });
       }
       throw error;
     }
@@ -107,10 +135,13 @@ router.post('/', authenticate, async (req, res) => {
         }
 
         res.json({
+          success: true,
           message: 'Campaign sent successfully',
-          campaignId: campaign._id,
-          cost,
-          recipientsCount: recipients.length
+          data: {
+            campaignId: campaign._id,
+            cost,
+            recipientsCount: recipients.length
+          }
         });
       } catch (error) {
         // Update campaign status to failed
@@ -118,18 +149,26 @@ router.post('/', authenticate, async (req, res) => {
         await campaign.save();
         
         console.error('Campaign sending failed:', error);
-        res.status(500).json({ 
-          error: 'Failed to send campaign',
-          campaignId: campaign._id
-        });
+         res.status(500).json({
+           success: false,
+           message: 'Failed to send campaign',
+           error: {
+             code: 'INTERNAL_SERVER_ERROR',
+             details: error.message
+           },
+           data: { campaignId: campaign._id }
+         });
       }
     } else {
       res.json({
+        success: true,
         message: 'Campaign scheduled successfully',
-        campaignId: campaign._id,
-        scheduledAt: campaign.scheduledAt,
-        cost,
-        recipientsCount: recipients.length
+        data: {
+          campaignId: campaign._id,
+          scheduledAt: campaign.scheduledAt,
+          cost,
+          recipientsCount: recipients.length
+        }
       });
     }
   } catch (error) {
@@ -144,10 +183,20 @@ router.get('/', authenticate, async (req, res) => {
     const userId = req.user.userId;
     const campaigns = await SmsCampaign.findByUserId(userId);
 
-    res.json(campaigns);
+    res.json({
+      success: true,
+      data: campaigns
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'An unexpected error occurred',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -160,13 +209,27 @@ router.get('/:id', authenticate, async (req, res) => {
     const campaign = await SmsCampaign.findOne({ _id: id, userId });
 
     if (!campaign) {
-      return res.status(404).json({ error: 'Campaign not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Campaign not found',
+        error: { code: 'NOT_FOUND' }
+      });
     }
 
-    res.json(campaign);
+    res.json({
+      success: true,
+      data: campaign
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'An unexpected error occurred',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 

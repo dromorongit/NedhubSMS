@@ -86,28 +86,33 @@ router.get('/', authenticate, async (req, res) => {
     const deliveryRate = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
 
     res.json({
-      balance,
-      availableBalance,
-      smsBalance: availableBalance,
-      reservedAmount,
-      currency: 'GHS',
-      stats: {
-        totalSent,
-        totalDelivered,
-        totalFailed,
-        deliveryRate
-      },
-      debug: {
-        messageData,
-        smsMessageData,
-        recipientData
-      },
-      message: 'Wallet balance retrieved successfully'
+      success: true,
+      message: 'Wallet balance retrieved successfully',
+      data: {
+        balance,
+        availableBalance,
+        smsBalance: availableBalance,
+        reservedAmount,
+        currency: 'GHS',
+        stats: {
+          totalSent,
+          totalDelivered,
+          totalFailed,
+          deliveryRate
+        }
+      }
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve wallet balance',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message
+        }
+      });
+    }
 });
 
 // Credit wallet (Admin only)
@@ -118,19 +123,33 @@ router.post('/topup', authenticate, authorize(['admin']), async (req, res) => {
     
     // Validate input
     if (!userId || !amount || amount <= 0) {
-      return res.status(400).json({ error: 'User ID and positive amount are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and positive amount are required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
     }
     
     await Wallet.credit(userId, amount, description || 'Manual top-up', adminId);
     
-    res.json({ 
+    res.json({
+      success: true,
       message: 'Wallet credited successfully',
-      amount,
-      userId
+      data: {
+        amount,
+        userId
+      }
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -147,29 +166,39 @@ router.get('/transactions', authenticate, async (req, res) => {
     
     const total = await Transaction.countDocuments({ userId });
 
-    res.json({ 
-      transactions: transactions.map(tx => ({
-        id: tx._id,
-        type: tx.type,
-        amount: tx.amount,
-        description: tx.description,
-        reference: tx.reference,
-        balanceBefore: tx.balanceBefore,
-        balanceAfter: tx.balanceAfter,
-        createdAt: tx.createdAt
-      })),
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      },
-      message: 'Transaction history retrieved successfully'
+    res.json({
+      success: true,
+      message: 'Transaction history retrieved successfully',
+      data: {
+        transactions: transactions.map(tx => ({
+          id: tx._id,
+          type: tx.type,
+          amount: tx.amount,
+          description: tx.description,
+          reference: tx.reference,
+          balanceBefore: tx.balanceBefore,
+          balanceAfter: tx.balanceAfter,
+          createdAt: tx.createdAt
+        })),
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve wallet balance',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message
+        }
+      });
+    }
 });
 
 module.exports = router;

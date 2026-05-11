@@ -2,28 +2,44 @@ const { verifyToken } = require('../utils/auth');
 
 const authenticate = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
-  
+   
   if (!token) {
-    return res.status(401).json({ error: 'No token provided, authorization denied' });
+    return res.status(401).json({
+      success: false,
+      message: 'No token provided, authorization denied',
+      error: { code: 'UNAUTHORIZED' }
+    });
   }
-  
+   
   try {
     const decoded = verifyToken(token);
     if (!decoded) {
-      return res.status(401).json({ error: 'Token is not valid' });
+      return res.status(401).json({
+        success: false,
+        message: 'Token is not valid',
+        error: { code: 'INVALID_TOKEN' }
+      });
     }
     
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Token is not valid' });
+    return res.status(401).json({
+      success: false,
+      message: 'Token is not valid',
+      error: { code: 'INVALID_TOKEN' }
+    });
   }
 };
 
 const authorize = (roles = []) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Access denied' });
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied',
+        error: { code: 'FORBIDDEN' }
+      });
     }
     next();
   };

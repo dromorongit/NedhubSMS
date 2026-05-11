@@ -39,39 +39,64 @@ router.get('/users', authorize(['admin', 'super_admin']), async (req, res) => {
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
 
-    const total = await User.countDocuments(query);
+     const total = await User.countDocuments(query);
 
-    res.json({
-      users,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      total
-    });
+     res.json({
+       success: true,
+       message: 'Users retrieved successfully',
+       data: {
+         users,
+         pagination: {
+           totalPages: Math.ceil(total / limit),
+           currentPage: parseInt(page),
+           total
+         }
+       }
+     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch users' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
 router.patch('/users/:id/status', authorize(['admin', 'super_admin']), async (req, res) => {
   try {
-    const { status } = req.body;
-    if (!['active', 'suspended'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
-    }
+     const { status } = req.body;
+     if (!['active', 'suspended'].includes(status)) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid status',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).select('-password');
+     const user = await User.findByIdAndUpdate(
+       req.params.id,
+       { status },
+       { new: true }
+     ).select('-password');
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+     if (!user) {
+       return res.status(404).json({
+         success: false,
+         message: 'User not found',
+         error: { code: 'NOT_FOUND' }
+       });
+     }
 
-    await logAction(req.user.id, 'update_user_status', 'user', user._id, { status });
+     await logAction(req.user.id, 'update_user_status', 'user', user._id, { status });
 
-    res.json(user);
+     res.json({
+       success: true,
+       message: 'User status updated successfully',
+       data: user
+     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update user status' });
   }
@@ -79,42 +104,76 @@ router.patch('/users/:id/status', authorize(['admin', 'super_admin']), async (re
 
 router.patch('/users/:id/role', authorize(['super_admin']), async (req, res) => {
   try {
-    const { role } = req.body;
-    if (!['user', 'admin', 'super_admin'].includes(role)) {
-      return res.status(400).json({ error: 'Invalid role' });
-    }
+     const { role } = req.body;
+     if (!['user', 'admin', 'super_admin'].includes(role)) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid role',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { role },
-      { new: true }
-    ).select('-password');
+     const user = await User.findByIdAndUpdate(
+       req.params.id,
+       { role },
+       { new: true }
+     ).select('-password');
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+     if (!user) {
+       return res.status(404).json({
+         success: false,
+         message: 'User not found',
+         error: { code: 'NOT_FOUND' }
+       });
+     }
 
-    await logAction(req.user.id, 'update_user_role', 'user', user._id, { role });
+     await logAction(req.user.id, 'update_user_role', 'user', user._id, { role });
 
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update user role' });
-  }
+      res.json({
+        success: true,
+        message: 'User role updated successfully',
+        data: user
+      });
+   } catch (error) {
+     res.status(500).json({
+       success: false,
+       message: 'Failed to update user role',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Get single user for editing
 router.get('/users/:id', authorize(['admin', 'super_admin']), async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+     const user = await User.findById(req.params.id).select('-password');
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+     if (!user) {
+       return res.status(404).json({
+         success: false,
+         message: 'User not found',
+         error: { code: 'NOT_FOUND' }
+       });
+     }
 
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch user' });
-  }
+      res.json({
+        success: true,
+        message: 'User retrieved successfully',
+        data: user
+      });
+   } catch (error) {
+     res.status(500).json({
+       success: false,
+       message: 'Failed to fetch user',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Update user details
@@ -128,53 +187,90 @@ router.put('/users/:id', authorize(['admin', 'super_admin']), async (req, res) =
     if (phone) update.phone = phone;
     if (status && ['active', 'suspended'].includes(status)) update.status = status;
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      update,
-      { new: true }
-    ).select('-password');
+     const user = await User.findByIdAndUpdate(
+       req.params.id,
+       update,
+       { new: true }
+     ).select('-password');
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+     if (!user) {
+       return res.status(404).json({
+         success: false,
+         message: 'User not found',
+         error: { code: 'NOT_FOUND' }
+       });
+     }
 
-    await logAction(req.user.id, 'update_user', 'user', user._id, update);
+     await logAction(req.user.id, 'update_user', 'user', user._id, update);
 
-    res.json(user);
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ error: 'Email already exists' });
-    }
-    res.status(500).json({ error: 'Failed to update user' });
-  }
+     res.json({
+       success: true,
+       message: 'User updated successfully',
+       data: user
+     });
+   } catch (error) {
+     if (error.code === 11000) {
+       return res.status(400).json({
+         success: false,
+         message: 'Email already exists',
+         error: { code: 'DUPLICATE_EMAIL' }
+       });
+     }
+     res.status(500).json({
+       success: false,
+       message: 'Failed to update user',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Delete user
 router.delete('/users/:id', authorize(['super_admin']), async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+     const user = await User.findById(req.params.id);
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+     if (!user) {
+       return res.status(404).json({
+         success: false,
+         message: 'User not found',
+         error: { code: 'NOT_FOUND' }
+       });
+     }
 
-    // Prevent deleting yourself
-    if (user._id.toString() === req.user.id) {
-      return res.status(400).json({ error: 'Cannot delete your own account' });
-    }
+     // Prevent deleting yourself
+     if (user._id.toString() === req.user.id) {
+       return res.status(400).json({
+         success: false,
+         message: 'Cannot delete your own account',
+         error: { code: 'INVALID_REQUEST' }
+       });
+     }
 
-    // Delete associated wallet
-    await Wallet.findOneAndDelete({ userId: user._id });
+     // Delete associated wallet
+     await Wallet.findOneAndDelete({ userId: user._id });
 
-    // Delete the user
-    await User.findByIdAndDelete(req.params.id);
+     // Delete the user
+     await User.findByIdAndDelete(req.params.id);
 
-    await logAction(req.user.id, 'delete_user', 'user', req.params.id, { deletedUser: user.name });
+     await logAction(req.user.id, 'delete_user', 'user', req.params.id, { deletedUser: user.name });
 
-    res.json({ message: 'User deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete user' });
-  }
+     res.json({
+       success: true,
+       message: 'User deleted successfully'
+     });
+   } catch (error) {
+     res.status(500).json({
+       success: false,
+       message: 'Failed to delete user',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Wallet Management Routes

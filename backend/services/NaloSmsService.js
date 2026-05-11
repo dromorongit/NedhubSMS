@@ -72,6 +72,8 @@ class NaloSmsService {
    * Parse Nalo response - handles both JSON and pipe-delimited string
    */
   parseNaloResponse(responseData) {
+    const logger = require('../utils/logger');
+    
     // If it's already an object, return it
     if (typeof responseData === 'object') {
       return responseData;
@@ -91,10 +93,19 @@ class NaloSmsService {
       
       // Try JSON parsing
       try {
-        return JSON.parse(responseData);
+        const parsed = JSON.parse(responseData);
+        return parsed;
       } catch (e) {
-        // Return as-is
-        return { status: responseData };
+        // Log the parsing failure with raw response
+        logger.responseParser.warn('Failed to parse Nalo response as JSON', {
+          rawResponse: responseData.substring(0, 200),
+          error: e.message
+        });
+        // Return as-is with status indicating unknown
+        return { 
+          status: 'PARSE_ERROR',
+          error_message: `Invalid response format: ${responseData.substring(0, 100)}`
+        };
       }
     }
     
@@ -124,11 +135,17 @@ class NaloSmsService {
    */
   async sendSmsWithFinancialTracking(request) {
     const { userId, phoneNumber, senderId, message, recipientsCount = 1, skipDeduction = false } = request;
+    const logger = require('../utils/logger');
 
     try {
       // Validate phone number
       const formattedPhoneNumber = this.formatPhoneNumber(phoneNumber);
       if (!this.validatePhoneNumber(phoneNumber)) {
+        logger.smsSend.warn('Invalid phone number format', {
+          userId,
+          phoneNumber,
+          senderId
+        });
         return {
           success: false,
           error: 'Invalid phone number format. Use Ghana format: 233XXXXXXXXX',
@@ -138,6 +155,10 @@ class NaloSmsService {
 
       // Validate sender ID
       if (!this.validateSenderId(senderId)) {
+        logger.smsSend.warn('Invalid sender ID', {
+          userId,
+          senderId
+        });
         return {
           success: false,
           error: 'Invalid sender ID: must be alphanumeric, max 11 characters',
@@ -148,6 +169,10 @@ class NaloSmsService {
       // Verify sender ID is approved
       const senderIdDoc = await SenderId.findOne({ userId, senderId });
       if (!senderIdDoc || !senderIdDoc.isApproved()) {
+        logger.smsSend.warn('Sender ID not approved', {
+          userId,
+          senderId
+        });
         return {
           success: false,
           error: 'Sender ID is not approved. Please wait for admin approval.',
@@ -162,7 +187,14 @@ class NaloSmsService {
         recipientsCount
       );
 
-      console.log('[NaloSmsService] Financial breakdown:', JSON.stringify(financialBreakdown));
+      logger.smsSend.info('SMS financial breakdown', {
+        userId,
+        phoneNumber,
+        senderId,
+        recipientsCount,
+        estimatedCost: financialBreakdown.totalChargedToUser,
+        segments: financialBreakdown.avgSegments
+      });
 
       // Check wallet balance and deduct (skip for reservation-based campaigns)
       let deductionResult = null;
@@ -217,23 +249,40 @@ class NaloSmsService {
 
       if (this.isDummyMode) {
         // Simulate SMS sending in dummy mode
-        console.log('[NaloSmsService] Dummy mode: Simulating SMS send');
+        logger.smsSend.info('Dummy mode: Simulating SMS send', {
+          userId,
+          phoneNumber: formattedPhoneNumber
+        });
         smsStatus = 'sent';
         jobId = `dummy-${Date.now()}`;
       } else {
         try {
-          console.log('[NaloSmsService] Sending SMS via resilient client');
-          console.log('[NaloSmsService] Payload:', { ...payload, key: '***' }); // Hide API key in logs
+          logger.smsSend.info('Sending SMS via Nalo API', {
+            userId,
+            phoneNumber: formattedPhoneNumber,
+            senderId,
+            messageLength: message.length
+          });
 
           const response = await this.httpClient.post(this.endpoint, payload, {
             headers: { 'Content-Type': 'application/json' },
             validateStatus: (status) => status === 200
           });
 
-          console.log('[NaloSmsService] Raw response:', response.data);
+          logger.smsSend.info('Nalo API response received', {
+            userId,
+            phoneNumber: formattedPhoneNumber,
+            responseType: typeof response.data,
+            responsePreview: String(response.data).substring(0, 200)
+          });
 
           naloResponse = this.parseNaloResponse(response.data);
-          console.log('[NaloSmsService] Parsed response:', naloResponse);
+          logger.smsSend.info('Nalo response parsed', {
+            userId,
+            status: naloResponse.status,
+            hasMessageId: !!naloResponse.message_id,
+            hasError: !!naloResponse.error_message
+          });
 
           // Check for success (1701)
           if (naloResponse.status === '1701') {
@@ -260,7 +309,13 @@ class NaloSmsService {
           }
 
         } catch (apiError) {
-          console.error('[NaloSmsService] API Error:', apiError.message);
+          logger.smsSend.error('Nalo API error', {
+            userId,
+            phoneNumber: formattedPhoneNumber,
+            error: apiError.message,
+            status: apiError.response?.status,
+            responseData: apiError.response?.data
+          });
           smsStatus = 'failed';
           // Provide more specific error for HTTP 412
           if (apiError.response && apiError.response.status === 412) {
@@ -317,6 +372,13 @@ class NaloSmsService {
           console.error('[NaloSmsService] Error updating financial summary:', summaryError.message);
         }
 
+        logger.smsSend.info('SMS sent successfully', {
+          userId,
+          phoneNumber: formattedPhoneNumber,
+          messageId: savedMessage._id,
+          jobId: savedMessage.jobId,
+          charged: financialBreakdown.totalChargedToUser
+        });
         return {
           success: true,
           messageId: savedMessage._id.toString(),
@@ -329,6 +391,12 @@ class NaloSmsService {
           }
         };
       } else {
+        logger.smsSend.error('SMS send failed', {
+          userId,
+          phoneNumber: formattedPhoneNumber,
+          errorCode,
+          errorMessage
+        });
         return {
           success: false,
           error: errorMessage,

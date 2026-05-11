@@ -14,9 +14,13 @@ router.get('/tv-bundles/:service', authenticate, async (req, res) => {
     const { service } = req.params;
     const validServices = ['DSTV', 'GOTV', 'STARTIMES'];
     
-    if (!validServices.includes(service.toUpperCase())) {
-      return res.status(400).json({ error: 'Invalid TV service. Supported: DSTV, GOTV, STARTIMES' });
-    }
+     if (!validServices.includes(service.toUpperCase())) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid TV service. Supported: DSTV, GOTV, STARTIMES',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
     
     const bundles = HubtelCommissionService.getTVBundles(service);
     
@@ -27,7 +31,14 @@ router.get('/tv-bundles/:service', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('[Utility] Get TV Bundles Error:', error);
-    res.status(500).json({ error: 'Failed to get TV bundles' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get TV bundles',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -40,34 +51,58 @@ router.post('/tv-pay', authenticate, async (req, res) => {
     const userId = req.user.userId;
     const { serviceType, smartCardNumber, amount, customerName } = req.body;
 
-    // Server-side validation
-    if (!serviceType) {
-      return res.status(400).json({ error: 'Service type is required (DSTV, GOTV, or STARTIMES)' });
-    }
-    if (!smartCardNumber) {
-      return res.status(400).json({ error: 'Smart card number is required' });
-    }
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Amount must be a positive number' });
-    }
+     // Server-side validation
+     if (!serviceType) {
+       return res.status(400).json({
+         success: false,
+         message: 'Service type is required (DSTV, GOTV, or STARTIMES)',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
+     if (!smartCardNumber) {
+       return res.status(400).json({
+         success: false,
+         message: 'Smart card number is required',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
+     if (!amount || amount <= 0) {
+       return res.status(400).json({
+         success: false,
+         message: 'Amount must be a positive number',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate minimum amount
-    const minAmount = 10;
-    if (amount < minAmount) {
-      return res.status(400).json({ error: `Minimum payment amount is GHS ${minAmount.toFixed(2)}` });
-    }
+     // Validate minimum amount
+     const minAmount = 10;
+     if (amount < minAmount) {
+       return res.status(400).json({
+         success: false,
+         message: `Minimum payment amount is GHS ${minAmount.toFixed(2)}`,
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Validate service type
-    const validServices = ['DSTV', 'GOTV', 'STARTIMES'];
-    if (!validServices.includes(serviceType.toUpperCase())) {
-      return res.status(400).json({ error: 'Invalid service type. Supported: DSTV, GOTV, STARTIMES' });
-    }
+     // Validate service type
+     const validServices = ['DSTV', 'GOTV', 'STARTIMES'];
+     if (!validServices.includes(serviceType.toUpperCase())) {
+       return res.status(400).json({
+         success: false,
+         message: 'Invalid service type. Supported: DSTV, GOTV, STARTIMES',
+         error: { code: 'VALIDATION_ERROR' }
+       });
+     }
 
-    // Check wallet balance
-    const wallet = await Wallet.findOne({ userId });
-    if (!wallet || wallet.balance < amount) {
-      return res.status(400).json({ error: 'Insufficient wallet balance' });
-    }
+     // Check wallet balance
+     const wallet = await Wallet.findOne({ userId });
+     if (!wallet || wallet.balance < amount) {
+       return res.status(400).json({
+         success: false,
+         message: 'Insufficient wallet balance',
+         error: { code: 'INSUFFICIENT_BALANCE' }
+       });
+     }
 
     const balanceBefore = wallet.balance;
     const clientReference = HubtelCommissionService.generateClientReference('TVPAY');
@@ -82,9 +117,13 @@ router.post('/tv-pay', authenticate, async (req, res) => {
       { new: true }
     );
 
-    if (!updatedWallet) {
-      return res.status(400).json({ error: 'Insufficient balance' });
-    }
+     if (!updatedWallet) {
+       return res.status(400).json({
+         success: false,
+         message: 'Insufficient balance',
+         error: { code: 'INSUFFICIENT_BALANCE' }
+       });
+     }
 
     // Create pending transaction record
     const transaction = new Transaction({
@@ -227,9 +266,13 @@ router.post('/ecg-pay', authenticate, async (req, res) => {
       { new: true }
     );
 
-    if (!updatedWallet) {
-      return res.status(400).json({ error: 'Insufficient balance' });
-    }
+     if (!updatedWallet) {
+       return res.status(400).json({
+         success: false,
+         message: 'Insufficient balance',
+         error: { code: 'INSUFFICIENT_BALANCE' }
+       });
+     }
 
     // Create pending transaction record
     const transaction = new Transaction({
@@ -334,9 +377,13 @@ router.post('/water-pay', authenticate, async (req, res) => {
       { new: true }
     );
 
-    if (!updatedWallet) {
-      return res.status(400).json({ error: 'Insufficient balance' });
-    }
+     if (!updatedWallet) {
+       return res.status(400).json({
+         success: false,
+         message: 'Insufficient balance',
+         error: { code: 'INSUFFICIENT_BALANCE' }
+       });
+     }
 
     // Create pending transaction record
     const transaction = new Transaction({
