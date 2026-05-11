@@ -84,7 +84,7 @@ contactSchema.statics.findById = function(id) {
 // Static method to create contact with proper group handling
 // Uses findOneAndUpdate with upsert for atomic duplicate prevention
 contactSchema.statics.create = async function(userId, recipientName, phoneNumber, groupName) {
-  console.log('[Contacts] Creating contact:', { userId, recipientName, phoneNumber, groupName });
+  console.log('[Contacts] Creating contact', { userId, recipientName, phoneNumber, groupName });
   
   const ContactGroup = mongoose.model('ContactGroup');
   
@@ -110,7 +110,7 @@ contactSchema.statics.create = async function(userId, recipientName, phoneNumber
         description: `Created for contact ${recipientName}`
       });
       await group.save();
-      console.log('[Contacts] Created new group:', groupName);
+      console.log('[Contacts] Created new group', { groupName });
     }
     groupIds = [group._id];
   } else {
@@ -146,7 +146,13 @@ contactSchema.statics.create = async function(userId, recipientName, phoneNumber
     }
   );
   
-  console.log('[Contacts] Contact created:', contact._id, { recipientName, phoneNumber, groupIds });
+  console.log('[Contacts] Contact created', { 
+    contactId: contact._id, 
+    recipientName, 
+    phoneNumber,
+    normalizedPhoneNumber: normalized,
+    groupIds 
+  });
   return contact._id;
 };
 

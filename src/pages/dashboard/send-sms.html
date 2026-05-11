@@ -2409,6 +2409,28 @@
                     updateCostEstimation();
                     schedulePreviewUpdate();
 
+                    // Refresh saved contacts list if it's already been loaded
+                    if (loadedContacts && loadedContacts.length >= 0) {
+                        // Append newly imported contacts to loadedContacts for immediate visibility
+                        const newContacts = results.importedContacts.map(c => ({
+                            _id: c.id,
+                            recipientName: c.recipientName,
+                            phoneNumber: c.phoneNumber,
+                            normalizedPhoneNumber: c.phoneNumber,
+                            groupIds: []
+                        }));
+                        loadedContacts = [...newContacts, ...loadedContacts];
+                        
+                        // If contacts tab is currently active, refresh the UI
+                        const contactsSection = document.getElementById('contactsSection');
+                        if (contactsSection && contactsSection.classList.contains('active')) {
+                            loadSavedContacts(); // Refresh from server for consistency
+                        } else {
+                            // Otherwise just update the cached list for when user switches to contacts tab
+                            console.log('[Contacts] Import completed, cached contacts will be refreshed on tab switch');
+                        }
+                    }
+
                     // Switch to upload tab
                     document.querySelector('.tab-btn[data-tab="upload"]').click();
 

@@ -34,12 +34,22 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
     const userId = req.user.userId;
     const fileName = req.file.originalname;
 
-    console.log('[Upload] File received:', { userId, fileName, size: req.file.size, type: req.file.mimetype });
+    console.log('[Upload] File received', { 
+      userId, 
+      fileName, 
+      size: req.file.size, 
+      type: req.file.mimetype,
+      timestamp: new Date().toISOString()
+    });
 
     // Parse the file
     const rows = await ContactImportService.parseFile(req.file.buffer, fileName);
 
-    console.log('[Upload] Parsed', rows.length, 'rows. Sample:', rows.slice(0, 2));
+    console.log('[Upload] File parsed', { 
+      fileName, 
+      rowsCount: rows.length,
+      sample: rows.slice(0, 2)
+    });
 
     if (rows.length === 0) {
       return res.status(400).json({ error: 'No data found in file' });
@@ -51,7 +61,7 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
     // Auto-detect columns
     const detectedColumns = ContactImportService.detectColumns(headers);
 
-    console.log('[Preview] Column detection result:', detectedColumns);
+    console.log('[Preview] Column detection result', detectedColumns);
 
     // Generate preview with canonical schema
     const preview = ContactImportService.generatePreview(rows, {
@@ -59,7 +69,10 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
       phoneColumn: detectedColumns.detectedPhoneColumn
     });
 
-    console.log('[Preview] Generated', preview.length, 'preview rows. First:', preview[0]);
+    console.log('[Preview] Generated preview', { 
+      previewRows: preview.length,
+      firstRow: preview[0]
+    });
 
     res.json({
       message: 'File parsed successfully',
@@ -71,7 +84,7 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
       fileData: rows // Include parsed rows for import confirmation
     });
   } catch (error) {
-    console.error('[Upload] Error:', error.message);
+    console.error('[Upload] Error', { error: error.message });
     res.status(500).json({ error: 'Failed to parse file: ' + error.message });
   }
 });
@@ -82,14 +95,15 @@ router.post('/import/confirm', authenticate, async (req, res) => {
     const { fileData, columnMapping, fileName } = req.body;
     const userId = req.user.userId;
 
-    console.log('[Import] Confirm request received:', {
-      userId,
-      fileName,
+    console.log('[Import] Confirm request received', { 
+      userId, 
+      fileName, 
       columnMapping,
-      fileDataCount: fileData?.length
+      fileDataCount: fileData?.length,
+      timestamp: new Date().toISOString()
     });
     if (fileData && fileData.length > 0) {
-      console.log('[Import] First row sample:', fileData[0]);
+      console.log('[Import] First row sample', fileData[0]);
     }
 
     // Allow import if fileData exists OR if parsed data was previously stored
@@ -124,7 +138,12 @@ router.post('/import/confirm', authenticate, async (req, res) => {
     }
 
     // Process the import with comprehensive validation
-    console.log('[Import] Starting import processing...');
+    console.log('[Import] Starting import processing', { 
+      userId, 
+      fileName, 
+      totalRows: fileData.length,
+      columns: columnMapping 
+    });
     const results = await ContactImportService.processImport(
       userId,
       fileData,
@@ -132,7 +151,7 @@ router.post('/import/confirm', authenticate, async (req, res) => {
       fileName
     );
 
-    console.log('[Import] Completed successfully:', {
+    console.log('[Import] Completed successfully', {
       total: results.totalRows,
       valid: results.validRows,
       invalid: results.invalidRows,
@@ -141,7 +160,9 @@ router.post('/import/confirm', authenticate, async (req, res) => {
       imported: results.importedRows,
       skipped: results.skippedRows
     });
-    console.log('[Import] Sample imported contacts:', results.importedContacts.slice(0, 3));
+    if (results.importedContacts.length > 0) {
+      console.log('[Import] Sample imported contacts', results.importedContacts.slice(0, 3));
+    }
 
     // Return comprehensive summary
     res.json({

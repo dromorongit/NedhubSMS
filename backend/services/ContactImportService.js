@@ -43,7 +43,7 @@ class ContactImportService {
    * @returns {Array} - Array of parsed rows
    */
   async parseFile(fileBuffer, fileName) {
-    console.log('[Upload] Starting file parse:', { fileName, bufferSize: fileBuffer.length });
+    console.log('[Upload] Starting file parse', { fileName, bufferSize: fileBuffer.length });
     const ext = this.getFileExtension(fileName);
 
     try {
@@ -61,14 +61,14 @@ class ContactImportService {
           throw new Error(`Unsupported file type: ${ext}`);
       }
 
-      console.log('[Upload] Successfully parsed file:', {
+      console.log('[Upload] File parsed successfully', {
         fileName,
         rowsCount: rows.length,
         sample: rows.slice(0, 3)
       });
       return rows;
     } catch (error) {
-      console.error('[Upload] Parse error:', { fileName, error: error.message });
+      console.error('[Upload] Parse error', { fileName, error: error.message });
       throw error;
     }
   }
@@ -89,7 +89,7 @@ class ContactImportService {
     // Parse header
     const headerLine = lines[0];
     const headers = this.parseCSVLine(headerLine);
-    console.log('[Upload] CSV headers detected:', headers);
+    console.log('[Upload] CSV headers detected', { headers, count: headers.length });
 
     // Parse data rows
     const rows = [];
@@ -107,7 +107,7 @@ class ContactImportService {
       }
     }
 
-    console.log('[Upload] Parsed', rows.length, 'rows from CSV');
+    console.log('[Upload] CSV parsed', { rowsCount: rows.length });
     return rows;
   }
 
@@ -160,7 +160,7 @@ class ContactImportService {
 
     // Convert to JSON
     const rows = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
-    console.log('[Upload] Parsed', rows.length, 'rows from Excel');
+    console.log('[Upload] Excel parsed', { rowsCount: rows.length, sheetName });
     return rows;
   }
 
@@ -170,7 +170,7 @@ class ContactImportService {
    * @returns {Object} - Object with detectedNameColumn and detectedPhoneColumn
    */
   detectColumns(headers) {
-    console.log('[Preview] Starting column detection. Headers:', headers);
+    console.log('[Preview] Starting column detection', { headers, count: headers.length });
 
     // Score ALL columns (don't stop at first match)
     const headerScores = headers.map(header => {
@@ -232,12 +232,12 @@ class ContactImportService {
     // Fallback: positional detection
     if (!nameColumn && headers.length >= 1) {
       nameColumn = headers[0];
-      console.log('[Preview] Name column fallback to first column:', nameColumn);
+      console.log('[Preview] Name column fallback to first column', { nameColumn });
     }
 
     if (!phoneColumn && headers.length >= 2) {
       phoneColumn = headers[1];
-      console.log('[Preview] Phone column fallback to second column:', phoneColumn);
+      console.log('[Preview] Phone column fallback to second column', { phoneColumn });
     }
 
     const result = {
@@ -245,7 +245,7 @@ class ContactImportService {
       detectedPhoneColumn: phoneColumn
     };
 
-    console.log('[Preview] Column detection complete:', result);
+    console.log('[Preview] Column detection complete', result);
     return result;
   }
 
@@ -257,7 +257,7 @@ class ContactImportService {
    */
   generatePreview(rows, columnMapping) {
     const { nameColumn, phoneColumn } = columnMapping;
-    console.log('[Preview] Generating preview for', rows.length, 'rows using columns:', { nameColumn, phoneColumn });
+    console.log('[Preview] Generating preview', { totalRows: rows.length, nameColumn, phoneColumn });
 
     const preview = [];
     const maxPreviewRows = Math.min(rows.length, 500); // Limit preview to 500 rows for performance
@@ -283,21 +283,17 @@ class ContactImportService {
       preview.push(previewRow);
 
       if (i < 3) {
-        console.log(`[Preview] Row ${rowNumber} sample:`, {
-          name: previewRow.recipientName,
-          phone: previewRow.phoneNumber,
-          normalized: previewRow.normalizedPhoneNumber,
-          status: previewRow.validationStatus
-        });
+        console.log('[Preview] Sample row', { row: rowNumber, ...previewRow });
       }
     }
 
     const validCount = preview.filter(r => r.validationStatus === 'valid').length;
     const invalidCount = preview.filter(r => r.validationStatus === 'invalid').length;
 
-    console.log('[Preview] Generated', preview.length, 'rows:', {
-      valid: validCount,
-      invalid: invalidCount
+    console.log('[Preview] Generation complete', { 
+      previewRows: preview.length, 
+      valid: validCount, 
+      invalid: invalidCount 
     });
 
     return preview;
@@ -360,7 +356,7 @@ class ContactImportService {
   async processImport(userId, rows, columnMapping, fileName) {
     const { nameColumn, phoneColumn } = columnMapping;
     
-    console.log('[Import] Starting import process:', { 
+    console.log('[Import] Starting import process', { 
       userId, 
       fileName, 
       totalRows: rows.length, 
@@ -368,7 +364,9 @@ class ContactImportService {
       phoneColumn,
       timestamp: new Date().toISOString()
     });
-    console.log('[Import] Sample raw rows (first 3):', rows.slice(0, 3));
+    if (rows.length > 0) {
+      console.log('[Import] Sample raw rows (first 3)', rows.slice(0, 3));
+    }
 
     // Create import record for tracking
     const importRecord = await ContactImport.createImport(
@@ -378,25 +376,24 @@ class ContactImportService {
       { name: nameColumn, phone: phoneColumn }
     );
 
-    console.log('[Import] Created import record:', importRecord._id);
+    console.log('[Import] Created import record', { importId: importRecord._id });
 
     // Load blacklisted numbers for this user (including global blacklist)
-    console.log('[Validation] Loading blacklisted numbers for user:', userId);
+    console.log('[Validation] Loading blacklisted numbers', { userId });
     const blacklistedNumbers = await BlacklistedNumber.find({
       $or: [{ userId }, { userId: null }]
     }).select('normalizedPhoneNumber');
     const blacklistedSet = new Set(blacklistedNumbers.map(b => b.normalizedPhoneNumber));
-    console.log('[Validation] Loaded', blacklistedSet.size, 'blacklisted numbers');
+    console.log('[Validation] Blacklisted numbers loaded', { count: blacklistedSet.size });
 
     // Pre-load existing contacts for this user to detect duplicates (single query)
-    console.log('[Validation] Loading existing contacts for duplicate detection...');
+    console.log('[Validation] Loading existing contacts for duplicate detection', { userId });
     const existingContacts = await Contact.find({ userId }).select('phoneNumber normalizedPhoneNumber');
     const existingPhones = new Set(existingContacts.map(c => c.normalizedPhoneNumber));
-    console.log('[Validation] Loaded', existingPhones.size, 'existing contacts for comparison');
+    console.log('[Validation] Existing contacts loaded', { count: existingPhones.size });
 
     // Track duplicates within the uploaded file
     const seenInFile = new Map();
-    const duplicateWithinFile = new Set();
 
     const results = {
       totalRows: rows.length,
@@ -405,12 +402,12 @@ class ContactImportService {
       duplicateRows: 0,
       blacklistedRows: 0,
       importedRows: 0,
-      skippedRows: 0, // Will be calculated as total - imported
+      skippedRows: 0,
       importedContacts: [],
       errors: []
     };
 
-    console.log('[Import] Beginning row-by-row processing...');
+    console.log('[Import] Beginning row-by-row processing', { totalRows: rows.length });
     
     // Process each row
     for (let i = 0; i < rows.length; i++) {
@@ -422,7 +419,7 @@ class ContactImportService {
         let phoneNumber = row[phoneColumn]?.toString().trim();
 
         if (i < 5) {
-          console.log(`[Import] Row ${rowNumber}: Processing`, { recipientName, phoneNumber });
+          console.log('[Import] Processing row', { row: rowNumber, recipientName, phoneNumber });
         }
 
         // Validate name
@@ -434,7 +431,7 @@ class ContactImportService {
           };
           results.errors.push(error);
           results.invalidRows++;
-          console.log(`[Validation] Row ${rowNumber} FAILED: Name required`);
+          console.log('[Validation] Row FAILED: Name required', { row: rowNumber });
           continue;
         }
 
@@ -448,7 +445,11 @@ class ContactImportService {
           };
           results.errors.push(error);
           results.invalidRows++;
-          console.log(`[Validation] Row ${rowNumber} FAILED: Invalid phone -`, phoneValidation.error);
+          console.log('[Validation] Row FAILED: Invalid phone', { 
+            row: rowNumber, 
+            phone: phoneNumber, 
+            error: phoneValidation.error 
+          });
           continue;
         }
 
@@ -462,7 +463,10 @@ class ContactImportService {
             error: 'Duplicate phone number within uploaded file',
             data: { recipientName, phoneNumber }
           });
-          console.log(`[Validation] Row ${rowNumber} SKIPPED: Duplicate within file (normalized: ${normalizedPhone})`);
+          console.log('[Validation] Row SKIPPED: Duplicate within file', { 
+            row: rowNumber, 
+            normalizedPhone 
+          });
           continue;
         }
         seenInFile.set(normalizedPhone, rowNumber);
@@ -475,7 +479,10 @@ class ContactImportService {
             error: 'Phone number already exists in your contacts',
             data: { recipientName, phoneNumber }
           });
-          console.log(`[Validation] Row ${rowNumber} SKIPPED: Duplicate with existing contacts (normalized: ${normalizedPhone})`);
+          console.log('[Validation] Row SKIPPED: Duplicate with existing contacts', { 
+            row: rowNumber, 
+            normalizedPhone 
+          });
           continue;
         }
 
@@ -487,7 +494,10 @@ class ContactImportService {
             error: 'Phone number is blacklisted',
             data: { recipientName, phoneNumber }
           });
-          console.log(`[Validation] Row ${rowNumber} SKIPPED: Blacklisted (normalized: ${normalizedPhone})`);
+          console.log('[Validation] Row SKIPPED: Blacklisted', { 
+            row: rowNumber, 
+            normalizedPhone 
+          });
           continue;
         }
 
@@ -506,7 +516,8 @@ class ContactImportService {
           // Update existing phones set to prevent duplicates in same batch
           existingPhones.add(normalizedPhone);
           
-          console.log(`[Contacts] Row ${rowNumber} SUCCESS: Imported contact`, {
+          console.log('[Contacts] Row SUCCESS: Imported contact', {
+            row: rowNumber,
             contactId,
             recipientName,
             normalizedPhone
@@ -520,7 +531,10 @@ class ContactImportService {
               error: 'Duplicate phone number (race condition)',
               data: { recipientName, phoneNumber }
             });
-            console.log(`[Contacts] Row ${rowNumber} SKIPPED: Duplicate key error (race condition)`);
+            console.log('[Contacts] Row SKIPPED: Duplicate key error (race condition)', { 
+              row: rowNumber, 
+              normalizedPhone 
+            });
           } else {
             throw dbError;
           }
@@ -533,14 +547,14 @@ class ContactImportService {
           data: row
         });
         results.invalidRows++;
-        console.error(`[Import] Row ${rowNumber} ERROR:`, error.message);
+        console.error('[Import] Row ERROR', { row: rowNumber, error: error.message });
       }
     }
 
     // Calculate skipped rows (duplicates + blacklisted)
     results.skippedRows = results.duplicateRows + results.blacklistedRows;
 
-    console.log('[Import] Import completed:', {
+    console.log('[Import] Import completed', {
       total: results.totalRows,
       valid: results.validRows,
       invalid: results.invalidRows,
@@ -550,7 +564,9 @@ class ContactImportService {
       skipped: results.skippedRows,
       timestamp: new Date().toISOString()
     });
-    console.log('[Import] Sample imported contacts:', results.importedContacts.slice(0, 3));
+    if (results.importedContacts.length > 0) {
+      console.log('[Import] Sample imported contacts', results.importedContacts.slice(0, 3));
+    }
 
     // Update import record with comprehensive statistics
     await importRecord.updateStats(

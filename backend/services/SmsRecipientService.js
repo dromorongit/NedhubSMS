@@ -36,7 +36,10 @@ class SmsRecipientService {
    * @returns {Object} {uniqueRecipients: Array, duplicates: Array, duplicateCount: number}
    */
   static deduplicateRecipients(recipients, removeDuplicates = true) {
-    console.log('[Recipients] Starting deduplication. Input count:', recipients.length);
+    console.log('[Recipients] Starting deduplication', { 
+      totalRecipients: recipients.length,
+      removeDuplicates 
+    });
     const seen = new Map();
     const duplicates = [];
     const uniqueRecipients = [];
@@ -52,7 +55,7 @@ class SmsRecipientService {
           duplicateOf: seen.get(normalizedPhone).originalIndex
         };
         duplicates.push(dupInfo);
-        console.log('[Recipients] Duplicate detected:', dupInfo);
+        console.log('[Recipients] Duplicate detected', dupInfo);
       } else {
         seen.set(normalizedPhone, {
           recipientName: recipient.recipientName,
@@ -76,7 +79,10 @@ class SmsRecipientService {
       })));
     }
 
-    console.log('[Deduplicate] Completed. Unique:', uniqueRecipients.length, 'Duplicates:', duplicates.length);
+    console.log('[Deduplicate] Completed', { 
+      unique: uniqueRecipients.length, 
+      duplicates: duplicates.length 
+    });
     return {
       uniqueRecipients,
       duplicates,
@@ -91,13 +97,17 @@ class SmsRecipientService {
    * @returns {Object} {validRecipients: Array, invalidRecipients: Array, blacklistedRecipients: Array}
    */
   static async validateRecipients(recipients, userId) {
-    console.log('[Validation] validateRecipients called with:', recipients.length, 'recipients, userId:', userId);
+    console.log('[Validation] Starting recipient validation', { 
+      recipientsCount: recipients.length, 
+      userId 
+    });
     
     const validRecipients = [];
     const invalidRecipients = [];
     const blacklistedRecipients = [];
 
     // Get blacklisted numbers for this user
+    console.log('[Validation] Loading blacklisted numbers', { userId });
     const blacklistedNumbers = await BlacklistedNumber.find({
       $or: [
         { userId: userId },
@@ -105,7 +115,7 @@ class SmsRecipientService {
       ]
     }).select('phoneNumber');
 
-    console.log('[Validation] Blacklisted numbers found:', blacklistedNumbers.length);
+    console.log('[Validation] Blacklisted numbers loaded', { count: blacklistedNumbers.length });
 
     const blacklistedSet = new Set(
       blacklistedNumbers.map(b => this.normalizePhoneNumber(b.phoneNumber))
@@ -124,7 +134,11 @@ class SmsRecipientService {
           normalizedPhoneNumber: normalizedPhone,
           reason: 'Blacklisted number'
         });
-        console.log('[Validation] Blacklisted:', recipient.phoneNumber, '|', recipient.recipientName);
+        console.log('[Validation] Blacklisted number', { 
+          phone: recipient.phoneNumber, 
+          normalized: normalizedPhone,
+          name: recipient.recipientName 
+        });
         continue;
       }
 
@@ -137,7 +151,11 @@ class SmsRecipientService {
           normalizedPhoneNumber: normalizedPhone,
           reason: 'Invalid phone number format'
         });
-        console.log('[Validation] Invalid format:', recipient.phoneNumber, '->', normalizedPhone, '|', recipient.recipientName);
+        console.log('[Validation] Invalid format', { 
+          phone: recipient.phoneNumber, 
+          normalized: normalizedPhone,
+          name: recipient.recipientName 
+        });
         continue;
       }
 
@@ -147,7 +165,7 @@ class SmsRecipientService {
       });
     }
 
-    console.log('[Validation] Results:', {
+    console.log('[Validation] Results', {
       total: recipients.length,
       valid: validRecipients.length,
       invalid: invalidRecipients.length,
@@ -169,14 +187,15 @@ class SmsRecipientService {
    * @returns {Object} Processing results
    */
   static async processRecipientsForCampaign(recipients, userId, removeDuplicates = true) {
-    console.log('[Recipients] Processing for campaign:', {
-      totalRecipients: recipients.length,
-      removeDuplicates
+    console.log('[Recipients] Processing for campaign', { 
+      totalRecipients: recipients.length, 
+      removeDuplicates,
+      userId 
     });
 
     // First, deduplicate
     const dedupResult = this.deduplicateRecipients(recipients, removeDuplicates);
-    console.log('[Recipients] Deduplication:', {
+    console.log('[Recipients] Deduplication complete', {
       original: recipients.length,
       unique: dedupResult.uniqueRecipients.length,
       duplicates: dedupResult.duplicateCount
@@ -195,12 +214,12 @@ class SmsRecipientService {
       finalCount: validationResult.validRecipients.length
     };
 
-    console.log('[Recipients] Processing complete:', {
+    console.log('[Recipients] Processing complete', {
       original: result.originalCount,
       duplicates: result.duplicateCount,
       valid: result.finalCount,
-      invalid: validationResult.invalidRecipients.length,
-      blacklisted: validationResult.blacklistedRecipients.length
+      invalid: result.invalidRecipients.length,
+      blacklisted: result.blacklistedRecipients.length
     });
 
     return result;

@@ -67,6 +67,10 @@ const contactImportSchema = new mongoose.Schema({
   }
 });
 
+// Compound indexes for efficient queries
+contactImportSchema.index({ userId: 1, createdAt: -1 }); // Fast lookup by user, sorted by date
+contactImportSchema.index({ userId: 1, fileName: 1 }); // Fast lookup by user + file name
+
 // Static method to find imports by user
 contactImportSchema.statics.findByUserId = function(userId) {
   return this.find({ userId }).sort({ createdAt: -1 });
