@@ -284,9 +284,11 @@
                         localStorage.removeItem('pendingVerificationEmail');
                         showSuccess('Email verified successfully! Redirecting...');
                         
-                        // Store token if provided
-                        if (result.token) {
-                            localStorage.setItem('token', result.token);
+                        // Store token if provided (token is in result.data after unwrapping)
+                        const token = result.data.token;
+                        if (token) {
+                            localStorage.setItem('authToken', token);
+                            console.log('[VerifyEmail] Token stored:', !!token);
                         }
                         
                         setTimeout(() => {

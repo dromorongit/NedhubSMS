@@ -6,23 +6,18 @@ const API_BASE_URL = isLocalhost ? 'http://localhost:3000/api' : 'https://nedhub
 class ApiClient {
   constructor() {
     this.token = localStorage.getItem('authToken') || null;
-    console.log('[API Client] Initialized. Token present:', !!this.token);
   }
 
   setToken(token) {
     this.token = token;
     localStorage.setItem('authToken', token);
-    console.log('[API Client] Token saved to localStorage. Token length:', token.length);
   }
 
   getToken() {
-    const token = this.token || localStorage.getItem('authToken');
-    console.log('[API Client] Token retrieved. Present:', !!token);
-    return token;
+    return this.token || localStorage.getItem('authToken');
   }
 
   clearToken() {
-    console.log('[API Client] Clearing token from memory and localStorage');
     this.token = null;
     localStorage.removeItem('authToken');
   }
@@ -37,14 +32,10 @@ class ApiClient {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('[API] Authorization header set with token');
-    } else {
-      console.log('[API] No token available for request');
     }
 
     try {
       console.log(`[API] ${method} ${url}`);
-      console.log('[API] Request headers:', { ...headers, Authorization: token ? 'Bearer <token_set>' : 'none' });
       
       const response = await fetch(url, {
         method,
@@ -53,12 +44,9 @@ class ApiClient {
         credentials: 'include' // Required for CORS with credentials
       });
 
-      console.log(`[API] Response status: ${response.status}`);
-
       // Handle 401 Unauthorized - redirect to login
       if (response.status === 401) {
         console.log('[API] 401 Unauthorized - redirecting to login');
-        console.log('[API] Token before clear:', token ? 'present' : 'absent');
         this.clearToken();
         // Check if we're on a dashboard page
         if (window.location.pathname.includes('/pages/dashboard/')) {
@@ -69,6 +57,7 @@ class ApiClient {
         return { error: 'Session expired. Please login again.' };
       }
 
+      console.log(`[API] Response status: ${response.status}`);
       console.log(`[API] Response headers:`, {
         'content-type': response.headers.get('content-type')
       });
@@ -107,9 +96,7 @@ class ApiClient {
         return { error: errorMessage, status: response.status, data: result };
       }
 
-      // Unwrap the response: if the JSON has a 'data' property, use that as the payload; otherwise use the whole response
-      const dataPayload = result.data !== undefined ? result.data : result;
-      return { data: dataPayload };
+      return { data: result };
     } catch (error) {
       console.error('[API] Request error:', error);
       return { error: 'Network error: ' + error.message };

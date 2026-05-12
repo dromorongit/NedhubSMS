@@ -7,6 +7,7 @@ const User = require('../models/User');
 const OTP = require('../models/OTP');
 const EmailService = require('../services/EmailService');
 const validator = require('validator');
+const { auth: authLogger } = require('../utils/logger');
 
 // Rate limiting store for auth endpoints (in-memory, use Redis in production)
 const rateLimitStore = {
@@ -139,6 +140,7 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     
     console.log('[AUTH] Login attempt for email:', email);
+    authLogger.info('Login attempt', { email });
 
     // Validate input
     if (!email || !password) {
@@ -154,6 +156,7 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       console.log('[AUTH] User not found:', email);
+      authLogger.warn('Login failed - user not found', { email });
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -163,6 +166,7 @@ router.post('/login', async (req, res) => {
 
     // Check if user account is pending (not verified yet)
     if (user.status === 'pending') {
+      authLogger.warn('Login failed - email not verified', { email, userId: user._id });
       return res.status(403).json({
         success: false,
         message: 'Please verify your email first. Check your inbox for the verification code.',
@@ -189,6 +193,7 @@ router.post('/login', async (req, res) => {
     
     if (!isMatch) {
       console.log('[AUTH] Password mismatch for user:', email);
+      authLogger.warn('Login failed - password mismatch', { email, userId: user._id });
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -199,6 +204,11 @@ router.post('/login', async (req, res) => {
     // Generate JWT token
     const token = generateToken(user._id, user.role);
     console.log('[AUTH] Login successful for:', email, 'Role:', user.role);
+    authLogger.info('Login successful', { 
+      userId: user._id, 
+      role: user.role,
+      email: email
+    });
 
     res.json({
       success: true,
@@ -559,14 +569,19 @@ router.post('/resend-otp', async (req, res) => {
 // Verify token
 router.get('/verify', authenticate, async (req, res) => {
   try {
+    console.log('[AUTH] Verify endpoint - userId:', req.user.userId);
+    authLogger.info('Token verification endpoint called', { userId: req.user.userId });
+    
     const user = await User.findById(req.user.userId).select('-password');
     if (!user) {
+      authLogger.warn('User not found during verification', { userId: req.user.userId });
       return res.status(404).json({ error: 'User not found' });
     }
 
     res.json({ user });
   } catch (error) {
     console.error(error);
+    authLogger.error('Verify token endpoint error', { error: error.message });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -574,13 +589,18 @@ router.get('/verify', authenticate, async (req, res) => {
 // Get current user profile
 router.get('/me', authenticate, async (req, res) => {
   try {
+    console.log('[AUTH] Me endpoint - userId:', req.user.userId);
+    authLogger.info('Get user profile endpoint called', { userId: req.user.userId });
+    
     const user = await User.findById(req.user.userId).select('-password');
     if (!user) {
+      authLogger.warn('User not found in profile endpoint', { userId: req.user.userId });
       return res.status(404).json({ error: 'User not found' });
     }
     res.json({ user });
   } catch (error) {
     console.error(error);
+    authLogger.error('Get user profile error', { error: error.message });
     res.status(500).json({ error: 'Internal server error' });
   }
 });

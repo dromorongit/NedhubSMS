@@ -313,11 +313,14 @@
 
         async function checkAuthAndLoad() {
             const token = localStorage.getItem('authToken');
+            console.log('[Dashboard] checkAuthAndLoad - token present:', !!token);
             if (!token) {
+                console.log('[Dashboard] No token, redirecting to login');
                 window.location.href = '../auth/login.html';
                 return;
             }
 
+            console.log('[Dashboard] Token found, loading user profile...');
             // Load user profile first
             await loadUserProfile();
 
@@ -332,9 +335,12 @@
 
         async function loadUserProfile() {
             try {
+                console.log('[Dashboard] Loading user profile...');
                 const response = await window.apiClient.getUserProfile();
+                console.log('[Dashboard] getUserProfile response:', response);
+                
                 if (response.error) {
-                    console.error('Error loading user profile:', response.error);
+                    console.error('[Dashboard] Error loading user profile:', response.error);
                     // Use stored name if available
                     useStoredUserName();
                     return;
@@ -347,11 +353,13 @@
                     
                     // Store full name for later use
                     localStorage.setItem('userName', user.name);
+                    console.log('[Dashboard] User profile loaded:', user.name);
                 } else {
+                    console.log('[Dashboard] No user data in response');
                     useStoredUserName();
                 }
             } catch (error) {
-                console.error('Error loading user profile:', error);
+                console.error('[Dashboard] Error loading user profile:', error);
                 useStoredUserName();
             }
         }

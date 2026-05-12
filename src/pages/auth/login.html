@@ -200,6 +200,8 @@
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalBtnContent = submitBtn.innerHTML;
             
+            console.log('[Login] Form submitted for email:', email);
+            
             // Disable button during request
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span>Signing in...</span><svg class="btn-spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg>';
@@ -207,18 +209,47 @@
             try {
                 const result = await window.apiClient.login(email, password);
                 
+                console.log('[Login] API response:', result);
+                
                 if (result.error) {
+                    console.log('[Login] Login failed:', result.error);
                     showError(result.error);
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalBtnContent;
                 } else {
                     // Login successful - store token and redirect
-                    window.apiClient.setToken(result.data.token);
+                    const token = result.data.token;
+                    console.log('[Login] Login successful, token received. Length:', token.length);
+                    
+                    // Decode token to check expiration
+                    try {
+                        const decoded = decodeJWT(token);
+                        if (decoded) {
+                            const now = Math.floor(Date.now() / 1000);
+                            console.log('[Login] Token decoded:', {
+                                exp: decoded.exp,
+                                iat: decoded.iat,
+                                now: now,
+                                isExpired: decoded.exp ? decoded.exp < now : 'unknown'
+                            });
+                        }
+                    } catch (err) {
+                        console.error('[Login] Failed to decode token:', err);
+                    }
+                    
+                    window.apiClient.setToken(token);
+                    
+                    // Verify token was stored
+                    const storedToken = localStorage.getItem('authToken');
+                    console.log('[Login] Token stored in localStorage:', !!storedToken, 'Length:', storedToken ? storedToken.length : 0);
                     
                     // Check user role and redirect accordingly
-                    if (result.data.user && (result.data.user.role === 'admin' || result.data.user.role === 'super_admin')) {
+                    const user = result.data.user;
+                    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+                        console.log('[Login] Redirecting to admin panel');
                         window.location.href = '../admin/admin.html';
                     } else {
+                        console.log('[Login] Redirecting to dashboard');
                         window.location.href = '../dashboard/overview.html';
                     }
                 }
@@ -229,6 +260,22 @@
                 submitBtn.innerHTML = originalBtnContent;
             }
         });
+        
+        // Helper function to decode JWT (for debugging)
+        function decodeJWT(token) {
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid token format');
+                }
+                const payload = parts[1];
+                const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+                return decoded;
+            } catch (e) {
+                console.error('JWT decode error:', e);
+                return null;
+            }
+        }
 
         function showError(message) {
             const existingError = document.querySelector('.error-message');
