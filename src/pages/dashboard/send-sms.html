@@ -802,6 +802,14 @@
             updateRecipientChips();
         }
 
+        // Abort controller for canceling stale preview requests
+        let currentPreviewAbortController = null;
+        let currentCostEstimationAbortController = null;
+        
+        // Request ID tracking to ensure only latest responses update UI
+        let previewRequestId = 0;
+        let costEstimationRequestId = 0;
+
         async function loadUserProfile() {
             try {
                 const response = await window.apiClient.getUserProfile();
@@ -2343,6 +2351,15 @@
         async function analyzeRecipients() {
             const recipients = getAllRecipients();
 
+            // Cancel any pending preview request
+            if (currentPreviewAbortController) {
+                currentPreviewAbortController.abort();
+            }
+
+            // Generate unique request ID
+            const currentRequestId = ++previewRequestId;
+            currentPreviewAbortController = new AbortController();
+
             // Declare element references at function scope to avoid ReferenceError
             let senderIdEl, messageBodyEl, salutationEl;
 
@@ -2391,10 +2408,18 @@
                     recipients,
                     senderId,
                     removeDuplicates
-                });
+                }, { signal: currentPreviewAbortController.signal });
+
+                // Only process if this is the latest request
+                if (currentRequestId !== previewRequestId) {
+                    return;
+                }
 
                 if (response.error) {
-                    console.error('Preview error:', response.error);
+                    // Silently ignore abort errors
+                    if (!response.isAbort) {
+                        console.error('Preview error:', response.error);
+                    }
                     return;
                 }
 
@@ -2490,87 +2515,6 @@
             } catch (error) {
                 console.error('Error analyzing recipients:', error);
             }
-        }
-
-        // Function to update cost estimation
-        async function updateCostEstimation() {
-            // Get elements with null checks
-            const messageBodyEl = document.getElementById('messageBody');
-            if (!messageBodyEl) return;
-
-            const message = messageBodyEl.value;
-            const recipientCount = getRecipientCount();
-
-            console.log('[CostEstimation] Updating cost estimation', {
-                recipientCount,
-                messageLength: message.length
-            });
-
-            const salutationEl = document.getElementById('salutation');
-            const customSalutationEl = document.getElementById('customSalutation');
-            const salutation = salutationEl ? salutationEl.value : 'Dear';
-            const customSalutation = customSalutationEl ? customSalutationEl.value : '';
-
-            // Get other UI elements with null checks
-            const encodingTypeEl = document.getElementById('encodingType');
-            const smsCountEl = document.getElementById('smsCount');
-            const estimatedCostEl = document.getElementById('estimatedCost');
-            const costWarningsEl = document.getElementById('costWarnings');
-            const warningTextEl = document.getElementById('warningText');
-
-            if (!message.trim()) {
-                // Reset to defaults
-                if (encodingTypeEl) encodingTypeEl.textContent = 'GSM-7';
-                if (smsCountEl) smsCountEl.textContent = '1';
-                if (estimatedCostEl) estimatedCostEl.textContent = 'GHS 0.00';
-                if (costWarningsEl) costWarningsEl.style.display = 'none';
-                return;
-            }
-
-            try {
-                const params = new URLSearchParams({
-                    message: message,
-                    recipients: recipientCount.toString()
-                });
-
-                if (salutation) params.append('salutation', salutation);
-                if (customSalutation) params.append('customSalutation', customSalutation);
-
-                const response = await window.apiClient.getSmsCost(params);
-
-                if (response.error) {
-                    console.error('Cost calculation error:', response.error);
-                    return;
-                }
-
-                // Update UI
-                const data = response.data;
-                if (encodingTypeEl) encodingTypeEl.textContent = data.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
-                if (smsCountEl) smsCountEl.textContent = data.segments.minSegments && data.segments.maxSegments
-                    ? `${data.segments.minSegments}-${data.segments.maxSegments}`
-                    : data.avgSegments || 1;
-                if (estimatedCostEl) estimatedCostEl.textContent = `GHS ${data.estimatedCost.toFixed(2)}`;
-
-                // Show warnings if any
-                if (data.warnings && data.warnings.length > 0) {
-                    if (warningTextEl) warningTextEl.textContent = data.warnings.join('. ');
-                    if (costWarningsEl) costWarningsEl.style.display = 'flex';
-                } else {
-                    if (costWarningsEl) costWarningsEl.style.display = 'none';
-                }
-
-                console.log('[CostEstimation] Updated', {
-                    encoding: data.encoding,
-                    segments: data.segments,
-                    cost: data.estimatedCost
-                });
-
-            } catch (error) {
-                console.error('Error updating cost estimation:', error);
-            }
-
-            // Also analyze recipients for duplicates
-            await analyzeRecipients();
         }
 
         // Function to get current recipient count
@@ -3760,6 +3704,15 @@
         
         // Update cost estimation (existing function - keep as is but ensure it works)
         async function updateCostEstimation() {
+            // Cancel any pending cost estimation request
+            if (currentCostEstimationAbortController) {
+                currentCostEstimationAbortController.abort();
+            }
+
+            // Generate unique request ID
+            const currentRequestId = ++costEstimationRequestId;
+            currentCostEstimationAbortController = new AbortController();
+
             const messageBodyEl = document.getElementById('messageBody');
             if (!messageBodyEl) return;
             
@@ -3794,10 +3747,20 @@
                 if (salutation) params.append('salutation', salutation);
                 if (customSalutation) params.append('customSalutation', customSalutation);
                 
-                const response = await window.apiClient.getSmsCost(params);
+                const response = await window.apiClient.getSmsCost(params, {
+                    signal: currentCostEstimationAbortController.signal
+                });
                 
+                // Only process if this is the latest request
+                if (currentRequestId !== costEstimationRequestId) {
+                    return;
+                }
+
                 if (response.error) {
-                    console.error('Cost calculation error:', response.error);
+                    // Silently ignore abort errors
+                    if (!response.isAbort) {
+                        console.error('Cost calculation error:', response.error);
+                    }
                     return;
                 }
                 

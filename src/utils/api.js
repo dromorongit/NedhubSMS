@@ -27,7 +27,7 @@ class ApiClient {
     localStorage.removeItem('authToken');
   }
 
-  async request(method, endpoint, data = null) {
+  async request(method, endpoint, data = null, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getToken();
 
@@ -46,12 +46,16 @@ class ApiClient {
       console.log(`[API] ${method} ${url}`);
       console.log('[API] Request headers:', { ...headers, Authorization: token ? 'Bearer <token_set>' : 'none' });
       
-      const response = await fetch(url, {
+      const fetchOptions = {
         method,
         headers,
-        body: data ? JSON.stringify(data) : undefined,
-        credentials: 'include' // Required for CORS with credentials
-      });
+        credentials: 'include',
+        ...options
+      };
+      if (data !== null && data !== undefined) {
+        fetchOptions.body = JSON.stringify(data);
+      }
+      const response = await fetch(url, fetchOptions);
 
       console.log(`[API] Response status: ${response.status}`);
       const contentType = response.headers.get('content-type') || 'unknown';
@@ -155,6 +159,10 @@ class ApiClient {
       };
     } catch (error) {
       console.error('[API] Request error:', error);
+      // Handle abort signals gracefully
+      if (error.name === 'AbortError') {
+        return { error: error.message, isAbort: true };
+      }
       return { error: 'Network error: ' + error.message };
     }
   }
@@ -365,9 +373,9 @@ class ApiClient {
     return this.request('GET', '/sms/logs');
   }
 
-  async getSmsCost(params) {
+  async getSmsCost(params, options = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request('GET', `/sms/calculate-cost?${queryString}`);
+    return this.request('GET', `/sms/calculate-cost?${queryString}`, null, options);
   }
 
   async resendSms(messageId) {
@@ -384,8 +392,8 @@ class ApiClient {
     });
   }
 
-  async previewCampaign(campaignData) {
-    return this.request('POST', '/sms-campaigns/preview-campaign', campaignData);
+  async previewCampaign(campaignData, options = {}) {
+    return this.request('POST', '/sms-campaigns/preview-campaign', campaignData, options);
   }
 
   async sendPersonalizedCampaign(campaignData) {
