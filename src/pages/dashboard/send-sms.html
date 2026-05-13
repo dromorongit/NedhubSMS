@@ -1446,6 +1446,7 @@
                updateSelectedContactsPreview();
                updateCostEstimation();
                schedulePreviewUpdate();
+               updateRecipientChips();
            }
           
           // Update selected contacts preview
@@ -1483,7 +1484,8 @@
                updateSelectedContactsPreview();
                updateCostEstimation();
                schedulePreviewUpdate();
-            }
+               updateRecipientChips();
+           }
            
            // ============================================
            // CONTACTS PICKER MODAL FUNCTIONS
@@ -1913,27 +1915,30 @@
                    });
                }
 
+               console.log('[RecipientState] addRecipientsWithDeduplication complete', {
+                   totalRecipients: allRecipients.length,
+                   added: addedCount,
+                   duplicates: duplicateCount,
+                   invalid: invalidCount
+               });
                return addedCount;
            }
            
             // Remove recipient by normalized phone number (searches across all sources)
             function removeRecipientByNormalizedPhone(normalizedPhone) {
-                console.log('[RecipientSelection] Removing recipient', { normalizedPhone });
+                console.log('[RecipientState] Removing recipient', { normalizedPhone });
+                let removed = false;
+                let defaultModeUpdated = false;
 
-                // Try to remove from allRecipients first
-                const initialCount = allRecipients.length;
+                // Remove from allRecipients
+                const initialAll = allRecipients.length;
                 allRecipients = allRecipients.filter(r => r.normalizedPhoneNumber !== normalizedPhone);
-
-                if (allRecipients.length < initialCount) {
-                    // Found and removed from allRecipients
-                    console.log('[RecipientSelection] Removed from allRecipients');
-                    updateRecipientChips();
-                    updateCostEstimation();
-                    schedulePreviewUpdate();
-                    return;
+                if (allRecipients.length < initialAll) {
+                    console.log('[RecipientState] Removed from allRecipients');
+                    removed = true;
                 }
 
-                // Try to remove from uploadedContacts
+                // Remove from uploadedContacts
                 if (uploadedContacts.length > 0) {
                     const initialUploaded = uploadedContacts.length;
                     uploadedContacts = uploadedContacts.filter(c => {
@@ -1941,57 +1946,76 @@
                         return norm !== normalizedPhone;
                     });
                     if (uploadedContacts.length < initialUploaded) {
-                        console.log('[RecipientSelection] Removed from uploadedContacts');
-                        updateRecipientChips();
-                        updateCostEstimation();
-                        schedulePreviewUpdate();
-                        return;
+                        console.log('[RecipientState] Removed from uploadedContacts');
+                        removed = true;
                     }
                 }
 
-                // Try to remove from selectedContacts
+                // Remove from selectedContacts
                 if (selectedContacts.length > 0) {
                     const initialSelected = selectedContacts.length;
+                    const removedContacts = selectedContacts.filter(c => {
+                        const norm = normalizePhoneNumber(c.normalizedPhoneNumber || c.phoneNumber);
+                        return norm === normalizedPhone;
+                    });
                     selectedContacts = selectedContacts.filter(c => {
                         const norm = normalizePhoneNumber(c.normalizedPhoneNumber || c.phoneNumber);
                         return norm !== normalizedPhone;
                     });
-                    // Also uncheck in UI if contacts modal is open or contacts tab is active
-                    const checkbox = document.querySelector(`#contactGroups input[value]`) ?
-                        document.querySelector(`#contactGroups input[value][data-phone]`) : null;
                     if (selectedContacts.length < initialSelected) {
-                        console.log('[RecipientSelection] Removed from selectedContacts');
-                        updateRecipientChips();
-                        updateCostEstimation();
-                        schedulePreviewUpdate();
-                        return;
+                        console.log('[RecipientState] Removed from selectedContacts', { count: removedContacts.length });
+                        // Uncheck corresponding checkboxes
+                        removedContacts.forEach(contact => {
+                            const checkbox = document.querySelector(`#contactGroups input[value="${contact.id}"]`);
+                            if (checkbox) {
+                                checkbox.checked = false;
+                            }
+                        });
+                        updateSelectedContactsPreview();
+                        removed = true;
                     }
                 }
 
-                // For manual inputs (default mode: comma-separated), we can't easily remove individual items
-                // The user will need to manually edit the textarea. We'll show a helpful message.
-                if (currentMessagingMode === 'default') {
-                    showToast('Please manually remove the number from your comma-separated list', 'info');
-                } else {
-                    // For personalized mode, we need to find and remove the manual recipient item
-                    const manualItems = document.querySelectorAll('.manual-recipient-item:not(.template)');
-                    manualItems.forEach(item => {
-                        const phoneInput = item.querySelector('.recipient-phone-input');
-                        if (phoneInput) {
-                            const norm = normalizePhoneNumber(phoneInput.value);
-                            if (norm === normalizedPhone) {
-                                item.remove();
-                                updateCostEstimation();
-                                schedulePreviewUpdate();
-                            }
-                        }
-                    });
+                // Check default mode (comma-separated input)
+                const rawNumbers = commaSeparatedInput.value.split(',').map(num => num.trim());
+                const foundInDefault = rawNumbers.some(num => normalizePhoneNumber(num) === normalizedPhone);
+                if (foundInDefault) {
+                    const newNumbers = rawNumbers.filter(num => normalizePhoneNumber(num) !== normalizedPhone);
+                    commaSeparatedInput.value = newNumbers.join(', ');
+                    console.log('[RecipientState] Removed from default mode input');
+                    defaultModeUpdated = true;
+                    removed = true;
                 }
 
-                // Final update
-                updateRecipientChips();
-                updateCostEstimation();
-                schedulePreviewUpdate();
+                // Check personalized mode (manual DOM items)
+                const manualItems = document.querySelectorAll('.manual-recipient-item:not(.template)');
+                let removedFromPersonalized = false;
+                manualItems.forEach(item => {
+                    const phoneInput = item.querySelector('.recipient-phone-input');
+                    if (phoneInput) {
+                        const norm = normalizePhoneNumber(phoneInput.value);
+                        if (norm === normalizedPhone) {
+                            item.remove();
+                            removedFromPersonalized = true;
+                        }
+                    }
+                });
+                if (removedFromPersonalized) {
+                    console.log('[RecipientState] Removed from personalized mode');
+                    removed = true;
+                }
+
+                // Update UI based on what was removed
+                if (defaultModeUpdated) {
+                    updateCommaSeparatedRecipients();
+                } else if (removed) {
+                    updateRecipientChips();
+                    updateCostEstimation();
+                    schedulePreviewUpdate();
+                } else {
+                    console.warn('[RecipientState] Recipient not found in any list', { normalizedPhone });
+                    showToast('Recipient not found in any list', 'info');
+                }
             }
            
             // Update recipient chips display
@@ -2060,6 +2084,10 @@
                 console.log('[RecipientsField] Chips updated', {
                     total: allSourcesRecipients.length
                 });
+                console.log('[RecipientChips] Chips display synchronized', {
+                    totalChips: allSourcesRecipients.length,
+                    chipElements: chipsContainer ? chipsContainer.children.length : 0
+                });
             }
            
             // Collect all recipients from every source for display
@@ -2105,32 +2133,29 @@
                     }, 'saved', contact._id || contact.id);
                 });
 
-                // 4. Add from manual inputs (default mode: comma-separated)
-                const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
-                if (activeTabBtn && activeTabBtn.dataset.tab === 'manual') {
-                    if (currentMessagingMode === 'default') {
-                        const result = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-                        result.recipients.forEach(r => {
-                            const norm = normalizePhoneNumber(r.phoneNumber);
-                            addRecipient(r, 'manual-default', norm);
-                        });
-                    } else {
-                        // Personalized mode: individual items
-                        const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
-                        items.forEach((item, idx) => {
-                            const nameInput = item.querySelector('.recipient-name-input');
-                            const phoneInput = item.querySelector('.recipient-phone-input');
-                            const name = nameInput ? nameInput.value.trim() : '';
-                            const phone = phoneInput ? phoneInput.value.trim() : '';
-                            if (phone) {
-                                const norm = normalizePhoneNumber(phone);
-                                addRecipient({
-                                    recipientName: name || 'Recipient',
-                                    phoneNumber: phone
-                                }, 'manual-personalized', `item-${idx}-${norm}`);
-                            }
-                        });
-                    }
+                // 4. Add from manual inputs (always include, regardless of active tab)
+                if (currentMessagingMode === 'default') {
+                    const result = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                    result.recipients.forEach(r => {
+                        const norm = normalizePhoneNumber(r.phoneNumber);
+                        addRecipient(r, 'manual-default', norm);
+                    });
+                } else {
+                    // Personalized mode: individual items
+                    const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
+                    items.forEach((item, idx) => {
+                        const nameInput = item.querySelector('.recipient-name-input');
+                        const phoneInput = item.querySelector('.recipient-phone-input');
+                        const name = nameInput ? nameInput.value.trim() : '';
+                        const phone = phoneInput ? phoneInput.value.trim() : '';
+                        if (phone) {
+                            const norm = normalizePhoneNumber(phone);
+                            addRecipient({
+                                recipientName: name || 'Recipient',
+                                phoneNumber: phone
+                            }, 'manual-personalized', `item-${idx}-${norm}`);
+                        }
+                    });
                 }
 
                 console.log('[RecipientSync] Collected recipients', {
@@ -2184,110 +2209,20 @@
            // GET ALL RECIPIENTS (UPDATED)
            // ============================================
            
-           // Get all recipients from unified storage + manual inputs
+           // Get all recipients from all sources (unified)
            function getAllRecipients() {
-               const recipients = [];
-
-               // Check which recipient source tab is active
-               const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
-               if (!activeTabBtn) {
-                   console.log('[RecipientsField] No active tab, returning allRecipients only', { count: allRecipients.length });
-                   return allRecipients;
-               }
-
-               const activeTab = activeTabBtn.dataset.tab;
-
-               console.log('[RecipientsField] getAllRecipients called', {
-                   mode: currentMessagingMode,
-                   source: activeTab,
-                   unifiedCount: allRecipients.length
+               // Use the unified collection that includes manual, upload, contacts, and imports
+               const recipients = collectAllRecipientsForDisplay();
+               console.log('[Recipients] getAllRecipients (unified)', {
+                   total: recipients.length,
+                   breakdown: recipients.map(r => ({
+                       name: r.recipientName,
+                       phone: r.phoneNumber,
+                       normalized: r.normalizedPhoneNumber,
+                       source: r.source
+                   }))
                });
-
-               if (activeTab === 'manual') {
-                   const isDefaultMode = currentMessagingMode === 'default';
-
-                   if (isDefaultMode) {
-                       // Default mode: use comma-separated input + unified recipients
-                       const result = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-                       recipients.push(...result.recipients);
-                       console.log('[RecipientsField] Default mode recipients', {
-                           commaSeparatedCount: result.recipients.length,
-                           unifiedCount: allRecipients.length
-                       });
-                   } else {
-                       // Personalized mode: use individual recipient items + unified recipients
-                       const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
-
-                       items.forEach(item => {
-                           const nameInput = item.querySelector('.recipient-name-input');
-                           const phoneInput = item.querySelector('.recipient-phone-input');
-                           const name = nameInput ? nameInput.value.trim() : '';
-                           const rawPhone = phoneInput ? phoneInput.value.trim() : '';
-
-                           if (!name && !rawPhone) {
-                               return;
-                           }
-
-                           recipients.push({
-                               recipientName: name,
-                               phoneNumber: rawPhone
-                           });
-                       });
-                       console.log('[RecipientsField] Personalized mode recipients', {
-                           manualItemsCount: recipients.length,
-                           unifiedCount: allRecipients.length
-                       });
-                   }
-               } else if (activeTab === 'upload') {
-                   // Use uploaded contacts
-                   uploadedContacts.forEach(contact => {
-                       const rawPhone = contact.phoneNumber || '';
-                       const name = contact.recipientName || '';
-                       if (name && rawPhone) {
-                           const validation = validatePhoneNumber(rawPhone);
-                           if (validation.isValid) {
-                               recipients.push({
-                                   recipientName: name,
-                                   phoneNumber: validation.normalizedNumber || rawPhone
-                               });
-                           }
-                       }
-                   });
-                   console.log('[RecipientsField] Upload tab recipients', {
-                       uploadedCount: recipients.length,
-                       unifiedCount: allRecipients.length
-                   });
-               } else if (activeTab === 'contacts') {
-                   // Return selected contacts from saved contacts (these are already in selectedContacts)
-                   console.log('[RecipientsField] Contacts tab, returning selectedContacts', {
-                       selectedCount: selectedContacts.length
-                   });
-                   return selectedContacts;
-               }
-
-               // Combine with unified recipients (excluding duplicates based on normalized phone)
-               const combined = [...allRecipients];
-               const normalizedSet = new Set(allRecipients.map(r => r.normalizedPhoneNumber));
-
-               recipients.forEach(r => {
-                   const validation = validatePhoneNumber(r.phoneNumber);
-                   const normalized = validation.isValid ? validation.normalizedNumber : r.phoneNumber;
-                   if (!normalizedSet.has(normalized)) {
-                       combined.push({
-                           recipientName: r.recipientName,
-                           phoneNumber: r.phoneNumber,
-                           normalizedPhoneNumber: normalized
-                       });
-                   }
-               });
-
-               console.log('[RecipientsField] getAllRecipients result', {
-                   total: combined.length,
-                   fromUnified: allRecipients.length,
-                   fromActiveTab: recipients.length
-               });
-
-               return combined;
+               return recipients;
            }
            
            // ============================================
@@ -2854,7 +2789,8 @@
                 if (validation.isValid) {
                     recipients.push({
                         recipientName: 'Recipient', // Default name for default mode
-                        phoneNumber: validation.normalizedNumber
+                        phoneNumber: phone, // original raw phone
+                        normalizedPhoneNumber: validation.normalizedNumber
                     });
                 } else {
                     invalidNumbers.push(`${phone} (${validation.error})`);
@@ -2866,6 +2802,15 @@
             if (invalidNumbers.length > 0) {
                 error = `Invalid numbers: ${invalidNumbers.join(', ')}`;
             }
+
+            console.log('[ManualEntry] parseCommaSeparatedRecipients', {
+                input,
+                originalCount,
+                validCount: recipients.length,
+                invalidCount: invalidNumbers.length,
+                invalidNumbers,
+                error
+            });
 
             return {
                 recipients,
@@ -3459,6 +3404,7 @@
 
             // Update cost estimation when recipients change
             updateCostEstimation();
+            updateRecipientChips();
 
             // Update live preview
             schedulePreviewUpdate();
@@ -3906,20 +3852,14 @@
                 const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
                 if (activeTab === 'manual') {
                     const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-
-                    // Block if exceeds maximum contacts
-                    if (validationResult.originalCount > MAX_RECIPIENTS) {
-                        showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
-                        return;
-                    }
-
-                    // Block if no valid phone numbers
-                    if (validationResult.count === 0) {
-                        showToast('Please enter at least one valid phone number', 'error');
-                        return;
-                    }
-
-                    // If there are invalid numbers, show a warning (but still allow send for valid ones)
+                    console.log('[ManualEntry] Pre-send validation', {
+                        input: commaSeparatedInput.value,
+                        originalCount: validationResult.originalCount,
+                        validCount: validationResult.count,
+                        invalidCount: validationResult.invalidCount || 0,
+                        error: validationResult.error
+                    });
+                    // Show warning for invalid numbers but do not block sending
                     if (validationResult.error) {
                         showToast(validationResult.error, 'warning');
                     }
@@ -3960,20 +3900,14 @@
                   const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
                   if (activeTab === 'manual') {
                       const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-
-                      // Block if exceeds maximum contacts
-                      if (validationResult.originalCount > MAX_RECIPIENTS) {
-                          showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${validationResult.originalCount}.`, 'error');
-                          return;
-                      }
-
-                      // Block if no valid phone numbers
-                      if (validationResult.count === 0) {
-                          showToast('Please enter at least one valid phone number', 'error');
-                          return;
-                      }
-
-                      // If there are invalid numbers, show a warning (but still allow send for valid ones)
+                      console.log('[ManualEntry] Pre-send validation', {
+                          input: commaSeparatedInput.value,
+                          originalCount: validationResult.originalCount,
+                          validCount: validationResult.count,
+                          invalidCount: validationResult.invalidCount || 0,
+                          error: validationResult.error
+                      });
+                      // Show warning for invalid numbers but do not block sending
                       if (validationResult.error) {
                           showToast(validationResult.error, 'warning');
                       }
@@ -4030,6 +3964,13 @@
                  recipientCount: recipients.length,
                  isPersonalizedMode,
                  scheduledAt: scheduledAt ? scheduledAt.toISOString() : 'immediate'
+             });
+
+             console.log('[SendPayload]', {
+                 sendMode,
+                 recipientCount: recipients.length,
+                 recipientsSample: recipients.slice(0, 5),
+                 isPersonalizedMode
              });
 
              const title = `Campaign ${new Date().toLocaleString()}`;

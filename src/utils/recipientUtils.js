@@ -6,18 +6,28 @@
  * @returns {string} Normalized phone number
  */
 function normalizePhoneNumber(phoneNumber) {
-  if (!phoneNumber) return '';
+  console.log('[RecipientNormalization] Input:', phoneNumber);
+  if (!phoneNumber) {
+    console.log('[RecipientNormalization] Output: (empty)');
+    return '';
+  }
 
   let normalized = String(phoneNumber).replace(/\D/g, '');
 
   if (normalized.startsWith('233') && normalized.length === 12) {
+    console.log('[RecipientNormalization] Output:', normalized);
     return normalized;
   } else if (normalized.startsWith('0') && normalized.length === 10) {
-    return '233' + normalized.substring(1);
+    const result = '233' + normalized.substring(1);
+    console.log('[RecipientNormalization] Output:', result);
+    return result;
   } else if (normalized.length === 9) {
-    return '233' + normalized;
+    const result = '233' + normalized;
+    console.log('[RecipientNormalization] Output:', result);
+    return result;
   }
 
+  console.log('[RecipientNormalization] Output (no change):', normalized);
   return normalized;
 }
 
@@ -27,8 +37,11 @@ function normalizePhoneNumber(phoneNumber) {
  * @returns {Object} Validation result with isValid, normalizedNumber, and error
  */
 function validatePhoneNumber(phoneNumber) {
+  console.log('[RecipientValidation] Validating:', phoneNumber);
   if (!phoneNumber) {
-    return { isValid: false, normalizedNumber: null, error: 'Phone number is required' };
+    const result = { isValid: false, normalizedNumber: null, error: 'Phone number is required' };
+    console.log('[RecipientValidation] Result:', result);
+    return result;
   }
 
   let cleaned = String(phoneNumber).replace(/[\s\-()+]/g, '');
@@ -37,28 +50,38 @@ function validatePhoneNumber(phoneNumber) {
   // Handle Ghanaian numbers
   if (cleaned.startsWith('233')) {
     if (cleaned.length === 12) {
-      return { isValid: true, normalizedNumber: cleaned, error: null };
+      const result = { isValid: true, normalizedNumber: cleaned, error: null };
+      console.log('[RecipientValidation] Result:', result);
+      return result;
     }
   } else if (cleaned.startsWith('0')) {
     if (cleaned.length === 10) {
       const international = '233' + cleaned.substring(1);
-      return { isValid: true, normalizedNumber: international, error: null };
+      const result = { isValid: true, normalizedNumber: international, error: null };
+      console.log('[RecipientValidation] Result:', result);
+      return result;
     }
   } else if (cleaned.length === 9) {
     const international = '233' + cleaned;
-    return { isValid: true, normalizedNumber: international, error: null };
+    const result = { isValid: true, normalizedNumber: international, error: null };
+    console.log('[RecipientValidation] Result:', result);
+    return result;
   }
 
   const ghanaRegex = /^233[0-9]{9}$/;
   if (ghanaRegex.test(cleaned)) {
-    return { isValid: true, normalizedNumber: cleaned, error: null };
+    const result = { isValid: true, normalizedNumber: cleaned, error: null };
+    console.log('[RecipientValidation] Result:', result);
+    return result;
   }
 
-  return {
+  const result = {
     isValid: false,
     normalizedNumber: null,
     error: `Invalid phone number format: ${phoneNumber}`
   };
+  console.log('[RecipientValidation] Result:', result);
+  return result;
 }
 
 /**
