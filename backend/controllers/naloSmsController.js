@@ -37,7 +37,7 @@ const sendSms = async (req, res) => {
     });
 
     if (result.success) {
-      res.status(200).json({
+      const responsePayload = {
         success: true,
         message: 'SMS sent successfully',
         data: {
@@ -45,16 +45,38 @@ const sendSms = async (req, res) => {
           jobId: result.jobId,
           financial: result.financial
         }
+      };
+      
+      console.log('[NaloController] SMS sent successfully:', {
+        userId: req.user?.userId,
+        phoneNumber: req.body.phoneNumber,
+        messageId: result.messageId,
+        jobId: result.jobId,
+        status: 200,
+        contentType: 'application/json'
       });
+      
+      res.status(200).json(responsePayload);
     } else {
       const statusCode = result.code === 'INSUFFICIENT_BALANCE' ? 402 : 400;
-      res.status(statusCode).json({
+      const responsePayload = {
         success: false,
         message: result.error,
         error: {
           code: result.code || 'SMS_SEND_FAILED'
         }
+      };
+      
+      console.log('[NaloController] SMS send failed:', {
+        userId: req.user?.userId,
+        phoneNumber: req.body.phoneNumber,
+        error: result.error,
+        code: result.code,
+        status: statusCode,
+        contentType: 'application/json'
       });
+      
+      res.status(statusCode).json(responsePayload);
     }
 
   } catch (error) {

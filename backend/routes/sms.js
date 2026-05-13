@@ -113,7 +113,7 @@ router.post('/send', authenticate, async (req, res) => {
 
     console.log('[SendSMS] Completed:', { total: recipients.length, success: successCount, failed: failedCount });
 
-    res.json({
+    const responsePayload = {
       success: failedCount === 0,
       message: failedCount === 0 ? 'SMS sent successfully' : 'Some SMS failed to send',
       data: {
@@ -124,17 +124,36 @@ router.post('/send', authenticate, async (req, res) => {
         },
         results
       }
+    };
+    
+    console.log('[SendSMS] Response:', { 
+      status: failedCount === 0 ? 200 : 207, // 207 Multi-Status for partial success
+      success: responsePayload.success,
+      message: responsePayload.message,
+      contentType: 'application/json'
     });
+    
+    res.json(responsePayload);
     } catch (error) {
         console.error('[SendSMS] Error:', error);
-        res.status(500).json({
+        
+        const errorResponse = {
           success: false,
           message: 'Failed to send SMS',
           error: {
             code: 'INTERNAL_SERVER_ERROR',
             details: error.message
           }
+        };
+        
+        console.log('[SendSMS] Error response:', {
+          status: 500,
+          success: false,
+          message: 'Failed to send SMS',
+          contentType: 'application/json'
         });
+        
+        res.status(500).json(errorResponse);
     }
 });
   
@@ -424,7 +443,7 @@ router.post('/send', authenticate, async (req, res) => {
         scheduledAt: scheduledUtc.toISOString()
       });
 
-      res.status(201).json({
+      const responsePayload = {
         success: true,
         message: 'Campaign scheduled successfully',
         data: {
@@ -440,7 +459,16 @@ router.post('/send', authenticate, async (req, res) => {
           duplicateCount: processedRecipients.duplicateCount,
           reservationId: reservation._id
         }
+      };
+      
+      console.log('[Schedule] Response:', {
+        status: 201,
+        success: responsePayload.success,
+        message: responsePayload.message,
+        contentType: 'application/json'
       });
+      
+      res.status(201).json(responsePayload);
   
     } catch (error) {
       // Release reservation if it was made
@@ -488,14 +516,24 @@ router.post('/send', authenticate, async (req, res) => {
         error: error.message,
         stack: error.stack
       });
-      res.status(500).json({
+      
+      const errorResponse = {
         success: false,
         message: 'Failed to schedule SMS',
         error: {
           code: 'INTERNAL_SERVER_ERROR',
           details: error.message
         }
+      };
+      
+      console.log('[Schedule] Error response:', {
+        status: 500,
+        success: false,
+        message: 'Failed to schedule SMS',
+        contentType: 'application/json'
       });
+      
+      res.status(500).json(errorResponse);
     }
   });
 

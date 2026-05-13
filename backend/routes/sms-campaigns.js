@@ -402,7 +402,7 @@ router.post('/send', authenticate, async (req, res) => {
     campaign.pendingCount = 0; // All processed
     await campaign.save();
 
-    res.json({
+    const responsePayload = {
       success: successCount > 0,
       message: successCount > 0 ? 'Campaign sent successfully' : 'Campaign failed to send',
       data: {
@@ -418,12 +418,31 @@ router.post('/send', authenticate, async (req, res) => {
         totalCost,
         results
       }
+    };
+    
+    console.log('[Campaign] Response:', {
+      campaignId: campaign._id,
+      status: 200,
+      success: responsePayload.success,
+      message: responsePayload.message,
+      successCount,
+      failedCount: processedRecipients.finalCount - successCount,
+      contentType: 'application/json'
     });
+    
+    res.json(responsePayload);
 
-  } catch (error) {
-    console.error('Send campaign error:', error);
-    res.status(500).json({ error: 'Failed to send campaign: ' + error.message });
-  }
+   } catch (error) {
+     console.error('Send campaign error:', error);
+     res.status(500).json({
+       success: false,
+       message: 'Failed to send campaign',
+       error: {
+         code: 'INTERNAL_SERVER_ERROR',
+         details: error.message
+       }
+     });
+   }
 });
 
 // Schedule personalized SMS campaign
@@ -678,7 +697,7 @@ router.post('/schedule', authenticate, async (req, res) => {
       scheduledAt: scheduleDate.toISOString()
     });
 
-    res.status(201).json({
+    const responsePayload = {
       success: true,
       message: 'Campaign scheduled successfully',
       data: {
@@ -701,7 +720,17 @@ router.post('/schedule', authenticate, async (req, res) => {
           finalCount: processedRecipients.finalCount
         }
       }
+    };
+    
+    console.log('[Schedule] Response:', {
+      campaignId: campaign._id,
+      status: 201,
+      success: true,
+      message: 'Campaign scheduled successfully',
+      contentType: 'application/json'
     });
+    
+    res.status(201).json(responsePayload);
 
   } catch (error) {
     // Release reservation if it was made
@@ -747,14 +776,24 @@ router.post('/schedule', authenticate, async (req, res) => {
       error: error.message,
       stack: error.stack
     });
-    res.status(500).json({
+    
+    const errorResponse = {
       success: false,
       message: 'Failed to schedule campaign',
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         details: error.message
       }
+    };
+    
+    console.log('[Schedule] Error response:', {
+      status: 500,
+      success: false,
+      message: 'Failed to schedule campaign',
+      contentType: 'application/json'
     });
+    
+    res.status(500).json(errorResponse);
   }
 });
 

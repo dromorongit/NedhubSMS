@@ -1,0 +1,1 @@
+const cases=[{n:"JSON",b:'{"ok":true}',ct:"json",p:true},{n:"HTML",b:"<html>",ct:"html",p:false},{n:"Empty",b:"",ct:"json",p:true}];cases.forEach(t= j=t.ct.includes("json")
