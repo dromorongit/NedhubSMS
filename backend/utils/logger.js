@@ -78,20 +78,20 @@ const createTaggedLogger = (tag) => {
   };
 };
 
-module.exports = {
-  ...logger,
-  tags: LogTags,
-  api: createTaggedLogger(LogTags.API),
-  ratelimit: createTaggedLogger(LogTags.RATELIMIT),
-  responseParser: createTaggedLogger(LogTags.RESPONSEPARSER),
-  smsSend: createTaggedLogger(LogTags.SMSSEND),
-  backendError: createTaggedLogger(LogTags.BACKENDERROR),
-  auth: createTaggedLogger(LogTags.AUTH),
-  campaign: createTaggedLogger(LogTags.CAMPAIGN),
-  wallet: createTaggedLogger(LogTags.WALLET),
-  schedule: createTaggedLogger(LogTags.SCHEDULE),
-  retry: createTaggedLogger(LogTags.RETRY),
-  webhook: createTaggedLogger(LogTags.WEBHOOK),
-  bullmq: createTaggedLogger(LogTags.BULLMQ),
-  validation: createTaggedLogger(LogTags.VALIDATION)
-};
+// Add tagged loggers as properties on the logger instance
+logger.tags = LogTags;
+logger.api = createTaggedLogger(LogTags.API);
+logger.ratelimit = createTaggedLogger(LogTags.RATELIMIT);
+logger.responseParser = createTaggedLogger(LogTags.RESPONSEPARSER);
+logger.smsSend = createTaggedLogger(LogTags.SMSSEND);
+logger.backendError = createTaggedLogger(LogTags.BACKENDERROR);
+logger.auth = createTaggedLogger(LogTags.AUTH);
+logger.campaign = createTaggedLogger(LogTags.CAMPAIGN);
+logger.wallet = createTaggedLogger(LogTags.WALLET);
+logger.schedule = createTaggedLogger(LogTags.SCHEDULE);
+logger.retry = createTaggedLogger(LogTags.RETRY);
+logger.webhook = createTaggedLogger(LogTags.WEBHOOK);
+logger.bullmq = createTaggedLogger(LogTags.BULLMQ);
+logger.validation = createTaggedLogger(LogTags.VALIDATION);
+
+module.exports = logger;
