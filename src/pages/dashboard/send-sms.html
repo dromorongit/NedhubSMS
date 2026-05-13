@@ -3477,8 +3477,10 @@
         
         // Centralized live preview renderer
         function renderLivePreview() {
+            console.log('[LivePreview] Rendering preview...');
             const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
             const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
+            console.log('[LivePreview] Mode:', isPersonalizedMode ? 'Personalized' : 'Default');
             
             const messageBodyEl = document.getElementById('messageBody');
             const salutationEl = document.getElementById('salutation');
@@ -3489,6 +3491,9 @@
             const salutation = salutationEl ? salutationEl.value : 'Dear';
             const customSalutation = customSalutationEl ? customSalutationEl.value : '';
             const senderId = senderIdEl ? senderIdEl.value : '';
+            
+            console.log('[MessageFormatting] Original message length:', messageBody.length);
+            console.log('[MessageFormatting] Message content:', JSON.stringify(messageBody));
             
             // Get preview elements
             const previewTextEl = document.getElementById('livePreviewText');
@@ -3541,14 +3546,28 @@
                 displayMessage = messageBody || 'Your message will appear here...';
             }
             
+            // Log formatting details
+            const lineCount = displayMessage.split('\n').length;
+            const paragraphCount = displayMessage.split('\n\n').length;
+            console.log('[ParagraphRender] Display message prepared:', {
+                length: displayMessage.length,
+                lineCount,
+                paragraphCount,
+                mode: isPersonalizedMode ? 'personalized' : 'default',
+                preview: JSON.stringify(displayMessage).substring(0, 100)
+            });
+            
             // Update preview with animation
             if (wrapperEl) wrapperEl.classList.add('preview-updating');
+            console.log('[LivePreview] Updating preview text element');
             
             setTimeout(() => {
                 if (previewTextEl) {
                     previewTextEl.textContent = displayMessage;
+                    console.log('[LivePreview] Text updated successfully');
                 }
                 if (wrapperEl) wrapperEl.classList.remove('preview-updating');
+                console.log('[LivePreview] Render complete');
             }, 100);
         }
         
