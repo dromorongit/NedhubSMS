@@ -23,7 +23,7 @@ const smsRecipientSchema = new mongoose.Schema({
     type: String,
     required: true,
     match: [
-      /^(?:\+233|0)(?:20|50|24|54|27|57|26|56|23|53|28|58|25|55|59)[0-9]{7}$/,
+      /^(?:\+233|233|0)(?:20|50|24|54|27|57|26|56|23|53|28|58|25|55|59)[0-9]{7}$/,
       'Please add a valid Ghana phone number'
     ],
     index: true
