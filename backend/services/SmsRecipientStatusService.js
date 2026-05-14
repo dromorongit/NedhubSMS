@@ -1,4 +1,4 @@
-const logger = require('../utils/logger').createTaggedLogger('[MessageStatus]');
+const logger = require('../utils/logger').messageStatus;
 const SmsRecipient = require('../models/SmsRecipient');
 const SmsCampaign = require('../models/SmsCampaign');
 
