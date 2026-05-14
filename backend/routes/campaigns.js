@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const SmsCampaign = require('../models/SmsCampaign');
 const SmsRecipient = require('../models/SmsRecipient');
+const SmsRecipientService = require('../services/SmsRecipientService');
 const Template = require('../models/Template');
 const SenderId = require('../models/SenderId');
 const { calculateSMSCost, deductCredits } = require('../utils/billing');
@@ -120,6 +121,7 @@ router.post('/', authenticate, async (req, res) => {
           const smsMessage = new SmsMessage({
             userId,
             phoneNumber: recipient,
+            normalizedPhoneNumber: SmsRecipientService.normalizePhoneNumber(recipient),
             senderId,
             message: messageContent,
             status: 'sent',
