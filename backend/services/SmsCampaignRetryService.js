@@ -26,8 +26,9 @@ class SmsCampaignRetryService {
         throw new Error('Campaign not found');
       }
 
-      if (campaign.status !== 'sent') {
-        throw new Error('Campaign must be completed to retry failed recipients');
+      // Allow retry for campaigns that are 'sent' (fully) or 'partial_success' (partially sent)
+      if (!['sent', 'partial_success'].includes(campaign.status)) {
+        throw new Error('Campaign must be completed (sent or partial_success) to retry failed recipients');
       }
 
       // Check if there are failed recipients available for retry
@@ -110,7 +111,7 @@ class SmsCampaignRetryService {
               sentCount: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
               deliveredCount: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
               failedCount: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
-              pendingCount: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } }
+              queuedCount: { $sum: { $cond: [{ $eq: ['$status', 'queued'] }, 1, 0] } }
             }
           }
         ]);
@@ -120,7 +121,7 @@ class SmsCampaignRetryService {
           updatedCampaign.sentCount = stats.sentCount;
           updatedCampaign.deliveredCount = stats.deliveredCount;
           updatedCampaign.failedCount = stats.failedCount;
-          updatedCampaign.pendingCount = stats.pendingCount;
+          updatedCampaign.queuedCount = stats.queuedCount;
           await updatedCampaign.save();
         }
 
@@ -158,8 +159,8 @@ class SmsCampaignRetryService {
         throw new Error('Campaign not found');
       }
 
-      if (originalCampaign.status !== 'sent') {
-        throw new Error('Campaign must be completed to duplicate failed recipients');
+      if (originalCampaign.status !== 'sent' && originalCampaign.status !== 'partial_success') {
+        throw new Error('Campaign must be completed (sent or partial_success) to duplicate failed recipients');
       }
 
       // Find failed recipients that haven't exceeded retry limit
@@ -200,7 +201,7 @@ class SmsCampaignRetryService {
         status: 'processing',
         recipientCount: failedRecipients.length,
         validRecipientCount: failedRecipients.length,
-        pendingCount: failedRecipients.length,
+        queuedCount: failedRecipients.length,
         totalSegments: costEstimation.totalSegments,
         estimatedCost: costEstimation.estimatedCost
       });
@@ -282,7 +283,7 @@ class SmsCampaignRetryService {
                              successCount === 0 ? 'failed' : 'sent';
         newCampaign.sentCount = successCount;
         newCampaign.failedCount = failedCount;
-        newCampaign.pendingCount = 0;
+        newCampaign.queuedCount = 0;
         await newCampaign.save();
 
         return {
@@ -304,7 +305,7 @@ class SmsCampaignRetryService {
                           successCount === 0 ? 'failed' : 'sent';
       newCampaign.sentCount = successCount;
       newCampaign.failedCount = finalFailedCount;
-      newCampaign.pendingCount = 0;
+      newCampaign.queuedCount = 0;
       await newCampaign.save();
 
       return {

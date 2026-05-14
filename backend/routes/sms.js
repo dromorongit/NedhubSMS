@@ -15,7 +15,7 @@ router.post('/send', authenticate, async (req, res) => {
     const { senderId, recipients, message } = req.body;
     const userId = req.user.userId;
 
-    console.log('[SendSMS] Request received:', {
+    console.log('[SmsSend]', {
       userId,
       senderId,
       recipientCount: recipients?.length || 0,
@@ -113,11 +113,23 @@ router.post('/send', authenticate, async (req, res) => {
 
     console.log('[SendSMS] Completed:', { total: recipients.length, success: successCount, failed: failedCount });
 
+    // Determine overall status: 'sent' if all succeeded, 'partial_success' if some succeeded, 'failed' if none
+    let overallStatus;
+    if (successCount === recipients.length) {
+      overallStatus = 'sent';
+    } else if (successCount > 0) {
+      overallStatus = 'partial_success';
+    } else {
+      overallStatus = 'failed';
+    }
+
     // Prepare canonical response data with standardized fields
     const responseData = {
+      campaignId: null, // Quick send does not create a campaign
       totalRecipients: recipients.length,
       successfulRecipients: successCount,
       failedRecipients: failedCount,
+      status: overallStatus,
       summary: {
         total: recipients.length,
         success: successCount,
@@ -127,24 +139,24 @@ router.post('/send', authenticate, async (req, res) => {
     };
 
     const responsePayload = {
-      success: failedCount === 0,
-      message: failedCount === 0 ? 'SMS sent successfully' : 'Some SMS failed to send',
+      success: successCount > 0, // Partial success counts as overall success
+      message: successCount > 0 ? 'Campaign sent successfully' : 'Campaign failed to send',
       data: responseData
     };
     
-    // Structured logging with [SendResponse] tag
-    console.log('[SendResponse]', {
+    // Structured logging with [SendResult] tag
+    console.log('[SendResult]', {
       totalRecipients: responseData.totalRecipients,
       successfulRecipients: responseData.successfulRecipients,
       failedRecipients: responseData.failedRecipients,
-      status: responsePayload.success ? 'success' : 'partial_failure'
+      status: overallStatus,
+      httpStatus: 200
     });
     
-    console.log('[SendSMS] Response:', {
-      status: failedCount === 0 ? 200 : 207, // 207 Multi-Status for partial success
+    console.log('[SmsSend] Response:', {
+      httpStatus: 200,
       success: responsePayload.success,
-      message: responsePayload.message,
-      contentType: 'application/json'
+      message: responsePayload.message
     });
     
     res.json(responsePayload);
@@ -398,7 +410,7 @@ router.post('/send', authenticate, async (req, res) => {
         invalidRecipientCount: processedRecipients.invalidRecipients.length,
         blacklistedCount: processedRecipients.blacklistedRecipients.length,
         duplicateCount: processedRecipients.duplicateCount,
-        pendingCount: processedRecipients.finalCount,
+        queuedCount: processedRecipients.finalCount,
         totalSegments: costEstimation.totalSegments,
         estimatedCost: costEstimation.estimatedCost,
         walletChargeMode: 'reservation',
@@ -561,10 +573,15 @@ router.post('/send', authenticate, async (req, res) => {
 
 // Get message history - fetch from ALL three models: Message, SmsMessage, and SmsRecipient
 router.get('/logs', authenticate, async (req, res) => {
+  const logger = require('../utils/logger');
+  const startTime = Date.now();
+  
   try {
     const userId = req.user.userId;
     const mongoose = require('mongoose');
     const userIdObj = new mongoose.Types.ObjectId(userId);
+    
+    logger.info('[MessageHistory] Fetching message history', { userId });
     
     // Fetch from all three models
     const [legacyMessages, newMessages, recipients] = await Promise.all([
@@ -572,6 +589,13 @@ router.get('/logs', authenticate, async (req, res) => {
       SmsMessage.find({ userId }).sort({ createdAt: -1 }),
       require('../models/SmsRecipient').find({ userId: userIdObj }).sort({ createdAt: -1 })
     ]);
+    
+    logger.info('[MessageHistory] Data fetched', {
+      userId,
+      legacyCount: legacyMessages.length,
+      newCount: newMessages.length,
+      recipientCount: recipients.length
+    });
     
     // Transform messages to have consistent format
     const transformMessage = (msg, source) => {
@@ -611,7 +635,7 @@ router.get('/logs', authenticate, async (req, res) => {
           message: msg.personalizedMessage,
           status: msg.status,
           createdAt: msg.createdAt,
-          errorCode: msg.errorMessage, // maps errorMessage to errorCode for filtering
+          errorCode: msg.errorMessage,
           errorMessage: msg.errorMessage,
           source: 'recipient'
         };
@@ -625,9 +649,40 @@ router.get('/logs', authenticate, async (req, res) => {
       ...recipients.map(msg => transformMessage(msg, 'recipient'))
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
-     res.json(allMessages);
+    // Calculate summary using canonical statuses
+    const summary = {
+      total: allMessages.length,
+      sent: allMessages.filter(m => m.status === 'sent').length,
+      delivered: allMessages.filter(m => m.status === 'delivered').length,
+      failed: allMessages.filter(m => m.status === 'failed').length,
+      scheduled: allMessages.filter(m => m.status === 'scheduled').length,
+      queued: allMessages.filter(m => m.status === 'queued').length
+    };
+    
+    logger.info('[MessageHistory] History retrieved', {
+      userId,
+      total: summary.total,
+      sent: summary.sent,
+      delivered: summary.delivered,
+      failed: summary.failed,
+      scheduled: summary.scheduled,
+      durationMs: Date.now() - startTime
+    });
+    
+    res.json({
+      success: true,
+      message: 'Messages fetched successfully',
+      data: {
+        messages: allMessages,
+        summary
+      }
+    });
   } catch (error) {
-    console.error(error);
+    logger.error('[MessageHistory] Error fetching history', {
+      userId: req.user?.userId,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve message logs',
@@ -721,43 +776,71 @@ router.post('/callback', async (req, res) => {
 
 // Resend a failed message
 router.post('/resend', authenticate, async (req, res) => {
+  const logger = require('../utils/logger').createTaggedLogger('[ResendLogic]');
+  const startTime = Date.now();
+  
   try {
-     const { messageId } = req.body;
-     const userId = req.user.userId;
+    const { messageId } = req.body;
+    const userId = req.user.userId;
 
-     if (!messageId) {
-       return res.status(400).json({
-         success: false,
-         message: 'Message ID is required',
-         error: { code: 'VALIDATION_ERROR' }
-       });
-     }
+    if (!messageId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message ID is required',
+        error: { code: 'VALIDATION_ERROR' }
+      });
+    }
 
     // Try to find the message in all three models
-    let message = await Message.findByUserId(userId).find(m => m._id.toString() === messageId);
     let messageData = null;
-    let source = 'legacy';
+    let source = null;
 
-    // Check in SmsMessage
-    if (!messageData) {
-      messageData = await SmsMessage.findOne({ _id: messageId, userId });
-      source = 'new';
-    }
+    // Check in SmsMessage (new model)
+    messageData = await SmsMessage.findOne({ _id: messageId, userId });
+    if (messageData) source = 'new';
 
     // Check in SmsRecipient
     if (!messageData) {
       const mongoose = require('mongoose');
-      messageData = await require('../models/SmsRecipient').findOne({ _id: new mongoose.Types.ObjectId(messageId), userId: new mongoose.Types.ObjectId(userId) });
-      source = 'recipient';
+      messageData = await require('../models/SmsRecipient').findOne({
+        _id: new mongoose.Types.ObjectId(messageId),
+        userId: new mongoose.Types.ObjectId(userId)
+      });
+      if (messageData) source = 'recipient';
     }
 
-     if (!messageData) {
-       return res.status(404).json({
-         success: false,
-         message: 'Message not found',
-         error: { code: 'NOT_FOUND' }
-       });
-     }
+    // Check in legacy Message
+    if (!messageData) {
+      const legacy = await Message.findByUserId(userId);
+      const found = legacy.find(m => m._id.toString() === messageId);
+      if (found) {
+        messageData = found;
+        source = 'legacy';
+      }
+    }
+
+    if (!messageData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Message not found',
+        error: { code: 'NOT_FOUND' }
+      });
+    }
+
+    // CRITICAL: Only allow resending FAILED messages
+    if (messageData.status !== 'failed') {
+      logger.warn('Resend attempted on non-failed message', {
+        messageId,
+        source,
+        currentStatus: messageData.status,
+        userId
+      });
+      return res.status(400).json({
+        success: false,
+        message: `Only failed messages can be resent. Current status: ${messageData.status}`,
+        error: { code: 'INVALID_STATUS_FOR_RESEND' }
+      });
+    }
 
     // Extract message details based on source
     let senderId, recipient, messageText;
@@ -776,24 +859,32 @@ router.post('/resend', authenticate, async (req, res) => {
       messageText = messageData.personalizedMessage;
     }
 
-     if (!senderId || !recipient || !messageText) {
-       return res.status(400).json({
-         success: false,
-         message: 'Incomplete message data. Cannot resend.',
-         error: { code: 'VALIDATION_ERROR' }
-       });
-     }
+    if (!senderId || !recipient || !messageText) {
+      return res.status(400).json({
+        success: false,
+        message: 'Incomplete message data. Cannot resend.',
+        error: { code: 'VALIDATION_ERROR' }
+      });
+    }
 
-     // Check wallet balance
-     const User = require('../models/User');
-     const user = await User.findById(userId);
-     if (!user || user.walletBalance <= 0) {
-       return res.status(402).json({
-         success: false,
-         message: 'Insufficient wallet balance. Please top up your wallet.',
-         error: { code: 'INSUFFICIENT_BALANCE' }
-       });
-     }
+    // Check wallet balance
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user || user.walletBalance <= 0) {
+      return res.status(402).json({
+        success: false,
+        message: 'Insufficient wallet balance. Please top up your wallet.',
+        error: { code: 'INSUFFICIENT_BALANCE' }
+      });
+    }
+
+    logger.info('Resending failed message', {
+      messageId,
+      source,
+      userId,
+      recipient,
+      senderId
+    });
 
     // Resend the message using NaloSmsService
     const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
@@ -804,33 +895,48 @@ router.post('/resend', authenticate, async (req, res) => {
       recipientsCount: 1
     });
 
-     if (smsResult.success) {
-       res.json({
-         success: true,
-         message: 'Message resent successfully',
-         data: {
-           newMessageId: smsResult.messageId,
-           jobId: smsResult.jobId
-         }
-       });
-     } else {
-       res.status(400).json({
-         success: false,
-         message: smsResult.error || 'Failed to resend message',
-         error: { code: 'SMS_SEND_FAILED' }
-       });
-     }
-   } catch (error) {
-     console.error('Resend message error:', error);
-     res.status(500).json({
-       success: false,
-       message: 'Failed to resend message',
-       error: {
-         code: 'INTERNAL_SERVER_ERROR',
-         details: error.message
-       }
-     });
-   }
+    if (smsResult.success) {
+      logger.info('Resend successful', {
+        messageId,
+        newMessageId: smsResult.messageId,
+        jobId: smsResult.jobId,
+        durationMs: Date.now() - startTime
+      });
+      res.json({
+        success: true,
+        message: 'Message resent successfully',
+        data: {
+          newMessageId: smsResult.messageId,
+          jobId: smsResult.jobId
+        }
+      });
+    } else {
+      logger.error('Resend failed', {
+        messageId,
+        error: smsResult.error,
+        userId
+      });
+      res.status(400).json({
+        success: false,
+        message: smsResult.error || 'Failed to resend message',
+        error: { code: 'SMS_SEND_FAILED' }
+      });
+    }
+  } catch (error) {
+    logger.error('Resend exception', {
+      messageId: req.body?.messageId,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to resend message',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
+  }
 });
 
 // Schedule default SMS campaign (bulk messaging)
@@ -981,7 +1087,7 @@ router.post('/schedule', authenticate, async (req, res) => {
       recipientCount: validRecipients.length,
       validRecipientCount: validRecipients.length,
       invalidRecipientCount: invalidRecipients.length,
-      pendingCount: validRecipients.length,
+      queuedCount: validRecipients.length,
       totalSegments: costEstimation.totalSegments,
       estimatedCost: costEstimation.estimatedCost,
       walletChargeMode: 'reservation',

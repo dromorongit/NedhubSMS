@@ -74,8 +74,8 @@ const smsRecipientSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['queued', 'processing', 'sent', 'delivered', 'failed', 'pending', 'cancelled'],
-    default: 'pending',
+    enum: ['queued', 'processing', 'sent', 'delivered', 'failed', 'scheduled', 'cancelled'],
+    default: 'queued',
     index: true
   },
   providerMessageId: {
@@ -156,44 +156,87 @@ smsRecipientSchema.statics.updateStatus = async function(id, status, providerMes
 
 // Method to mark as sent
 smsRecipientSchema.methods.markAsSent = function(providerMessageId = null) {
+  const oldStatus = this.status;
   this.status = 'sent';
   this.sentAt = new Date();
   if (providerMessageId) this.providerMessageId = providerMessageId;
   this.updatedAt = new Date();
-  return this.save();
+  const savePromise = this.save();
+  // Log recipient status change with [RecipientStatus] tag
+  console.log('[RecipientStatus]', {
+    recipientId: this._id,
+    campaignId: this.campaignId,
+    oldStatus,
+    newStatus: 'sent',
+    providerMessageId
+  });
+  return savePromise;
 };
 
 // Method to mark as delivered
 smsRecipientSchema.methods.markAsDelivered = function() {
+  const oldStatus = this.status;
   this.status = 'delivered';
   this.deliveredAt = new Date();
   this.updatedAt = new Date();
-  return this.save();
+  const savePromise = this.save();
+  console.log('[RecipientStatus]', {
+    recipientId: this._id,
+    campaignId: this.campaignId,
+    oldStatus,
+    newStatus: 'delivered'
+  });
+  return savePromise;
 };
 
 // Method to mark as failed
 smsRecipientSchema.methods.markAsFailed = function(errorMessage) {
+  const oldStatus = this.status;
   this.status = 'failed';
   this.errorMessage = errorMessage;
   this.failedAt = new Date();
   this.updatedAt = new Date();
-  return this.save();
+  const savePromise = this.save();
+  console.log('[RecipientStatus]', {
+    recipientId: this._id,
+    campaignId: this.campaignId,
+    oldStatus,
+    newStatus: 'failed',
+    error: errorMessage
+  });
+  return savePromise;
 };
 
 // Method to mark as processing
 smsRecipientSchema.methods.markAsProcessing = function() {
+  const oldStatus = this.status;
   this.status = 'processing';
   this.processingAt = new Date();
   this.updatedAt = new Date();
-  return this.save();
+  const savePromise = this.save();
+  console.log('[RecipientStatus]', {
+    recipientId: this._id,
+    campaignId: this.campaignId,
+    oldStatus,
+    newStatus: 'processing'
+  });
+  return savePromise;
 };
 
 // Method to mark as cancelled
 smsRecipientSchema.methods.markAsCancelled = function() {
+  const oldStatus = this.status;
   this.status = 'cancelled';
   this.cancelledAt = new Date();
   this.updatedAt = new Date();
-  return this.save();
+  const savePromise = this.save();
+  console.log('[RecipientStatus]', {
+    recipientId: this._id,
+    campaignId: this.campaignId,
+    oldStatus,
+    newStatus: 'cancelled'
+  });
+  return savePromise;
 };
 
 module.exports = mongoose.model('SmsRecipient', smsRecipientSchema);

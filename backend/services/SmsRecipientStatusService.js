@@ -1,3 +1,4 @@
+const logger = require('../utils/logger').createTaggedLogger('[MessageStatus]');
 const SmsRecipient = require('../models/SmsRecipient');
 const SmsCampaign = require('../models/SmsCampaign');
 
@@ -24,6 +25,48 @@ class SmsRecipientStatusService {
       }
 
       const oldStatus = recipient.status;
+
+      // If status unchanged, treat as idempotent (already updated)
+      if (oldStatus === status) {
+        logger.info('Recipient status unchanged (idempotent)', {
+          recipientId: recipient._id,
+          providerMessageId,
+          status
+        });
+        return {
+          success: true,
+          recipientId: recipient._id,
+          oldStatus,
+          newStatus: status,
+          idempotent: true
+        };
+      }
+
+      // Status downgrade protection (similar to webhook)
+      const statusHierarchy = {
+        'queued': 1,
+        'processing': 2,
+        'sent': 3,
+        'delivered': 4
+      };
+      const currentLevel = statusHierarchy[oldStatus];
+      const newLevel = statusHierarchy[status];
+      if (currentLevel && newLevel && newLevel < currentLevel) {
+        logger.warn('Recipient status downgrade prevented', {
+          recipientId: recipient._id,
+          oldStatus,
+          attemptedStatus: status,
+          reason: 'New status is lower in hierarchy'
+        });
+        // Return success but keep current status
+        return {
+          success: true,
+          recipientId: recipient._id,
+          oldStatus,
+          newStatus: oldStatus,
+          downgradePrevented: true
+        };
+      }
 
       // Update recipient status
       const updateData = {
@@ -52,6 +95,16 @@ class SmsRecipientStatusService {
         await this.updateCampaignCounts(recipient.campaignId, oldStatus, status);
       }
 
+      // Log recipient status change with [RecipientStatus] tag
+      console.log('[RecipientStatus]', {
+        recipientId: recipient._id,
+        campaignId: recipient.campaignId,
+        oldStatus,
+        newStatus: status,
+        providerMessageId,
+        providerStatus
+      });
+
       return {
         success: true,
         recipientId: recipient._id,
@@ -60,7 +113,10 @@ class SmsRecipientStatusService {
       };
 
     } catch (error) {
-      console.error('[SmsRecipientStatusService] Error updating status:', error);
+      logger.error('Error updating recipient status', {
+        providerMessageId,
+        error: error.message
+      });
       return {
         success: false,
         error: error.message
@@ -73,31 +129,38 @@ class SmsRecipientStatusService {
    */
   async updateCampaignCounts(campaignId, oldStatus, newStatus) {
     try {
+      // Verify campaign exists
       const campaign = await SmsCampaign.findById(campaignId);
       if (!campaign) {
         console.warn(`[SmsRecipientStatusService] Campaign ${campaignId} not found`);
         return;
       }
 
-      const updates = {};
+      const incUpdate = {};
 
-      // Decrement old status count
-      if (oldStatus && campaign[`${oldStatus}Count`] !== undefined) {
-        updates[`${oldStatus}Count`] = Math.max(0, campaign[`${oldStatus}Count`] - 1);
+      // Decrement old status count (if different from new and field exists)
+      if (oldStatus && oldStatus !== newStatus && campaign[`${oldStatus}Count`] !== undefined) {
+        incUpdate[`${oldStatus}Count`] = -1;
       }
 
       // Increment new status count
       if (newStatus && campaign[`${newStatus}Count`] !== undefined) {
-        updates[`${newStatus}Count`] = campaign[`${newStatus}Count`] + 1;
+        incUpdate[`${newStatus}Count`] = 1;
       }
 
-      if (Object.keys(updates).length > 0) {
+      if (Object.keys(incUpdate).length > 0) {
         await SmsCampaign.findByIdAndUpdate(campaignId, {
-          ...updates,
+          $inc: incUpdate,
           updatedAt: new Date()
         });
 
-        console.log(`[SmsRecipientStatusService] Updated campaign ${campaignId} counts:`, updates);
+        // Log campaign count update with [CampaignStatus] tag
+        console.log('[CampaignStatus]', {
+          campaignId,
+          increments: incUpdate,
+          oldStatus,
+          newStatus
+        });
       }
 
     } catch (error) {
@@ -173,7 +236,6 @@ class SmsRecipientStatusService {
           sent: statusCounts.sent || 0,
           delivered: statusCounts.delivered || 0,
           failed: statusCounts.failed || 0,
-          pending: statusCounts.pending || 0,
           cancelled: statusCounts.cancelled || 0
         },
         deliveryRate: campaign.recipientCount > 0 ?
@@ -202,10 +264,10 @@ class SmsRecipientStatusService {
       const results = [];
 
       for (const recipient of failedRecipients) {
-        // Increment retry count and reset status to pending
+        // Increment retry count and reset status to queued for retry
         await SmsRecipient.findByIdAndUpdate(recipient._id, {
           $inc: { retryCount: 1 },
-          status: 'pending',
+          status: 'queued',
           updatedAt: new Date()
         });
 

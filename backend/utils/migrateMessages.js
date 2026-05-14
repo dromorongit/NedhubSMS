@@ -19,6 +19,19 @@ async function migrateMessages() {
         // Legacy messages have recipients as array, but typically one recipient
         const recipients = Array.isArray(legacy.recipients) ? legacy.recipients : [legacy.recipients];
 
+        // Map legacy status to canonical status (handle any old 'pending' values)
+        const statusMap = {
+          'pending': 'queued',
+          'queued': 'queued',
+          'processing': 'processing',
+          'sent': 'sent',
+          'delivered': 'delivered',
+          'failed': 'failed',
+          'scheduled': 'scheduled',
+          'cancelled': 'cancelled'
+        };
+        const canonicalStatus = statusMap[legacy.status] || 'queued';
+
         // Create SmsMessage for each recipient
         for (const recipient of recipients) {
           const segments = Math.ceil(legacy.messageBody.length / 160);
@@ -34,7 +47,7 @@ async function migrateMessages() {
             senderId: legacy.senderId,
             message: legacy.messageBody,
             provider: 'nalo',
-            status: legacy.status,
+            status: canonicalStatus,
             sellPricePerSms,
             providerCostPerSms,
             segments,

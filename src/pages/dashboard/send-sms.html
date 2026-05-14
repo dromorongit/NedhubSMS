@@ -4071,21 +4071,26 @@
                         }
                         errorMessage += '. Please check your recipients and try again.';
                     }
+                    
+                    // Log toast notification with [ToastNotification] tag
+                    console.log('[ToastNotification]', {
+                      type: 'error',
+                      message: errorMessage,
+                      errorDetails: result.error,
+                      responseData: responseData
+                    });
+                    
                     showToast(errorMessage, 'error');
                 } else {
                     // Check for both success: false (API-level failure) and result.data?.success
                     const responseData = result.data || result;
-                    // Determine success count with defensive fallbacks (for immediate sends)
+                    // Determine success count from canonical fields
                     let successCount = 0;
                     let failedCount = 0;
                     if (sendMode === 'immediate') {
-                        successCount = responseData.successfulRecipients ??
-                                      responseData.summary?.success ??
-                                      responseData.totalRecipients ??
-                                      0;
-                        failedCount = responseData.failedRecipients ??
-                                      responseData.summary?.failed ??
-                                      0;
+                        // Use direct fields from backend response
+                        successCount = responseData.successfulRecipients ?? 0;
+                        failedCount = responseData.failedRecipients ?? 0;
                     }
                     const isSuccess = sendMode === 'immediate' ? successCount > 0 : true;
                     
@@ -4111,6 +4116,15 @@
                             successMessage = `Campaign scheduled successfully for ${new Date(scheduledAt).toLocaleString()}`;
                         }
                         
+                        // Log toast notification with [ToastNotification] tag
+                        console.log('[ToastNotification]', {
+                          type: 'success',
+                          message: successMessage,
+                          successCount,
+                          failedCount,
+                          campaignId: responseData.data?.campaignId
+                        });
+                        
                         showToast(successMessage, 'success');
                         
                         // Reset form
@@ -4129,11 +4143,28 @@
                             }
                             errorMessage += '. Please check your recipients and try again.';
                         }
+                        
+                        // Log toast notification with [ToastNotification] tag
+                        console.log('[ToastNotification]', {
+                          type: 'error',
+                          message: errorMessage,
+                          successCount: 0,
+                          failedCount: responseData.failedRecipients ?? responseData.summary?.failed ?? 0
+                        });
+                        
                         showToast(errorMessage, 'error');
                     }
                 }
             } catch (error) {
                 console.error('Campaign error:', error);
+                
+                // Log toast notification with [ToastNotification] tag
+                console.log('[ToastNotification]', {
+                  type: 'error',
+                  message: 'An error occurred. Please try again.',
+                  error: error.message
+                });
+                
                 showToast('An error occurred. Please try again.', 'error');
             } finally {
                 submitBtn.disabled = false;

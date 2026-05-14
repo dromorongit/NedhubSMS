@@ -223,6 +223,7 @@
                             <select id="campaignStatusFilter">
                                 <option value="">All Status</option>
                                 <option value="sent">Sent</option>
+                                <option value="partial_success">Partial Success</option>
                                 <option value="scheduled">Scheduled</option>
                                 <option value="processing">Processing</option>
                                 <option value="failed">Failed</option>
@@ -613,6 +614,7 @@
                 const formattedDate = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 const statusClass = campaign.status === 'sent' ? 'delivered' :
+                                   campaign.status === 'partial_success' ? 'partial_success' :
                                    campaign.status === 'scheduled' ? 'pending' :
                                    campaign.status === 'processing' ? 'pending' :
                                    campaign.status === 'failed' ? 'failed' : 'pending';

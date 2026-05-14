@@ -161,12 +161,27 @@ const sendBulkSms = async (req, res) => {
       });
     }
 
+    // Determine overall status: 'sent' if all succeeded, 'partial_success' if some succeeded, 'failed' if none
+    const overallStatus = successCount === recipients.length ? 'sent' :
+                         successCount > 0 ? 'partial_success' : 'failed';
+
+    // Structured logging with [SendResult] tag
+    console.log('[SendResult]', {
+      totalRecipients: recipients.length,
+      successfulRecipients: successCount,
+      failedRecipients: failedCount,
+      status: overallStatus,
+      httpStatus: 200
+    });
+    
     res.status(200).json({
-      success: failedCount === 0,
-      summary: {
-        total: recipients.length,
-        success: successCount,
-        failed: failedCount,
+      success: successCount > 0, // Partial success counts as overall success
+      message: successCount > 0 ? 'Bulk SMS sent successfully' : 'Bulk SMS failed to send',
+      data: {
+        totalRecipients: recipients.length,
+        successfulRecipients: successCount,
+        failedRecipients: failedCount,
+        status: overallStatus,
         financial: {
           totalCharged,
           totalCost,

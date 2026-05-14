@@ -73,43 +73,57 @@ class NaloSmsService {
    */
   parseNaloResponse(responseData) {
     const logger = require('../utils/logger');
+    let parsed;
     
-    // If it's already an object, return it
-    if (typeof responseData === 'object') {
-      return responseData;
+    // If it's already an object, use it directly
+    if (typeof responseData === 'object' && responseData !== null) {
+      parsed = responseData;
     }
-    
     // If it's a string, try to parse
-    if (typeof responseData === 'string') {
+    else if (typeof responseData === 'string') {
       // Check if it's pipe-delimited (e.g., "1701|123456")
       if (responseData.includes('|')) {
         const parts = responseData.split('|');
-        return {
+        parsed = {
           status: parts[0],
           message_id: parts[1] || null,
           error_message: parts[2] || null
         };
+      } else {
+        // Try JSON parsing
+        try {
+          parsed = JSON.parse(responseData);
+        } catch (e) {
+          // Log the parsing failure with raw response
+          logger.responseParser.warn('Failed to parse Nalo response as JSON', {
+            rawResponse: responseData.substring(0, 200),
+            error: e.message
+          });
+          // Return as-is with status indicating unknown
+          return {
+            status: 'PARSE_ERROR',
+            error_message: `Invalid response format: ${responseData.substring(0, 100)}`
+          };
+        }
       }
-      
-      // Try JSON parsing
-      try {
-        const parsed = JSON.parse(responseData);
-        return parsed;
-      } catch (e) {
-        // Log the parsing failure with raw response
-        logger.responseParser.warn('Failed to parse Nalo response as JSON', {
-          rawResponse: responseData.substring(0, 200),
-          error: e.message
-        });
-        // Return as-is with status indicating unknown
-        return { 
-          status: 'PARSE_ERROR',
-          error_message: `Invalid response format: ${responseData.substring(0, 100)}`
-        };
-      }
+    } else {
+      return { status: 'unknown' };
     }
     
-    return { status: 'unknown' };
+    // Normalize status to string for consistent comparison
+    if (parsed.status !== undefined) {
+      parsed.status = String(parsed.status);
+    }
+    
+    // Log the parsed provider response with [ProviderResponse] tag
+    console.log('[ProviderResponse]', {
+      rawStatus: responseData,
+      parsedStatus: parsed.status,
+      hasMessageId: !!parsed.message_id,
+      hasError: !!parsed.error_message
+    });
+    
+    return parsed;
   }
 
   /**
@@ -136,6 +150,16 @@ class NaloSmsService {
   async sendSmsWithFinancialTracking(request) {
     const { userId, phoneNumber, senderId, message, recipientsCount = 1, skipDeduction = false } = request;
     const logger = require('../utils/logger');
+    
+    // Log send initiation with [SmsSend] tag
+    console.log('[SmsSend]', {
+      userId,
+      phoneNumber,
+      senderId,
+      recipientsCount,
+      messageLength: message.length,
+      skipDeduction
+    });
 
     try {
       // Validate phone number
@@ -242,22 +266,23 @@ class NaloSmsService {
       };
 
       let naloResponse;
-      let smsStatus = 'pending';
+      let smsStatus = 'queued';  // Canonical: all messages start as queued
       let errorCode = null;
       let errorMessage = null;
       let jobId = null;
 
       if (this.isDummyMode) {
         // Simulate SMS sending in dummy mode
-        logger.smsSend.info('Dummy mode: Simulating SMS send', {
+        logger.smsSend.info('[NaloSmsService] Dummy mode: Simulating SMS send', {
           userId,
-          phoneNumber: formattedPhoneNumber
+          phoneNumber: formattedPhoneNumber,
+          senderId
         });
-        smsStatus = 'sent';
+        smsStatus = 'sent';  // In dummy mode, immediately mark as sent
         jobId = `dummy-${Date.now()}`;
       } else {
         try {
-          logger.smsSend.info('Sending SMS via Nalo API', {
+          logger.smsSend.info('[NaloSmsService] Sending SMS via Nalo API', {
             userId,
             phoneNumber: formattedPhoneNumber,
             senderId,
@@ -269,7 +294,7 @@ class NaloSmsService {
             validateStatus: (status) => status === 200
           });
 
-          logger.smsSend.info('Nalo API response received', {
+          logger.smsSend.info('[NaloSmsService] Nalo API response received', {
             userId,
             phoneNumber: formattedPhoneNumber,
             responseType: typeof response.data,
@@ -277,19 +302,26 @@ class NaloSmsService {
           });
 
           naloResponse = this.parseNaloResponse(response.data);
-          logger.smsSend.info('Nalo response parsed', {
+          logger.smsSend.info('[NaloSmsService] Nalo response parsed', {
             userId,
-            status: naloResponse.status,
+            providerStatus: naloResponse.status,
             hasMessageId: !!naloResponse.message_id,
             hasError: !!naloResponse.error_message
           });
 
           // Check for success (1701)
           if (naloResponse.status === '1701') {
-            smsStatus = 'sent';
+            smsStatus = 'sent';  // Provider accepted - mark as sent
             jobId = naloResponse.message_id || naloResponse.job_id || `nalo-${Date.now()}`;
+            
+            logger.info('[StatusMapping] SMS accepted by provider', {
+              messageId: jobId,
+              userId,
+              phoneNumber: formattedPhoneNumber,
+              status: smsStatus
+            });
           } else {
-            smsStatus = 'failed';
+            smsStatus = 'failed';  // Provider rejected - mark as failed
             errorCode = naloResponse.status;
             // Provide more user-friendly error messages for common Nalo errors
             if (naloResponse.status === '1707') {
@@ -304,12 +336,21 @@ class NaloSmsService {
               errorMessage = naloResponse.error_message || this.mapErrorCode(naloResponse.status);
             }
 
+            logger.warn('[StatusMapping] SMS rejected by provider', {
+              messageId: jobId,
+              userId,
+              phoneNumber: formattedPhoneNumber,
+              status: smsStatus,
+              errorCode: errorCode,
+              errorMessage: errorMessage
+            });
+
             // Refund wallet on failure
             await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
           }
 
         } catch (apiError) {
-          logger.smsSend.error('Nalo API error', {
+          logger.smsSend.error('[NaloSmsService] Nalo API error', {
             userId,
             phoneNumber: formattedPhoneNumber,
             error: apiError.message,
@@ -324,6 +365,14 @@ class NaloSmsService {
             errorMessage = apiError.message;
           }
 
+          logger.error('[StatusMapping] SMS failed due to API error', {
+            messageId: jobId,
+            userId,
+            phoneNumber: formattedPhoneNumber,
+            status: smsStatus,
+            error: errorMessage
+          });
+
           // Refund wallet on API error
           await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund');
         }
@@ -333,6 +382,7 @@ class NaloSmsService {
       const smsMessageData = {
         userId: userId,
         phoneNumber: formattedPhoneNumber,
+        normalizedPhoneNumber: formattedPhoneNumber,
         senderId: senderId,
         message: message.trim(),
         provider: 'nalo',
@@ -379,6 +429,18 @@ class NaloSmsService {
           jobId: savedMessage.jobId,
           charged: financialBreakdown.totalChargedToUser
         });
+        
+        // Log send result with [SendResult] tag
+        console.log('[SendResult]', {
+          userId,
+          phoneNumber: formattedPhoneNumber,
+          success: true,
+          messageId: savedMessage._id.toString(),
+          jobId: savedMessage.jobId,
+          status: smsStatus,
+          charged: financialBreakdown.totalChargedToUser
+        });
+        
         return {
           success: true,
           messageId: savedMessage._id.toString(),
@@ -397,6 +459,18 @@ class NaloSmsService {
           errorCode,
           errorMessage
         });
+        
+        // Log send result with [SendResult] tag
+        console.log('[SendResult]', {
+          userId,
+          phoneNumber: formattedPhoneNumber,
+          success: false,
+          errorCode,
+          errorMessage,
+          status: smsStatus,
+          messageId: savedMessage._id.toString()
+        });
+        
         return {
           success: false,
           error: errorMessage,
@@ -407,6 +481,16 @@ class NaloSmsService {
 
     } catch (error) {
       console.error('[NaloSmsService] Error:', error.message);
+      
+      // Log send result with [SendResult] tag
+      console.log('[SendResult]', {
+        userId,
+        phoneNumber: phoneNumber, // original phone number from request
+        success: false,
+        error: error.message,
+        code: 'INTERNAL_ERROR'
+      });
+      
       return {
         success: false,
         error: error.message,
@@ -482,6 +566,7 @@ class NaloSmsService {
    */
   normalizeDeliveryStatus(providerStatus) {
     const statusMap = {
+      // Canonical mapping
       'DELIVERED': 'delivered',
       'delivered': 'delivered',
       'SENT': 'sent',
@@ -494,12 +579,17 @@ class NaloSmsService {
       'expired': 'failed',
       'REJECTED': 'failed',
       'rejected': 'failed',
-      'PENDING': 'pending',
-      'pending': 'pending',
+      'PENDING': 'queued',      // Canonical: queued
+      'pending': 'queued',      // Canonical: queued
       'QUEUED': 'queued',
       'queued': 'queued',
       'PROCESSING': 'processing',
-      'processing': 'processing'
+      'processing': 'processing',
+      'SCHEDULED': 'scheduled',
+      'scheduled': 'scheduled',
+      'CANCELLED': 'cancelled',
+      'cancelled': 'cancelled',
+      'CANCELED': 'cancelled'
     };
 
     return statusMap[providerStatus] || 'unknown';

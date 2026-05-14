@@ -8,11 +8,19 @@ const SmsRecipientStatusService = require('../services/SmsRecipientStatusService
  * POST /api/sms/webhooks/delivery-status
  */
 const handleDeliveryStatusWebhook = async (req, res) => {
+  const logger = require('../utils/logger');
+  const startTime = Date.now();
+  
   try {
     const webhookData = req.body;
 
-    // Log webhook data for debugging
-    console.log('[Webhook] Received delivery status update:', JSON.stringify(webhookData, null, 2));
+    // Structured log: webhook received
+    logger.info('[DeliveryWebhook] Received delivery status update', {
+      messageId: webhookData?.message_id,
+      providerStatus: webhookData?.status,
+      recipient: webhookData?.recipient,
+      timestamp: webhookData?.timestamp
+    });
 
     // Validate webhook payload structure
     if (!webhookData || typeof webhookData !== 'object') {
@@ -23,16 +31,7 @@ const handleDeliveryStatusWebhook = async (req, res) => {
       });
     }
 
-    // Handle different possible payload formats from Nalo
-    // Expected format: { message_id, status, recipient?, timestamp?, error_code?, error_message? }
-    const {
-      message_id,
-      status,
-      recipient,
-      timestamp,
-      error_code,
-      error_message
-    } = webhookData;
+    const { message_id, status, recipient, timestamp, error_code, error_message } = webhookData;
 
     if (!message_id || !status) {
       return res.status(400).json({
@@ -42,15 +41,75 @@ const handleDeliveryStatusWebhook = async (req, res) => {
       });
     }
 
-    // Normalize status to our internal statuses
+    // Normalize status to our internal canonical statuses
     const normalizedStatus = normalizeProviderStatus(status);
-
+    
     if (!normalizedStatus) {
-      console.warn(`[Webhook] Unknown status received: ${status}`);
+      logger.warn('[StatusMapping] Unknown provider status received', {
+        providerStatus: status,
+        messageId: message_id
+      });
       return res.status(200).json({
         success: true,
         message: 'Unknown status ignored'
       });
+    }
+
+    logger.info('[StatusMapping] Mapped provider status to internal', {
+      messageId: message_id,
+      providerStatus: status,
+      internalStatus: normalizedStatus
+    });
+
+    // Find the recipient by provider message ID for idempotency check
+    const existingRecipient = await SmsRecipient.findOne({ providerMessageId: message_id });
+    
+    if (existingRecipient) {
+      // IDEMPOTENCY CHECK: If status already matches, skip update
+      if (existingRecipient.status === normalizedStatus) {
+        logger.info('[DeliveryWebhook] Idempotent update - status unchanged', {
+          messageId: message_id,
+          recipientId: existingRecipient._id,
+          currentStatus: existingRecipient.status,
+          newStatus: normalizedStatus
+        });
+        return res.status(200).json({
+          success: true,
+          message: 'Status already up to date',
+          data: { recipientId: existingRecipient._id, status: normalizedStatus }
+        });
+      }
+      
+      // STATUS DOWNGRADE PROTECTION: Prevent status regression
+      const statusHierarchy = {
+        'queued': 1,
+        'processing': 2,
+        'sent': 3,
+        'delivered': 4
+        // Note: 'failed', 'scheduled', 'cancelled' are terminal states
+      };
+      
+      const currentLevel = statusHierarchy[existingRecipient.status];
+      const newLevel = statusHierarchy[normalizedStatus];
+      
+      if (currentLevel && newLevel && newLevel < currentLevel) {
+        logger.warn('[DeliveryWebhook] Status downgrade prevented', {
+          messageId: message_id,
+          recipientId: existingRecipient._id,
+          oldStatus: existingRecipient.status,
+          attemptedStatus: normalizedStatus,
+          reason: 'New status is lower in hierarchy than current status'
+        });
+        // Return success but don't apply downgrade
+        return res.status(200).json({
+          success: true,
+          message: 'Status upgrade ignored - current status is higher',
+          data: {
+            recipientId: existingRecipient._id,
+            status: existingRecipient.status
+          }
+        });
+      }
     }
 
     // Find and update the recipient
@@ -63,8 +122,10 @@ const handleDeliveryStatusWebhook = async (req, res) => {
     });
 
     if (!result.success) {
-      console.error('[Webhook] Failed to update recipient status:', result.error);
-      // Continue to try updating SmsMessage even if recipient not found
+      logger.error('[DeliveryWebhook] Failed to update recipient status', {
+        messageId: message_id,
+        error: result.error
+      });
     }
 
     // Also update the SmsMessage if it exists (for message history sync)
@@ -74,14 +135,28 @@ const handleDeliveryStatusWebhook = async (req, res) => {
         if (normalizedStatus === 'delivered') {
           updateData.deliveredAt = timestamp ? new Date(timestamp) : new Date();
         }
-        await SmsMessage.findOneAndUpdate(
+        if (normalizedStatus === 'sent') {
+          updateData.sentAt = timestamp ? new Date(timestamp) : new Date();
+        }
+        
+        const smsResult = await SmsMessage.findOneAndUpdate(
           { jobId: message_id },
           updateData,
           { new: true }
         );
-        console.log(`[Webhook] Updated SmsMessage status to ${normalizedStatus}`);
+        
+        if (smsResult) {
+          logger.info('[DeliveryWebhook] Updated SmsMessage status', {
+            messageId: message_id,
+            smsMessageId: smsResult._id,
+            newStatus: normalizedStatus
+          });
+        }
       } catch (smsError) {
-        console.error('[Webhook] Error updating SmsMessage:', smsError.message);
+        logger.error('[DeliveryWebhook] Error updating SmsMessage', {
+          messageId: message_id,
+          error: smsError.message
+        });
       }
     }
 
@@ -100,7 +175,13 @@ const handleDeliveryStatusWebhook = async (req, res) => {
       });
     }
 
-    console.log(`[Webhook] Successfully updated recipient ${result.recipientId} to status ${normalizedStatus}`);
+    logger.info('[DeliveryWebhook] Successfully updated recipient', {
+      messageId: message_id,
+      recipientId: result.recipientId,
+      oldStatus: result.oldStatus,
+      newStatus: result.newStatus,
+      durationMs: Date.now() - startTime
+    });
 
     res.status(200).json({
       success: true,
@@ -112,7 +193,10 @@ const handleDeliveryStatusWebhook = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Webhook] Error processing delivery status:', error);
+    logger.error('[DeliveryWebhook] Unexpected error processing webhook', {
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -126,7 +210,7 @@ const handleDeliveryStatusWebhook = async (req, res) => {
  */
 function normalizeProviderStatus(providerStatus) {
   const statusMap = {
-    // Nalo statuses
+    // Nalo statuses - mapped to canonical internal statuses
     'DELIVERED': 'delivered',
     'delivered': 'delivered',
     'SENT': 'sent',
@@ -139,15 +223,25 @@ function normalizeProviderStatus(providerStatus) {
     'expired': 'failed',
     'REJECTED': 'failed',
     'rejected': 'failed',
-    'PENDING': 'pending',
-    'pending': 'pending',
+    'PENDING': 'queued',      // Canonical: queued (not pending)
+    'pending': 'queued',      // Canonical: queued
     'QUEUED': 'queued',
     'queued': 'queued',
     'PROCESSING': 'processing',
-    'processing': 'processing'
+    'processing': 'processing',
+    'SCHEDULED': 'scheduled',
+    'scheduled': 'scheduled',
+    'CANCELLED': 'cancelled',
+    'cancelled': 'cancelled',
+    'CANCELED': 'cancelled'   // US spelling variant
   };
 
-  return statusMap[providerStatus] || null;
+  const normalized = statusMap[providerStatus];
+  if (!normalized) {
+    console.warn('[StatusMapping] Unknown provider status:', providerStatus);
+  }
+  
+  return normalized || null;
 }
 
 module.exports = {

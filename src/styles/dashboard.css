@@ -1427,6 +1427,11 @@
     color: #7b1fa2;
 }
 
+.status-badge.partial_success {
+    background: #fff3e0;
+    color: #e65100;
+}
+
 /* Filter Section */
 .filter-section {
     display: flex;

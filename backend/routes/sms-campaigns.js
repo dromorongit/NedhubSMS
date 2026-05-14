@@ -208,7 +208,7 @@ router.post('/send', authenticate, async (req, res) => {
 
     const userId = req.user.userId;
 
-    console.log('[Campaign] Send campaign requested:', {
+    console.log('[SmsSend]', {
       userId,
       title,
       recipientsCount: recipients?.length,
@@ -303,7 +303,7 @@ router.post('/send', authenticate, async (req, res) => {
       invalidRecipientCount: processedRecipients.invalidRecipients.length,
       blacklistedCount: processedRecipients.blacklistedRecipients.length,
       duplicateCount: processedRecipients.duplicateCount,
-      pendingCount: processedRecipients.finalCount,  // All start as pending
+      queuedCount: processedRecipients.finalCount,  // All start as queued
       totalSegments: costEstimation.totalSegments,
       estimatedCost: costEstimation.estimatedCost
     });
@@ -395,23 +395,35 @@ router.post('/send', authenticate, async (req, res) => {
 
     // Update campaign status and counts
     const failedCount = processedRecipients.finalCount - successCount;
-    campaign.status = successCount === processedRecipients.finalCount ? 'sent' :
-                      successCount === 0 ? 'failed' : 'sent'; // Partial success still marked as sent
+    // Determine status: all success -> 'sent', all fail -> 'failed', partial -> 'partial_success'
+    const newStatus = successCount === processedRecipients.finalCount ? 'sent' :
+                      successCount === 0 ? 'failed' : 'partial_success';
+    campaign.status = newStatus;
     campaign.sentCount = successCount;
     campaign.failedCount = failedCount;
-    campaign.pendingCount = 0; // All processed
+    campaign.queuedCount = 0; // All processed
     await campaign.save();
+    
+    // Log campaign status change with [CampaignStatus] tag
+    console.log('[CampaignStatus]', {
+      campaignId: campaign._id,
+      status: campaign.status,
+      sentCount: successCount,
+      failedCount,
+      total: processedRecipients.finalCount
+    });
 
     // Prepare canonical response data with standardized fields
     const responseData = {
       campaignId: campaign._id,
       totalRecipients: processedRecipients.finalCount,
       successfulRecipients: successCount,
-      failedRecipients: processedRecipients.finalCount - successCount,
+      failedRecipients: failedCount,
+      status: campaign.status,
       summary: {
         total: processedRecipients.finalCount,
         success: successCount,
-        failed: processedRecipients.finalCount - successCount,
+        failed: failedCount,
         duplicatesRemoved: processedRecipients.duplicateCount,
         invalidRemoved: processedRecipients.invalidRecipients.length,
         blacklistedRemoved: processedRecipients.blacklistedRecipients.length
@@ -426,23 +438,19 @@ router.post('/send', authenticate, async (req, res) => {
       data: responseData
     };
     
-    // Structured logging with [SendResponse] tag
-    console.log('[SendResponse]', {
+    // Structured logging with [SendResult] tag
+    console.log('[SendResult]', {
       campaignId: campaign._id,
       totalRecipients: responseData.totalRecipients,
       successfulRecipients: responseData.successfulRecipients,
       failedRecipients: responseData.failedRecipients,
-      status: responsePayload.success ? (successCount === processedRecipients.finalCount ? 'full_success' : 'partial_success') : 'failure'
+      status: campaign.status
     });
     
-    console.log('[Campaign] Response:', {
-      campaignId: campaign._id,
-      status: 200,
+    console.log('[SmsSend] Response:', {
+      httpStatus: 200,
       success: responsePayload.success,
-      message: responsePayload.message,
-      successCount,
-      failedCount: processedRecipients.finalCount - successCount,
-      contentType: 'application/json'
+      message: responsePayload.message
     });
     
     res.json(responsePayload);
@@ -646,7 +654,7 @@ router.post('/schedule', authenticate, async (req, res) => {
       invalidRecipientCount: processedRecipients.invalidRecipients.length,
       blacklistedCount: processedRecipients.blacklistedRecipients.length,
       duplicateCount: processedRecipients.duplicateCount,
-      pendingCount: processedRecipients.finalCount,  // All start as pending
+      queuedCount: processedRecipients.finalCount,  // All start as queued
       totalSegments: costEstimation.totalSegments,
       estimatedCost: costEstimation.estimatedCost,
       walletChargeMode: 'reservation',

@@ -22,7 +22,13 @@ const LogTags = {
   RETRY: '[Retry]',
   WEBHOOK: '[Webhook]',
   BULLMQ: '[BullMQ]',
-  VALIDATION: '[Validation]'
+  VALIDATION: '[Validation]',
+  MESSAGESTATUS: '[MessageStatus]',
+  DELIVERYWEBHOOK: '[DeliveryWebhook]',
+  MESSAGEHISTORY: '[MessageHistory]',
+  STATUSMAPPING: '[StatusMapping]',
+  RESENDLOGIC: '[ResendLogic]',
+  STATUSREPAIR: '[StatusRepair]'
 };
 
 // Custom format to add tag
@@ -93,5 +99,11 @@ logger.retry = createTaggedLogger(LogTags.RETRY);
 logger.webhook = createTaggedLogger(LogTags.WEBHOOK);
 logger.bullmq = createTaggedLogger(LogTags.BULLMQ);
 logger.validation = createTaggedLogger(LogTags.VALIDATION);
+logger.messageStatus = createTaggedLogger(LogTags.MESSAGESTATUS);
+logger.deliveryWebhook = createTaggedLogger(LogTags.DELIVERYWEBHOOK);
+logger.messageHistory = createTaggedLogger(LogTags.MESSAGEHISTORY);
+logger.statusMapping = createTaggedLogger(LogTags.STATUSMAPPING);
+logger.resendLogic = createTaggedLogger(LogTags.RESENDLOGIC);
+logger.statusRepair = createTaggedLogger(LogTags.STATUSREPAIR);
 
 module.exports = logger;

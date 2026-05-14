@@ -697,8 +697,8 @@
                         const row = document.createElement('tr');
                         let actionButtons = `<button class="btn-secondary view-btn" data-campaign-id="${campaign._id}">View</button>`;
 
-                        // Add retry buttons for completed campaigns with failures
-                        if (campaign.status === 'sent' && (campaign.failedCount || 0) > 0) {
+                        // Add retry buttons for completed campaigns with failures (sent or partial_success)
+                        if ((campaign.status === 'sent' || campaign.status === 'partial_success') && (campaign.failedCount || 0) > 0) {
                             actionButtons += `
                                 <button class="btn-warning retry-btn" data-campaign-id="${campaign._id}" title="Retry Failed Recipients">Retry</button>
                                 <button class="btn-info duplicate-btn" data-campaign-id="${campaign._id}" title="Duplicate with Failed Recipients">Duplicate</button>
@@ -756,7 +756,7 @@
             campaigns.forEach(c => {
                 delivered += c.deliveredCount || 0;
                 failed += c.failedCount || 0;
-                if (c.status === 'scheduled' || c.status === 'pending') {
+                if (c.status === 'scheduled' || c.status === 'queued') {
                     scheduled++;
                 }
             });
@@ -824,8 +824,8 @@
                             <span class="detail-value text-danger">${campaign.failedCount || 0}</span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">Pending</span>
-                            <span class="detail-value">${campaign.pendingCount || 0}</span>
+                            <span class="detail-label">Queued</span>
+                            <span class="detail-value">${campaign.queuedCount || 0}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Created</span>

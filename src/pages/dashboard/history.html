@@ -175,15 +175,15 @@
                         </div>
                     </div>
                     <div class="stat-mini">
-                        <div class="stat-mini-icon pending">
+                        <div class="stat-mini-icon queued">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
                         </div>
                         <div class="stat-mini-content">
-                            <span class="stat-mini-value" id="pendingCount">0</span>
-                            <span class="stat-mini-label">Pending</span>
+                            <span class="stat-mini-value" id="queuedCount">0</span>
+                            <span class="stat-mini-label">Queued</span>
                         </div>
                     </div>
                     <div class="stat-mini">
@@ -217,8 +217,8 @@
                             <option value="sent">Sent</option>
                             <option value="processing">Processing</option>
                             <option value="queued">Queued</option>
-                            <option value="pending">Pending</option>
                             <option value="failed">Failed</option>
+                            <option value="scheduled">Scheduled</option>
                             <option value="cancelled">Cancelled</option>
                         </select>
                     </div>
@@ -350,7 +350,7 @@
             const tbody = document.getElementById('messagesBody');
             const totalMessagesEl = document.getElementById('totalMessages');
             const deliveredCountEl = document.getElementById('deliveredCount');
-            const pendingCountEl = document.getElementById('pendingCount');
+            const queuedCountEl = document.getElementById('queuedCount');
             const failedCountEl = document.getElementById('failedCount');
             
             if (!tbody) return;
@@ -364,27 +364,23 @@
                 spinner.style.display = 'none';
                 
                 if (result.error) {
-                    console.error(result.error);
+                    console.error('[MessageHistory] Error:', result.error);
                     tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load message history</td></tr>';
                     return;
                 }
                 
-                messages = result.data || [];
+                const responseData = result.data;
+                messages = responseData.messages || [];
                 filteredMessages = [...messages];
                 
-                // Update stats - count actual status values including 'sent' as delivered (provider acknowledged)
-                if (totalMessagesEl) totalMessagesEl.textContent = messages.length;
+                // Use summary from API for accurate counts
+                const summary = responseData.summary || {};
                 
-                const deliveredMsgs = messages.filter(m => m.status === 'delivered' || m.status === 'sent');
-                if (deliveredCountEl) deliveredCountEl.textContent = deliveredMsgs.length;
-                
-                if (pendingCountEl) pendingCountEl.textContent = messages.filter(m => m.status === 'pending').length;
-                
-                if (failedCountEl) {
-                    // Count failed plus any that have error codes
-                    const failedCount = messages.filter(m => m.status === 'failed' || m.errorCode || m.errorMessage).length;
-                    failedCountEl.textContent = failedCount;
-                }
+                // Update stats with canonical status counts
+                if (totalMessagesEl) totalMessagesEl.textContent = summary.total || messages.length;
+                if (deliveredCountEl) deliveredCountEl.textContent = summary.delivered || 0;
+                if (queuedCountEl) queuedCountEl.textContent = summary.queued || messages.filter(m => m.status === 'queued').length;
+                if (failedCountEl) failedCountEl.textContent = summary.failed || 0;
                 
                 if (messages.length > 0) {
                     renderMessages(messages);
@@ -393,7 +389,7 @@
                 }
             } catch (error) {
                 spinner.style.display = 'none';
-                console.error('Error loading message history:', error);
+                console.error('[MessageHistory] Error loading history:', error);
                 tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load message history</td></tr>';
             }
         }
@@ -433,24 +429,24 @@
         }
 
         function getStatusClass(status) {
-            switch (status?.toLowerCase()) {
-                case 'delivered':
-                    return 'delivered';
-                case 'sent':
-                    return 'sent';
-                case 'processing':
-                    return 'processing';
-                case 'queued':
-                    return 'queued';
-                case 'pending':
-                    return 'pending';
-                case 'failed':
-                    return 'failed';
-                case 'cancelled':
-                    return 'cancelled';
-                default:
-                    return 'pending';
-            }
+          switch (status?.toLowerCase()) {
+            case 'delivered':
+              return 'delivered';
+            case 'sent':
+              return 'sent';
+            case 'processing':
+              return 'processing';
+            case 'queued':
+              return 'queued';
+            case 'failed':
+              return 'failed';
+            case 'scheduled':
+              return 'scheduled';
+            case 'cancelled':
+              return 'cancelled';
+            default:
+              return 'queued'; // Safe default to avoid false failed
+          }
         }
 
         function formatStatus(status) {
@@ -843,18 +839,23 @@
         }
 
         .status-badge.processing {
-            background-color: #e3f2fd;
-            color: #1976d2;
+            background-color: #fff3e0;
+            color: #ef6c00;
         }
 
         .status-badge.queued {
+            background-color: #f5f5f5;
+            color: #616161;
+        }
+
+        .status-badge.scheduled {
             background-color: #f3e5f5;
             color: #7b1fa2;
         }
 
         .status-badge.cancelled {
-            background-color: #fafafa;
-            color: #616161;
+            background-color: #e0e0e0;
+            color: #424242;
         }
 
         /* Resend button */

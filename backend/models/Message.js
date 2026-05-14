@@ -20,8 +20,8 @@ const messageSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'sent', 'delivered', 'failed'],
-    default: 'pending'
+    enum: ['queued', 'processing', 'sent', 'delivered', 'failed', 'scheduled', 'cancelled'],
+    default: 'queued'
   },
   createdAt: {
     type: Date,

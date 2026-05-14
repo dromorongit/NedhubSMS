@@ -23,9 +23,16 @@ async function migrateCampaigns() {
           messageBody = legacy.templateId.content;
         }
 
-        // Map status
-        const statusMap = {
+        // Map status - canonical statuses
+        const campaignStatusMap = {
           'draft': 'draft',
+          'scheduled': 'scheduled',
+          'sent': 'sent',
+          'failed': 'failed'
+        };
+        
+        const recipientStatusMap = {
+          'draft': 'queued',
           'scheduled': 'scheduled',
           'sent': 'sent',
           'failed': 'failed'
@@ -39,7 +46,7 @@ async function migrateCampaigns() {
           messageBody: messageBody || '',
           sendMode: legacy.scheduledAt ? 'scheduled' : 'immediate',
           scheduledAt: legacy.scheduledAt,
-          status: statusMap[legacy.status] || 'draft',
+          status: campaignStatusMap[legacy.status] || 'draft',
           recipientCount: legacy.recipients ? legacy.recipients.length : 0,
           createdAt: legacy.createdAt,
           updatedAt: legacy.updatedAt
@@ -57,7 +64,7 @@ async function migrateCampaigns() {
               recipientName: phoneNumber, // Use phone number as name for now
               phoneNumber: phoneNumber,
               personalizedMessage: messageBody || '',
-              status: statusMap[legacy.status] === 'sent' ? 'sent' : 'pending',
+              status: recipientStatusMap[legacy.status] || 'queued',
               sentAt: legacy.sentAt,
               createdAt: legacy.createdAt,
               updatedAt: legacy.updatedAt

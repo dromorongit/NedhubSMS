@@ -126,8 +126,8 @@ class BatchProcessorService {
     const config = this.getBatchConfig();
     const batchSize = Math.min(Math.max(options.batchSize || config.DEFAULT_SIZE, config.MIN_SIZE), config.MAX_SIZE);
 
-    // Default query for pending recipients, but allow override
-    const query = options.query || { campaignId, status: 'pending' };
+    // Default query for queued recipients, but allow override
+    const query = options.query || { campaignId, status: 'queued' };
     const sortOrder = options.sort || { _id: 1 };
 
     // Get total recipients count
@@ -303,7 +303,7 @@ class BatchProcessorService {
     // Update campaign with current progress
     campaign.sentCount = progress.successfulRecipients;
     campaign.failedCount = progress.failedRecipients;
-    campaign.pendingCount = progress.totalRecipients - progress.processedRecipients;
+    campaign.queuedCount = progress.totalRecipients - progress.processedRecipients;
 
     await campaign.save();
   }
@@ -318,17 +318,24 @@ class BatchProcessorService {
     const campaign = await SmsCampaign.findById(campaignId);
     if (!campaign) return;
 
-    // Set final status
+    // Set final status based on actual results
     if (progress.failedRecipients === 0) {
       campaign.status = 'sent';
     } else if (progress.successfulRecipients === 0) {
       campaign.status = 'failed';
     } else {
-      campaign.status = 'sent'; // Partial success
+      campaign.status = 'partial_success'; // Partial success - some delivered, some failed
     }
 
     campaign.sentAt = new Date();
     await campaign.save();
+    
+    console.log('[CampaignStatus]', {
+      campaignId: campaign._id,
+      status: campaign.status,
+      successfulRecipients: progress.successfulRecipients,
+      failedRecipients: progress.failedRecipients
+    });
 
     // Update final progress
     await this.updateProgress(campaignId, { status: 'completed' });

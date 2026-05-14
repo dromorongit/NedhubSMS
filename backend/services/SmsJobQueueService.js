@@ -381,8 +381,8 @@ class SmsJobQueueService {
          throw new Error(`Campaign ${campaignId} not found`);
        }
 
-       // Restart safety: Check if campaign is already sent or failed to prevent duplicate execution
-       if (campaign.status === 'sent' || campaign.status === 'failed') {
+       // Restart safety: Check if campaign is already in a terminal state to prevent duplicate execution
+       if (campaign.status === 'sent' || campaign.status === 'partial_success' || campaign.status === 'failed') {
          console.warn(`[SmsJobQueueService] Campaign ${campaignId} already ${campaign.status}, skipping duplicate execution`);
          return;
        }
@@ -414,8 +414,13 @@ class SmsJobQueueService {
 
     // Update campaign status to processing
     campaign.status = 'processing';
-    campaign.scheduleStatus = 'executing';
+    campaign.scheduleStatus = 'processing';
     await campaign.save();
+    
+    console.log('[CampaignStatus]', {
+      campaignId: campaign._id,
+      status: campaign.status
+    });
 
     // Capture reservation if exists
     if (campaign.walletReservationId) {
@@ -428,16 +433,26 @@ class SmsJobQueueService {
         console.error(`[SmsJobQueueService] Failed to capture reservation for campaign ${campaign._id}:`, error);
         campaign.status = 'failed';
         await campaign.save();
+        console.log('[CampaignStatus]', {
+          campaignId: campaign._id,
+          status: campaign.status,
+          reason: 'Failed to capture reservation'
+        });
         return;
       }
     }
 
-    // Check if there are any pending recipients
-    const pendingCount = await SmsRecipient.countDocuments({ campaignId: campaign._id, status: 'pending' });
-    if (pendingCount === 0) {
-      console.warn(`[SmsJobQueueService] No pending recipients found for campaign ${campaign._id}`);
+    // Check if there are any queued recipients
+    const queuedCount = await SmsRecipient.countDocuments({ campaignId: campaign._id, status: 'queued' });
+    if (queuedCount === 0) {
+      console.warn(`[SmsJobQueueService] No queued recipients found for campaign ${campaign._id}`);
       campaign.status = 'failed';
       await campaign.save();
+      console.log('[CampaignStatus]', {
+        campaignId: campaign._id,
+        status: campaign.status,
+        reason: 'No queued recipients'
+      });
       return;
     }
 
@@ -445,7 +460,7 @@ class SmsJobQueueService {
     const processRecipient = async (recipient) => {
       try {
         // Skip if already processed (double-check)
-        if (recipient.status !== 'pending') {
+        if (recipient.status !== 'queued') {
           return { success: false, reason: 'already processed' };
         }
 
@@ -491,13 +506,17 @@ class SmsJobQueueService {
         // Update campaign with final counts
         campaign.sentCount = finalProgress.successfulRecipients;
         campaign.failedCount = finalProgress.failedRecipients;
-        campaign.pendingCount = 0; // All processed
+        campaign.queuedCount = 0; // All processed
 
         // Status should already be set by BatchProcessorService.finalizeCampaign
-        // But ensure it's set correctly
-        if (campaign.sentCount > 0) {
-          campaign.status = 'completed';
-          campaign.scheduleStatus = 'completed';
+        // But ensure it's set correctly based on actual results
+        if (campaign.sentCount === campaign.recipientCount) {
+          campaign.status = 'sent';
+          campaign.scheduleStatus = 'sent';
+          campaign.sentAt = new Date();
+        } else if (campaign.sentCount > 0) {
+          campaign.status = 'partial_success';
+          campaign.scheduleStatus = 'partial_success';
           campaign.sentAt = new Date();
         } else {
           campaign.status = 'failed';
@@ -505,6 +524,13 @@ class SmsJobQueueService {
         }
 
         await campaign.save();
+        
+        console.log('[CampaignStatus]', {
+          campaignId: campaign._id,
+          status: campaign.status,
+          sentCount: campaign.sentCount,
+          failedCount: campaign.failedCount
+        });
 
         // Record metrics
         MetricsService.recordSmsSent(campaign.sentCount + campaign.failedCount, campaign.sentCount > 0);
@@ -522,9 +548,31 @@ class SmsJobQueueService {
 
     } catch (error) {
       console.error(`[SmsJobQueueService] Batch processing error for campaign ${campaign._id}:`, error);
-      campaign.status = 'failed';
-      campaign.scheduleStatus = 'failed';
-      await campaign.save();
+      
+      // Re-fetch campaign to get latest counts (may have been updated by concurrent batch processing)
+      const currentCampaign = await SmsCampaign.findById(campaign._id);
+      if (currentCampaign) {
+        // Determine status based on actual results - never mark as failed if at least one succeeded
+        if (currentCampaign.sentCount === currentCampaign.recipientCount) {
+          currentCampaign.status = 'sent';
+          currentCampaign.scheduleStatus = 'sent';
+        } else if (currentCampaign.sentCount > 0) {
+          currentCampaign.status = 'partial_success';
+          currentCampaign.scheduleStatus = 'partial_success';
+        } else {
+          currentCampaign.status = 'failed';
+          currentCampaign.scheduleStatus = 'failed';
+        }
+        await currentCampaign.save();
+        
+        console.log('[CampaignStatus]', {
+          campaignId: currentCampaign._id,
+          status: currentCampaign.status,
+          sentCount: currentCampaign.sentCount,
+          failedCount: currentCampaign.failedCount,
+          error: error.message
+        });
+      }
       throw error;
     }
   }

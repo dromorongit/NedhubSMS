@@ -57,7 +57,7 @@ const smsCampaignSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'scheduled', 'queued', 'processing', 'completed', 'failed', 'cancelled'],
+    enum: ['draft', 'scheduled', 'queued', 'processing', 'sent', 'failed', 'cancelled', 'partial_success'],
     default: 'draft',
     index: true
   },
@@ -67,8 +67,8 @@ const smsCampaignSchema = new mongoose.Schema({
   },
   scheduleStatus: {
     type: String,
-    enum: ['pending', 'scheduled', 'executing', 'completed', 'failed', 'cancelled'],
-    default: 'pending',
+    enum: ['queued', 'scheduled', 'processing', 'sent', 'partial_success', 'failed', 'cancelled'],
+    default: 'queued',
     index: true
   },
   executedAt: {
@@ -152,7 +152,7 @@ const smsCampaignSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  pendingCount: {
+  queuedCount: {
     type: Number,
     default: 0,
     min: 0
@@ -206,14 +206,14 @@ smsCampaignSchema.methods.canBeRescheduled = function() {
 // Method to mark campaign as executing
 smsCampaignSchema.methods.markAsExecuting = function() {
   this.status = 'processing';
-  this.scheduleStatus = 'executing';
+  this.scheduleStatus = 'processing';
   this.executedAt = new Date();
 };
 
-// Method to mark campaign as completed
+// Method to mark campaign as completed (sent)
 smsCampaignSchema.methods.markAsCompleted = function() {
-  this.status = 'completed';
-  this.scheduleStatus = 'completed';
+  this.status = 'sent';
+  this.scheduleStatus = 'sent';
   this.executedAt = this.executedAt || new Date();
 };
 
