@@ -402,23 +402,38 @@ router.post('/send', authenticate, async (req, res) => {
     campaign.pendingCount = 0; // All processed
     await campaign.save();
 
+    // Prepare canonical response data with standardized fields
+    const responseData = {
+      campaignId: campaign._id,
+      totalRecipients: processedRecipients.finalCount,
+      successfulRecipients: successCount,
+      failedRecipients: processedRecipients.finalCount - successCount,
+      summary: {
+        total: processedRecipients.finalCount,
+        success: successCount,
+        failed: processedRecipients.finalCount - successCount,
+        duplicatesRemoved: processedRecipients.duplicateCount,
+        invalidRemoved: processedRecipients.invalidRecipients.length,
+        blacklistedRemoved: processedRecipients.blacklistedRecipients.length
+      },
+      totalCost,
+      results
+    };
+
     const responsePayload = {
       success: successCount > 0,
       message: successCount > 0 ? 'Campaign sent successfully' : 'Campaign failed to send',
-      data: {
-        campaignId: campaign._id,
-        summary: {
-          total: processedRecipients.finalCount,
-          success: successCount,
-          failed: processedRecipients.finalCount - successCount,
-          duplicatesRemoved: processedRecipients.duplicateCount,
-          invalidRemoved: processedRecipients.invalidRecipients.length,
-          blacklistedRemoved: processedRecipients.blacklistedRecipients.length
-        },
-        totalCost,
-        results
-      }
+      data: responseData
     };
+    
+    // Structured logging with [SendResponse] tag
+    console.log('[SendResponse]', {
+      campaignId: campaign._id,
+      totalRecipients: responseData.totalRecipients,
+      successfulRecipients: responseData.successfulRecipients,
+      failedRecipients: responseData.failedRecipients,
+      status: responsePayload.success ? (successCount === processedRecipients.finalCount ? 'full_success' : 'partial_success') : 'failure'
+    });
     
     console.log('[Campaign] Response:', {
       campaignId: campaign._id,
@@ -708,6 +723,7 @@ router.post('/schedule', authenticate, async (req, res) => {
         estimatedCost: costEstimation.estimatedCost,
         recipientCount: processedRecipients.originalCount,
         validRecipientCount: processedRecipients.finalCount,
+        totalRecipients: processedRecipients.finalCount,
         invalidRecipientCount: processedRecipients.invalidRecipients.length,
         blacklistedCount: processedRecipients.blacklistedRecipients.length,
         duplicateCount: processedRecipients.duplicateCount,
@@ -721,6 +737,13 @@ router.post('/schedule', authenticate, async (req, res) => {
         }
       }
     };
+    
+    // Log send response with canonical counts
+    console.log('[SendResponse]', {
+      campaignId: campaign._id,
+      totalRecipients: processedRecipients.finalCount,
+      status: 'scheduled'
+    });
     
     console.log('[Schedule] Response:', {
       campaignId: campaign._id,

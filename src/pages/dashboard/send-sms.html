@@ -4075,15 +4075,44 @@
                 } else {
                     // Check for both success: false (API-level failure) and result.data?.success
                     const responseData = result.data || result;
-                    const isSuccess = responseData.success !== false;
+                    // Determine success count with defensive fallbacks (for immediate sends)
+                    let successCount = 0;
+                    let failedCount = 0;
+                    if (sendMode === 'immediate') {
+                        successCount = responseData.successfulRecipients ??
+                                      responseData.summary?.success ??
+                                      responseData.totalRecipients ??
+                                      0;
+                        failedCount = responseData.failedRecipients ??
+                                      responseData.summary?.failed ??
+                                      0;
+                    }
+                    const isSuccess = sendMode === 'immediate' ? successCount > 0 : true;
                     
                     if (isSuccess) {
-                        const successMessage = sendMode === 'immediate' ?
-                            `Campaign sent successfully to ${responseData.summary?.success || 0} recipients` :
-                            `Campaign scheduled successfully for ${new Date(scheduledAt).toLocaleString()}`;
-
+                        let successMessage;
+                        if (sendMode === 'immediate') {
+                            // successCount and failedCount already computed above
+                            // Structured logging before toast rendering
+                            console.log('[ToastNotification]', {
+                                mode: sendMode,
+                                successCount,
+                                failedCount,
+                                rawResponse: responseData
+                            });
+                            console.log('[RecipientCount]', { successful: successCount, failed: failedCount });
+                            
+                            if (failedCount > 0) {
+                                successMessage = `Campaign sent to ${successCount} recipients. ${failedCount} failed.`;
+                            } else {
+                                successMessage = `Campaign sent successfully to ${successCount} recipients`;
+                            }
+                        } else {
+                            successMessage = `Campaign scheduled successfully for ${new Date(scheduledAt).toLocaleString()}`;
+                        }
+                        
                         showToast(successMessage, 'success');
-
+                        
                         // Reset form
                         resetForm();
                     } else {

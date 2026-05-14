@@ -113,20 +113,34 @@ router.post('/send', authenticate, async (req, res) => {
 
     console.log('[SendSMS] Completed:', { total: recipients.length, success: successCount, failed: failedCount });
 
+    // Prepare canonical response data with standardized fields
+    const responseData = {
+      totalRecipients: recipients.length,
+      successfulRecipients: successCount,
+      failedRecipients: failedCount,
+      summary: {
+        total: recipients.length,
+        success: successCount,
+        failed: failedCount
+      },
+      results
+    };
+
     const responsePayload = {
       success: failedCount === 0,
       message: failedCount === 0 ? 'SMS sent successfully' : 'Some SMS failed to send',
-      data: {
-        summary: {
-          total: recipients.length,
-          success: successCount,
-          failed: failedCount
-        },
-        results
-      }
+      data: responseData
     };
     
-    console.log('[SendSMS] Response:', { 
+    // Structured logging with [SendResponse] tag
+    console.log('[SendResponse]', {
+      totalRecipients: responseData.totalRecipients,
+      successfulRecipients: responseData.successfulRecipients,
+      failedRecipients: responseData.failedRecipients,
+      status: responsePayload.success ? 'success' : 'partial_failure'
+    });
+    
+    console.log('[SendSMS] Response:', {
       status: failedCount === 0 ? 200 : 207, // 207 Multi-Status for partial success
       success: responsePayload.success,
       message: responsePayload.message,
@@ -454,12 +468,20 @@ router.post('/send', authenticate, async (req, res) => {
           estimatedCost: costEstimation.estimatedCost,
           recipientCount: processedRecipients.originalCount,
           validRecipientCount: processedRecipients.finalCount,
+          totalRecipients: processedRecipients.finalCount,
           invalidRecipientCount: processedRecipients.invalidRecipients.length,
           blacklistedCount: processedRecipients.blacklistedRecipients.length,
           duplicateCount: processedRecipients.duplicateCount,
           reservationId: reservation._id
         }
       };
+      
+      // Log send response with canonical counts
+      console.log('[SendResponse]', {
+        campaignId: campaign._id,
+        totalRecipients: processedRecipients.finalCount,
+        status: 'scheduled'
+      });
       
       console.log('[Schedule] Response:', {
         status: 201,
