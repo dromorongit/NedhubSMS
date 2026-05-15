@@ -16,6 +16,12 @@ const smsMessageSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  networkType: {
+    type: String,
+    enum: ['MTN', 'Telecel', 'AirtelTigo', 'Unknown'],
+    default: 'Unknown',
+    index: true
+  },
   senderId: {
     type: String,
     required: true,

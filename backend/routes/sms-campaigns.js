@@ -335,12 +335,15 @@ router.post('/send', authenticate, async (req, res) => {
         const recipientEstimatedCost = sellPrice * segmentResult.segments;
 
         // Create recipient record
+        const SmsRecipient = require('../models/SmsRecipient');
+        const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || recipient.phoneNumber);
         const smsRecipient = new SmsRecipient({
           campaignId: campaign._id,
           userId,
           recipientName: recipient.recipientName,
           phoneNumber: recipient.phoneNumber,
           normalizedPhoneNumber: recipient.normalizedPhoneNumber,
+          networkType: networkType,
           personalizedMessage,
           segments: segmentResult.segments,
           estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
@@ -686,12 +689,14 @@ router.post('/schedule', authenticate, async (req, res) => {
       const segmentResult = CostCalculatorService.calculateSegments(personalizedMessage);
       const recipientEstimatedCost = sellPrice * segmentResult.segments;
 
+      const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || recipient.phoneNumber);
       const smsRecipient = new SmsRecipient({
         campaignId: campaign._id,
         userId,
         recipientName: recipient.recipientName,
         phoneNumber: recipient.phoneNumber,
         normalizedPhoneNumber: recipient.normalizedPhoneNumber,
+        networkType: networkType,
         personalizedMessage,
         segments: segmentResult.segments,
         estimatedCost: Math.round(recipientEstimatedCost * 100) / 100

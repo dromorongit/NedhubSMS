@@ -70,11 +70,15 @@ class NaloSmsService {
 
   /**
    * Parse Nalo response - handles both JSON and pipe-delimited string
+   * @param {string|object} responseData - Raw response from Nalo API
+   * @param {Object} context - Context for logging { phoneNumber, formattedPhoneNumber, userId, campaignId, recipientId }
+   * @returns {Object} Parsed response with status, message_id, error_message
    */
-  parseNaloResponse(responseData) {
+  parseNaloResponse(responseData, context = {}) {
     const logger = require('../utils/logger');
+    const { phoneNumber, formattedPhoneNumber, userId, campaignId, recipientId } = context;
     let parsed;
-    
+
     // If it's already an object, use it directly
     if (typeof responseData === 'object' && responseData !== null) {
       parsed = responseData;
@@ -109,20 +113,59 @@ class NaloSmsService {
     } else {
       return { status: 'unknown' };
     }
-    
+
     // Normalize status to string for consistent comparison
     if (parsed.status !== undefined) {
       parsed.status = String(parsed.status);
     }
-    
+
+    // Detect network from formatted phone number for targeted logging
+    const isTelecel = formattedPhoneNumber && (
+      formattedPhoneNumber.startsWith('23320') || // 020 prefix → Telecel/Vodafone
+      formattedPhoneNumber.startsWith('23350')    // 050 prefix → Telecel/Vodafone
+    );
+    const isMTN = formattedPhoneNumber && (
+      formattedPhoneNumber.startsWith('23324') || // 024 prefix → MTN
+      formattedPhoneNumber.startsWith('23354') || // 054 prefix → MTN
+      formattedPhoneNumber.startsWith('23355') || // 055 prefix → MTN
+      formattedPhoneNumber.startsWith('23359')    // 059 prefix → MTN
+    );
+    const isAirtelTigo = formattedPhoneNumber && (
+      formattedPhoneNumber.startsWith('23326') || // 026 prefix → AirtelTigo
+      formattedPhoneNumber.startsWith('23327') || // 027 prefix → AirtelTigo
+      formattedPhoneNumber.startsWith('23328') || // 028 prefix → AirtelTigo
+      formattedPhoneNumber.startsWith('23356') || // 056 prefix → AirtelTigo
+      formattedPhoneNumber.startsWith('23357')    // 057 prefix → AirtelTigo
+    );
+
     // Log the parsed provider response with [ProviderResponse] tag
     console.log('[ProviderResponse]', {
       rawStatus: responseData,
       parsedStatus: parsed.status,
       hasMessageId: !!parsed.message_id,
-      hasError: !!parsed.error_message
+      hasError: !!parsed.error_message,
+      network: isTelecel ? 'Telecel/Vodafone' : isMTN ? 'MTN' : isAirtelTigo ? 'AirtelTigo' : 'Unknown',
+      formattedPhoneNumber: formattedPhoneNumber || 'N/A',
+      userId: userId || 'N/A',
+      timestamp: new Date().toISOString()
     });
-    
+
+    // Telecel/Vodafone specific audit logging
+    if (isTelecel) {
+      console.log('[TelecelAudit]', {
+        originalNumber: phoneNumber || 'N/A',
+        normalizedNumber: formattedPhoneNumber,
+        providerResponse: parsed.status,
+        hasMessageId: !!parsed.message_id,
+        hasError: !!parsed.error_message,
+        errorMessage: parsed.error_message || null,
+        userId: userId || 'N/A',
+        campaignId: campaignId || 'N/A',
+        recipientId: recipientId || 'N/A',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     return parsed;
   }
 
@@ -148,18 +191,48 @@ class NaloSmsService {
    * Send SMS using Nalo API with full financial tracking
    */
   async sendSmsWithFinancialTracking(request) {
-    const { userId, phoneNumber, senderId, message, recipientsCount = 1, skipDeduction = false } = request;
-    const logger = require('../utils/logger');
-    
-    // Log send initiation with [SmsSend] tag
-    console.log('[SmsSend]', {
-      userId,
-      phoneNumber,
-      senderId,
-      recipientsCount,
-      messageLength: message.length,
-      skipDeduction
-    });
+      const { userId, phoneNumber, senderId, message, recipientsCount = 1, skipDeduction = false, campaignId = null, recipientId = null } = request;
+      const logger = require('../utils/logger');
+      const SmsRecipient = require('../models/SmsRecipient');
+
+      // Log phone number normalization with [PhoneNormalization] tag
+      const formattedPhoneNumber = this.formatPhoneNumber(phoneNumber);
+
+      // Detect network type from normalized phone number
+      const networkType = SmsRecipient.detectNetwork(formattedPhoneNumber);
+
+      console.log('[PhoneNormalization]', {
+          originalNumber: phoneNumber,
+          normalizedNumber: formattedPhoneNumber,
+          networkType,
+          userId,
+          timestamp: new Date().toISOString()
+      });
+      
+      // Log send initiation with [SmsSend] tag
+      console.log('[SmsSend]', {
+          userId,
+          phoneNumber,
+          senderId,
+          recipientsCount,
+          messageLength: message.length,
+          skipDeduction
+      });
+      
+      // Log provider payload with [ProviderPayload] tag
+      const providerPayload = {
+          key: this.apiKey ? '***HIDDEN***' : null, // Hide API key
+          msisdn: formattedPhoneNumber,
+          sender_id: senderId,
+          message: message.trim()
+      };
+      console.log('[ProviderPayload]', {
+          ...providerPayload,
+          userId,
+          campaignId,
+          recipientId,
+          timestamp: new Date().toISOString()
+      });
 
     try {
       // Validate phone number
@@ -301,7 +374,13 @@ class NaloSmsService {
             responsePreview: String(response.data).substring(0, 200)
           });
 
-          naloResponse = this.parseNaloResponse(response.data);
+          naloResponse = this.parseNaloResponse(response.data, {
+            phoneNumber,
+            formattedPhoneNumber,
+            userId,
+            campaignId,
+            recipientId
+          });
           logger.smsSend.info('[NaloSmsService] Nalo response parsed', {
             userId,
             providerStatus: naloResponse.status,
@@ -345,6 +424,22 @@ class NaloSmsService {
               errorMessage: errorMessage
             });
 
+            // Telecel-specific failure logging
+            if (networkType === 'Telecel') {
+              console.log('[TelecelAudit]', {
+                event: 'SMS_FAILED',
+                originalNumber: phoneNumber,
+                normalizedNumber: formattedPhoneNumber,
+                providerStatus: naloResponse.status,
+                errorCode: errorCode,
+                errorMessage: errorMessage,
+                userId,
+                campaignId,
+                recipientId,
+                timestamp: new Date().toISOString()
+              });
+            }
+
             // Refund wallet on failure
             await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
           }
@@ -383,6 +478,7 @@ class NaloSmsService {
         userId: userId,
         phoneNumber: formattedPhoneNumber,
         normalizedPhoneNumber: formattedPhoneNumber,
+        networkType: networkType,
         senderId: senderId,
         message: message.trim(),
         provider: 'nalo',

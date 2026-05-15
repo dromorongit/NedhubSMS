@@ -219,12 +219,14 @@ class SmsCampaignRetryService {
       for (let i = 0; i < failedRecipients.length; i += batchSize) {
         const batch = failedRecipients.slice(i, i + batchSize);
         for (const failedRecipient of batch) {
+          const networkType = SmsRecipient.detectNetwork(failedRecipient.normalizedPhoneNumber || failedRecipient.phoneNumber);
           const newRecipient = new SmsRecipient({
             campaignId: newCampaign._id,
             userId,
             recipientName: failedRecipient.recipientName,
             phoneNumber: failedRecipient.phoneNumber,
             normalizedPhoneNumber: failedRecipient.normalizedPhoneNumber,
+            networkType: networkType,
             groupIds: failedRecipient.groupIds,
             personalizedMessage: failedRecipient.personalizedMessage,
             segments: failedRecipient.segments,

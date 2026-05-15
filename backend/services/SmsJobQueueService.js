@@ -464,6 +464,17 @@ class SmsJobQueueService {
           return { success: false, reason: 'already processed' };
         }
 
+        // Detect network type for diagnostic logging
+        const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || recipient.phoneNumber);
+        console.log('[NetworkAudit]', {
+          recipientId: recipient._id,
+          phoneNumber: recipient.phoneNumber,
+          normalizedPhoneNumber: recipient.normalizedPhoneNumber,
+          networkType,
+          campaignId: campaign._id,
+          userId: campaign.userId
+        });
+
         // Send SMS
         const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
           userId: campaign.userId,

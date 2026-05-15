@@ -28,6 +28,12 @@ const smsRecipientSchema = new mongoose.Schema({
     ],
     index: true
   },
+  networkType: {
+    type: String,
+    enum: ['MTN', 'Telecel', 'AirtelTigo', 'Unknown'],
+    default: 'Unknown',
+    index: true
+  },
   groupIds: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ContactGroup',
@@ -124,6 +130,26 @@ smsRecipientSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
+
+/**
+ * Detect Ghana network type from a normalized phone number (233XXXXXXXXX)
+ * @param {string} normalizedPhone - Phone number in 233XXXXXXXXX format
+ * @returns {string} Network type: 'MTN', 'Telecel', 'AirtelTigo', or 'Unknown'
+ */
+smsRecipientSchema.statics.detectNetwork = function(normalizedPhone) {
+  if (!normalizedPhone || typeof normalizedPhone !== 'string') return 'Unknown';
+  const cleaned = normalizedPhone.replace(/\D/g, '');
+  if (cleaned.length < 6) return 'Unknown';
+  // Extract the prefix after 233 (positions 3-5 in the cleaned string)
+  const prefix = cleaned.substring(3, 6);
+  // Telecel/Vodafone: 020, 050
+  if (prefix === '020' || prefix === '050') return 'Telecel';
+  // MTN: 024, 054, 055, 059
+  if (prefix === '024' || prefix === '054' || prefix === '055' || prefix === '059') return 'MTN';
+  // AirtelTigo: 026, 027, 028, 056, 057
+  if (prefix === '026' || prefix === '027' || prefix === '028' || prefix === '056' || prefix === '057') return 'AirtelTigo';
+  return 'Unknown';
+};
 
 // Static method to find recipients by campaign
 smsRecipientSchema.statics.findByCampaignId = function(campaignId) {
