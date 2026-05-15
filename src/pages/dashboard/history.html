@@ -421,7 +421,7 @@
                     <td class="message-text">${messagePreview}</td>
                     <td><span class="status-badge ${getStatusClass(msg.status)}">${formatStatus(msg.status)}</span></td>
                     <td class="message-actions">
-                        ${msg.status === 'failed' ? `<button class="resend-btn" data-message-id="${msg._id}" title="Resend Failed Message">Resend</button>` : ''}
+                        ${msg.status === 'failed' && msg.source === 'new' ? `<button class="resend-btn" data-message-id="${msg._id}" title="Resend Failed Message">Resend</button>` : ''}
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -826,11 +826,6 @@
         .status-badge.sent {
             background-color: #e3f2fd;
             color: #1565c0;
-        }
-
-        .status-badge.pending {
-            background-color: #fff3e0;
-            color: #ef6c00;
         }
 
         .status-badge.failed {

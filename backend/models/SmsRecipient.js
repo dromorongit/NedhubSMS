@@ -161,17 +161,17 @@ smsRecipientSchema.methods.markAsSent = function(providerMessageId = null) {
   this.sentAt = new Date();
   if (providerMessageId) this.providerMessageId = providerMessageId;
   this.updatedAt = new Date();
-  const savePromise = this.save();
-  // Log recipient status change with [RecipientStatus] tag
-  console.log('[RecipientStatus]', {
-    recipientId: this._id,
-    campaignId: this.campaignId,
-    oldStatus,
-    newStatus: 'sent',
-    providerMessageId
-  });
-  return savePromise;
-};
+   const savePromise = this.save();
+   // Log recipient status change with [MessageStatus] tag
+   console.log('[MessageStatus]', {
+     recipientId: this._id,
+     campaignId: this.campaignId,
+     oldStatus,
+     newStatus: 'sent',
+     providerMessageId
+   });
+   return savePromise;
+ };
 
 // Method to mark as delivered
 smsRecipientSchema.methods.markAsDelivered = function() {
@@ -179,15 +179,15 @@ smsRecipientSchema.methods.markAsDelivered = function() {
   this.status = 'delivered';
   this.deliveredAt = new Date();
   this.updatedAt = new Date();
-  const savePromise = this.save();
-  console.log('[RecipientStatus]', {
-    recipientId: this._id,
-    campaignId: this.campaignId,
-    oldStatus,
-    newStatus: 'delivered'
-  });
-  return savePromise;
-};
+   const savePromise = this.save();
+   console.log('[MessageStatus]', {
+     recipientId: this._id,
+     campaignId: this.campaignId,
+     oldStatus,
+     newStatus: 'delivered'
+   });
+   return savePromise;
+ };
 
 // Method to mark as failed
 smsRecipientSchema.methods.markAsFailed = function(errorMessage) {
@@ -196,16 +196,16 @@ smsRecipientSchema.methods.markAsFailed = function(errorMessage) {
   this.errorMessage = errorMessage;
   this.failedAt = new Date();
   this.updatedAt = new Date();
-  const savePromise = this.save();
-  console.log('[RecipientStatus]', {
-    recipientId: this._id,
-    campaignId: this.campaignId,
-    oldStatus,
-    newStatus: 'failed',
-    error: errorMessage
-  });
-  return savePromise;
-};
+   const savePromise = this.save();
+   console.log('[MessageStatus]', {
+     recipientId: this._id,
+     campaignId: this.campaignId,
+     oldStatus,
+     newStatus: 'failed',
+     error: errorMessage
+   });
+   return savePromise;
+ };
 
 // Method to mark as processing
 smsRecipientSchema.methods.markAsProcessing = function() {
@@ -213,15 +213,15 @@ smsRecipientSchema.methods.markAsProcessing = function() {
   this.status = 'processing';
   this.processingAt = new Date();
   this.updatedAt = new Date();
-  const savePromise = this.save();
-  console.log('[RecipientStatus]', {
-    recipientId: this._id,
-    campaignId: this.campaignId,
-    oldStatus,
-    newStatus: 'processing'
-  });
-  return savePromise;
-};
+   const savePromise = this.save();
+   console.log('[MessageStatus]', {
+     recipientId: this._id,
+     campaignId: this.campaignId,
+     oldStatus,
+     newStatus: 'processing'
+   });
+   return savePromise;
+ };
 
 // Method to mark as cancelled
 smsRecipientSchema.methods.markAsCancelled = function() {
@@ -229,14 +229,14 @@ smsRecipientSchema.methods.markAsCancelled = function() {
   this.status = 'cancelled';
   this.cancelledAt = new Date();
   this.updatedAt = new Date();
-  const savePromise = this.save();
-  console.log('[RecipientStatus]', {
-    recipientId: this._id,
-    campaignId: this.campaignId,
-    oldStatus,
-    newStatus: 'cancelled'
-  });
-  return savePromise;
-};
+   const savePromise = this.save();
+   console.log('[MessageStatus]', {
+     recipientId: this._id,
+     campaignId: this.campaignId,
+     oldStatus,
+     newStatus: 'cancelled'
+   });
+   return savePromise;
+ };
 
 module.exports = mongoose.model('SmsRecipient', smsRecipientSchema);

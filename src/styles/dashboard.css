@@ -1402,14 +1402,29 @@
     text-transform: capitalize;
 }
 
-.status-badge.completed {
+.status-badge.queued {
+    background: #f5f5f5;
+    color: #616161;
+}
+
+.status-badge.delivered {
     background: #e8f5e9;
     color: #2e7d32;
 }
 
-.status-badge.pending {
-    background: #fff3cd;
-    color: #856404;
+.status-badge.sent {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.status-badge.scheduled {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.status-badge.processing {
+    background: #fff3e0;
+    color: #e65100;
 }
 
 .status-badge.failed {
@@ -1417,14 +1432,20 @@
     color: #c62828;
 }
 
-.status-badge.scheduled {
-    background: #e3f2fd;
-    color: #1565c0;
+.status-badge.cancelled {
+    background: #e0e0e0;
+    color: #616161;
 }
 
-.status-badge.processing {
-    background: #f3e5f5;
-    color: #7b1fa2;
+/* Campaign-specific statuses */
+.status-badge.draft {
+    background: #f5f5f5;
+    color: #616161;
+}
+
+.status-badge.partial_success {
+    background: #fff3e0;
+    color: #e65100;
 }
 
 .status-badge.partial_success {

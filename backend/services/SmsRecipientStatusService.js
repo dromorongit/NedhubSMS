@@ -42,31 +42,34 @@ class SmsRecipientStatusService {
         };
       }
 
-      // Status downgrade protection (similar to webhook)
-      const statusHierarchy = {
-        'queued': 1,
-        'processing': 2,
-        'sent': 3,
-        'delivered': 4
-      };
-      const currentLevel = statusHierarchy[oldStatus];
-      const newLevel = statusHierarchy[status];
-      if (currentLevel && newLevel && newLevel < currentLevel) {
-        logger.warn('Recipient status downgrade prevented', {
-          recipientId: recipient._id,
-          oldStatus,
-          attemptedStatus: status,
-          reason: 'New status is lower in hierarchy'
-        });
-        // Return success but keep current status
-        return {
-          success: true,
-          recipientId: recipient._id,
-          oldStatus,
-          newStatus: oldStatus,
-          downgradePrevented: true
-        };
-      }
+      // Status downgrade protection
+       const statusHierarchy = {
+         'queued': 1,
+         'processing': 2,
+         'sent': 3,
+         'delivered': 4
+       };
+       const currentLevel = statusHierarchy[oldStatus];
+       const newLevel = statusHierarchy[status];
+       const isProgressiveDowngrade = currentLevel && newLevel && newLevel < currentLevel;
+       const isFailureAfterSuccess = (oldStatus === 'sent' || oldStatus === 'delivered') && status === 'failed';
+       
+       if (isProgressiveDowngrade || isFailureAfterSuccess) {
+         logger.warn('Recipient status downgrade prevented', {
+           recipientId: recipient._id,
+           oldStatus,
+           attemptedStatus: status,
+           reason: isFailureAfterSuccess ? 'Cannot downgrade successful status to failed' : 'New status is lower in hierarchy'
+         });
+         // Return success but keep current status
+         return {
+           success: true,
+           recipientId: recipient._id,
+           oldStatus,
+           newStatus: oldStatus,
+           downgradePrevented: true
+         };
+       }
 
       // Update recipient status
       const updateData = {
@@ -95,15 +98,15 @@ class SmsRecipientStatusService {
         await this.updateCampaignCounts(recipient.campaignId, oldStatus, status);
       }
 
-      // Log recipient status change with [RecipientStatus] tag
-      console.log('[RecipientStatus]', {
-        recipientId: recipient._id,
-        campaignId: recipient.campaignId,
-        oldStatus,
-        newStatus: status,
-        providerMessageId,
-        providerStatus
-      });
+       // Log recipient status change with [MessageStatus] tag
+       console.log('[MessageStatus]', {
+         recipientId: recipient._id,
+         campaignId: recipient.campaignId,
+         oldStatus,
+         newStatus: status,
+         providerMessageId,
+         providerStatus
+       });
 
       return {
         success: true,

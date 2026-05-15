@@ -17,13 +17,22 @@ async function repairStatusConsistency() {
   try {
     // === 1. Fix SmsMessage records ===
     
-    // a) failed -> sent where jobId exists (provider accepted)
-    const failedWithJobId = await SmsMessage.find({ 
-      status: 'failed', 
-      jobId: { $ne: null } 
+    // a) failed -> sent where jobId exists (provider accepted but status incorrectly set to failed)
+    // Exclude dummy jobIds that start with 'failed-' as those indicate actual failures
+    const failedWithJobId = await SmsMessage.find({
+      status: 'failed',
+      jobId: { $ne: null, $not: /^failed-/ }
     });
     
     for (const msg of failedWithJobId) {
+      // Only fix if the record appears to never have been updated after creation.
+      // This ensures we don't override a legitimate delivery failure that was set via webhook.
+      const updateDiffMs = msg.updatedAt - msg.createdAt;
+      if (updateDiffMs > 5000) {
+        // This record was updated after creation, likely due to a webhook change; skip to avoid corrupting legitimate failures.
+        continue;
+      }
+      
       const oldStatus = msg.status;
       msg.status = 'sent';
       // Clear error fields since it was actually successful
@@ -72,10 +81,11 @@ async function repairStatusConsistency() {
     // Track affected campaigns for later recount
     const affectedCampaignIds = new Set();
     
-    // a) failed with providerMessageId -> sent (provider accepted)
+    // a) failed with providerMessageId but never sent -> sent (provider accepted but status incorrectly set to failed)
     const failedRecipientsWithId = await SmsRecipient.find({
       status: 'failed',
-      providerMessageId: { $ne: null }
+      providerMessageId: { $ne: null },
+      sentAt: null // never transitioned to sent
     });
     
     for (const rec of failedRecipientsWithId) {

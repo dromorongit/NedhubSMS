@@ -313,7 +313,7 @@
                             <option value="">All Status</option>
                             <option value="delivered">Delivered</option>
                             <option value="sent">Sent</option>
-                            <option value="pending">Pending</option>
+                            <option value="queued">Queued</option>
                             <option value="failed">Failed</option>
                         </select>
                     </div>
@@ -614,10 +614,13 @@
                 const formattedDate = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 const statusClass = campaign.status === 'sent' ? 'delivered' :
-                                   campaign.status === 'partial_success' ? 'partial_success' :
-                                   campaign.status === 'scheduled' ? 'pending' :
-                                   campaign.status === 'processing' ? 'pending' :
-                                   campaign.status === 'failed' ? 'failed' : 'pending';
+                                   campaign.status === 'partial_success' ? 'processing' :
+                                   campaign.status === 'scheduled' ? 'scheduled' :
+                                   campaign.status === 'processing' ? 'processing' :
+                                   campaign.status === 'failed' ? 'failed' :
+                                   campaign.status === 'cancelled' ? 'cancelled' :
+                                   campaign.status === 'draft' ? 'draft' :
+                                   'queued';
                 const statusLabel = campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1);
 
                 const deliveryStats = campaign.deliveryStats || {};
@@ -805,8 +808,13 @@
             tbody.innerHTML = pageMessages.map(msg => {
                 const date = new Date(msg.createdAt);
                 const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const statusClass = msg.status === 'delivered' || msg.status === 'sent' ? 'delivered' : 
-                                   msg.status === 'pending' ? 'pending' : 'failed';
+                const statusClass = msg.status === 'delivered' ? 'delivered' :
+                                   msg.status === 'sent' ? 'sent' :
+                                   msg.status === 'queued' ? 'queued' :
+                                   msg.status === 'processing' ? 'processing' :
+                                   msg.status === 'scheduled' ? 'scheduled' :
+                                   msg.status === 'cancelled' ? 'cancelled' :
+                                   'failed';
                 const statusLabel = msg.status === 'sent' ? 'Sent' : msg.status.charAt(0).toUpperCase() + msg.status.slice(1);
                 const messagePreview = msg.message ? (msg.message.length > 50 ? msg.message.substring(0, 50) + '...' : msg.message) : 'N/A';
                 const recipientCount = msg.recipientsCount || 1;
@@ -882,8 +890,13 @@
             
             // Update status badge
             const statusEl = document.getElementById('detailStatus');
-            const statusClass = message.status === 'delivered' || message.status === 'sent' ? 'delivered' : 
-                               message.status === 'pending' ? 'pending' : 'failed';
+            const statusClass = message.status === 'delivered' ? 'delivered' :
+                               message.status === 'sent' ? 'sent' :
+                               message.status === 'queued' ? 'queued' :
+                               message.status === 'processing' ? 'processing' :
+                               message.status === 'scheduled' ? 'scheduled' :
+                               message.status === 'cancelled' ? 'cancelled' :
+                               'failed';
             const statusLabel = message.status === 'sent' ? 'Sent' : message.status.charAt(0).toUpperCase() + message.status.slice(1);
             statusEl.innerHTML = `<span class="status-badge ${statusClass}">${statusLabel}</span>`;
 
@@ -893,7 +906,7 @@
             // Update recipient stats
             const isDelivered = message.status === 'delivered' || message.status === 'sent';
             const isFailed = message.status === 'failed';
-            const isPending = message.status === 'pending';
+            const isPending = ['queued', 'processing', 'scheduled'].includes(message.status);
 
             document.getElementById('detailDelivered').textContent = isDelivered ? '1' : '0';
             document.getElementById('detailFailed').textContent = isFailed ? '1' : '0';
@@ -901,8 +914,10 @@
 
             // Populate recipients list
             const recipientsList = document.getElementById('recipientsList');
-            const recipientStatusClass = isDelivered ? 'delivered' : isFailed ? 'failed' : 'pending';
-            const recipientStatusLabel = isDelivered ? 'Delivered' : isFailed ? 'Failed' : 'Pending';
+            // Use actual message status for display; fallback to 'queued' for unknown
+            const recipientStatus = message.status || 'queued';
+            const recipientStatusClass = recipientStatus;
+            const recipientStatusLabel = recipientStatus.charAt(0).toUpperCase() + recipientStatus.slice(1);
             
             recipientsList.innerHTML = `
                 <div class="recipient-item ${recipientStatusClass}">
@@ -1289,6 +1304,26 @@
             color: #1565c0;
         }
 
+        .status-badge.queued {
+            background-color: #f5f5f5;
+            color: #616161;
+        }
+
+        .status-badge.processing {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-badge.scheduled {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .status-badge.cancelled {
+            background-color: #e0e0e0;
+            color: #424242;
+        }
+
         .btn-view {
             display: inline-flex;
             align-items: center;
@@ -1506,6 +1541,26 @@
         .recipient-status.pending {
             background-color: #fff3e0;
             color: #e65100;
+        }
+
+        .recipient-status.queued {
+            background-color: #f5f5f5;
+            color: #616161;
+        }
+
+        .recipient-status.processing {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .recipient-status.scheduled {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .recipient-status.cancelled {
+            background-color: #e0e0e0;
+            color: #424242;
         }
 
         /* Empty State */

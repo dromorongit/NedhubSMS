@@ -131,26 +131,53 @@ const handleDeliveryStatusWebhook = async (req, res) => {
     // Also update the SmsMessage if it exists (for message history sync)
     if (message_id) {
       try {
-        const updateData = { status: normalizedStatus };
-        if (normalizedStatus === 'delivered') {
-          updateData.deliveredAt = timestamp ? new Date(timestamp) : new Date();
-        }
-        if (normalizedStatus === 'sent') {
-          updateData.sentAt = timestamp ? new Date(timestamp) : new Date();
-        }
-        
-        const smsResult = await SmsMessage.findOneAndUpdate(
-          { jobId: message_id },
-          updateData,
-          { new: true }
-        );
-        
-        if (smsResult) {
-          logger.info('[DeliveryWebhook] Updated SmsMessage status', {
-            messageId: message_id,
-            smsMessageId: smsResult._id,
-            newStatus: normalizedStatus
-          });
+        const smsMessage = await SmsMessage.findOne({ jobId: message_id });
+        if (smsMessage) {
+          // STATUS DOWNGRADE PROTECTION for SmsMessage
+          const smsStatusHierarchy = {
+            'queued': 1,
+            'processing': 2,
+            'sent': 3,
+            'delivered': 4
+          };
+          const currentSmsLevel = smsStatusHierarchy[smsMessage.status];
+          const newSmsLevel = smsStatusHierarchy[normalizedStatus];
+          
+           const isProgressiveDowngrade = currentSmsLevel && newSmsLevel && newSmsLevel < currentSmsLevel;
+           const isFailureAfterSuccess = (smsMessage.status === 'sent' || smsMessage.status === 'delivered') && normalizedStatus === 'failed';
+           
+           if (isProgressiveDowngrade || isFailureAfterSuccess) {
+             logger.warn('[DeliveryWebhook] SmsMessage status downgrade prevented', {
+               messageId: message_id,
+               smsMessageId: smsMessage._id,
+               oldStatus: smsMessage.status,
+               attemptedStatus: normalizedStatus,
+               reason: isFailureAfterSuccess ? 'Cannot downgrade successful status to failed' : 'New status is lower in hierarchy'
+             });
+             // Skip SmsMessage update; continue with recipient update success
+           } else {
+             const updateData = { status: normalizedStatus };
+             if (normalizedStatus === 'delivered') {
+               updateData.deliveredAt = timestamp ? new Date(timestamp) : new Date();
+             }
+             if (normalizedStatus === 'sent') {
+               updateData.sentAt = timestamp ? new Date(timestamp) : new Date();
+             }
+             
+             const updatedSms = await SmsMessage.findOneAndUpdate(
+               { jobId: message_id },
+               updateData,
+               { new: true }
+             );
+             
+             if (updatedSms) {
+               logger.info('[DeliveryWebhook] Updated SmsMessage status', {
+                 messageId: message_id,
+                 smsMessageId: updatedSms._id,
+                 newStatus: normalizedStatus
+               });
+             }
+           }
         }
       } catch (smsError) {
         logger.error('[DeliveryWebhook] Error updating SmsMessage', {

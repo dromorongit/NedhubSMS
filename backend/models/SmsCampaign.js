@@ -57,7 +57,7 @@ const smsCampaignSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'scheduled', 'queued', 'processing', 'sent', 'failed', 'cancelled', 'partial_success'],
+    enum: ['draft', 'scheduled', 'processing', 'sent', 'failed', 'cancelled', 'partial_success'],
     default: 'draft',
     index: true
   },
