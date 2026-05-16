@@ -683,9 +683,9 @@ body .dashboard-content {
             margin-bottom: 0.25rem;
         }
         
-        /* [DesktopSpacingFix] Reduce top margin on char counter to eliminate excessive gap */
+        /* [DesktopSpacingFix] Remove top margin on char counter to eliminate gap */
         .char-counter-wrapper {
-            margin-top: 0.25rem !important;
+            margin-top: 0 !important;
         }
 
     /* Right column: schedule in row 1, preview in row 2 */
