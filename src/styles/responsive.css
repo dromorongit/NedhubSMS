@@ -676,10 +676,19 @@ body .dashboard-content {
         margin-bottom: 0.25rem;
     }
     
-    /* Preview section on right */
-    .live-preview-section {
+    /* Schedule section on right (now first) */
+    .schedule-section {
         grid-column: 2;
         grid-row: 1 / 2;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--neutral-gray);
+    }
+
+    /* Preview section on right (now below schedule) */
+    .live-preview-section {
+        grid-column: 2;
+        grid-row: 2;
         position: sticky;
         top: 2rem;
         margin-top: 0;
@@ -687,15 +696,6 @@ body .dashboard-content {
         border-top: none;
         border-left: 1px solid var(--neutral-gray);
         padding-left: 2rem;
-    }
-    
-    /* Schedule section on right, below preview */
-    .schedule-section {
-        grid-column: 2;
-        grid-row: 2;
-        margin-top: 1.5rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid var(--neutral-gray);
     }
     
     .mobile-preview-wrapper {
