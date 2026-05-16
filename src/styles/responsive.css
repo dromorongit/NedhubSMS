@@ -680,12 +680,12 @@ body .dashboard-content {
 
     /* [ResponsiveLayout] Tight spacing for message composer */
         .message-composer-section .form-group {
-            margin-bottom: 0.25rem;
+            margin-bottom: 0;
         }
         
         /* [DesktopSpacingFix] Remove top margin on char counter to eliminate gap */
         .char-counter-wrapper {
-            margin-top: 0 !important;
+            margin-top: -0.5rem !important;
         }
 
     /* Right column: schedule in row 1, preview in row 2 */
