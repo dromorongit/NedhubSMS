@@ -649,6 +649,8 @@ body .dashboard-content {
    ============================================ */
 
 /* Desktop: Two-column layout for SMS form and preview */
+/* [DesktopSpacing] Two-column layout: left column items share rows with right column
+   to prevent implicit row stretching that caused excessive vertical gaps. */
 @media (min-width: 992px) {
     .sms-form-card {
         display: grid;
@@ -657,26 +659,24 @@ body .dashboard-content {
         row-gap: 0.5rem;
         align-items: start;
     }
-    
+
     .sms-form-card > #sendSmsForm {
         display: contents;
     }
-    
-    /* Form sections */
-    .message-composer-section,
-    .personalization-section,
-    .char-counter-wrapper,
-    .form-actions,
-    .send-now-action {
-        grid-column: 1;
-    }
-    
+
+    /* Left column: all form-input sections share rows 1-5 with right column */
+    .message-composer-section { grid-column: 1; grid-row: 1; }
+    .personalization-section  { grid-column: 1; grid-row: 2; }
+    .char-counter-wrapper     { grid-column: 1; grid-row: 3; }
+    .cost-warnings            { grid-column: 1; grid-row: 4; }
+    .send-now-action          { grid-column: 1; grid-row: 5; }
+
     /* Tight spacing for message composer */
     .message-composer-section .form-group {
         margin-bottom: 0.25rem;
     }
-    
-    /* Schedule section on right (now first) */
+
+    /* Right column: schedule in row 1, preview in row 2 */
     .schedule-section {
         grid-column: 2;
         grid-row: 1 / 2;
@@ -685,7 +685,6 @@ body .dashboard-content {
         border-top: 1px solid var(--neutral-gray);
     }
 
-    /* Preview section on right (now below schedule) */
     .live-preview-section {
         grid-column: 2;
         grid-row: 2;
@@ -697,7 +696,7 @@ body .dashboard-content {
         border-left: 1px solid var(--neutral-gray);
         padding-left: 2rem;
     }
-    
+
     .mobile-preview-wrapper {
         display: flex;
         justify-content: center;
