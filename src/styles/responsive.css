@@ -649,8 +649,9 @@ body .dashboard-content {
    ============================================ */
 
 /* Desktop: Two-column layout for SMS form and preview */
-/* [DesktopSpacing] Two-column layout: left column items share rows with right column
-   to prevent implicit row stretching that caused excessive vertical gaps. */
+/* [DesktopLayout] Natural DOM flow preserved: left column stacks vertically,
+   right column holds schedule + live preview. No explicit grid-row assignments
+   on left-column sections to avoid reordering when sections are hidden/shown. */
 @media (min-width: 992px) {
     .sms-form-card {
         display: grid;
@@ -658,20 +659,26 @@ body .dashboard-content {
         column-gap: 2rem;
         row-gap: 0.5rem;
         align-items: start;
+        grid-auto-rows: min-content;
     }
 
     .sms-form-card > #sendSmsForm {
         display: contents;
     }
 
-    /* Left column: all form-input sections share rows 1-5 with right column */
-    .message-composer-section { grid-column: 1; grid-row: 1; }
-    .personalization-section  { grid-column: 1; grid-row: 2; }
-    .char-counter-wrapper     { grid-column: 1; grid-row: 3; }
-    .cost-warnings            { grid-column: 1; grid-row: 4; }
-    .send-now-action          { grid-column: 1; grid-row: 5; }
+    /* [GridFix] Left column: all form sections pinned to column 1, rows auto-assigned
+       in DOM order. Recipients (form-row) naturally comes before Message Body. */
+    .form-row,
+    .message-composer-section,
+    .duplicate-handling-section,
+    .personalization-section,
+    .char-counter-wrapper,
+    .cost-warnings,
+    .send-now-action {
+        grid-column: 1;
+    }
 
-    /* Tight spacing for message composer */
+    /* [ResponsiveLayout] Tight spacing for message composer */
     .message-composer-section .form-group {
         margin-bottom: 0.25rem;
     }
@@ -679,7 +686,7 @@ body .dashboard-content {
     /* Right column: schedule in row 1, preview in row 2 */
     .schedule-section {
         grid-column: 2;
-        grid-row: 1 / 2;
+        grid-row: 1;
         margin-top: 1.5rem;
         padding-top: 1.5rem;
         border-top: 1px solid var(--neutral-gray);
