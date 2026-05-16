@@ -679,9 +679,14 @@ body .dashboard-content {
     }
 
     /* [ResponsiveLayout] Tight spacing for message composer */
-    .message-composer-section .form-group {
-        margin-bottom: 0.25rem;
-    }
+        .message-composer-section .form-group {
+            margin-bottom: 0.25rem;
+        }
+        
+        /* [DesktopSpacingFix] Reduce top margin on char counter to eliminate excessive gap */
+        .char-counter-wrapper {
+            margin-top: 0.25rem !important;
+        }
 
     /* Right column: schedule in row 1, preview in row 2 */
     .schedule-section {
