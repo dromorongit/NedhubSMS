@@ -649,13 +649,12 @@ body .dashboard-content {
    ============================================ */
 
     /* Desktop: Two-column layout for SMS form and preview */
-    /* [DesktopLayout] Left column: independent vertical stack, Right column: schedule + preview */
+    /* [DesktopLayout] Left column: independent vertical stack, Right column: independent sidebar */
     @media (min-width: 992px) {
         .sms-form-card {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 420px; /* Fixed width for right sidebar */
             column-gap: 2rem;
-            /* Removed row-gap as left column now manages its own spacing */
             align-items: start;
         }
         
@@ -666,18 +665,18 @@ body .dashboard-content {
             gap: 1rem; /* Consistent spacing between sections */
         }
         
-        /* Right column remains as before but without grid-row constraints from left column */
+        /* Right column as independent sidebar */
         .schedule-section {
             grid-column: 2;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--neutral-gray);
+            margin-top: 0; /* Remove top margin to align with form start */
+            padding-top: 0;
+            border-top: none;
         }
         
         .live-preview-section {
             grid-column: 2;
             position: sticky;
-            top: 2rem;
+            top: 24px; /* Match the top spacing */
             margin-top: 0;
             padding-top: 0;
             border-top: none;
@@ -699,25 +698,15 @@ body .dashboard-content {
             margin-top: -0.5rem !important;
         }
 
-    /* Right column: schedule in row 1, preview in row 2 */
+    /* Right column: schedule section at top, live preview below */
     .schedule-section {
-        grid-column: 2;
-        grid-row: 1;
-        margin-top: 1.5rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid var(--neutral-gray);
+        margin-bottom: 2rem; /* Space between schedule and preview */
     }
 
     .live-preview-section {
-        grid-column: 2;
-        grid-row: 2;
         position: sticky;
-        top: 2rem;
-        margin-top: 0;
-        padding-top: 0;
-        border-top: none;
-        border-left: 1px solid var(--neutral-gray);
-        padding-left: 2rem;
+        top: 24px;
+        align-self: start; /* Ensure it doesn't stretch */
     }
 
     .mobile-preview-wrapper {
