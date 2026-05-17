@@ -676,6 +676,9 @@ body .dashboard-content {
     .cost-warnings,
     .send-now-action {
         grid-column: 1;
+        /* [Fix] Prevent left column items from stretching to match right column height */
+        align-self: start;
+        height: fit-content;
     }
 
     /* [ResponsiveLayout] Tight spacing for message composer */
