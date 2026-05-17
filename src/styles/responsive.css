@@ -645,40 +645,48 @@ body .dashboard-content {
 }
 
 /* ============================================
-   LIVE PREVIEW - DESKTOP LAYOUT
+   SEND SMS - DESKTOP TWO-COLUMN LAYOUT
    ============================================ */
 
-    /* Desktop: Two-column layout for SMS form and preview */
-    /* [DesktopLayout] Left column: independent vertical stack, Right column: independent sidebar */
+    /* Desktop: Two-column layout — form on left, sidebar on right */
+    /* [DesktopLayout] Left column: independent vertical flex, Right sidebar: independent vertical flex */
     @media (min-width: 992px) {
-        .sms-form-card {
+        /* The form element IS the grid container — no display: contents */
+        #sendSmsForm {
             display: grid;
-            grid-template-columns: 1fr 420px; /* Fixed width for right sidebar */
+            grid-template-columns: 1fr 420px;
             column-gap: 2rem;
             align-items: start;
         }
-        
-        /* Left column wrapper - independent vertical flex layout */
+
+        /* Left column — independent vertical flex, height driven only by its own content */
         .sms-form-left-column {
             display: flex;
             flex-direction: column;
-            gap: 1rem; /* Consistent spacing between sections */
+            gap: 1rem;
+            min-width: 0;
         }
-        
-        /* Right column as independent sidebar */
+
+        /* Right sidebar — independent vertical flex column */
+        .sms-form-right-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+        }
+
+        /* Schedule section — plain block inside right sidebar, no grid-row coupling */
         .schedule-section {
-            grid-column: 2;
-            grid-row: 1;
-            margin-top: 0; /* Align with top of form */
+            margin-top: 0;
             padding-top: 0;
             border-top: none;
         }
-        
+
+        /* Live Preview — sticky within the right sidebar, no grid-row coupling */
         .live-preview-section {
-            grid-column: 2;
-            grid-row: 2;
             position: sticky;
-            top: 24px; /* Match the top spacing */
+            top: 24px;
+            align-self: start;
             margin-top: 0;
             padding-top: 0;
             border-top: none;
@@ -686,18 +694,9 @@ body .dashboard-content {
             padding-left: 2rem;
         }
 
-    .sms-form-card > #sendSmsForm {
-        display: contents;
-    }
-
     /* [ResponsiveLayout] Tight spacing for message composer */
         .message-composer-section .form-group {
             margin-bottom: 0;
-        }
-        
-        /* [DesktopSpacingFix] Remove top margin on char counter to eliminate gap */
-        .char-counter-wrapper {
-            margin-top: -0.5rem !important;
         }
 
     .mobile-preview-wrapper {

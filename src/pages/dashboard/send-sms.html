@@ -453,68 +453,71 @@
                           </div>
                          </div> <!-- Close left column -->
 
-                       <!-- Schedule Date & Time Field -->
-                       <div class="schedule-section" id="scheduleSettings">
-                          <h3 class="section-title">Schedule Message</h3>
-                          <div class="form-row">
-                              <div class="form-group">
-                                  <label for="scheduledDate">Schedule Date</label>
-                                  <input type="date" id="scheduledDate" name="scheduledDate" required min="">
-                                  <small>Select the date to send this campaign</small>
+                       <!-- Right Sidebar: Schedule + Live Preview -->
+                       <div class="sms-form-right-sidebar">
+                           <!-- Schedule Date & Time Field -->
+                           <div class="schedule-section" id="scheduleSettings">
+                              <h3 class="section-title">Schedule Message</h3>
+                              <div class="form-row">
+                                  <div class="form-group">
+                                      <label for="scheduledDate">Schedule Date</label>
+                                      <input type="date" id="scheduledDate" name="scheduledDate" required min="">
+                                      <small>Select the date to send this campaign</small>
+                                  </div>
+                                  <div class="form-group">
+                                      <label for="scheduledTime">Schedule Time</label>
+                                      <input type="time" id="scheduledTime" name="scheduledTime" required>
+                                      <small>Select the time to send (your local timezone)</small>
+                                  </div>
                               </div>
-                              <div class="form-group">
-                                  <label for="scheduledTime">Schedule Time</label>
-                                  <input type="time" id="scheduledTime" name="scheduledTime" required>
-                                  <small>Select the time to send (your local timezone)</small>
+                              <div class="schedule-info" id="scheduleInfo">
+                                  <div class="timezone-display">
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                          <circle cx="12" cy="12" r="10"></circle>
+                                          <polyline points="12 6 12 12 16 14"></polyline>
+                                      </svg>
+                                      <span id="timezoneDisplay">Detecting timezone...</span>
+                                  </div>
+                                  <div class="schedule-preview" id="schedulePreview">
+                                      <!-- Will show "Scheduled for Tomorrow at 9:00 AM" -->
+                                  </div>
+                              </div>
+                              <!-- Schedule Button (moved under schedule fields) -->
+                              <div class="schedule-action">
+                                  <button type="button" class="btn-secondary" id="scheduleBtn" disabled>
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                          <circle cx="12" cy="12" r="10"></circle>
+                                          <polyline points="12 6 12 12 16 14"></polyline>
+                                      </svg>
+                                      Schedule Message
+                                  </button>
                               </div>
                           </div>
-                          <div class="schedule-info" id="scheduleInfo">
-                              <div class="timezone-display">
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                      <circle cx="12" cy="12" r="10"></circle>
-                                      <polyline points="12 6 12 12 16 14"></polyline>
-                                  </svg>
-                                  <span id="timezoneDisplay">Detecting timezone...</span>
-                              </div>
-                              <div class="schedule-preview" id="schedulePreview">
-                                  <!-- Will show "Scheduled for Tomorrow at 9:00 AM" -->
-                              </div>
-                          </div>
-                          <!-- Schedule Button (moved under schedule fields) -->
-                          <div class="schedule-action">
-                              <button type="button" class="btn-secondary" id="scheduleBtn" disabled>
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                      <circle cx="12" cy="12" r="10"></circle>
-                                      <polyline points="12 6 12 12 16 14"></polyline>
-                                  </svg>
-                                  Schedule Message
-                              </button>
-                          </div>
-                      </div>
 
-                      <!-- Live Mobile Preview Section -->
-                      <div class="live-preview-section">
-                          <h3 class="section-title">Live Preview</h3>
-                          <div class="mobile-preview-wrapper" id="mobilePreviewWrapper">
-                              <div class="phone-mockup">
-                                  <div class="phone-frame">
-                                      <div class="phone-notch"></div>
-                                      <div class="phone-screen">
-                                          <div class="sms-header-bar">
-                                              <div class="header-time" id="previewHeaderTime">12:30</div>
-                                              <div class="header-sender" id="previewHeaderSender">Sender ID</div>
-                                          </div>
-                                          <div class="sms-messages-container" id="previewMessagesContainer">
-                                              <div class="sms-message-bubble received">
-                                                  <span class="message-text" id="livePreviewText">Your message will appear here...</span>
-                                                  <span class="message-time" id="previewMessageTime">12:30 PM</span>
+                          <!-- Live Mobile Preview Section -->
+                          <div class="live-preview-section">
+                              <h3 class="section-title">Live Preview</h3>
+                              <div class="mobile-preview-wrapper" id="mobilePreviewWrapper">
+                                  <div class="phone-mockup">
+                                      <div class="phone-frame">
+                                          <div class="phone-notch"></div>
+                                          <div class="phone-screen">
+                                              <div class="sms-header-bar">
+                                                  <div class="header-time" id="previewHeaderTime">12:30</div>
+                                                  <div class="header-sender" id="previewHeaderSender">Sender ID</div>
+                                              </div>
+                                              <div class="sms-messages-container" id="previewMessagesContainer">
+                                                  <div class="sms-message-bubble received">
+                                                      <span class="message-text" id="livePreviewText">Your message will appear here...</span>
+                                                      <span class="message-time" id="previewMessageTime">12:30 PM</span>
+                                                  </div>
                                               </div>
                                           </div>
                                       </div>
                                   </div>
                               </div>
                           </div>
-                      </div>
+                       </div>
 
                   </form>
                   </div>
