@@ -668,13 +668,15 @@ body .dashboard-content {
         /* Right column as independent sidebar */
         .schedule-section {
             grid-column: 2;
-            margin-top: 0; /* Remove top margin to align with form start */
+            grid-row: 1;
+            margin-top: 0; /* Align with top of form */
             padding-top: 0;
             border-top: none;
         }
         
         .live-preview-section {
             grid-column: 2;
+            grid-row: 2;
             position: sticky;
             top: 24px; /* Match the top spacing */
             margin-top: 0;
@@ -697,17 +699,6 @@ body .dashboard-content {
         .char-counter-wrapper {
             margin-top: -0.5rem !important;
         }
-
-    /* Right column: schedule section at top, live preview below */
-    .schedule-section {
-        margin-bottom: 2rem; /* Space between schedule and preview */
-    }
-
-    .live-preview-section {
-        position: sticky;
-        top: 24px;
-        align-self: start; /* Ensure it doesn't stretch */
-    }
 
     .mobile-preview-wrapper {
         display: flex;
