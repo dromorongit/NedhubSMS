@@ -2299,61 +2299,106 @@
               });
           });
          
-          // Messaging mode tabs
-          document.querySelectorAll('.messaging-mode-tabs .tab-btn').forEach(btn => {
-              btn.addEventListener('click', function() {
-                  const mode = this.dataset.mode;
-                  
-                  // Update current messaging mode
-                  currentMessagingMode = mode;
-  
-                  // Update active tab
-                  document.querySelectorAll('.messaging-mode-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-                  this.classList.add('active');
-  
-                  // Show/hide sections based on mode
-                  if (mode === 'default') {
-                      // Hide personalization controls
-                      document.querySelector('.personalization-section').style.display = 'none';
-                      // Show salutation preview as static text
-                      document.getElementById('salutationPreview').textContent = 'Dear';
-                      // Update message body template to not require name
-                      updateMessageBodyTemplateForDefaultMode();
-                      // Show comma-separated input, hide individual recipient items
-                      document.getElementById('defaultModeRecipients').style.display = 'block';
-                      document.getElementById('personalizedModeRecipients').style.display = 'none';
-                  } else if (mode === 'personalized') {
-                      // Show personalization controls
-                      document.querySelector('.personalization-section').style.display = 'block';
-                      // Update message body template for personalized mode
-                      updateMessageBodyTemplate();
-                      // Hide comma-separated input, show individual recipient items
-                      document.getElementById('defaultModeRecipients').style.display = 'none';
-                      document.getElementById('personalizedModeRecipients').style.display = 'block';
-                  }
-                  
-                  // Update validation based on mode
-                  if (mode === 'default') {
-                      // For default mode, update comma-separated input validation
-                      updateCommaSeparatedRecipients();
-                  } else {
-                      // For personalized mode, re-validate all manual recipient items to update borders
-                      document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => {
-                          const event = new Event('input', { bubbles: true });
-                          item.querySelector('.recipient-phone-input').dispatchEvent(event);
-                      });
-                  }
-                  
-                  // Restore recipient source tab state for this mode
-                  const savedTab = recipientSourceState[mode] || 'manual';
-                  switchRecipientSourceTab(savedTab, false); // false = don't save state (it's already saved)
-                  
-                  // Update cost estimation
-                  updateCostEstimation();
-                  
-                  console.log(`[MessagingMode] Switched to ${mode} mode, restored recipient source: ${savedTab}`);
-              });
-          });
+           // Messaging mode tabs
+           document.querySelectorAll('.messaging-mode-tabs .tab-btn').forEach(btn => {
+               btn.addEventListener('click', function() {
+                   const mode = this.dataset.mode;
+                   
+                   // Log preview dimensions before mode switch
+                   const previewSection = document.querySelector('.live-preview-section');
+                   const phoneMockup = document.querySelector('.phone-mockup');
+                   const phoneFrame = document.querySelector('.phone-frame');
+                   
+                   if (previewSection && phoneMockup && phoneFrame) {
+                       const previewWidth = previewSection.offsetWidth;
+                       const previewHeight = previewSection.offsetHeight;
+                       const mockupWidth = phoneMockup.offsetWidth;
+                       const mockupHeight = phoneMockup.offsetHeight;
+                       const frameWidth = phoneFrame.offsetWidth;
+                       const frameHeight = phoneFrame.offsetHeight;
+                       
+                       console.log(`[LivePreviewLayout] PRE-MODE SWITCH [${mode}] - Preview: ${previewWidth}x${previewHeight}, Mockup: ${mockupWidth}x${mockupHeight}, Frame: ${frameWidth}x${frameHeight}`);
+                   }
+                   
+                   // Update current messaging mode
+                   currentMessagingMode = mode;
+   
+                   // Update active tab
+                   document.querySelectorAll('.messaging-mode-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+                   this.classList.add('active');
+   
+                   // Show/hide sections based on mode
+                   if (mode === 'default') {
+                       // Hide personalization controls
+                       document.querySelector('.personalization-section').style.display = 'none';
+                       // Show salutation preview as static text
+                       document.getElementById('salutationPreview').textContent = 'Dear';
+                       // Update message body template to not require name
+                       updateMessageBodyTemplateForDefaultMode();
+                       // Show comma-separated input, hide individual recipient items
+                       document.getElementById('defaultModeRecipients').style.display = 'block';
+                       document.getElementById('personalizedModeRecipients').style.display = 'none';
+                   } else if (mode === 'personalized') {
+                       // Show personalization controls
+                       document.querySelector('.personalization-section').style.display = 'block';
+                       // Update message body template for personalized mode
+                       updateMessageBodyTemplate();
+                       // Hide comma-separated input, show individual recipient items
+                       document.getElementById('defaultModeRecipients').style.display = 'none';
+                       document.getElementById('personalizedModeRecipients').style.display = 'block';
+                   }
+                   
+                   // Update validation based on mode
+                   if (mode === 'default') {
+                       // For default mode, update comma-separated input validation
+                       updateCommaSeparatedRecipients();
+                   } else {
+                       // For personalized mode, re-validate all manual recipient items to update borders
+                       document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => {
+                           const event = new Event('input', { bubbles: true });
+                           item.querySelector('.recipient-phone-input').dispatchEvent(event);
+                       });
+                   }
+                   
+                   // Restore recipient source tab state for this mode
+                   const savedTab = recipientSourceState[mode] || 'manual';
+                   switchRecipientSourceTab(savedTab, false); // false = don't save state (it's already saved)
+                   
+                   // Update cost estimation
+                   updateCostEstimation();
+                   
+                   // Log preview dimensions after mode switch
+                   if (previewSection && phoneMockup && phoneFrame) {
+                       const previewWidthAfter = previewSection.offsetWidth;
+                       const previewHeightAfter = previewSection.offsetHeight;
+                       const mockupWidthAfter = phoneMockup.offsetWidth;
+                       const mockupHeightAfter = phoneMockup.offsetHeight;
+                       const frameWidthAfter = phoneFrame.offsetWidth;
+                       const frameHeightAfter = phoneFrame.offsetHeight;
+                       
+                       console.log(`[LivePreviewLayout] POST-MODE SWITCH [${mode}] - Preview: ${previewWidthAfter}x${previewHeightAfter}, Mockup: ${mockupWidthAfter}x${mockupHeightAfter}, Frame: ${frameWidthAfter}x${frameHeightAfter}`);
+                       
+                       // Check for any dimension changes
+                       const widthChanged = previewWidth !== previewWidthAfter;
+                       const heightChanged = previewHeight !== previewHeightAfter;
+                       
+                       if (widthChanged || heightChanged) {
+                           console.log(`[LivePreviewLayout] WARNING: Dimensions changed during mode switch! Width changed: ${widthChanged}, Height changed: ${heightChanged}`);
+                       } else {
+                           console.log(`[LivePreviewLayout] SUCCESS: Preview dimensions stable during mode switch to ${mode}`);
+                       }
+                   }
+                   
+                   // Log any dynamic class changes affecting preview layout
+                   const previewClasses = previewSection ? previewSection.className : '';
+                   const wrapperClasses = document.querySelector('.mobile-preview-wrapper') ? document.querySelector('.mobile-preview-wrapper').className : '';
+                   const mockupClasses = phoneMockup ? phoneMockup.className : '';
+                   
+                   console.log(`[LivePreviewLayout] CLASS CHANGES [${mode}] - Preview: '${previewClasses}', Wrapper: '${wrapperClasses}', Mockup: '${mockupClasses}'`);
+                   
+                   console.log(`[MessagingMode] Switched to ${mode} mode, restored recipient source: ${savedTab}`);
+               });
+           });
 
         // Function to analyze recipients for duplicates
         async function analyzeRecipients() {

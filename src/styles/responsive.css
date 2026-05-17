@@ -692,6 +692,8 @@ body .dashboard-content {
             border-top: none;
             border-left: 1px solid var(--neutral-gray);
             padding-left: 2rem;
+            /* Prevent shrinking when left column content changes */
+            flex-shrink: 0;
         }
 
     /* [ResponsiveLayout] Tight spacing for message composer */
@@ -702,6 +704,8 @@ body .dashboard-content {
     .mobile-preview-wrapper {
         display: flex;
         justify-content: center;
+        /* Prevent shrinking */
+        flex-shrink: 0;
     }
 }
 

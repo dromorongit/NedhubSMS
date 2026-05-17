@@ -1677,6 +1677,10 @@
     width: 100%;
     max-width: 320px;
     perspective: 1000px;
+    /* Prevent shrinking and ensure stable size */
+    flex-shrink: 0;
+    /* Ensure consistent width */
+    min-width: 260px;
 }
 
 .phone-frame {
@@ -1693,6 +1697,8 @@
     position: relative;
     transform: rotateY(-5deg) rotateX(5deg);
     transition: transform 0.4s ease;
+    /* Prevent shrinking and ensure stable dimensions */
+    flex-shrink: 0;
 }
 
 .phone-frame:hover {
