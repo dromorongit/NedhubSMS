@@ -153,10 +153,12 @@
                     <span id="lowBalanceMessage">Low balance! Please top up to send SMS.</span>
                 </div>
 
-                <!-- SMS Form Card -->
-                <div class="sms-form-card">
-                    <form id="sendSmsForm">
-                        <div class="form-row">
+                 <!-- SMS Form Card -->
+                 <div class="sms-form-card">
+                     <form id="sendSmsForm">
+                         <!-- Left Column: Form Sections -->
+                         <div class="sms-form-left-column">
+                             <div class="form-row">
                             <div class="form-group">
                                 <label for="senderId">Sender ID</label>
                                 <div class="sender-id-row">
@@ -440,18 +442,19 @@
                              <div class="warning-text" id="warningText"></div>
                          </div>
                          
-                         <!-- Send Now Button (moved under character/cost section) -->
-                         <div class="send-now-action">
-                             <button type="button" class="btn-primary" id="sendNowBtn">
-                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                     <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
-                                 </svg>
-                                 Send Now
-                             </button>
-                         </div>
+                          <!-- Send Now Button (moved under character/cost section) -->
+                          <div class="send-now-action">
+                              <button type="button" class="btn-primary" id="sendNowBtn">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                                  </svg>
+                                  Send Now
+                              </button>
+                          </div>
+                         </div> <!-- Close left column -->
 
-                      <!-- Schedule Date & Time Field -->
-                      <div class="schedule-section" id="scheduleSettings">
+                       <!-- Schedule Date & Time Field -->
+                       <div class="schedule-section" id="scheduleSettings">
                           <h3 class="section-title">Schedule Message</h3>
                           <div class="form-row">
                               <div class="form-group">

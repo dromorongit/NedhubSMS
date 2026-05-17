@@ -648,37 +648,45 @@ body .dashboard-content {
    LIVE PREVIEW - DESKTOP LAYOUT
    ============================================ */
 
-/* Desktop: Two-column layout for SMS form and preview */
-/* [DesktopLayout] Natural DOM flow preserved: left column stacks vertically,
-   right column holds schedule + live preview. No explicit grid-row assignments
-   on left-column sections to avoid reordering when sections are hidden/shown. */
-@media (min-width: 992px) {
-    .sms-form-card {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        column-gap: 2rem;
-        row-gap: 0.5rem;
-        align-items: start;
-        grid-auto-rows: min-content;
-    }
+    /* Desktop: Two-column layout for SMS form and preview */
+    /* [DesktopLayout] Left column: independent vertical stack, Right column: schedule + preview */
+    @media (min-width: 992px) {
+        .sms-form-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 2rem;
+            /* Removed row-gap as left column now manages its own spacing */
+            align-items: start;
+        }
+        
+        /* Left column wrapper - independent vertical flex layout */
+        .sms-form-left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem; /* Consistent spacing between sections */
+        }
+        
+        /* Right column remains as before but without grid-row constraints from left column */
+        .schedule-section {
+            grid-column: 2;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--neutral-gray);
+        }
+        
+        .live-preview-section {
+            grid-column: 2;
+            position: sticky;
+            top: 2rem;
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+            border-left: 1px solid var(--neutral-gray);
+            padding-left: 2rem;
+        }
 
     .sms-form-card > #sendSmsForm {
         display: contents;
-    }
-
-    /* [GridFix] Left column: all form sections pinned to column 1, rows auto-assigned
-       in DOM order. Recipients (form-row) naturally comes before Message Body. */
-    .form-row,
-    .message-composer-section,
-    .duplicate-handling-section,
-    .personalization-section,
-    .char-counter-wrapper,
-    .cost-warnings,
-    .send-now-action {
-        grid-column: 1;
-        /* [Fix] Prevent left column items from stretching to match right column height */
-        align-self: start;
-        height: fit-content;
     }
 
     /* [ResponsiveLayout] Tight spacing for message composer */
