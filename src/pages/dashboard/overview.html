@@ -312,7 +312,7 @@
         });
 
         async function checkAuthAndLoad() {
-            const token = localStorage.getItem('authToken');
+            const token = window.getStorage ? window.getStorage().getItem('authToken') : localStorage.getItem('authToken');
             console.log('[Dashboard] checkAuthAndLoad - token present:', !!token);
             if (!token) {
                 console.log('[Dashboard] No token, redirecting to login');
@@ -585,9 +585,12 @@
 
         // Logout function
         function logout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userName');
-            localStorage.removeItem('userEmail');
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            storage.removeItem('authToken');
+            storage.removeItem('userName');
+            storage.removeItem('userEmail');
+            // Also clear the storage type preference
+            localStorage.removeItem('authStorageType');
             window.location.href = '../auth/login.html';
         }
 

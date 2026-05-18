@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadInitialView() {
     // Check if user is authenticated
-    const token = localStorage.getItem('authToken');
+    const getStorageFunc = (window as any).getStorage;
+    const token = getStorageFunc ? getStorageFunc().getItem('authToken') : localStorage.getItem('authToken');
     console.log('[App] loadInitialView - token present:', !!token);
     
     if (!token) {

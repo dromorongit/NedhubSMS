@@ -673,9 +673,12 @@
 
         // Logout function
         function logout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userName');
-            localStorage.removeItem('userEmail');
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            storage.removeItem('authToken');
+            storage.removeItem('userName');
+            storage.removeItem('userEmail');
+            // Also clear the storage type preference
+            localStorage.removeItem('authStorageType');
             window.location.href = '../auth/login.html';
         }
 

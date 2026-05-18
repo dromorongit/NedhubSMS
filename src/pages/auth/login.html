@@ -192,74 +192,81 @@
             });
         });
     
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalBtnContent = submitBtn.innerHTML;
-            
-            console.log('[Login] Form submitted for email:', email);
-            
-            // Disable button during request
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span>Signing in...</span><svg class="btn-spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg>';
-            
-            try {
-                const result = await window.apiClient.login(email, password);
-                
-                console.log('[Login] API response:', result);
-                
-                if (result.error) {
-                    console.log('[Login] Login failed:', result.error);
-                    showError(result.error);
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalBtnContent;
-                } else {
-                    // Login successful - store token and redirect
-                    const token = result.data.token;
-                    console.log('[Login] Login successful, token received. Length:', token.length);
-                    
-                    // Decode token to check expiration
-                    try {
-                        const decoded = decodeJWT(token);
-                        if (decoded) {
-                            const now = Math.floor(Date.now() / 1000);
-                            console.log('[Login] Token decoded:', {
-                                exp: decoded.exp,
-                                iat: decoded.iat,
-                                now: now,
-                                isExpired: decoded.exp ? decoded.exp < now : 'unknown'
-                            });
-                        }
-                    } catch (err) {
-                        console.error('[Login] Failed to decode token:', err);
-                    }
-                    
-                    window.apiClient.setToken(token);
-                    
-                    // Verify token was stored
-                    const storedToken = localStorage.getItem('authToken');
-                    console.log('[Login] Token stored in localStorage:', !!storedToken, 'Length:', storedToken ? storedToken.length : 0);
-                    
-                    // Check user role and redirect accordingly
-                    const user = result.data.user;
-                    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
-                        console.log('[Login] Redirecting to admin panel');
-                        window.location.href = '../admin/admin.html';
-                    } else {
-                        console.log('[Login] Redirecting to dashboard');
-                        window.location.href = '../dashboard/overview.html';
-                    }
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                showError('An error occurred. Please try again.');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnContent;
-            }
-        });
+         document.getElementById('loginForm').addEventListener('submit', async function(e) {
+             e.preventDefault();
+             
+             const email = document.getElementById('email').value;
+             const password = document.getElementById('password').value;
+             const rememberMe = document.getElementById('remember').checked;
+             const submitBtn = this.querySelector('button[type="submit"]');
+             const originalBtnContent = submitBtn.innerHTML;
+             
+             console.log('[Login] Form submitted for email:', email, 'Remember me:', rememberMe);
+             
+             // Set storage type based on Remember Me checkbox
+             if (typeof window.setStorageType === 'function') {
+                 window.setStorageType(rememberMe ? 'local' : 'session');
+                 console.log('[Login] Storage type set to:', rememberMe ? 'local' : 'session');
+             }
+             
+             // Disable button during request
+             submitBtn.disabled = true;
+             submitBtn.innerHTML = '<span>Signing in...</span><svg class="btn-spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg>';
+             
+             try {
+                 const result = await window.apiClient.login(email, password);
+                 
+                 console.log('[Login] API response:', result);
+                 
+                 if (result.error) {
+                     console.log('[Login] Login failed:', result.error);
+                     showError(result.error);
+                     submitBtn.disabled = false;
+                     submitBtn.innerHTML = originalBtnContent;
+                 } else {
+                     // Login successful - store token and redirect
+                     const token = result.data.token;
+                     console.log('[Login] Login successful, token received. Length:', token.length);
+                     
+                     // Decode token to check expiration
+                     try {
+                         const decoded = decodeJWT(token);
+                         if (decoded) {
+                             const now = Math.floor(Date.now() / 1000);
+                             console.log('[Login] Token decoded:', {
+                                 exp: decoded.exp,
+                                 iat: decoded.iat,
+                                 now: now,
+                                 isExpired: decoded.exp ? decoded.exp < now : 'unknown'
+                             });
+                         }
+                     } catch (err) {
+                         console.error('[Login] Failed to decode token:', err);
+                     }
+                     
+                     window.apiClient.setToken(token);
+                     
+                     // Verify token was stored
+                     const storedToken = window.getStorage ? window.getStorage().getItem('authToken') : localStorage.getItem('authToken');
+                     console.log('[Login] Token stored:', !!storedToken, 'Length:', storedToken ? storedToken.length : 0);
+                     
+                     // Check user role and redirect accordingly
+                     const user = result.data.user;
+                     if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+                         console.log('[Login] Redirecting to admin panel');
+                         window.location.href = '../admin/admin.html';
+                     } else {
+                         console.log('[Login] Redirecting to dashboard');
+                         window.location.href = '../dashboard/overview.html';
+                     }
+                 }
+             } catch (error) {
+                 console.error('Login error:', error);
+                 showError('An error occurred. Please try again.');
+                 submitBtn.disabled = false;
+                 submitBtn.innerHTML = originalBtnContent;
+             }
+         });
         
         // Helper function to decode JWT (for debugging)
         function decodeJWT(token) {

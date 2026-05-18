@@ -1,5 +1,6 @@
 // API client for frontend
 const API_BASE_URL = 'http://localhost:3000/api';
+import { getStorage } from './authStorage';
 
 interface ApiResponse<T> {
   data?: T;
@@ -15,16 +16,16 @@ class ApiClient {
 
   setToken(token: string) {
     this.token = token;
-    localStorage.setItem('authToken', token);
+    getStorage().setItem('authToken', token);
   }
 
   getToken() {
-    return this.token || localStorage.getItem('authToken');
+    return this.token || getStorage().getItem('authToken');
   }
 
   clearToken() {
     this.token = null;
-    localStorage.removeItem('authToken');
+    getStorage().removeItem('authToken');
   }
 
   private async request<T>(method: string, endpoint: string, data?: any): Promise<ApiResponse<T>> {
