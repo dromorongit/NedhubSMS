@@ -9,28 +9,41 @@ document.addEventListener('DOMContentLoaded', () => {
     loadInitialView();
 });
 
+// Get API base URL (matches api.js logic)
+function getApiBaseUrl() {
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    return isLocalhost ? 'http://localhost:3000/api' : 'https://nedhubsms-production.up.railway.app/api';
+}
+
+// Get storage function from authStorage
+function getStorageFunc() {
+    return (window as any).getStorage ? (window as any).getStorage() : localStorage;
+}
+
 async function loadInitialView() {
-    // Check if user is authenticated
-    const getStorageFunc = (window as any).getStorage;
-    const token = getStorageFunc ? getStorageFunc().getItem('authToken') : localStorage.getItem('authToken');
-    console.log('[App] loadInitialView - token present:', !!token);
+    // Check if user is authenticated using storage-aware function
+    const storage = getStorageFunc();
+    const token = storage.getItem('authToken');
+    const storageType = storage === sessionStorage ? 'sessionStorage' : 'localStorage';
+    console.log('[AuthBootstrap] [App] loadInitialView - token present:', !!token, 'Storage type:', storageType);
     
     if (!token) {
-        console.log('[App] No token found, redirecting to login');
+        console.log('[AuthBootstrap] [App] No token found, redirecting to login');
         loadLogin();
         return;
     }
 
     try {
-        console.log('[App] Verifying token with backend...');
+        console.log('[AuthBootstrap] [App] Verifying token with backend...');
         // Verify token and get user info
-        const response = await fetch('http://localhost:3000/api/auth/verify', {
+        const apiBaseUrl = getApiBaseUrl();
+        const response = await fetch(`${apiBaseUrl}/auth/verify`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
 
-        console.log('[App] Verification response status:', response.status);
+        console.log('[AuthBootstrap] [App] Verification response status:', response.status);
 
         if (!response.ok) {
             throw new Error('Token invalid');
@@ -39,10 +52,11 @@ async function loadInitialView() {
         const userData = await response.json();
         const user = userData.user;
 
-        console.log('[App] Token verified, user role:', user.role);
+        console.log('[AuthBootstrap] [App] Token verified, user role:', user.role);
 
         // Check if admin and redirect to admin panel
         if (user.role === 'admin' || user.role === 'super_admin') {
+            console.log('[Redirect] [App] Redirecting to admin panel');
             window.location.href = 'src/pages/admin/admin.html';
             return;
         }
@@ -50,13 +64,19 @@ async function loadInitialView() {
         // Regular user dashboard
         loadDashboard();
     } catch (error) {
-        console.error('[App] Auth verification failed:', error);
+        console.error('[AuthBootstrap] [App] Auth verification failed:', error);
+        // Clear invalid token
+        getStorageFunc().removeItem('authToken');
         loadLogin();
     }
 }
 
 function checkAuthentication(): boolean {
-    return !!localStorage.getItem('authToken');
+    const storage = getStorageFunc();
+    const token = storage.getItem('authToken');
+    const storageType = storage === sessionStorage ? 'sessionStorage' : 'localStorage';
+    console.log('[AuthBootstrap] [App] checkAuthentication - token present:', !!token, 'Storage type:', storageType);
+    return !!token;
 }
 
 function loadDashboard() {

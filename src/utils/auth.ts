@@ -1,8 +1,13 @@
 // Authentication utilities
+// Get storage function from authStorage
+function getStorage() {
+    return (window as any).getStorage ? (window as any).getStorage() : localStorage;
+}
+
 export function login(email: string, password: string): boolean {
     // Mock authentication
     if (email === 'user@example.com' && password === 'password') {
-        localStorage.setItem('isAuthenticated', 'true');
+        getStorage().setItem('isAuthenticated', 'true');
         console.log('[Auth] Login successful for email:', email);
         return true;
     }
@@ -12,22 +17,23 @@ export function login(email: string, password: string): boolean {
 
 export function register(name: string, email: string, password: string): boolean {
     // Mock registration
-    localStorage.setItem('userName', name);
-    localStorage.setItem('userEmail', email);
-    localStorage.setItem('isAuthenticated', 'true');
+    getStorage().setItem('userName', name);
+    getStorage().setItem('userEmail', email);
+    getStorage().setItem('isAuthenticated', 'true');
     console.log('[Auth] Registration successful for email:', email);
     return true;
 }
 
 export function logout(): void {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userEmail');
+    const storage = getStorage();
+    storage.removeItem('isAuthenticated');
+    storage.removeItem('userName');
+    storage.removeItem('userEmail');
     console.log('[Auth] User logged out');
 }
 
 export function isAuthenticated(): boolean {
-    const isAuth = localStorage.getItem('isAuthenticated') === 'true';
+    const isAuth = getStorage().getItem('isAuthenticated') === 'true';
     console.log('[Auth] Auth check:', isAuth);
     return isAuth;
 }

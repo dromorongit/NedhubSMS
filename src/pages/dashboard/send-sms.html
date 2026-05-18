@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../../styles/dashboard.css">
     <link rel="stylesheet" href="../../styles/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
     <script src="../../utils/logger.js" defer></script>
@@ -785,7 +786,8 @@
         });
 
         async function checkAuthAndLoad() {
-            const token = localStorage.getItem('authToken');
+            const token = window.getStorage ? window.getStorage().getItem('authToken') : localStorage.getItem('authToken');
+            console.log('[AuthBootstrap] [Dashboard] checkAuthAndLoad - token present:', !!token);
             if (!token) {
                 window.location.href = '../auth/login.html';
                 return;
@@ -4392,7 +4394,8 @@
 
         // Logout function
         function logout() {
-            localStorage.removeItem('authToken');
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            storage.removeItem('authToken');
             localStorage.removeItem('userName');
             localStorage.removeItem('userEmail');
             window.location.href = '../auth/login.html';

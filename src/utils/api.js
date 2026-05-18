@@ -3,28 +3,35 @@
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const API_BASE_URL = isLocalhost ? 'http://localhost:3000/api' : 'https://nedhubsms-production.up.railway.app/api';
 
+// Get storage function from authStorage
+const getStorageFunc = window.getStorage || (() => localStorage);
+
 class ApiClient {
   constructor() {
-    this.token = localStorage.getItem('authToken') || null;
-    console.log('[API Client] Initialized. Token present:', !!this.token);
+    const storage = getStorageFunc();
+    this.token = storage.getItem('authToken') || null;
+    console.log('[TokenStorage] [API Client] Initialized. Token present:', !!this.token, 'Storage type:', storage === sessionStorage ? 'sessionStorage' : 'localStorage');
   }
 
   setToken(token) {
     this.token = token;
-    localStorage.setItem('authToken', token);
-    console.log('[API Client] Token saved to localStorage. Token length:', token.length);
+    const storage = getStorageFunc();
+    storage.setItem('authToken', token);
+    console.log('[TokenStorage] [API Client] Token saved. Storage type:', storage === sessionStorage ? 'sessionStorage' : 'localStorage', 'Token length:', token.length);
   }
 
   getToken() {
-    const token = this.token || localStorage.getItem('authToken');
-    console.log('[API Client] Token retrieved. Present:', !!token);
+    const storage = getStorageFunc();
+    const token = this.token || storage.getItem('authToken');
+    console.log('[TokenStorage] [API Client] Token retrieved. Present:', !!token, 'Storage type:', storage === sessionStorage ? 'sessionStorage' : 'localStorage');
     return token;
   }
 
   clearToken() {
-    console.log('[API Client] Clearing token from memory and localStorage');
+    const storage = getStorageFunc();
+    console.log('[TokenStorage] [API Client] Clearing token from memory and', storage === sessionStorage ? 'sessionStorage' : 'localStorage');
     this.token = null;
-    localStorage.removeItem('authToken');
+    storage.removeItem('authToken');
   }
 
   async request(method, endpoint, data = null, options = {}) {
@@ -37,9 +44,9 @@ class ApiClient {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('[API] Authorization header set with token');
+      console.log('[PersistentAuth] [API] Authorization header set with token');
     } else {
-      console.log('[API] No token available for request');
+      console.log('[PersistentAuth] [API] No token available for request');
     }
 
     try {
@@ -63,13 +70,15 @@ class ApiClient {
 
       // Handle 401 Unauthorized - redirect to login
       if (response.status === 401) {
-        console.log('[API] 401 Unauthorized - redirecting to login');
-        console.log('[API] Token before clear:', token ? 'present' : 'absent');
+        console.log('[PersistentAuth] [API] 401 Unauthorized - redirecting to login');
+        console.log('[PersistentAuth] [API] Token before clear:', token ? 'present' : 'absent');
         this.clearToken();
         // Check if we're on a dashboard page
         if (window.location.pathname.includes('/pages/dashboard/')) {
+          console.log('[Redirect] [API] Redirecting to login with session=expired');
           window.location.href = '../auth/login.html?session=expired';
         } else {
+          console.log('[Redirect] [API] Redirecting to login');
           window.location.href = '../auth/login.html';
         }
         return { error: 'Session expired. Please login again.' };

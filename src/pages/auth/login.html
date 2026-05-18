@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/auth.css">
+    <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -194,19 +195,21 @@
     
          document.getElementById('loginForm').addEventListener('submit', async function(e) {
              e.preventDefault();
-             
+            
              const email = document.getElementById('email').value;
              const password = document.getElementById('password').value;
              const rememberMe = document.getElementById('remember').checked;
              const submitBtn = this.querySelector('button[type="submit"]');
              const originalBtnContent = submitBtn.innerHTML;
-             
-             console.log('[Login] Form submitted for email:', email, 'Remember me:', rememberMe);
-             
+            
+             console.log('[RememberMe] [Login] Form submitted for email:', email, 'Remember me:', rememberMe);
+            
              // Set storage type based on Remember Me checkbox
              if (typeof window.setStorageType === 'function') {
                  window.setStorageType(rememberMe ? 'local' : 'session');
-                 console.log('[Login] Storage type set to:', rememberMe ? 'local' : 'session');
+                 console.log('[RememberMe] [Login] Storage type set to:', rememberMe ? 'local' : 'session');
+             } else {
+                 console.warn('[RememberMe] [Login] setStorageType function not available!');
              }
              
              // Disable button during request
@@ -226,14 +229,14 @@
                  } else {
                      // Login successful - store token and redirect
                      const token = result.data.token;
-                     console.log('[Login] Login successful, token received. Length:', token.length);
+                     console.log('[TokenStorage] [Login] Login successful, token received. Length:', token.length);
                      
                      // Decode token to check expiration
                      try {
                          const decoded = decodeJWT(token);
                          if (decoded) {
                              const now = Math.floor(Date.now() / 1000);
-                             console.log('[Login] Token decoded:', {
+                             console.log('[JWT] [Login] Token decoded:', {
                                  exp: decoded.exp,
                                  iat: decoded.iat,
                                  now: now,
@@ -241,22 +244,24 @@
                              });
                          }
                      } catch (err) {
-                         console.error('[Login] Failed to decode token:', err);
+                         console.error('[JWT] [Login] Failed to decode token:', err);
                      }
-                     
+                    
                      window.apiClient.setToken(token);
-                     
+                    
                      // Verify token was stored
-                     const storedToken = window.getStorage ? window.getStorage().getItem('authToken') : localStorage.getItem('authToken');
-                     console.log('[Login] Token stored:', !!storedToken, 'Length:', storedToken ? storedToken.length : 0);
+                     const storage = window.getStorage ? window.getStorage() : localStorage;
+                     const storedToken = storage.getItem('authToken');
+                     const storageType = storage === sessionStorage ? 'sessionStorage' : 'localStorage';
+                     console.log('[TokenStorage] [Login] Token stored in', storageType, ':', !!storedToken, 'Length:', storedToken ? storedToken.length : 0);
                      
                      // Check user role and redirect accordingly
                      const user = result.data.user;
                      if (user && (user.role === 'admin' || user.role === 'super_admin')) {
-                         console.log('[Login] Redirecting to admin panel');
+                         console.log('[Redirect] [Login] Redirecting to admin panel');
                          window.location.href = '../admin/admin.html';
                      } else {
-                         console.log('[Login] Redirecting to dashboard');
+                         console.log('[Redirect] [Login] Redirecting to dashboard');
                          window.location.href = '../dashboard/overview.html';
                      }
                  }
