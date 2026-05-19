@@ -1,16 +1,16 @@
 // Auth storage utility to handle persistent vs session storage based on 'remember me' choice
 const AUTH_STORAGE_TYPE_KEY = 'authStorageType';
 
-export function getStorageType() {
+function getStorageType() {
     const type = localStorage.getItem(AUTH_STORAGE_TYPE_KEY);
     return type === 'session' ? 'session' : 'local'; // default to local
 }
 
-export function setStorageType(type) {
+function setStorageType(type) {
     localStorage.setItem(AUTH_STORAGE_TYPE_KEY, type);
 }
 
-export function getStorage() {
+function getStorage() {
     return getStorageType() === 'session' ? sessionStorage : localStorage;
 }
 

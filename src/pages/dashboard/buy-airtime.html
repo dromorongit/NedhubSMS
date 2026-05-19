@@ -1214,9 +1214,33 @@
             }
         }
 
+        function updateSummary() {
+            const summary = document.getElementById('purchaseSummary');
+            const phoneNumber = document.getElementById('phoneNumber');
+            const amount = document.getElementById('amount');
+            const phone = phoneNumber.value;
+            const network = document.getElementById('network').value;
+            const amt = parseFloat(amount.value) || 0;
+
+            if (phone.length >= 9 && network && amt > 0) {
+                summary.classList.add('visible');
+                document.getElementById('summaryPhone').textContent = '0' + phone;
+
+                const networkNames = {
+                    'MTN': 'MTN',
+                    'TELECEL': 'Telecel',
+                    'AIRTELTIGO': 'AirtelTigo'
+                };
+                document.getElementById('summaryNetwork').textContent = networkNames[network] || network;
+                document.getElementById('summaryTotal').textContent = '₵' + amt.toFixed(2);
+            } else {
+                summary.classList.remove('visible');
+            }
+        }
+
         function setupNetworkSelection() {
             const networkCards = document.querySelectorAll('.network-card');
-            
+
             networkCards.forEach(card => {
                 card.addEventListener('click', () => {
                     // Remove selected class from all cards
@@ -1255,9 +1279,9 @@
                 if (phone.length >= 3) {
                     const prefix = phone.substring(0, 3);
                     const networkCards = document.querySelectorAll('.network-card');
-                    
+
                     networkCards.forEach(card => card.classList.remove('selected'));
-                    
+
                     if (['050', '054', '055', '056', '024', '026', '027', '028', '029'].includes(prefix)) {
                         document.getElementById('network').value = 'MTN';
                         document.querySelector('.network-card[data-network="MTN"]').classList.add('selected');
@@ -1273,28 +1297,6 @@
             });
 
             amount.addEventListener('input', updateSummary);
-
-            function updateSummary() {
-                const summary = document.getElementById('purchaseSummary');
-                const phone = phoneNumber.value;
-                const network = document.getElementById('network').value;
-                const amt = parseFloat(amount.value) || 0;
-
-                if (phone.length >= 9 && network && amt > 0) {
-                    summary.classList.add('visible');
-                    document.getElementById('summaryPhone').textContent = '0' + phone;
-                    
-                    const networkNames = {
-                        'MTN': 'MTN',
-                        'TELECEL': 'Telecel',
-                        'AIRTELTIGO': 'AirtelTigo'
-                    };
-                    document.getElementById('summaryNetwork').textContent = networkNames[network] || network;
-                    document.getElementById('summaryTotal').textContent = '₵' + amt.toFixed(2);
-                } else {
-                    summary.classList.remove('visible');
-                }
-            }
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();

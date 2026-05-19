@@ -127,7 +127,7 @@ router.post('/airtime', authenticate, async (req, res) => {
       // Rollback the wallet deduction if Hubtel fails
       await Wallet.findOneAndUpdate(
         { userId },
-        { 
+        {
           $inc: { balance: amount },
           $set: { updatedAt: new Date() }
         }
@@ -135,8 +135,34 @@ router.post('/airtime', authenticate, async (req, res) => {
       transaction.status = 'failed';
       transaction.description += ' - FAILED';
       await transaction.save();
-      
-      throw new Error(`Airtime purchase failed: ${hubtelError.message}`);
+
+      console.error('[Transfer] Hubtel API error details:', {
+        message: hubtelError.message,
+        stack: hubtelError.stack,
+        code: hubtelError.code,
+        response: hubtelError.response?.data
+      });
+
+      // Return a more specific error message based on the error type
+      let userMessage = 'Failed to buy airtime. Please try again.';
+      if (hubtelError.message.includes('credentials') || hubtelError.message.includes('not configured')) {
+        userMessage = 'Airtime service is currently unavailable. Please contact support.';
+      } else if (hubtelError.message.includes('Invalid') || hubtelError.message.includes('invalid')) {
+        userMessage = `Invalid request: ${hubtelError.message}`;
+      } else if (hubtelError.message.includes('network') || hubtelError.message.includes('Network')) {
+        userMessage = `Network error: ${hubtelError.message}`;
+      } else if (hubtelError.message.includes('ETIMEDOUT') || hubtelError.message.includes('ECONNRESET') || hubtelError.message.includes('ENOTFOUND')) {
+        userMessage = 'Network connection issue. Please check your connection and try again.';
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: userMessage,
+        error: {
+          code: 'AIRTIME_PURCHASE_FAILED',
+          details: hubtelError.message
+        }
+      });
     }
 
     console.log(`[Transfer] Airtime purchased: ${clientReference}, amount: ${amount}, user: ${userId}`);
@@ -288,7 +314,7 @@ router.post('/data', authenticate, async (req, res) => {
       // Rollback on failure
       await Wallet.findOneAndUpdate(
         { userId },
-        { 
+        {
           $inc: { balance: price },
           $set: { updatedAt: new Date() }
         }
@@ -296,8 +322,34 @@ router.post('/data', authenticate, async (req, res) => {
       transaction.status = 'failed';
       transaction.description += ' - FAILED';
       await transaction.save();
-      
-      throw new Error(`Data purchase failed: ${hubtelError.message}`);
+
+      console.error('[Transfer] Hubtel API error details (Data):', {
+        message: hubtelError.message,
+        stack: hubtelError.stack,
+        code: hubtelError.code,
+        response: hubtelError.response?.data
+      });
+
+      // Return a more specific error message based on the error type
+      let userMessage = 'Failed to buy data bundle. Please try again.';
+      if (hubtelError.message.includes('credentials') || hubtelError.message.includes('not configured')) {
+        userMessage = 'Data bundle service is currently unavailable. Please contact support.';
+      } else if (hubtelError.message.includes('Invalid') || hubtelError.message.includes('invalid')) {
+        userMessage = `Invalid request: ${hubtelError.message}`;
+      } else if (hubtelError.message.includes('network') || hubtelError.message.includes('Network')) {
+        userMessage = `Network error: ${hubtelError.message}`;
+      } else if (hubtelError.message.includes('ETIMEDOUT') || hubtelError.message.includes('ECONNRESET') || hubtelError.message.includes('ENOTFOUND')) {
+        userMessage = 'Network connection issue. Please check your connection and try again.';
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: userMessage,
+        error: {
+          code: 'DATA_PURCHASE_FAILED',
+          details: hubtelError.message
+        }
+      });
     }
 
     console.log(`[Transfer] Data purchased: ${clientReference}, amount: ${price}, user: ${userId}`);
