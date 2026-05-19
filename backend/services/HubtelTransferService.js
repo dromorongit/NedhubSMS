@@ -205,18 +205,25 @@ class HubtelTransferService {
       });
 
       const responseData = response.data;
-      
+
       console.log(JSON.stringify({
         label: 'HUBTEL_MOMO_RESPONSE',
         timestamp: new Date().toISOString(),
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
-        data: responseData.data
+        data: responseData.data,
+        error: responseData.error,
+        status: response.status
       }, null, 2));
 
-      // Hubtel returns responseCode '0000' for success
-      if (responseData.responseCode !== '0000') {
+      // Hubtel may return errors as { error: "message" } (e.g. 403) or
+      // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
+      // Check both shapes since the HTTP client is configured to not throw on 4xx.
+      if (responseData.error) {
+        throw new Error(responseData.error);
+      }
+      if (responseData.responseCode && responseData.responseCode !== '0000') {
         throw new Error(responseData.responseMessage || 'Mobile money transfer failed');
       }
 
@@ -301,17 +308,25 @@ class HubtelTransferService {
       });
 
       const responseData = response.data;
-      
+
       console.log(JSON.stringify({
         label: 'HUBTEL_BANK_RESPONSE',
         timestamp: new Date().toISOString(),
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
-        data: responseData.data
+        data: responseData.data,
+        error: responseData.error,
+        status: response.status
       }, null, 2));
 
-      if (responseData.responseCode !== '0000') {
+      // Hubtel may return errors as { error: "message" } (e.g. 403) or
+      // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
+      // Check both shapes since the HTTP client is configured to not throw on 4xx.
+      if (responseData.error) {
+        throw new Error(responseData.error);
+      }
+      if (responseData.responseCode && responseData.responseCode !== '0000') {
         throw new Error(responseData.responseMessage || 'Bank transfer failed');
       }
 
@@ -395,16 +410,24 @@ class HubtelTransferService {
       });
 
       const responseData = response.data;
-      
+
       console.log(JSON.stringify({
         label: 'HUBTEL_AIRTIME_RESPONSE',
         timestamp: new Date().toISOString(),
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
-        responseMessage: responseData.responseMessage
+        responseMessage: responseData.responseMessage,
+        error: responseData.error,
+        status: response.status
       }, null, 2));
 
-      if (responseData.responseCode !== '0000') {
+      // Hubtel may return errors as { error: "message" } (e.g. 403) or
+      // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
+      // Check both shapes since the HTTP client is configured to not throw on 4xx.
+      if (responseData.error) {
+        throw new Error(responseData.error);
+      }
+      if (responseData.responseCode && responseData.responseCode !== '0000') {
         throw new Error(responseData.responseMessage || 'Airtime purchase failed');
       }
 
@@ -486,16 +509,24 @@ class HubtelTransferService {
       });
 
       const responseData = response.data;
-      
+
       console.log(JSON.stringify({
         label: 'HUBTEL_DATA_RESPONSE',
         timestamp: new Date().toISOString(),
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
-        responseMessage: responseData.responseMessage
+        responseMessage: responseData.responseMessage,
+        error: responseData.error,
+        status: response.status
       }, null, 2));
 
-      if (responseData.responseCode !== '0000') {
+      // Hubtel may return errors as { error: "message" } (e.g. 403) or
+      // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
+      // Check both shapes since the HTTP client is configured to not throw on 4xx.
+      if (responseData.error) {
+        throw new Error(responseData.error);
+      }
+      if (responseData.responseCode && responseData.responseCode !== '0000') {
         throw new Error(responseData.responseMessage || 'Data bundle purchase failed');
       }
 
