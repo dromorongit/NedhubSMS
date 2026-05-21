@@ -1,5 +1,6 @@
 const Wallet = require('../models/Wallet');
 const Transaction = require('../models/Transaction');
+const logger = require('../utils/logger');
 
 /**
  * HubtelCallbackController
@@ -11,7 +12,13 @@ class HubtelCallbackController {
    */
   async handleMomoCallback(req, res) {
     try {
-      console.log('[Callback] Mobile Money callback received:', JSON.stringify(req.body, null, 2));
+      logger.info('[HubtelCallback] [Momo] Callback received', {
+        body: req.body,
+        headers: {
+          'user-agent': req.get('user-agent'),
+          'x-forwarded-for': req.get('x-forwarded-for')
+        }
+      });
 
       const {
         clientReference,
@@ -26,7 +33,7 @@ class HubtelCallbackController {
 
       // Validate callback has required fields
       if (!clientReference) {
-        console.error('[Callback] Missing clientReference in MoMo callback');
+        logger.error('[HubtelCallback] [Momo] Missing clientReference');
         return res.status(400).json({ error: 'Missing clientReference' });
       }
 
@@ -34,28 +41,34 @@ class HubtelCallbackController {
       const transaction = await Transaction.findOne({ reference: clientReference });
 
       if (!transaction) {
-        console.error(`[Callback] Transaction not found: ${clientReference}`);
+        logger.error('[HubtelCallback] [Momo] Transaction not found', { clientReference });
         return res.status(404).json({ error: 'Transaction not found' });
       }
 
       // Check if already processed
       if (transaction.status === 'completed' || transaction.status === 'failed') {
-        console.log(`[Callback] Transaction already processed: ${clientReference}, status: ${transaction.status}`);
+        logger.info('[HubtelCallback] [Momo] Already processed (idempotent)', {
+          clientReference, status: transaction.status
+        });
         return res.json({ status: 'already_processed' });
       }
 
       // Hubtel response codes: 0000 = success
       const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
 
+      logger.info('[HubtelCallback] [Momo] Processing callback', {
+        clientReference, responseCode, status, isSuccess
+      });
+
       if (isSuccess) {
         // Deduct from wallet (transfer was initiated but wallet wasn't debited yet)
         const wallet = await Wallet.findOne({ userId: transaction.userId });
-        
+
         if (wallet && wallet.balance >= transaction.amount) {
           // Deduct the amount from wallet
           await Wallet.findOneAndUpdate(
             { userId: transaction.userId, balance: { $gte: transaction.amount } },
-            { 
+            {
               $inc: { balance: -transaction.amount },
               $set: { updatedAt: new Date() }
             }
@@ -72,7 +85,9 @@ class HubtelCallbackController {
           };
           await transaction.save();
 
-          console.log(`[Callback] MoMo transfer completed: ${clientReference}, amount: ${transaction.amount}`);
+          logger.info('[HubtelCallback] [Momo] Transfer completed', {
+            clientReference, amount: transaction.amount, transactionId
+          });
         } else {
           // Wallet might have insufficient balance now, mark as failed
           transaction.status = 'failed';
@@ -83,8 +98,10 @@ class HubtelCallbackController {
             failureReason: 'Insufficient wallet balance at callback time'
           };
           await transaction.save();
-          
-          console.error(`[Callback] MoMo failed - insufficient balance: ${clientReference}`);
+
+          logger.error('[HubtelCallback] [Momo] Failed - insufficient balance', {
+            clientReference, balance: wallet?.balance, amount: transaction.amount
+          });
         }
       } else {
         // Transfer failed
@@ -97,13 +114,17 @@ class HubtelCallbackController {
         };
         await transaction.save();
 
-        console.log(`[Callback] MoMo transfer failed: ${clientReference}, reason: ${responseMessage}`);
+        logger.warn('[HubtelCallback] [Momo] Transfer failed', {
+          clientReference, responseCode, responseMessage
+        });
       }
 
       res.json({ status: 'processed' });
 
     } catch (error) {
-      console.error('[Callback] MoMo callback error:', error);
+      logger.error('[HubtelCallback] [Momo] Unhandled error', {
+        error: error.message, stack: error.stack
+      });
       res.status(500).json({ error: 'Internal server error' });
     }
   }
@@ -113,7 +134,7 @@ class HubtelCallbackController {
    */
   async handleBankCallback(req, res) {
     try {
-      console.log('[Callback] Bank Transfer callback received:', JSON.stringify(req.body, null, 2));
+      logger.info('[HubtelCallback] [Bank] Callback received', { body: req.body });
 
       const {
         clientReference,
@@ -127,31 +148,37 @@ class HubtelCallbackController {
       } = req.body;
 
       if (!clientReference) {
-        console.error('[Callback] Missing clientReference in Bank callback');
+        logger.error('[HubtelCallback] [Bank] Missing clientReference');
         return res.status(400).json({ error: 'Missing clientReference' });
       }
 
       const transaction = await Transaction.findOne({ reference: clientReference });
 
       if (!transaction) {
-        console.error(`[Callback] Bank transaction not found: ${clientReference}`);
+        logger.error('[HubtelCallback] [Bank] Transaction not found', { clientReference });
         return res.status(404).json({ error: 'Transaction not found' });
       }
 
       if (transaction.status === 'completed' || transaction.status === 'failed') {
-        console.log(`[Callback] Bank transaction already processed: ${clientReference}`);
+        logger.info('[HubtelCallback] [Bank] Already processed (idempotent)', {
+          clientReference, status: transaction.status
+        });
         return res.json({ status: 'already_processed' });
       }
 
       const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
 
+      logger.info('[HubtelCallback] [Bank] Processing callback', {
+        clientReference, responseCode, isSuccess
+      });
+
       if (isSuccess) {
         const wallet = await Wallet.findOne({ userId: transaction.userId });
-        
+
         if (wallet && wallet.balance >= transaction.amount) {
           await Wallet.findOneAndUpdate(
             { userId: transaction.userId, balance: { $gte: transaction.amount } },
-            { 
+            {
               $inc: { balance: -transaction.amount },
               $set: { updatedAt: new Date() }
             }
@@ -167,7 +194,9 @@ class HubtelCallbackController {
           };
           await transaction.save();
 
-          console.log(`[Callback] Bank transfer completed: ${clientReference}`);
+          logger.info('[HubtelCallback] [Bank] Transfer completed', {
+            clientReference, amount: transaction.amount, transactionId
+          });
         } else {
           transaction.status = 'failed';
           transaction.description += ' - FAILED: Insufficient balance';
@@ -177,6 +206,10 @@ class HubtelCallbackController {
             failureReason: 'Insufficient wallet balance'
           };
           await transaction.save();
+
+          logger.error('[HubtelCallback] [Bank] Failed - insufficient balance', {
+            clientReference, balance: wallet?.balance
+          });
         }
       } else {
         transaction.status = 'failed';
@@ -188,13 +221,17 @@ class HubtelCallbackController {
         };
         await transaction.save();
 
-        console.log(`[Callback] Bank transfer failed: ${clientReference}`);
+        logger.warn('[HubtelCallback] [Bank] Transfer failed', {
+          clientReference, responseCode, responseMessage
+        });
       }
 
       res.json({ status: 'processed' });
 
     } catch (error) {
-      console.error('[Callback] Bank callback error:', error);
+      logger.error('[HubtelCallback] [Bank] Unhandled error', {
+        error: error.message, stack: error.stack
+      });
       res.status(500).json({ error: 'Internal server error' });
     }
   }
@@ -207,32 +244,42 @@ class HubtelCallbackController {
    */
   async handleAirtimeCallback(req, res) {
     try {
-      console.log('[Callback] [AirtimeCallback] Received:', JSON.stringify(req.body, null, 2));
+      logger.info('[HubtelCallback] [Airtime] Callback received', {
+        body: req.body,
+        headers: {
+          'user-agent': req.get('user-agent'),
+          'x-forwarded-for': req.get('x-forwarded-for')
+        }
+      });
 
       const { clientReference, status, responseCode, responseMessage, transactionId, amount, phoneNumber, network } = req.body;
 
       if (!clientReference) {
-        console.error('[Callback] [AirtimeCallback] Missing clientReference');
+        logger.error('[HubtelCallback] [Airtime] Missing clientReference');
         return res.status(400).json({ error: 'Missing clientReference' });
       }
 
       const transaction = await Transaction.findOne({ reference: clientReference });
 
       if (!transaction) {
-        console.error(`[Callback] [AirtimeCallback] Transaction not found: ${clientReference}`);
+        logger.error('[HubtelCallback] [Airtime] Transaction not found', { clientReference });
         return res.status(404).json({ error: 'Transaction not found' });
       }
 
       // Idempotency: if already in a terminal state, skip
       if (transaction.status === 'completed' || transaction.status === 'failed') {
-        console.log(`[Callback] [AirtimeCallback] Already processed: ${clientReference}, status: ${transaction.status}`);
+        logger.info('[HubtelCallback] [Airtime] Already processed (idempotent)', {
+          clientReference, status: transaction.status
+        });
         return res.json({ status: 'already_processed' });
       }
 
       // Hubtel response codes: 0000 = success
       const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
 
-      console.log(`[Callback] [AirtimeCallback] Processing: ${clientReference}, isSuccess: ${isSuccess}, responseCode: ${responseCode}`);
+      logger.info('[HubtelCallback] [Airtime] Processing callback', {
+        clientReference, responseCode, isSuccess
+      });
 
       if (isSuccess) {
         // Wallet was already deducted at purchase time (balanceAfter set in route)
@@ -247,7 +294,9 @@ class HubtelCallbackController {
         };
         await transaction.save();
 
-        console.log(`[Callback] [AirtimeCallback] COMPLETED: ${clientReference}, amount: ${transaction.amount}, hubtelTxnId: ${transactionId}`);
+        logger.info('[HubtelCallback] [Airtime] COMPLETED', {
+          clientReference, amount: transaction.amount, hubtelTransactionId: transactionId
+        });
       } else {
         // Provider failed — refund the wallet
         transaction.status = 'failed';
@@ -271,18 +320,26 @@ class HubtelCallbackController {
               $set: { updatedAt: new Date() }
             }
           );
-          console.log(`[Callback] [AirtimeCallback] Wallet refunded: ${clientReference}, amount: ${transaction.amount}`);
+          logger.info('[HubtelCallback] [Airtime] Wallet refunded', {
+            clientReference, amount: transaction.amount
+          });
         } catch (refundError) {
-          console.error(`[Callback] [AirtimeCallback] CRITICAL: Wallet refund failed for ${clientReference}:`, refundError.message);
+          logger.error('[HubtelCallback] [Airtime] CRITICAL: Wallet refund failed', {
+            clientReference, error: refundError.message
+          });
         }
 
-        console.log(`[Callback] [AirtimeCallback] FAILED: ${clientReference}, reason: ${responseMessage}`);
+        logger.warn('[HubtelCallback] [Airtime] FAILED', {
+          clientReference, responseCode, responseMessage
+        });
       }
 
       res.json({ status: 'processed' });
 
     } catch (error) {
-      console.error('[Callback] [AirtimeCallback] Error:', error);
+      logger.error('[HubtelCallback] [Airtime] Unhandled error', {
+        error: error.message, stack: error.stack
+      });
       res.status(500).json({ error: 'Internal server error' });
     }
   }
@@ -295,32 +352,42 @@ class HubtelCallbackController {
    */
   async handleDataCallback(req, res) {
     try {
-      console.log('[Callback] [DataCallback] Received:', JSON.stringify(req.body, null, 2));
+      logger.info('[HubtelCallback] [Data] Callback received', {
+        body: req.body,
+        headers: {
+          'user-agent': req.get('user-agent'),
+          'x-forwarded-for': req.get('x-forwarded-for')
+        }
+      });
 
       const { clientReference, status, responseCode, responseMessage, transactionId, amount, phoneNumber, network } = req.body;
 
       if (!clientReference) {
-        console.error('[Callback] [DataCallback] Missing clientReference');
+        logger.error('[HubtelCallback] [Data] Missing clientReference');
         return res.status(400).json({ error: 'Missing clientReference' });
       }
 
       const transaction = await Transaction.findOne({ reference: clientReference });
 
       if (!transaction) {
-        console.error(`[Callback] [DataCallback] Transaction not found: ${clientReference}`);
+        logger.error('[HubtelCallback] [Data] Transaction not found', { clientReference });
         return res.status(404).json({ error: 'Transaction not found' });
       }
 
       // Idempotency: if already in a terminal state, skip
       if (transaction.status === 'completed' || transaction.status === 'failed') {
-        console.log(`[Callback] [DataCallback] Already processed: ${clientReference}, status: ${transaction.status}`);
+        logger.info('[HubtelCallback] [Data] Already processed (idempotent)', {
+          clientReference, status: transaction.status
+        });
         return res.json({ status: 'already_processed' });
       }
 
       // Hubtel response codes: 0000 = success
       const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
 
-      console.log(`[Callback] [DataCallback] Processing: ${clientReference}, isSuccess: ${isSuccess}, responseCode: ${responseCode}`);
+      logger.info('[HubtelCallback] [Data] Processing callback', {
+        clientReference, responseCode, isSuccess
+      });
 
       if (isSuccess) {
         // Wallet was already deducted at purchase time (balanceAfter set in route)
@@ -335,7 +402,9 @@ class HubtelCallbackController {
         };
         await transaction.save();
 
-        console.log(`[Callback] [DataCallback] COMPLETED: ${clientReference}, amount: ${transaction.amount}, hubtelTxnId: ${transactionId}`);
+        logger.info('[HubtelCallback] [Data] COMPLETED', {
+          clientReference, amount: transaction.amount, hubtelTransactionId: transactionId
+        });
       } else {
         // Provider failed — refund the wallet
         transaction.status = 'failed';
@@ -359,18 +428,26 @@ class HubtelCallbackController {
               $set: { updatedAt: new Date() }
             }
           );
-          console.log(`[Callback] [DataCallback] Wallet refunded: ${clientReference}, amount: ${transaction.amount}`);
+          logger.info('[HubtelCallback] [Data] Wallet refunded', {
+            clientReference, amount: transaction.amount
+          });
         } catch (refundError) {
-          console.error(`[Callback] [DataCallback] CRITICAL: Wallet refund failed for ${clientReference}:`, refundError.message);
+          logger.error('[HubtelCallback] [Data] CRITICAL: Wallet refund failed', {
+            clientReference, error: refundError.message
+          });
         }
 
-        console.log(`[Callback] [DataCallback] FAILED: ${clientReference}, reason: ${responseMessage}`);
+        logger.warn('[HubtelCallback] [Data] FAILED', {
+          clientReference, responseCode, responseMessage
+        });
       }
 
       res.json({ status: 'processed' });
 
     } catch (error) {
-      console.error('[Callback] [DataCallback] Error:', error);
+      logger.error('[HubtelCallback] [Data] Unhandled error', {
+        error: error.message, stack: error.stack
+      });
       res.status(500).json({ error: 'Internal server error' });
     }
   }

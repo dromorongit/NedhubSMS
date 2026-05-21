@@ -98,6 +98,18 @@ class ResilientHttpClient {
    * Categorize errors for retry decisions
    */
   categorizeError(error) {
+    const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+    if (isTimeout) {
+      console.error(JSON.stringify({
+        label: 'HubtelTimeout',
+        timestamp: new Date().toISOString(),
+        service: this.serviceName,
+        error: error.message,
+        code: error.code,
+        url: error.config?.url
+      }, null, 2));
+    }
+
     if (!error.response) {
       // Network errors, timeouts
       return 'transient';

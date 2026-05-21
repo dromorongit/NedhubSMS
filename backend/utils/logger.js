@@ -28,7 +28,17 @@ const LogTags = {
   MESSAGEHISTORY: '[MessageHistory]',
   STATUSMAPPING: '[StatusMapping]',
   RESENDLOGIC: '[ResendLogic]',
-  STATUSREPAIR: '[StatusRepair]'
+  STATUSREPAIR: '[StatusRepair]',
+  HUBTEL_REQUEST: '[HubtelRequest]',
+  HUBTEL_RESPONSE: '[HubtelResponse]',
+  HUBTEL_TIMEOUT: '[HubtelTimeout]',
+  HUBTEL_CALLBACK: '[HubtelCallback]',
+  TRANSACTION_LIFECYCLE: '[TransactionLifecycle]',
+  PROVIDER_PROMISE: '[ProviderPromise]',
+  PROVIDER_CATCH: '[ProviderCatch]',
+  POLLING: '[Polling]',
+  AIRTIME_EXECUTION: '[AirtimeExecution]',
+  DATA_EXECUTION: '[DataExecution]'
 };
 
 // Custom format to add tag
@@ -105,5 +115,15 @@ logger.messageHistory = createTaggedLogger(LogTags.MESSAGEHISTORY);
 logger.statusMapping = createTaggedLogger(LogTags.STATUSMAPPING);
 logger.resendLogic = createTaggedLogger(LogTags.RESENDLOGIC);
 logger.statusRepair = createTaggedLogger(LogTags.STATUSREPAIR);
+logger.hubtelRequest = createTaggedLogger(LogTags.HUBTEL_REQUEST);
+logger.hubtelResponse = createTaggedLogger(LogTags.HUBTEL_RESPONSE);
+logger.hubtelTimeout = createTaggedLogger(LogTags.HUBTEL_TIMEOUT);
+logger.hubtelCallback = createTaggedLogger(LogTags.HUBTEL_CALLBACK);
+logger.transactionLifecycle = createTaggedLogger(LogTags.TRANSACTION_LIFECYCLE);
+logger.providerPromise = createTaggedLogger(LogTags.PROVIDER_PROMISE);
+logger.providerCatch = createTaggedLogger(LogTags.PROVIDER_CATCH);
+logger.polling = createTaggedLogger(LogTags.POLLING);
+logger.airtimeExecution = createTaggedLogger(LogTags.AIRTIME_EXECUTION);
+logger.dataExecution = createTaggedLogger(LogTags.DATA_EXECUTION);
 
 module.exports = logger;

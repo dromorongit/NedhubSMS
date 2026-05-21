@@ -1053,7 +1053,7 @@
                                     <img src="../../../assets/images/mtnlogo.jpg" alt="MTN" class="network-icon">
                                     <div class="network-name">MTN</div>
                                 </div>
-                                <div class="network-card" data-network="TELECOM">
+                                <div class="network-card" data-network="TELECEL">
                                     <img src="../../../assets/images/telecellogo.jpg" alt="Telecel" class="network-icon">
                                     <div class="network-name">Telecel</div>
                                 </div>
@@ -1242,7 +1242,7 @@
                 { code: 'MTN-2GB', name: '2GB (30 Days)', price: 60.00 },
                 { code: 'MTN-5GB', name: '5GB (30 Days)', price: 120.00 }
             ],
-            'TELECOM': [
+            'TELECEL': [
                 { code: 'TELECEL-10MB', name: '10MB (1 Day)', price: 1.50 },
                 { code: 'TELECEL-50MB', name: '50MB (3 Days)', price: 3.50 },
                 { code: 'TELECEL-100MB', name: '100MB (7 Days)', price: 6.00 },
@@ -1343,9 +1343,9 @@
                         document.querySelector('.network-card[data-network="MTN"]').classList.add('selected');
                         loadBundles('MTN');
                     } else if (['057', '053'].includes(prefix)) {
-                        document.getElementById('network').value = 'TELECOM';
-                        document.querySelector('.network-card[data-network="TELECOM"]').classList.add('selected');
-                        loadBundles('TELECOM');
+                        document.getElementById('network').value = 'TELECEL';
+                        document.querySelector('.network-card[data-network="TELECEL"]').classList.add('selected');
+                        loadBundles('TELECEL');
                     } else if (['044', '045', '047'].includes(prefix)) {
                         document.getElementById('network').value = 'AIRTELTIGO';
                         document.querySelector('.network-card[data-network="AIRTELTIGO"]').classList.add('selected');
@@ -1420,7 +1420,7 @@
                     
                     const networkNames = {
                         'MTN': 'MTN',
-                        'TELECOM': 'Telecel',
+                        'TELECEL': 'Telecel',
                         'AIRTELTIGO': 'AirtelTigo'
                     };
                     document.getElementById('summaryNetwork').textContent = networkNames[network] || network;
@@ -1551,16 +1551,23 @@
 
             async function pollTransactionStatus(clientReference, phone, bundle) {
                 const maxAttempts = 30; // Poll for up to 5 minutes (30 * 10s)
+                const pollTimeoutMs = 15000; // 15s timeout per poll request
                 let attempts = 0;
-                
+
                 const poll = async () => {
                     attempts++;
                     try {
-                        const response = await window.apiClient.request('GET', `/transfer/status/${clientReference}`);
+                        console.log(`[Polling] [Data] Poll attempt #${attempts} for ${clientReference}`);
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), pollTimeoutMs);
+
+                        const response = await window.apiClient.request('GET', `/transfer/status/${clientReference}`, null, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+
                         if (response.data && response.data.transaction) {
                             const status = response.data.transaction.status;
-                            console.log(`[DataPurchase] [TransactionLifecycle] Status poll #${attempts}: ${status}`);
-                            
+                            console.log(`[Polling] [Data] Status poll #${attempts}: ${status}`);
+
                             if (status === 'completed') {
                                 const successDiv = document.getElementById('successAnimation');
                                 const message = document.getElementById('successMessage');
@@ -1582,13 +1589,14 @@
                             }
                         }
                     } catch (e) {
-                        console.error('[DataPurchase] [TransactionLifecycle] Status poll error:', e.message);
+                        console.error('[Polling] [Data] Status poll error:', e.message);
                     }
-                    
+
                     if (attempts < maxAttempts) {
                         setTimeout(poll, 10000); // Poll every 10 seconds
                     } else {
                         // Timeout — show message to check transaction history
+                        console.warn('[Polling] [Data] Polling timed out after 30 attempts');
                         const successDiv = document.getElementById('successAnimation');
                         const message = document.getElementById('successMessage');
                         message.textContent = `Status update taking longer than expected. Check your transaction history.`;
@@ -1597,7 +1605,7 @@
                         setTimeout(() => { successDiv.style.display = 'none'; }, 5000);
                     }
                 };
-                
+
                 // Start polling after a short delay
                 setTimeout(poll, 5000);
             }

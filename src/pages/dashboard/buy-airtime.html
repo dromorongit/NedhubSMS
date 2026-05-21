@@ -1405,16 +1405,23 @@
 
             async function pollTransactionStatus(clientReference, phone, amount) {
                 const maxAttempts = 30; // Poll for up to 5 minutes (30 * 10s)
+                const pollTimeoutMs = 15000; // 15s timeout per poll request
                 let attempts = 0;
-                
+
                 const poll = async () => {
                     attempts++;
                     try {
-                        const response = await window.apiClient.request('GET', `/transfer/status/${clientReference}`);
+                        console.log(`[Polling] [Airtime] Poll attempt #${attempts} for ${clientReference}`);
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), pollTimeoutMs);
+
+                        const response = await window.apiClient.request('GET', `/transfer/status/${clientReference}`, null, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+
                         if (response.data && response.data.transaction) {
                             const status = response.data.transaction.status;
-                            console.log(`[AirtimePurchase] [TransactionLifecycle] Status poll #${attempts}: ${status}`);
-                            
+                            console.log(`[Polling] [Airtime] Status poll #${attempts}: ${status}`);
+
                             if (status === 'completed') {
                                 const successDiv = document.getElementById('successAnimation');
                                 const message = document.getElementById('successMessage');
@@ -1436,13 +1443,14 @@
                             }
                         }
                     } catch (e) {
-                        console.error('[AirtimePurchase] [TransactionLifecycle] Status poll error:', e.message);
+                        console.error('[Polling] [Airtime] Status poll error:', e.message);
                     }
-                    
+
                     if (attempts < maxAttempts) {
                         setTimeout(poll, 10000); // Poll every 10 seconds
                     } else {
                         // Timeout — show message to check transaction history
+                        console.warn('[Polling] [Airtime] Polling timed out after 30 attempts');
                         const successDiv = document.getElementById('successAnimation');
                         const message = document.getElementById('successMessage');
                         message.textContent = `Status update taking longer than expected. Check your transaction history.`;
@@ -1451,7 +1459,7 @@
                         setTimeout(() => { successDiv.style.display = 'none'; }, 5000);
                     }
                 };
-                
+
                 // Start polling after a short delay
                 setTimeout(poll, 5000);
             }

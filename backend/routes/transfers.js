@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const Wallet = require('../models/Wallet');
 const Transaction = require('../models/Transaction');
 const HubtelTransferService = require('../services/HubtelTransferService');
+const logger = require('../utils/logger');
 
 /**
  * POST /api/transfer/airtime
@@ -14,15 +15,9 @@ router.post('/airtime', authenticate, async (req, res) => {
     const userId = req.user.userId;
     const { phoneNumber, network, amount } = req.body;
 
-    console.log(JSON.stringify({
-      label: 'AirtimePurchase',
-      timestamp: new Date().toISOString(),
-      userId,
-      phoneNumber,
-      network,
-      amount,
-      phase: 'validation_start'
-    }, null, 2));
+    logger.info('[AirtimeExecution] Purchase request received', {
+      userId, phoneNumber, network, amount, phase: 'validation_start'
+    });
 
      // Server-side validation
      if (!phoneNumber) {
@@ -79,17 +74,12 @@ router.post('/airtime', authenticate, async (req, res) => {
      // Check wallet balance
      const wallet = await Wallet.findOne({ userId });
      if (!wallet || wallet.balance < amount) {
-       console.log(JSON.stringify({
-         label: 'AirtimePurchase',
-         timestamp: new Date().toISOString(),
-         userId,
-         phoneNumber,
-         network,
-         amount,
-         phase: 'wallet_check_failed',
+       logger.warn('[AirtimeExecution] Wallet check failed', {
+         userId, phoneNumber, network, amount,
          walletFound: !!wallet,
-         balance: wallet?.balance || 0
-       }, null, 2));
+         balance: wallet?.balance || 0,
+         phase: 'wallet_check_failed'
+       });
        return res.status(400).json({
          success: false,
          message: 'Insufficient wallet balance',
@@ -100,17 +90,10 @@ router.post('/airtime', authenticate, async (req, res) => {
     const balanceBefore = wallet.balance;
     const clientReference = HubtelTransferService.generateClientReference('AIRTIME');
 
-   console.log(JSON.stringify({
-     label: 'AirtimePurchase',
-     timestamp: new Date().toISOString(),
-     userId,
-     phoneNumber,
-     network,
-     amount,
-     clientReference,
-     balanceBefore,
-     phase: 'transaction_created'
-   }, null, 2));
+    logger.info('[AirtimeExecution] Transaction record created', {
+      userId, phoneNumber, network, amount, clientReference, balanceBefore,
+      phase: 'transaction_created'
+    });
 
    // Create transaction record FIRST with 'pending_confirmation' status
    // CRITICAL: Status must NOT be 'completed' until Hubtel confirms delivery via callback
@@ -132,16 +115,10 @@ router.post('/airtime', authenticate, async (req, res) => {
    });
    await transaction.save();
 
-   console.log(JSON.stringify({
-     label: 'AirtimePurchase',
-     timestamp: new Date().toISOString(),
-     userId,
-     clientReference,
-     phoneNumber,
-     network,
-     amount,
+   logger.info('[AirtimeExecution] Dispatching provider request', {
+     userId, clientReference, phoneNumber, network, amount,
      phase: 'provider_request_start'
-   }, null, 2));
+   });
 
    // Initiate airtime purchase with Hubtel
    let hubtelResult;
@@ -153,21 +130,15 @@ router.post('/airtime', authenticate, async (req, res) => {
        clientReference
      });
    } catch (hubtelError) {
-     console.error(JSON.stringify({
-       label: 'AirtimePurchase',
-       timestamp: new Date().toISOString(),
-       userId,
-       clientReference,
-       phoneNumber,
-       network,
-       amount,
+     logger.error('[AirtimeExecution] Provider request failed', {
+       userId, clientReference, phoneNumber, network, amount,
        phase: 'provider_request_failed',
        error: hubtelError.message,
        code: hubtelError.code,
        response: hubtelError.response?.data
-     }, null, 2));
+     });
 
-     // Rollback: mark transaction as failed (wallet was never deducted — reservation only)
+     // Rollback: mark transaction as failed
      transaction.status = 'failed';
      transaction.description += ' - FAILED';
      transaction.metadata = {
@@ -177,16 +148,14 @@ router.post('/airtime', authenticate, async (req, res) => {
      };
      try {
        await transaction.save();
+       logger.info('[AirtimeExecution] Transaction marked as failed after provider error', {
+         clientReference, phase: 'rollback_complete'
+       });
      } catch (saveError) {
-       console.error('[Transfer] CRITICAL: Failed to save failed transaction status:', saveError.message);
+       logger.error('[AirtimeExecution] CRITICAL: Failed to save failed transaction status', {
+         clientReference, error: saveError.message
+       });
      }
-
-     console.error('[Transfer] Hubtel API error details:', {
-       message: hubtelError.message,
-       stack: hubtelError.stack,
-       code: hubtelError.code,
-       response: hubtelError.response?.data
-     });
 
      // Return a more specific error message based on the error type
      let userMessage = 'Failed to buy airtime. Please try again.';
@@ -210,18 +179,12 @@ router.post('/airtime', authenticate, async (req, res) => {
      });
    }
 
-   console.log(JSON.stringify({
-     label: 'AirtimePurchase',
-     timestamp: new Date().toISOString(),
-     userId,
-     clientReference,
-     phoneNumber,
-     network,
-     amount,
+   logger.info('[AirtimeExecution] Provider request succeeded, returning to frontend', {
+     userId, clientReference, phoneNumber, network, amount,
      hubtelTransactionId: hubtelResult?.hubtelTransactionId,
      phase: 'provider_request_success',
      status: 'pending_confirmation'
-   }, null, 2));
+   });
 
    res.json({
      success: true,
@@ -236,7 +199,9 @@ router.post('/airtime', authenticate, async (req, res) => {
    });
 
   } catch (error) {
-    console.error('[Transfer] Buy Airtime Error:', error);
+    logger.error('[AirtimeExecution] Unhandled error in route handler', {
+      userId, error: error.message, stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to buy airtime',
@@ -257,16 +222,9 @@ router.post('/data', authenticate, async (req, res) => {
     const userId = req.user.userId;
     const { phoneNumber, network, bundleCode, price } = req.body;
 
-    console.log(JSON.stringify({
-      label: 'DataPurchase',
-      timestamp: new Date().toISOString(),
-      userId,
-      phoneNumber,
-      network,
-      bundleCode,
-      price,
-      phase: 'validation_start'
-    }, null, 2));
+    logger.info('[DataExecution] Purchase request received', {
+      userId, phoneNumber, network, bundleCode, price, phase: 'validation_start'
+    });
 
      // Server-side validation
      if (!phoneNumber) {
@@ -323,18 +281,12 @@ router.post('/data', authenticate, async (req, res) => {
      // Check wallet balance
      const wallet = await Wallet.findOne({ userId });
      if (!wallet || wallet.balance < price) {
-       console.log(JSON.stringify({
-         label: 'DataPurchase',
-         timestamp: new Date().toISOString(),
-         userId,
-         phoneNumber,
-         network,
-         bundleCode,
-         price,
-         phase: 'wallet_check_failed',
+       logger.warn('[DataExecution] Wallet check failed', {
+         userId, phoneNumber, network, bundleCode, price,
          walletFound: !!wallet,
-         balance: wallet?.balance || 0
-       }, null, 2));
+         balance: wallet?.balance || 0,
+         phase: 'wallet_check_failed'
+       });
        return res.status(400).json({
          success: false,
          message: 'Insufficient wallet balance',
@@ -345,18 +297,10 @@ router.post('/data', authenticate, async (req, res) => {
     const balanceBefore = wallet.balance;
     const clientReference = HubtelTransferService.generateClientReference('DATA');
 
-   console.log(JSON.stringify({
-     label: 'DataPurchase',
-     timestamp: new Date().toISOString(),
-     userId,
-     phoneNumber,
-     network,
-     bundleCode,
-     price,
-     clientReference,
-     balanceBefore,
-     phase: 'transaction_created'
-   }, null, 2));
+    logger.info('[DataExecution] Transaction record created', {
+      userId, phoneNumber, network, bundleCode, price, clientReference, balanceBefore,
+      phase: 'transaction_created'
+    });
 
    // Create transaction record FIRST with 'pending_confirmation' status
    // CRITICAL: Status must NOT be 'completed' until Hubtel confirms delivery via callback
@@ -380,17 +324,10 @@ router.post('/data', authenticate, async (req, res) => {
    });
    await transaction.save();
 
-   console.log(JSON.stringify({
-     label: 'DataPurchase',
-     timestamp: new Date().toISOString(),
-     userId,
-     clientReference,
-     phoneNumber,
-     network,
-     bundleCode,
-     price,
+   logger.info('[DataExecution] Dispatching provider request', {
+     userId, clientReference, phoneNumber, network, bundleCode, price,
      phase: 'provider_request_start'
-   }, null, 2));
+   });
 
    // Initiate data purchase with Hubtel
    let hubtelResult;
@@ -402,22 +339,15 @@ router.post('/data', authenticate, async (req, res) => {
        clientReference
      });
    } catch (hubtelError) {
-     console.error(JSON.stringify({
-       label: 'DataPurchase',
-       timestamp: new Date().toISOString(),
-       userId,
-       clientReference,
-       phoneNumber,
-       network,
-       bundleCode,
-       price,
+     logger.error('[DataExecution] Provider request failed', {
+       userId, clientReference, phoneNumber, network, bundleCode, price,
        phase: 'provider_request_failed',
        error: hubtelError.message,
        code: hubtelError.code,
        response: hubtelError.response?.data
-     }, null, 2));
+     });
 
-     // Rollback: mark transaction as failed (wallet was never deducted — reservation only)
+     // Rollback: mark transaction as failed
      transaction.status = 'failed';
      transaction.description += ' - FAILED';
      transaction.metadata = {
@@ -427,16 +357,14 @@ router.post('/data', authenticate, async (req, res) => {
      };
      try {
        await transaction.save();
+       logger.info('[DataExecution] Transaction marked as failed after provider error', {
+         clientReference, phase: 'rollback_complete'
+       });
      } catch (saveError) {
-       console.error('[Transfer] CRITICAL: Failed to save failed transaction status (Data):', saveError.message);
+       logger.error('[DataExecution] CRITICAL: Failed to save failed transaction status (Data)', {
+         clientReference, error: saveError.message
+       });
      }
-
-     console.error('[Transfer] Hubtel API error details (Data):', {
-       message: hubtelError.message,
-       stack: hubtelError.stack,
-       code: hubtelError.code,
-       response: hubtelError.response?.data
-     });
 
      // Return a more specific error message based on the error type
      let userMessage = 'Failed to buy data bundle. Please try again.';
@@ -460,19 +388,12 @@ router.post('/data', authenticate, async (req, res) => {
      });
    }
 
-   console.log(JSON.stringify({
-     label: 'DataPurchase',
-     timestamp: new Date().toISOString(),
-     userId,
-     clientReference,
-     phoneNumber,
-     network,
-     bundleCode,
-     price,
+   logger.info('[DataExecution] Provider request succeeded, returning to frontend', {
+     userId, clientReference, phoneNumber, network, bundleCode, price,
      hubtelTransactionId: hubtelResult?.hubtelTransactionId,
      phase: 'provider_request_success',
      status: 'pending_confirmation'
-   }, null, 2));
+   });
 
    res.json({
      success: true,
@@ -488,7 +409,9 @@ router.post('/data', authenticate, async (req, res) => {
    });
 
   } catch (error) {
-    console.error('[Transfer] Buy Data Error:', error);
+    logger.error('[DataExecution] Unhandled error in route handler', {
+      userId, error: error.message, stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to buy data bundle',
@@ -528,49 +451,34 @@ router.get('/status/:clientReference', authenticate, async (req, res) => {
     const { clientReference } = req.params;
     const userId = req.user.userId;
 
-    console.log(JSON.stringify({
-      label: 'TransactionLifecycle',
-      timestamp: new Date().toISOString(),
-      userId,
-      clientReference,
-      phase: 'status_check'
-    }, null, 2));
+    logger.info('[TransactionLifecycle] Status poll received', {
+      userId, clientReference, phase: 'status_check'
+    });
 
     // Find transaction in our database
     const transaction = await Transaction.findOne({ reference: clientReference });
 
     if (!transaction) {
-      console.log(JSON.stringify({
-        label: 'TransactionLifecycle',
-        timestamp: new Date().toISOString(),
-        userId,
-        clientReference,
-        phase: 'not_found'
-      }, null, 2));
+      logger.warn('[TransactionLifecycle] Transaction not found on status poll', {
+        userId, clientReference, phase: 'not_found'
+      });
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
     // Only allow user to view their own transactions
     if (transaction.userId.toString() !== userId) {
-      console.log(JSON.stringify({
-        label: 'TransactionLifecycle',
-        timestamp: new Date().toISOString(),
-        userId,
-        clientReference,
-        phase: 'unauthorized_access'
-      }, null, 2));
+      logger.warn('[TransactionLifecycle] Unauthorized status poll attempt', {
+        userId, clientReference, phase: 'unauthorized_access'
+      });
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    console.log(JSON.stringify({
-      label: 'TransactionLifecycle',
-      timestamp: new Date().toISOString(),
-      userId,
-      clientReference,
+    logger.info('[TransactionLifecycle] Status returned to frontend', {
+      userId, clientReference,
       status: transaction.status,
       amount: transaction.amount,
       phase: 'status_returned'
-    }, null, 2));
+    });
 
     res.json({
       success: true,
@@ -587,7 +495,9 @@ router.get('/status/:clientReference', authenticate, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Transfer] Get Status Error:', error);
+    logger.error('[TransactionLifecycle] Get Status Error', {
+      error: error.message, stack: error.stack
+    });
     res.status(500).json({ error: 'Failed to get transaction status' });
   }
 });
@@ -601,17 +511,14 @@ router.get('/reconcile', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const user = await require('../models/User').findById(userId);
-    
+
     if (!user || user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    console.log(JSON.stringify({
-      label: 'TransactionReconciliation',
-      timestamp: new Date().toISOString(),
-      userId,
-      phase: 'reconciliation_start'
-    }, null, 2));
+    logger.info('[TransactionLifecycle] Manual reconciliation triggered', {
+      userId, phase: 'reconciliation_start'
+    });
 
     // Find all pending_confirmation transactions older than 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
@@ -621,12 +528,10 @@ router.get('/reconcile', authenticate, async (req, res) => {
       'metadata.transactionType': { $in: ['AIRTIME_PURCHASE', 'DATA_PURCHASE'] }
     }).limit(100);
 
-    console.log(JSON.stringify({
-      label: 'TransactionReconciliation',
-      timestamp: new Date().toISOString(),
+    logger.info('[TransactionLifecycle] Pending transactions found for reconciliation', {
       pendingCount: pendingTransactions.length,
       phase: 'pending_found'
-    }, null, 2));
+    });
 
     const results = {
       totalChecked: pendingTransactions.length,
@@ -639,10 +544,10 @@ router.get('/reconcile', authenticate, async (req, res) => {
     for (const tx of pendingTransactions) {
       try {
         const hubtelStatus = await HubtelTransferService.checkTransactionStatus(tx.reference);
-        
+
         if (hubtelStatus.success) {
           const mappedStatus = hubtelStatus.status; // 'success', 'failed', 'pending', 'cancelled'
-          
+
           if (mappedStatus === 'success') {
             tx.status = 'completed';
             tx.metadata = {
@@ -685,12 +590,9 @@ router.get('/reconcile', authenticate, async (req, res) => {
       }
     }
 
-    console.log(JSON.stringify({
-      label: 'TransactionReconciliation',
-      timestamp: new Date().toISOString(),
-      ...results,
-      phase: 'reconciliation_complete'
-    }, null, 2));
+    logger.info('[TransactionLifecycle] Reconciliation complete', {
+      ...results, phase: 'reconciliation_complete'
+    });
 
     res.json({
       success: true,
@@ -699,7 +601,9 @@ router.get('/reconcile', authenticate, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Transfer] Reconciliation Error:', error);
+    logger.error('[TransactionLifecycle] Reconciliation Error', {
+      error: error.message, stack: error.stack
+    });
     res.status(500).json({ error: 'Reconciliation failed', details: error.message });
   }
 });

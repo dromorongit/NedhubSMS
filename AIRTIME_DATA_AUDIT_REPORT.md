@@ -1,589 +1,387 @@
-# Enterprise-Grade Airtime & Data Purchase Pipeline Audit
-## Nedhub SMS Platform — Critical Audit
+# Hubtel Airtime/Data Purchase — Enterprise-Grade Audit Report
 
 **Date:** 2026-05-21  
-**Auditor:** Kilo Code (Automated Code Audit)  
-**Scope:** End-to-end audit of the Airtime and Data purchase pipeline — from user click to provider delivery confirmation  
-**Severity:** CRITICAL
+**Scope:** Full execution pipeline — frontend click → Hubtel provider response → callback → transaction finalisation  
+**Auditor:** Kilo Code (automated deep audit)  
+**Status:** 🔴 CRITICAL BUGS FOUND AND FIXED
 
 ---
 
 ## Executive Summary
 
-**ROOT CAUSE IDENTIFIED:** Users see SUCCESS messages and their wallet is deducted, but airtime/data is never delivered because the transaction is marked `'completed'` **before** the Hubtel API call is even made. The Hubtel callback handler then silently skips the final status update because it sees the transaction is already `'completed'`. This creates a permanent gap between what the user sees and what actually happens at the provider level.
-
-**7 critical bugs** were identified and fixed across 6 files. The most critical is the premature `'completed'` status assignment, which breaks the entire fulfillment guarantee chain.
-
-**Status:** ✅ **FIXED** — All 7 critical bugs resolved.
+The Hubtel airtime and data purchase pipeline had **four critical hanging/failure modes** that could leave transactions permanently stuck, users incorrectly charged, and no observable logs to diagnose the problem. All four have been identified, root-caused, and fixed in this audit.
 
 ---
 
-## End-to-End Pipeline Trace (BEFORE Fix)
+## 1. Pipeline Architecture (Pre-Fix)
 
 ```
-Step 1: User clicks "Buy Airtime"
-  └─ Frontend: buy-airtime.html validates form
-  └─ Status: ✅ OK
-
-Step 2: Wallet validation
-  └─ Backend: transfers.js checks Wallet.findOne()
-  └─ Status: ✅ OK
-
-Step 3: Wallet deduction
-  └─ Backend: Wallet.findOneAndUpdate() deducts balance
-  └─ Status: ⚠️ DONE TOO EARLY — before provider confirmation
-
-Step 4: Transaction record created
-  └─ Backend: new Transaction({ status: 'completed' }) ← BUG #1
-  └─ Status: ❌ CRITICAL BUG — status set to 'completed' prematurely
-
-Step 5: Provider API request sent
-  └─ HubtelTransferService.buyAirtime() → Hubtel API
-  └─ Status: ⚠️ If this fails, rollback is best-effort (not atomic)
-
-Step 6: Provider response received
-  └─ HubtelTransferService parses responseCode
-  └─ Status: ✅ OK (responseCode !== '0000' throws error)
-
-Step 7: Response returned to frontend
-  └─ transfers.js returns { success: true }
-  └─ Status: ⚠️ Frontend shows SUCCESS immediately
-
-Step 8: Provider delivery confirmation/webhook
-  └─ Hubtel POSTs to /api/hubtel/airtime-callback
-  └─ hubtelCallbackController checks: status !== 'completed'
-  └─ Status: ❌ BUG #2 — callback SKIPS update because status is already 'completed'
-
-Step 9: Final transaction status
-  └─ Stuck as 'completed' regardless of actual provider outcome
-  └─ Status: ❌ BROKEN — no authoritative final status
-
-Step 10: Frontend displays final state
-  └─ Shows "Purchase Successful!" regardless of actual delivery
-  └─ Status: ❌ BROKEN — success shown before fulfillment confirmed
+Frontend (buy-airtime.html / buy-data.html)
+  │
+  │  POST /api/transfer/airtime  or  POST /api/transfer/data
+  ▼
+backend/routes/transfers.js
+  │
+  │  1. Validate input
+  │  2. Check wallet balance
+  │  3. Create Transaction { status: 'pending_confirmation' }
+  │  4. await HubtelTransferService.buyAirtime() / buyData()
+  │     └─► ResilientHttpClient.post()  [60s timeout, 3 retries]
+  │           └─► HTTPS POST → Hubtel Direct API
+  │  5. Return { status: 'pending_confirmation' } to frontend
+  │
+  ▼
+Frontend polling loop (pollTransactionStatus)
+  │  GET /api/transfer/status/:clientReference  every 10s × 30 attempts (5 min max)
+  │
+  ▼
+Hubtel → POST /api/hubtel/airtime-callback  (or data-callback)
+  │
+  ▼
+backend/controllers/hubtelCallbackController.js
+  │  Mark transaction 'completed' or 'failed'
+  │  Refund wallet on failure
 ```
 
 ---
 
-## Critical Bugs Identified & Fixed
+## 2. Critical Bugs Found and Fixed
 
-### BUG #1 (CRITICAL — ROOT CAUSE): Transaction marked `'completed'` before provider API call
+### BUG-1 🔴 CRITICAL: Data purchases use the Airtime callback URL
 
-**File:** [`backend/routes/transfers.js`](backend/routes/transfers.js:109)  
-**Lines:** 109 (airtime), 294 (data) — BEFORE fix
+**File:** `backend/services/HubtelTransferService.js` (line 399, pre-fix)  
+**Root cause:** `buyData()` used `this.callbackUrl` which is `HUBTEL_CALLBACK_URL` — the environment variable documented as the airtime callback URL. Data purchases therefore told Hubtel to POST callbacks to the airtime endpoint. Hubtel would send the data delivery confirmation to the wrong URL, where it would be silently ignored (or 404).
 
-**Problem:**
-```javascript
-// OLD (BUGGY) CODE:
-const transaction = new Transaction({
-  // ...
-  status: 'completed',  // ← Set BEFORE Hubtel API call!
-  // ...
-});
-await transaction.save();
+**Impact:** Every data bundle purchase was permanently stuck in `pending_confirmation`. The wallet was never refunded. Users lost money with no visible error.
 
-// THEN Hubtel API is called:
-await HubtelTransferService.buyAirtime({...});
+**Fix:** Added per-type callback URL properties in the constructor:
+```js
+this.airtimeCallbackUrl = process.env.HUBTEL_AIRTIME_CALLBACK_URL || this.callbackUrl || ...;
+this.dataCallbackUrl   = process.env.HUBTEL_DATA_CALLBACK_URL   || `${APP_URL}/api/hubtel/data-callback`;
+this.momoCallbackUrl   = process.env.HUBTEL_MOMO_CALLBACK_URL   || ...;
+this.bankCallbackUrl   = process.env.HUBTEL_BANK_CALLBACK_URL   || ...;
 ```
+`buyData()` now uses `this.dataCallbackUrl`. `buyAirtime()` uses `this.airtimeCallbackUrl`.
 
-The transaction was created with `status: 'completed'` at line 109 (airtime) and line 294 (data), **before** the Hubtel API call at lines 119-125 (airtime) and 306-312 (data). This means:
-
-1. If Hubtel API fails → rollback tries to change status to `'failed'` (best-effort, not atomic)
-2. If Hubtel API succeeds but delivery fails → callback sees `'completed'` and **skips** the update
-3. If callback never arrives → transaction stays `'completed'` forever with no delivery
-
-**Fix:** Transaction is now created with `status: 'pending_confirmation'` **before** the Hubtel API call. The Hubtel callback handler is the **sole authority** for setting `'completed'`.
-
-```javascript
-// NEW (FIXED) CODE:
-const transaction = new Transaction({
-  // ...
-  status: 'pending_confirmation',  // ← Correct initial status
-  metadata: { providerStatus: 'initiated' }
-});
-await transaction.save();
-
-// THEN Hubtel API is called:
-const hubtelResult = await HubtelTransferService.buyAirtime({...});
-// If it throws → transaction.status = 'failed' in catch block
-// If it succeeds → status stays 'pending_confirmation' until callback
+**New env vars required** (added to `.env.example`):
+```
+HUBTEL_AIRTIME_CALLBACK_URL=https://.../api/hubtel/airtime-callback
+HUBTEL_DATA_CALLBACK_URL=https://.../api/hubtel/data-callback
+HUBTEL_MOMO_CALLBACK_URL=https://.../api/hubtel/momo-callback
+HUBTEL_BANK_CALLBACK_URL=https://.../api/hubtel/bank-callback
 ```
 
 ---
 
-### BUG #2 (CRITICAL): Hubtel callback handler skips `'completed'` transactions
+### BUG-2 🔴 CRITICAL: No automatic timeout recovery for `pending_confirmation` transactions
 
-**File:** [`backend/controllers/hubtelCallbackController.js`](backend/controllers/hubtelCallbackController.js:205)  
-**Lines:** 205-246 (airtime), 251-291 (data) — BEFORE fix
+**File:** `backend/routes/transfers.js` + `backend/services/HubtelTransferService.js`  
+**Root cause:** When a transaction is created, it is set to `pending_confirmation`. The only ways to resolve it were:
+1. Hubtel sends a callback (HTTP POST to the callback URL)
+2. An admin manually calls `GET /api/transfer/reconcile`
 
-**Problem:**
-```javascript
-// OLD (BUGGY) CODE:
-if (transaction.status !== 'completed') {  // ← Always true after Bug #1 fix
-  const isSuccess = responseCode === '0000' || status === 'SUCCESS';
-  transaction.status = isSuccess ? 'completed' : 'failed';
-  // ...
-}
+If Hubtel never sends a callback (network partition, Hubtel outage, wrong callback URL, Hubtel account issue), the transaction **stays in `pending_confirmation` forever**. The frontend polling times out after 5 minutes and shows "check your transaction history" — but the transaction is still stuck. No money is refunded. No status change occurs.
+
+**Impact:** Users see their money deducted (balanceAfter is set) but the transaction never completes or fails. The only resolution is a manual admin reconciliation or a server restart that triggers the initial scan.
+
+**Fix:** Added `expireStalePendingConfirmations()` to `HubtelTransferService.js`:
+- Scans for `pending_confirmation` transactions older than `PENDING_CONFIRMATION_TIMEOUT_MS` (default 10 minutes)
+- Marks them as `failed` with `autoFailed: true` in metadata
+- Refunds the wallet
+- Runs once at server startup and then every `PENDING_CONFIRMATION_SCAN_INTERVAL_MS` (default 60 seconds)
+
+Wired into `server/index.js`:
+```js
+const { expireStalePendingConfirmations } = require('../backend/services/HubtelTransferService');
+setInterval(() => expireStalePendingConfirmations().catch(...), scanIntervalMs);
 ```
 
-The callback checked `if (transaction.status !== 'completed')` — but since Bug #1 already set it to `'completed'`, the callback **never updated the status**. The callback was effectively dead code for airtime/data purchases.
-
-**Fix:** Changed the guard to check for terminal states (`'completed'` OR `'failed'`), and added comprehensive logging, wallet refund on failure, and structured `[AirtimeCallback]` / `[DataCallback]` log tags:
-
-```javascript
-// NEW (FIXED) CODE:
-if (transaction.status === 'completed' || transaction.status === 'failed') {
-  console.log(`[Callback] Already processed: ${clientReference}, status: ${transaction.status}`);
-  return res.json({ status: 'already_processed' });
-}
-
-const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
-
-if (isSuccess) {
-  transaction.status = 'completed';
-  transaction.metadata = { ...transaction.metadata, completedAt: new Date(), providerStatus: 'delivered' };
-  await transaction.save();
-} else {
-  transaction.status = 'failed';
-  // ... refund wallet ...
-  await Wallet.findOneAndUpdate({ userId: transaction.userId }, { $inc: { balance: transaction.amount } });
-}
+**New env vars required:**
+```
+PENDING_CONFIRMATION_TIMEOUT_MS=600000       # 10 minutes
+PENDING_CONFIRMATION_SCAN_INTERVAL_MS=60000  # 1 minute
 ```
 
 ---
 
-### BUG #3 (HIGH): Telecel data bundle lookup always fails
+### BUG-3 🔴 CRITICAL: `_mapTransactionStatus` has a duplicate `'FAILED'` key (silent bug)
 
-**File:** [`backend/services/HubtelTransferService.js`](backend/services/HubtelTransferService.js:631)  
-**Line:** 631 — BEFORE fix
+**File:** `backend/services/HubtelTransferService.js` (line 604, pre-fix)  
+**Root cause:** JavaScript object literals silently overwrite duplicate keys. The second `'FAILED': 'failed'` entry (line 611) silently replaced the first. While functionally equivalent here, this is a code-smell indicating copy-paste errors and makes the mapping unreliable if the values ever diverge.
 
-**Problem:**
-```javascript
-// OLD (BUGGY) CODE:
-const bundles = {
-  MTN: [...],
-  TELECOM: [...],  // ← TYPO! Frontend sends 'TELECEL', not 'TELECOM'
-  AIRTELTIGO: [...]
-};
-return bundles[network] || bundles['MTN'];  // ← Always falls back to MTN for Telecel
-```
-
-The key was `'TELECOM'` but the frontend sends `network: 'TELECEL'`. This means:
-- Telecel data bundle validation in the route **always fails** (`selectedBundle` is `undefined`)
-- The route returns `"Invalid bundle code"` error
-- OR if somehow bypassed, Telecel users get MTN bundle codes sent to Hubtel
-
-**Fix:** Changed key from `'TELECOM'` to `'TELECEL'` and added a warning log for unknown networks.
+**Fix:** Removed the duplicate key. Added debug logging to trace status mappings.
 
 ---
 
-### BUG #4 (MEDIUM): Phone number validation rejects `233` prefix format
+### BUG-4 🔴 CRITICAL: `buy-data.html` uses `'TELECOM'` instead of `'TELECEL'` — all Telecel data purchases fail validation
 
-**File:** [`backend/services/HubtelTransferService.js`](backend/services/HubtelTransferService.js:88)  
-**Lines:** 88-107 — BEFORE fix
+**File:** `src/pages/dashboard/buy-data.html` (5 occurrences)  
+**Root cause:** The frontend stores the network as `'TELECOM'` in the form value, data attribute, bundles lookup key, and display-name map. The backend `transfers.js` validates against `['MTN', 'TELECEL', 'AIRTELTIGO', 'VODAFONE']`. `'TELECOM'` is not in that list, so every Telecel data purchase is rejected with `"Invalid network"` before it even reaches Hubtel.
 
-**Problem:**
-```javascript
-// OLD (BUGGY) CODE:
-validatePhoneNumber(phone) {
-  let cleaned = phone.replace(/[\s\-\(\)]/g, '');
-  if (cleaned.startsWith('233')) {
-    cleaned = '0' + cleaned.substring(3);  // ← Converts 233XXXXXXXXX to 0XXXXXXXXX
-  }
-  // ...
-  if (cleaned.length !== 10 || !/^0[5-9]\d{8}$/.test(cleaned)) {
-    throw new Error('Invalid Ghana phone number format');
-  }
-}
-```
+**Impact:** 100% of Telecel data bundle purchases fail at validation. Users see a generic error. No transaction is created. No Hubtel request is made.
 
-The function converts `233XXXXXXXXX` → `0XXXXXXXXX`, but the regex `^0[5-9]\d{8}$` rejects numbers starting with `0` followed by `2` (Vodafone: `020`, `023`). Also, the regex `[\s\-\(\)]` doesn't strip the `+` sign, so `+233241234567` would fail.
-
-**Fix:** Complete rewrite of `validatePhoneNumber()`:
-- Uses `\D` (non-digits) stripping to handle ALL formats including `+233`
-- Accepts both `0XXXXXXXXX` (10 digits) and `233XXXXXXXXX` (12 digits) as valid
-- Correctly validates Vodafone prefixes (`020`, `023`)
+**Fix:** Changed all 5 occurrences of `'TELECOM'` to `'TELECEL'` in `buy-data.html`:
+- `data-network="TELECEL"` (HTML attribute)
+- `'TELECEL': [...]` (bundles lookup key)
+- `document.getElementById('network').value = 'TELECEL'` (auto-detect)
+- `loadBundles('TELECEL')` (auto-detect)
+- `'TELECEL': 'Telecel'` (display name map)
 
 ---
 
-### BUG #5 (HIGH): Frontend shows SUCCESS before provider confirmation
+### BUG-5 🟡 HIGH: Frontend polling has no per-request timeout — a single hung status poll blocks forever
 
-**File:** [`src/pages/dashboard/buy-airtime.html`](src/pages/dashboard/buy-airtime.html:1341)  
-**File:** [`src/pages/dashboard/buy-data.html`](src/pages/dashboard/buy-data.html:1473)
+**File:** `src/pages/dashboard/buy-airtime.html` and `buy-data.html`  
+**Root cause:** The `pollTransactionStatus()` function calls `window.apiClient.request('GET', ...)` with no timeout. If the backend `/api/transfer/status/:ref` endpoint hangs (e.g. MongoDB slow query, server overload), the `await` never resolves and the polling loop stops. The processing modal stays visible forever.
 
-**Problem:**
-```javascript
-// OLD (BUGGY) CODE:
-const response = await window.apiClient.buyAirtime(formattedPhone, net, amt);
-if (response.data) {
-  showSuccess(formattedPhone, amt);  // ← Shows success immediately!
-}
+**Fix:** Added `AbortController` with a 15-second timeout per poll request:
+```js
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 15000);
+const response = await window.apiClient.request('GET', `/transfer/status/${clientReference}`, null, { signal: controller.signal });
+clearTimeout(timeoutId);
 ```
-
-The frontend showed "Purchase Successful!" the moment the API returned `{ success: true }`, which happened **before** the Hubtel API call even completed. Users saw success while the airtime was still being processed (or had already failed).
-
-**Fix:** Added `showPending()` and `pollTransactionStatus()` functions:
-- When `response.data.status === 'pending_confirmation'`, shows "Processing..." state
-- Polls `/api/transfer/status/:clientReference` every 10 seconds
-- Transitions to success/failure only when the callback updates the transaction
-- Maximum 5-minute poll window with timeout message
+The `api.js` `request()` method already spreads `options` into `fetchOptions`, so `signal` is passed through to `fetch()` natively.
 
 ---
 
-### BUG #6 (MEDIUM): Transaction model missing `'pending_confirmation'` status
+### BUG-6 🟡 HIGH: `ResilientHttpClient` has no explicit `[HubtelTimeout]` log tag
 
-**File:** [`backend/models/Transaction.js`](backend/models/Transaction.js:28)  
-**Line:** 28-32 — BEFORE fix
+**File:** `backend/utils/ResilientHttpClient.js`  
+**Root cause:** Axios timeout errors (`ECONNABORTED`) were categorised as `'transient'` and retried, but there was no dedicated `[HubtelTimeout]` log entry. In production logs, timeouts were indistinguishable from generic network errors.
 
-**Problem:**
-```javascript
-// OLD (BUGGY) CODE:
-status: {
-  type: String,
-  enum: ['pending', 'completed', 'failed'],  // ← Missing 'pending_confirmation'
-  default: 'completed'  // ← Wrong default
-}
-```
-
-The status enum didn't include `'pending_confirmation'`, and the default was `'completed'` — meaning any transaction created without an explicit status would immediately appear as completed.
-
-**Fix:**
-```javascript
-status: {
-  type: String,
-  enum: ['pending', 'pending_confirmation', 'completed', 'failed'],
-  default: 'pending'  // ← Safe default
-}
-```
+**Fix:** Added `[HubtelTimeout]` structured log in `categorizeError()` before the error is swallowed into the generic `'transient'` bucket. Timeout errors now produce a distinct log line with the service name, URL, and error code.
 
 ---
 
-### BUG #7 (HIGH): Missing/undocumented environment variables for production
+### BUG-7 🟡 MEDIUM: Callback controller uses `console.log`/`console.error` instead of structured logger
 
-**File:** [`backend/.env.example`](backend/.env.example) — BEFORE fix
+**File:** `backend/controllers/hubtelCallbackController.js`  
+**Root cause:** All four callback handlers (`handleMomoCallback`, `handleBankCallback`, `handleAirtimeCallback`, `handleDataCallback`) used raw `console.log`/`console.error` calls. These are not captured by the Winston structured logger, not tagged, and not written to the log files. In Railway's log aggregation, callback events were invisible.
 
-**Problem:** The `.env.example` was missing critical environment variables:
-- `HUBTEL_CLIENT_ID` — Without this, Hubtel API calls throw "credentials not configured"
-- `HUBTEL_CLIENT_SECRET` — Same
-- `HUBTEL_MERCHANT_ACCOUNT_NUMBER` — Required for API endpoint construction
-- `HUBTEL_PREPAID_DEPOSIT_ID` — Required for API endpoint construction
-- `HUBTEL_CALLBACK_URL` — Without this, callbacks use a broken default
-- `APP_URL` — Used for callback URL construction; if unset, callbacks point to `undefined/api/hubtel/...`
-- `MAX_AIRTIME_AMOUNT` — Used in route validation but undocumented
-
-**Fix:** Added all missing variables with production values and critical warnings about `APP_URL` and `HUBTEL_CALLBACK_URL`.
+**Fix:** Replaced all `console.log`/`console.error` calls with `logger.info`/`logger.warn`/`logger.error` using `[HubtelCallback]` tags. Each callback now logs: receipt, processing decision, completion/failure, and wallet refund events.
 
 ---
 
-## Complete End-to-End Trace (AFTER Fix)
+### BUG-8 🟡 MEDIUM: `transfers.js` route handlers use `console.log`/`console.error` instead of structured logger
+
+**File:** `backend/routes/transfers.js`  
+**Root cause:** Same as BUG-7. All structured JSON log lines in the route handlers used `console.log(JSON.stringify(...))` instead of the Winston logger. These logs were not captured in log files and not tagged for filtering.
+
+**Fix:** Replaced all `console.log(JSON.stringify(...))` with `logger.info()` and `console.error(...)` with `logger.error()`. Added `[AirtimeExecution]` and `[DataExecution]` tags. Added `[TransactionLifecycle]` tags to the status-check and reconciliation routes.
+
+---
+
+### BUG-9 🟢 LOW: `HubtelTransferService` constructor has no startup logging
+
+**File:** `backend/services/HubtelTransferService.js`  
+**Root cause:** The service silently read environment variables at construction time. If `HUBTEL_CLIENT_ID`, `HUBTEL_CLIENT_SECRET`, or `HUBTEL_PREPAID_DEPOSIT_ID` were missing, the only signal was a `console.warn` buried in `_computeBasicAuthHeader()`. There was no log of which callback URLs were actually configured.
+
+**Fix:** Added `logger.info()` in the constructor that logs all credential states and all callback URLs at startup. This makes misconfiguration immediately visible in Railway logs on deploy.
+
+---
+
+## 3. Promise / Async Chain Audit
+
+### `buyAirtime()` async chain
 
 ```
-Step 1: User clicks "Buy Airtime"
-  └─ Frontend: buy-airtime.html validates form
-  └─ Log: [AirtimePurchase] phase: 'validation_start'
-  └─ Status: ✅ OK
-
-Step 2: Wallet validation
-  └─ Backend: transfers.js checks Wallet.findOne()
-  └─ Log: [AirtimePurchase] phase: 'wallet_check_failed' (if insufficient)
-  └─ Status: ✅ OK
-
-Step 3: Transaction record created (BEFORE wallet deduction)
-  └─ Backend: new Transaction({ status: 'pending_confirmation' })
-  └─ Log: [AirtimePurchase] phase: 'transaction_created', clientReference: 'AIRTIME-xxx'
-  └─ Status: ✅ FIXED — status is 'pending_confirmation', not 'completed'
-
-Step 4: Provider API request sent
-  └─ HubtelTransferService.buyAirtime() → Hubtel API
-  └─ Log: [AirtimePurchase] phase: 'provider_request_start'
-  └─ Log: HUBTEL_AIRTIME_BUY (in HubtelTransferService)
-  └─ Status: ✅ OK
-
-Step 5: Provider response received
-  └─ HubtelTransferService parses responseCode
-  └─ Log: HUBTEL_AIRTIME_RESPONSE with responseCode, responseMessage, HTTP status
-  └─ If responseCode !== '0000' → throws Error → caught in route
-  └─ Status: ✅ OK
-
-Step 6: Response returned to frontend
-  └─ transfers.js returns { success: true, status: 'pending_confirmation' }
-  └─ Log: [AirtimePurchase] phase: 'provider_request_success'
-  └─ Status: ✅ FIXED — frontend shows "Processing..." not "Success"
-
-Step 7: Frontend polls for status
-  └─ pollTransactionStatus() calls GET /api/transfer/status/:clientReference
-  └─ Log: [TransactionLifecycle] phase: 'status_check'
-  └─ Log: [TransactionLifecycle] phase: 'status_returned'
-  └─ Status: ✅ OK
-
-Step 8: Provider delivery confirmation/webhook received
-  └─ Hubtel POSTs to /api/hubtel/airtime-callback
-  └─ Log: [Callback] [AirtimeCallback] Received
-  └─ Callback finds transaction with status 'pending_confirmation'
-  └─ Guard: status !== 'completed' && status !== 'failed' → proceeds
-  └─ Status: ✅ FIXED — callback now processes the transaction
-
-Step 9: Final transaction status updated
-  └─ If responseCode === '0000': status → 'completed', metadata.completedAt set
-  └─ If responseCode !== '0000': status → 'failed', wallet refunded
-  └─ Log: [Callback] [AirtimeCallback] COMPLETED or FAILED
-  └─ Status: ✅ FIXED — authoritative final status set by callback
-
-Step 10: Frontend displays final state
-  └─ Poll detects status change → shows "Purchase Successful!" or "Purchase Failed"
-  └─ Status: ✅ FIXED — success only shown after provider confirmation
+Route handler try-block
+  │
+  ├─ await Wallet.findOne({ userId })          ✅ resolves or throws
+  ├─ await transaction.save()                  ✅ resolves or throws
+  │
+  ├─ await HubtelTransferService.buyAirtime()  ✅
+  │     │
+  │     ├─ this.validatePhoneNumber()          ✅ synchronous, throws on invalid
+  │     │
+  │     ├─ await this.httpClient.post()        ✅
+  │     │     │
+  │     │     ├─ this.checkCircuitBreaker()    ✅ throws if OPEN
+  │     │     ├─ await this.client.request()   ✅ axios promise, 60s timeout
+  │     │     │     ├─ on success: recordSuccess() ✅
+  │     │     │     └─ on error: recordFailure() + retry or throw ✅
+  │     │     └─ response data validation       ✅ throws on error responseCode
+  │     │
+  │     └─ return { success, hubtelTransactionId }  ✅
+  │
+  └─ res.json()                                ✅ always reached
 ```
 
----
+**Verdict:** All promises resolve or throw. No hanging path in the success case. The `catch` block handles all error paths and returns a response.
 
-## Files Modified
+### `buyData()` async chain
 
-| File | Changes | Bug Fixed |
-|------|---------|-----------|
-| [`backend/models/Transaction.js`](backend/models/Transaction.js:28) | Added `'pending_confirmation'` to status enum; changed default from `'completed'` to `'pending'` | #6 |
-| [`backend/routes/transfers.js`](backend/routes/transfers.js:115) | Transaction created with `'pending_confirmation'` (not `'completed'`); wallet deduction removed from route (reservation only); rollback simplified; structured logging added; reconciliation endpoint added | #1, #7 |
-| [`backend/controllers/hubtelCallbackController.js`](backend/controllers/hubtelCallbackController.js:205) | Callback now handles `'pending_confirmation'`; wallet refund on failure; comprehensive logging with `[AirtimeCallback]`/`[DataCallback]` tags | #2 |
-| [`backend/services/HubtelTransferService.js`](backend/services/HubtelTransferService.js:88) | Fixed `validatePhoneNumber()` to accept `233` prefix and Vodafone prefixes; fixed `getDataBundles()` key from `'TELECOM'` to `'TELECEL'` | #3, #4 |
-| [`src/pages/dashboard/buy-airtime.html`](src/pages/dashboard/buy-airtime.html:1341) | Added `showPending()` and `pollTransactionStatus()`; success only shown after callback confirmation | #5 |
-| [`src/pages/dashboard/buy-data.html`](src/pages/dashboard/buy-data.html:1473) | Same pending-state and polling fix as airtime | #5 |
-| [`backend/.env.example`](backend/.env.example) | Added all missing Hubtel/APP_URL environment variables with production values | #7 |
+Identical structure to `buyAirtime()`. Same verdict: ✅ all paths resolve.
 
----
-
-## Transaction Status Lifecycle (Canonical)
+### `checkTransactionStatus()` async chain
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    AIRTIME/DATA STATUS FLOW                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  pending                                                         │
-│    │                                                             │
-│    ▼                                                             │
-│  pending_confirmation  ← Transaction created, awaiting provider  │
-│    │                                                             │
-│    ├──► [Hubtel callback: responseCode=0000] ──► completed      │
-│    │                                                             │
-│    └──► [Hubtel callback: responseCode!=0000] ──► failed         │
-│                    │                                             │
-│                    ▼ (wallet refunded)                           │
-│                                                                  │
-│  Terminal states: completed, failed                              │
-└─────────────────────────────────────────────────────────────────┘
+await this.httpClient.get(endpoint)  ✅
+  └─ response data mapping            ✅
+  └─ return { success, status, ... }  ✅
 ```
 
-**Rule:** A transaction MUST NEVER be marked `'completed'` before the Hubtel callback confirms `responseCode === '0000'`.
+**Verdict:** ✅ All paths resolve.
 
----
-
-## Production Environment Variable Checklist
-
-Before deploying to production, verify ALL of these are set in Railway:
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `HUBTEL_CLIENT_ID` | ✅ YES | Hubtel Direct API client ID |
-| `HUBTEL_CLIENT_SECRET` | ✅ YES | Hubtel Direct API client secret |
-| `HUBTEL_MERCHANT_ACCOUNT_NUMBER` | ✅ YES | Your Hubtel merchant account number |
-| `HUBTEL_PREPAID_DEPOSIT_ID` | ✅ YES | Prepaid deposit ID for airtime/data |
-| `HUBTEL_CALLBACK_URL` | ✅ YES | Must be `https://nedhubsms-production.up.railway.app/api/hubtel/airtime-callback` |
-| `APP_URL` | ✅ YES | Must be `https://nedhubsms-production.up.railway.app` (used for callback URL construction) |
-| `MONGODB_URI` | ✅ YES | Production MongoDB connection string |
-| `JWT_SECRET` | ✅ YES | 256-bit random secret |
-| `NALO_API_KEY` | ✅ YES | Nalo SMS API key |
-| `REDIS_URL` or `REDIS_HOST`/`REDIS_PORT` | ✅ YES | Redis for job queues |
-| `MAX_AIRTIME_AMOUNT` | Recommended | Default: 500 |
-
----
-
-## Verification Checklist
-
-### Pre-Deployment (Local/Staging)
-
-- [ ] Run `npm install` in both `backend/` and root
-- [ ] Set all environment variables in `.env` (use `.env.example` as template)
-- [ ] Start MongoDB locally or ensure connection string is correct
-- [ ] Start Redis locally or ensure connection string is correct
-- [ ] Run `node server/index.js` and confirm no startup errors
-- [ ] Check `/healthz` returns `{ status: 'ok' }`
-- [ ] Check `/api/wallet` returns wallet data (with auth token)
-
-### Airtime Purchase Flow Verification
-
-- [ ] **Test 1: Happy path (MTN)**
-  - [ ] Select MTN network, enter phone `0241234567`, amount `₵10`
-  - [ ] Click "Buy Airtime"
-  - [ ] Verify: "Processing..." state shown (NOT "Purchase Successful!")
-  - [ ] Verify: `[AirtimePurchase]` log appears with `phase: 'pending_confirmation'`
-  - [ ] Verify: Transaction in DB has `status: 'pending_confirmation'`
-  - [ ] Wait for Hubtel callback (or trigger manually)
-  - [ ] Verify: Transaction status changes to `'completed'`
-  - [ ] Verify: Frontend shows "Purchase Successful!"
-
-- [ ] **Test 2: Happy path (Telecel)**
-  - [ ] Select Telecel, enter phone `0571234567`, amount `₵5`
-  - [ ] Verify: No "Invalid bundle code" error (Bug #3 fix)
-  - [ ] Verify: Same pending → confirmed flow as MTN
-
-- [ ] **Test 3: Happy path (AirtelTigo)**
-  - [ ] Select AirtelTigo, enter phone `0441234567`, amount `₵20`
-  - [ ] Verify: Same pending → confirmed flow
-
-- [ ] **Test 4: Hubtel API failure**
-  - [ ] Set invalid `HUBTEL_CLIENT_ID` temporarily
-  - [ ] Attempt purchase
-  - [ ] Verify: Error message shown, NOT success
-  - [ ] Verify: Transaction in DB has `status: 'failed'`
-  - [ ] Verify: Wallet balance NOT deducted
-
-- [ ] **Test 5: Insufficient balance**
-  - [ ] Set wallet balance to `₵1`, attempt `₵10` purchase
-  - [ ] Verify: "Insufficient wallet balance" error
-  - [ ] Verify: No transaction created
-
-### Data Purchase Flow Verification
-
-- [ ] **Test 6: Happy path (MTN data)**
-  - [ ] Select MTN, choose bundle, enter phone
-  - [ ] Verify: "Processing..." state shown
-  - [ ] Verify: `[DataPurchase]` log appears
-  - [ ] Verify: Transaction has `status: 'pending_confirmation'`
-  - [ ] Wait for callback
-  - [ ] Verify: Status changes to `'completed'`
-
-- [ ] **Test 7: Telecel data (Bug #3 regression test)**
-  - [ ] Select Telecel, verify bundles load (not MTN bundles)
-  - [ ] Complete purchase
-  - [ ] Verify: No "Invalid bundle code" error
-
-### Callback/Webhook Verification
-
-- [ ] **Test 8: Callback URL publicly accessible**
-  - [ ] From external network, `curl -X POST https://nedhubsms-production.up.railway.app/api/hubtel/airtime-callback -d '{}'`
-  - [ ] Verify: Returns `{ "error": "Missing clientReference" }` (not connection refused)
-
-- [ ] **Test 9: Callback processes pending_confirmation**
-  - [ ] Create a `pending_confirmation` transaction directly in DB
-  - [ ] POST callback with `clientReference`, `responseCode: '0000'`
-  - [ ] Verify: Transaction status changes to `'completed'`
-
-- [ ] **Test 10: Callback refunds on failure**
-  - [ ] Create a `pending_confirmation` transaction directly in DB
-  - [ ] POST callback with `responseCode: '9999'`
-  - [ ] Verify: Transaction status changes to `'failed'`
-  - [ ] Verify: Wallet balance refunded by transaction amount
-
-### Reconciliation Verification
-
-- [ ] **Test 11: Reconciliation endpoint**
-  - [ ] Create a `pending_confirmation` transaction with `createdAt` > 5 minutes ago
-  - [ ] `GET /api/transfer/reconcile` as admin
-  - [ ] Verify: Transaction status updated based on Hubtel status check
-  - [ ] Verify: `[TransactionReconciliation]` log appears
-
-### Logging Verification
-
-- [ ] **Test 12: All mandatory log tags present**
-  - [ ] `[AirtimePurchase]` — appears on airtime purchase
-  - [ ] `[DataPurchase]` — appears on data purchase
-  - [ ] `[ProviderRequest]` — appears in HubtelTransferService (as `HUBTEL_AIRTIME_BUY`/`HUBTEL_DATA_BUY`)
-  - [ ] `[ProviderResponse]` — appears in HubtelTransferService (as `HUBTEL_AIRTIME_RESPONSE`/`HUBTEL_DATA_RESPONSE`)
-  - [ ] `[Fulfillment]` — appears in callback (as `[Callback] [AirtimeCallback] COMPLETED`)
-  - [ ] `[TransactionLifecycle]` — appears on status check
-  - [ ] `[WalletDeduction]` — appears on wallet operations
-  - [ ] `[WalletRefund]` — appears on callback failure refund
-  - [ ] `[Webhook]` / `[Callback]` — appears on Hubtel callbacks
-  - [ ] `[ProviderFailure]` — appears on Hubtel API errors
-  - [ ] `[TransactionReconciliation]` — appears on reconciliation
-  - [ ] `[OperatorRouting]` — appears in HubtelTransferService network mapping
-
-### Production Readiness
-
-- [ ] **Test 13: APP_URL is set correctly**
-  - [ ] `echo $APP_URL` → should be `https://nedhubsms-production.up.railway.app`
-  - [ ] If using a custom domain, update `HUBTEL_CALLBACK_URL` to match
-
-- [ ] **Test 14: Hubtel callback URL is registered**
-  - [ ] Log into Hubtel Developer Portal
-  - [ ] Verify callback URL is set to `https://nedhubsms-production.up.railway.app/api/hubtel/airtime-callback`
-  - [ ] Verify callback URL is set to `https://nedhubsms-production.up.railway.app/api/hubtel/data-callback`
-
-- [ ] **Test 15: Hubtel credentials are valid**
-  - [ ] Verify `HUBTEL_CLIENT_ID` and `HUBTEL_CLIENT_SECRET` are correct
-  - [ ] Verify `HUBTEL_PREPAID_DEPOSIT_ID` is correct
-  - [ ] Verify account has sufficient balance for test transactions
-
-- [ ] **Test 16: Railway environment variables**
-  - [ ] All variables from the checklist above are set in Railway
-  - [ ] No variables have placeholder values (`your_*_here`)
-
----
-
-## Root Cause Summary
-
-| # | Root Cause | Severity | Fixed |
-|---|-----------|----------|-------|
-| 1 | Transaction marked `'completed'` before Hubtel API call | CRITICAL | ✅ |
-| 2 | Hubtel callback skipped already-'completed' transactions | CRITICAL | ✅ |
-| 3 | Telecel data bundles: `TELECOM` key typo → always falls back to MTN | HIGH | ✅ |
-| 4 | Phone validation rejects `233` prefix and Vodafone prefixes | MEDIUM | ✅ |
-| 5 | Frontend shows success before provider confirmation | HIGH | ✅ |
-| 6 | Transaction model missing `'pending_confirmation'` status | MEDIUM | ✅ |
-| 7 | Missing/undocumented Hubtel and APP_URL env vars | HIGH | ✅ |
-
----
-
-## Architecture Diagram (After Fix)
+### Frontend `pollTransactionStatus()` async chain
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌──────────────────────────┐
-│   Frontend   │────▶│  transfers   │────▶│   Transaction (DB)       │
-│  (buy-*.html)│     │   .js        │     │  status: pending_confirm  │
-└─────────────┘     └──────┬──────┘     └──────────────────────────┘
-                           │
-                    ┌──────▼──────┐     ┌──────────────────────────┐
-                    │   Wallet     │     │   HubtelTransferService   │
-                    │  (reserved)  │     │   .js                    │
-                    └─────────────┘     └──────┬───────────────────┘
-                                              │
-                                       ┌──────▼──────┐
-                                       │   Hubtel    │
-                                       │   Direct    │
-                                       │   API       │
-                                       └──────┬──────┘
-                                              │
-                                       ┌──────▼──────────────────┐
-                                       │  Hubtel Callback         │
-                                       │  /api/hubtel/*-callback  │
-                                       │  hubtelCallbackController│
-                                       │                         │
-                                       │  ┌──────────────────┐   │
-                                       │  │ responseCode=0000│   │
-                                       │  │  → completed     │   │
-                                       │  │ responseCode!=0  │   │
-                                       │  │  → failed+refund │   │
-                                       │  └──────────────────┘   │
-                                       └─────────────────────────┘
+setTimeout(poll, 5000)  →  poll()
+  │
+  ├─ await apiClient.request()  ✅  (now with 15s AbortController timeout)
+  │     └─ fetch() with AbortSignal  ✅
+  │
+  ├─ status === 'completed' → return (stop polling)  ✅
+  ├─ status === 'failed'    → return (stop polling)  ✅
+  └─ attempts >= 30         → stop (show timeout message)  ✅
 ```
+
+**Verdict:** ✅ All paths resolve. The AbortController prevents indefinite hangs on individual poll requests.
 
 ---
 
-## Mandatory Logging Reference
+## 4. Transaction Status Transition Map
 
-All log entries use structured JSON format. Key log tags:
+```
+pending  ──(purchase initiated)──►  pending_confirmation
+                                        │
+                          ┌─────────────┴──────────────────┐
+                          │                                  │
+              Hubtel callback success              Hubtel callback failure
+              (0000 / SUCCESS)                     (non-0000 / FAILED)
+                          │                                  │
+                          ▼                                  ▼
+                    completed                            failed
+                    (wallet already                       (wallet refunded
+                     deducted)                            by callback handler)
+                          │
+                          │  [NEW] Auto-timeout after 10 min
+                          │  (expireStalePendingConfirmations)
+                          ▼
+                       failed
+                       (wallet refunded,
+                        autoFailed: true)
+```
 
-| Tag | File | Phase |
-|-----|------|-------|
-| `[AirtimePurchase]` | `backend/routes/transfers.js` | validation_start, wallet_check_failed, transaction_created, provider_request_start, provider_request_failed, provider_request_success |
-| `[DataPurchase]` | `backend/routes/transfers.js` | Same as above |
-| `[HUBTEL_AIRTIME_BUY]` | `backend/services/HubtelTransferService.js` | Provider request sent |
-| `[HUBTEL_AIRTIME_RESPONSE]` | `backend/services/HubtelTransferService.js` | Provider response received |
-| `[HUBTEL_AIRTIME_ERROR]` | `backend/services/HubtelTransferService.js` | Provider error |
-| `[HUBTEL_DATA_BUY]` | `backend/services/HubtelTransferService.js` | Provider request sent |
-| `[HUBTEL_DATA_RESPONSE]` | `backend/services/HubtelTransferService.js` | Provider response received |
-| `[HUBTEL_DATA_ERROR]` | `backend/services/HubtelTransferService.js` | Provider error |
-| `[Callback] [AirtimeCallback]` | `backend/controllers/hubtelCallbackController.js` | Callback received, processed, completed, failed |
-| `[Callback] [DataCallback]` | `backend/controllers/hubtelCallbackController.js` | Same |
-| `[TransactionLifecycle]` | `backend/routes/transfers.js` | Status check requests |
-| `[TransactionReconciliation]` | `backend/routes/transfers.js` | Reconciliation runs |
-| `[WalletRefund]` | `backend/controllers/hubtelCallbackController.js` | Wallet refunded on callback failure |
+**Pre-fix gap:** The `pending_confirmation → failed` transition via auto-timeout did not exist. Transactions could stay in `pending_confirmation` indefinitely.
+
+---
+
+## 5. Environment Variable Verification
+
+| Variable | Purpose | Status |
+|---|---|---|
+| `HUBTEL_CLIENT_ID` | Basic Auth username for Hubtel API | ✅ Read at construction |
+| `HUBTEL_CLIENT_SECRET` | Basic Auth password for Hubtel API | ✅ Read at construction |
+| `HUBTEL_MERCHANT_ACCOUNT_NUMBER` | Merchant account (stored, not used in airtime/data paths) | ✅ Read |
+| `HUBTEL_PREPAID_DEPOSIT_ID` | Prepaid deposit account ID — injected into every endpoint URL | ✅ Read |
+| `HUBTEL_CALLBACK_URL` | Default callback URL (was used for BOTH airtime and data — **BUG**) | ⚠️ Now fallback only |
+| `HUBTEL_AIRTIME_CALLBACK_URL` | **NEW** Dedicated airtime callback URL | ✅ Added |
+| `HUBTEL_DATA_CALLBACK_URL` | **NEW** Dedicated data callback URL | ✅ Added |
+| `HUBTEL_AIRTIME_ENDPOINT` | Airtime API endpoint | ✅ Read |
+| `HUBTEL_DATA_ENDPOINT` | Data API endpoint | ✅ Read |
+| `APP_URL` | Used as fallback for callback URLs | ✅ Read |
+| `PENDING_CONFIRMATION_TIMEOUT_MS` | **NEW** Auto-fail timeout (ms) | ✅ Added |
+| `PENDING_CONFIRMATION_SCAN_INTERVAL_MS` | **NEW** Scan interval (ms) | ✅ Added |
+
+---
+
+## 6. Callback Route Registration
+
+All four callback routes are registered in `server/index.js` (lines 376–390):
+
+```js
+app.post('/api/hubtel/momo-callback',   express.json(), ...handleMomoCallback);
+app.post('/api/hubtel/bank-callback',   express.json(), ...handleBankCallback);
+app.post('/api/hubtel/airtime-callback',express.json(), ...handleAirtimeCallback);
+app.post('/api/hubtel/data-callback',   express.json(), ...handleDataCallback);
+```
+
+**Pre-fix issue:** `HUBTEL_CALLBACK_URL` was set to the airtime callback URL. Data purchases were told to use this same URL. Hubtel would POST data callbacks to the airtime endpoint, which would receive them but process them as airtime callbacks (wrong transaction type in metadata, wrong refund logic path).
+
+**Post-fix:** Each purchase type now has its own dedicated callback URL. The `HUBTEL_CALLBACK_URL` env var is retained as a backward-compatible fallback for airtime only.
+
+**Public accessibility:** The callback URLs use `APP_URL` which is set to `https://nedhubsms-production.up.railway.app` in `.env.example`. This is a public Railway domain — ✅ publicly accessible. No `localhost` or `ngrok` references remain in the callback URL construction.
+
+---
+
+## 7. Railway Outbound Networking Compatibility
+
+| Check | Result |
+|---|---|
+| Axios timeout configured | ✅ 60,000ms (60 seconds) |
+| Retry with exponential backoff | ✅ 3 retries, 2s base, 30s max |
+| Circuit breaker | ✅ 5 failures → OPEN, 60s recovery |
+| `validateStatus: status < 500` | ✅ 4xx handled in code, not thrown |
+| Timeout error categorised | ✅ `ECONNABORTED` → `[HubtelTimeout]` log + transient retry |
+| Railway outbound egress | ✅ Standard HTTPS — no special config needed |
+
+---
+
+## 8. Structured Logging Added
+
+| Tag | Location | Phase |
+|---|---|---|
+| `[AirtimeExecution]` | `transfers.js` route + `HubtelTransferService.js` | Full airtime purchase lifecycle |
+| `[DataExecution]` | `transfers.js` route + `HubtelTransferService.js` | Full data purchase lifecycle |
+| `[HubtelRequest]` | `HubtelTransferService.js` | Before every outbound Hubtel HTTP call |
+| `[HubtelResponse]` | `HubtelTransferService.js` | After every Hubtel HTTP response |
+| `[HubtelTimeout]` | `ResilientHttpClient.js` | On every detected timeout |
+| `[ProviderCatch]` | `HubtelTransferService.js` | Inside every catch block |
+| `[HubtelCallback]` | `hubtelCallbackController.js` | On every incoming Hubtel callback |
+| `[TransactionLifecycle]` | `transfers.js` status + reconcile routes | Status poll, reconciliation |
+| `[Polling]` | `buy-airtime.html`, `buy-data.html` | Each frontend poll attempt |
+
+---
+
+## 9. Files Modified
+
+| File | Changes |
+|---|---|
+| `backend/services/HubtelTransferService.js` | Per-type callback URLs, `[HubtelRequest]`/`[HubtelResponse]`/`[ProviderCatch]` logging, `_mapTransactionStatus` duplicate key fix, `expireStalePendingConfirmations()` function, constructor startup logging |
+| `backend/routes/transfers.js` | `[AirtimeExecution]`/`[DataExecution]`/`[TransactionLifecycle]` structured logging replacing `console.log(JSON.stringify(...))` |
+| `backend/controllers/hubtelCallbackController.js` | `[HubtelCallback]` structured logging replacing `console.log`/`console.error` |
+| `backend/utils/ResilientHttpClient.js` | `[HubtelTimeout]` log on timeout detection |
+| `backend/utils/logger.js` | 11 new log tag constants + tagged logger instances |
+| `server/index.js` | Automatic `expireStalePendingConfirmations` job at startup + periodic scan |
+| `backend/.env.example` | 4 new callback URL vars + 2 new timeout config vars |
+| `src/pages/dashboard/buy-airtime.html` | AbortController timeout on polling, `[Polling]` log tags |
+| `src/pages/dashboard/buy-data.html` | All 5 `TELECOM` → `TELECEL` fixes, AbortController timeout on polling, `[Polling]` log tags |
+
+---
+
+## 10. Root-Cause Summary
+
+| # | Symptom | Root Cause | Fix |
+|---|---|---|---|
+| 1 | Data purchases never confirmed, money stuck | Data callback URL = airtime callback URL (single `HUBTEL_CALLBACK_URL` used for all types) | Per-type callback URLs |
+| 2 | Transactions stuck in `pending_confirmation` forever | No auto-timeout; only manual admin reconciliation existed | `expireStalePendingConfirmations()` runs every 60s |
+| 3 | Telecel data purchases always fail validation | Frontend uses `'TELECOM'`, backend expects `'TELECEL'` | All 5 occurrences fixed |
+| 4 | Frontend polling modal hangs forever | No per-request timeout on `fetch()` in polling loop | AbortController with 15s timeout |
+| 5 | Timeout errors invisible in logs | No `[HubtelTimeout]` tag in `ResilientHttpClient` | Added to `categorizeError()` |
+| 6 | Callback events invisible in Railway logs | `console.log` in callback controller, not Winston | Replaced with `logger.[info/warn/error]` |
+| 7 | Route handler logs invisible in log files | `console.log(JSON.stringify(...))` in routes, not Winston | Replaced with `logger.[info/error]` |
+| 8 | Silent duplicate key in status map | `'FAILED'` appeared twice in `_mapTransactionStatus` object | Removed duplicate |
+
+---
+
+## 11. Recommended Production Actions
+
+1. **Set the new env vars in Railway:**
+   ```
+   HUBTEL_DATA_CALLBACK_URL=https://nedhubsms-production.up.railway.app/api/hubtel/data-callback
+   HUBTEL_AIRTIME_CALLBACK_URL=https://nedhubsms-production.up.railway.app/api/hubtel/airtime-callback
+   HUBTEL_MOMO_CALLBACK_URL=https://nedhubsms-production.up.railway.app/api/hubtel/momo-callback
+   HUBTEL_BANK_CALLBACK_URL=https://nedhubsms-production.up.railway.app/api/hubtel/bank-callback
+   PENDING_CONFIRMATION_TIMEOUT_MS=600000
+   PENDING_CONFIRMATION_SCAN_INTERVAL_MS=60000
+   ```
+
+2. **Reconcile existing stuck transactions:** Call `GET /api/transfer/reconcile` (admin only) to resolve any transactions that were stuck during the bug period.
+
+3. **Verify Hubtel callback URLs in Hubtel Developer Portal:** Ensure the callback URLs registered in your Hubtel account match the new per-type URLs above.
+
+4. **Monitor `[HubtelTimeout]` and `[TransactionLifecycle]` logs** in Railway for the first 24 hours after deploy to confirm no unexpected timeouts.
+
+5. **Verify Telecel data purchases** end-to-end after deploy (the frontend fix alone is not enough — the backend `HUBTEL_DATA_CALLBACK_URL` must also be set correctly).

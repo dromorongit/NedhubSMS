@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const ResilientHttpClient = require('../utils/ResilientHttpClient');
+const logger = require('../utils/logger');
 
 /**
  * HubtelTransferService
@@ -14,13 +15,21 @@ class HubtelTransferService {
     this.merchantAccountNumber = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER;
     this.prepaidDepositId = process.env.HUBTEL_PREPAID_DEPOSIT_ID;
     this.callbackUrl = process.env.HUBTEL_CALLBACK_URL;
-    
+    // Separate callback URLs per transaction type (HUBTEL_CALLBACK_URL may only have airtime URL)
+    this.airtimeCallbackUrl = process.env.HUBTEL_AIRTIME_CALLBACK_URL || this.callbackUrl || `${process.env.APP_URL}/api/hubtel/airtime-callback`;
+    this.dataCallbackUrl = process.env.HUBTEL_DATA_CALLBACK_URL || `${process.env.APP_URL}/api/hubtel/data-callback`;
+    this.momoCallbackUrl = process.env.HUBTEL_MOMO_CALLBACK_URL || `${process.env.APP_URL}/api/hubtel/momo-callback`;
+    this.bankCallbackUrl = process.env.HUBTEL_BANK_CALLBACK_URL || `${process.env.APP_URL}/api/hubtel/bank-callback`;
+
     // Hubtel Direct API endpoints
     this.momoEndpoint = process.env.HUBTEL_MOMO_ENDPOINT || 'https://smp.hubtel.com/api/merchants';
     this.bankEndpoint = process.env.HUBTEL_BANK_ENDPOINT || 'https://smp.hubtel.com/api/merchants';
     this.airtimeEndpoint = process.env.HUBTEL_AIRTIME_ENDPOINT || 'https://smp.hubtel.com/api/merchants';
     this.dataEndpoint = process.env.HUBTEL_DATA_ENDPOINT || 'https://smp.hubtel.com/api/merchants';
-    
+
+    // Configurable timeout for pending_confirmation auto-failure (default 10 minutes)
+    this.pendingConfirmationTimeoutMs = parseInt(process.env.PENDING_CONFIRMATION_TIMEOUT_MS) || 10 * 60 * 1000;
+
     // Basic Auth header value (computed once)
     this.basicAuthHeader = this._computeBasicAuthHeader();
 
@@ -33,6 +42,15 @@ class HubtelTransferService {
       maxDelay: 30000,
       failureThreshold: 5,
       recoveryTimeout: 60000
+    });
+
+    logger.info('[HubtelTransferService] Initialized', {
+      clientId: this.clientId ? 'configured' : 'MISSING',
+      prepaidDepositId: this.prepaidDepositId ? 'configured' : 'MISSING',
+      callbackUrl: this.callbackUrl || 'not set',
+      airtimeCallbackUrl: this.airtimeCallbackUrl,
+      dataCallbackUrl: this.dataCallbackUrl,
+      pendingConfirmationTimeoutMs: this.pendingConfirmationTimeoutMs
     });
     
     // Ghana bank codes
@@ -67,7 +85,7 @@ class HubtelTransferService {
    */
   _computeBasicAuthHeader() {
     if (!this.clientId || !this.clientSecret) {
-      console.warn('Hubtel transfer credentials not configured');
+      logger.warn('[HubtelTransferService] Hubtel credentials not configured (HUBTEL_CLIENT_ID / HUBTEL_CLIENT_SECRET missing)');
       return null;
     }
     return 'Basic ' + Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
@@ -196,15 +214,15 @@ class HubtelTransferService {
 
     try {
       const endpoint = `${this.momoEndpoint}/${this.prepaidDepositId}/send/mobilemoney`;
-      
-      console.log(JSON.stringify({
-        label: 'HUBTEL_MOMO_SEND',
-        timestamp: new Date().toISOString(),
+
+      logger.info('[HubtelRequest] [MomoSend] Dispatching request', {
         clientReference: payload.clientReference,
         recipient: payload.recipient.phone,
         network: payload.recipient.network,
-        amount: payload.amount
-      }, null, 2));
+        amount: payload.amount,
+        endpoint,
+        callbackUrl: payload.callbackUrl
+      });
 
       const response = await this.httpClient.post(endpoint, payload, {
         headers: {
@@ -215,26 +233,37 @@ class HubtelTransferService {
 
       const responseData = response.data;
 
-      console.log(JSON.stringify({
-        label: 'HUBTEL_MOMO_RESPONSE',
-        timestamp: new Date().toISOString(),
+      logger.info('[HubtelResponse] [MomoSend] Response received', {
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
-        data: responseData.data,
-        error: responseData.error,
-        status: response.status
-      }, null, 2));
+        hubtelTransactionId: responseData.data?.transactionId || responseData.data?.hubtelTransactionId,
+        httpStatus: response.status
+      });
 
       // Hubtel may return errors as { error: "message" } (e.g. 403) or
       // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
       // Check both shapes since the HTTP client is configured to not throw on 4xx.
       if (responseData.error) {
+        logger.error('[HubtelResponse] [MomoSend] Provider returned error in response body', {
+          clientReference: payload.clientReference,
+          error: responseData.error
+        });
         throw new Error(responseData.error);
       }
       if (responseData.responseCode && responseData.responseCode !== '0000') {
+        logger.error('[HubtelResponse] [MomoSend] Provider returned non-success responseCode', {
+          clientReference: payload.clientReference,
+          responseCode: responseData.responseCode,
+          responseMessage: responseData.responseMessage
+        });
         throw new Error(responseData.responseMessage || 'Mobile money transfer failed');
       }
+
+      logger.info('[HubtelResponse] [MomoSend] Request successful', {
+        clientReference: payload.clientReference,
+        hubtelTransactionId: responseData.data?.transactionId || responseData.data?.hubtelTransactionId
+      });
 
       return {
         success: true,
@@ -245,14 +274,13 @@ class HubtelTransferService {
       };
 
     } catch (error) {
-      console.error(JSON.stringify({
-        label: 'HUBTEL_MOMO_ERROR',
-        timestamp: new Date().toISOString(),
-        clientReference: payload.clientReference,
+      logger.error('[ProviderCatch] [MomoSend]', {
+        clientReference: payload?.clientReference,
         error: error.message,
-        response: error.response?.data
-      }, null, 2));
-
+        code: error.code,
+        response: error.response?.data,
+        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout')
+      });
       throw new Error(`Failed to send mobile money: ${error.message}`);
     }
   }
@@ -299,15 +327,14 @@ class HubtelTransferService {
 
     try {
       const endpoint = `${this.bankEndpoint}/${this.prepaidDepositId}/send/bank/gh/${bankCode}`;
-      
-      console.log(JSON.stringify({
-        label: 'HUBTEL_BANK_SEND',
-        timestamp: new Date().toISOString(),
+
+      logger.info('[HubtelRequest] [BankSend] Dispatching request', {
         clientReference: payload.clientReference,
         bankCode: payload.destination.bankCode,
         accountNumber: 'XXXX' + payload.destination.accountNumber.slice(-4),
-        amount: payload.amount
-      }, null, 2));
+        amount: payload.amount,
+        endpoint
+      });
 
       const response = await this.httpClient.post(endpoint, payload, {
         headers: {
@@ -318,26 +345,37 @@ class HubtelTransferService {
 
       const responseData = response.data;
 
-      console.log(JSON.stringify({
-        label: 'HUBTEL_BANK_RESPONSE',
-        timestamp: new Date().toISOString(),
+      logger.info('[HubtelResponse] [BankSend] Response received', {
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
-        data: responseData.data,
-        error: responseData.error,
-        status: response.status
-      }, null, 2));
+        hubtelTransactionId: responseData.data?.transactionId || responseData.data?.hubtelTransactionId,
+        httpStatus: response.status
+      });
 
       // Hubtel may return errors as { error: "message" } (e.g. 403) or
       // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
       // Check both shapes since the HTTP client is configured to not throw on 4xx.
       if (responseData.error) {
+        logger.error('[HubtelResponse] [BankSend] Provider returned error in response body', {
+          clientReference: payload.clientReference,
+          error: responseData.error
+        });
         throw new Error(responseData.error);
       }
       if (responseData.responseCode && responseData.responseCode !== '0000') {
+        logger.error('[HubtelResponse] [BankSend] Provider returned non-success responseCode', {
+          clientReference: payload.clientReference,
+          responseCode: responseData.responseCode,
+          responseMessage: responseData.responseMessage
+        });
         throw new Error(responseData.responseMessage || 'Bank transfer failed');
       }
+
+      logger.info('[HubtelResponse] [BankSend] Request successful', {
+        clientReference: payload.clientReference,
+        hubtelTransactionId: responseData.data?.transactionId || responseData.data?.hubtelTransactionId
+      });
 
       return {
         success: true,
@@ -348,14 +386,13 @@ class HubtelTransferService {
       };
 
     } catch (error) {
-      console.error(JSON.stringify({
-        label: 'HUBTEL_BANK_ERROR',
-        timestamp: new Date().toISOString(),
-        clientReference: payload.clientReference,
+      logger.error('[ProviderCatch] [BankSend]', {
+        clientReference: payload?.clientReference,
         error: error.message,
-        response: error.response?.data
-      }, null, 2));
-
+        code: error.code,
+        response: error.response?.data,
+        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout')
+      });
       throw new Error(`Failed to send to bank: ${error.message}`);
     }
   }
@@ -370,6 +407,8 @@ class HubtelTransferService {
       amount,
       clientReference
     } = options;
+
+    logger.info('[AirtimeExecution] buyAirtime called', { phoneNumber, network, amount, clientReference });
 
     // Validate required fields
     if (!phoneNumber) throw new Error('Phone number is required');
@@ -396,20 +435,20 @@ class HubtelTransferService {
       },
       amount: parseFloat(amount).toFixed(2),
       clientReference: clientReference || this.generateClientReference('AIRTIME'),
-      callbackUrl: this.callbackUrl || `${process.env.APP_URL}/api/hubtel/airtime-callback`
+      callbackUrl: this.airtimeCallbackUrl
     };
 
     try {
       const endpoint = `${this.airtimeEndpoint}/${this.prepaidDepositId}/buy/airtime`;
-      
-      console.log(JSON.stringify({
-        label: 'HUBTEL_AIRTIME_BUY',
-        timestamp: new Date().toISOString(),
+
+      logger.info('[HubtelRequest] [AirtimeBuy] Dispatching request to Hubtel', {
         clientReference: payload.clientReference,
         phone: payload.recipient.phone,
         network: payload.recipient.network,
-        amount: payload.amount
-      }, null, 2));
+        amount: payload.amount,
+        endpoint,
+        callbackUrl: payload.callbackUrl
+      });
 
       const response = await this.httpClient.post(endpoint, payload, {
         headers: {
@@ -420,25 +459,37 @@ class HubtelTransferService {
 
       const responseData = response.data;
 
-      console.log(JSON.stringify({
-        label: 'HUBTEL_AIRTIME_RESPONSE',
-        timestamp: new Date().toISOString(),
+      logger.info('[HubtelResponse] [AirtimeBuy] Response received from Hubtel', {
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
-        error: responseData.error,
-        status: response.status
-      }, null, 2));
+        hubtelTransactionId: responseData.data?.transactionId,
+        httpStatus: response.status
+      });
 
       // Hubtel may return errors as { error: "message" } (e.g. 403) or
       // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
       // Check both shapes since the HTTP client is configured to not throw on 4xx.
       if (responseData.error) {
+        logger.error('[HubtelResponse] [AirtimeBuy] Provider returned error in response body', {
+          clientReference: payload.clientReference,
+          error: responseData.error
+        });
         throw new Error(responseData.error);
       }
       if (responseData.responseCode && responseData.responseCode !== '0000') {
+        logger.error('[HubtelResponse] [AirtimeBuy] Provider returned non-success responseCode', {
+          clientReference: payload.clientReference,
+          responseCode: responseData.responseCode,
+          responseMessage: responseData.responseMessage
+        });
         throw new Error(responseData.responseMessage || 'Airtime purchase failed');
       }
+
+      logger.info('[HubtelResponse] [AirtimeBuy] Request successful', {
+        clientReference: payload.clientReference,
+        hubtelTransactionId: responseData.data?.transactionId
+      });
 
       return {
         success: true,
@@ -449,14 +500,14 @@ class HubtelTransferService {
       };
 
     } catch (error) {
-      console.error(JSON.stringify({
-        label: 'HUBTEL_AIRTIME_ERROR',
-        timestamp: new Date().toISOString(),
-        clientReference: payload.clientReference,
+      logger.error('[ProviderCatch] [AirtimeBuy]', {
+        clientReference: payload?.clientReference,
         error: error.message,
-        response: error.response?.data
-      }, null, 2));
-
+        code: error.code,
+        response: error.response?.data,
+        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
+        isNetworkError: !error.response
+      });
       throw new Error(`Failed to buy airtime: ${error.message}`);
     }
   }
@@ -471,6 +522,8 @@ class HubtelTransferService {
       dataBundleCode,
       clientReference
     } = options;
+
+    logger.info('[DataExecution] buyData called', { phoneNumber, network, dataBundleCode, clientReference });
 
     // Validate required fields
     if (!phoneNumber) throw new Error('Phone number is required');
@@ -495,20 +548,20 @@ class HubtelTransferService {
       },
       bundleId: dataBundleCode,
       clientReference: clientReference || this.generateClientReference('DATA'),
-      callbackUrl: this.callbackUrl || `${process.env.APP_URL}/api/hubtel/data-callback`
+      callbackUrl: this.dataCallbackUrl
     };
 
     try {
       const endpoint = `${this.dataEndpoint}/${this.prepaidDepositId}/buy/databundle`;
-      
-      console.log(JSON.stringify({
-        label: 'HUBTEL_DATA_BUY',
-        timestamp: new Date().toISOString(),
+
+      logger.info('[HubtelRequest] [DataBuy] Dispatching request to Hubtel', {
         clientReference: payload.clientReference,
         phone: payload.recipient.phone,
         network: payload.recipient.network,
-        bundleId: payload.bundleId
-      }, null, 2));
+        bundleId: payload.bundleId,
+        endpoint,
+        callbackUrl: payload.callbackUrl
+      });
 
       const response = await this.httpClient.post(endpoint, payload, {
         headers: {
@@ -519,25 +572,37 @@ class HubtelTransferService {
 
       const responseData = response.data;
 
-      console.log(JSON.stringify({
-        label: 'HUBTEL_DATA_RESPONSE',
-        timestamp: new Date().toISOString(),
+      logger.info('[HubtelResponse] [DataBuy] Response received from Hubtel', {
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
-        error: responseData.error,
-        status: response.status
-      }, null, 2));
+        hubtelTransactionId: responseData.data?.transactionId,
+        httpStatus: response.status
+      });
 
       // Hubtel may return errors as { error: "message" } (e.g. 403) or
       // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
       // Check both shapes since the HTTP client is configured to not throw on 4xx.
       if (responseData.error) {
+        logger.error('[HubtelResponse] [DataBuy] Provider returned error in response body', {
+          clientReference: payload.clientReference,
+          error: responseData.error
+        });
         throw new Error(responseData.error);
       }
       if (responseData.responseCode && responseData.responseCode !== '0000') {
+        logger.error('[HubtelResponse] [DataBuy] Provider returned non-success responseCode', {
+          clientReference: payload.clientReference,
+          responseCode: responseData.responseCode,
+          responseMessage: responseData.responseMessage
+        });
         throw new Error(responseData.responseMessage || 'Data bundle purchase failed');
       }
+
+      logger.info('[HubtelResponse] [DataBuy] Request successful', {
+        clientReference: payload.clientReference,
+        hubtelTransactionId: responseData.data?.transactionId
+      });
 
       return {
         success: true,
@@ -548,14 +613,14 @@ class HubtelTransferService {
       };
 
     } catch (error) {
-      console.error(JSON.stringify({
-        label: 'HUBTEL_DATA_ERROR',
-        timestamp: new Date().toISOString(),
-        clientReference: payload.clientReference,
+      logger.error('[ProviderCatch] [DataBuy]', {
+        clientReference: payload?.clientReference,
         error: error.message,
-        response: error.response?.data
-      }, null, 2));
-
+        code: error.code,
+        response: error.response?.data,
+        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
+        isNetworkError: !error.response
+      });
       throw new Error(`Failed to buy data bundle: ${error.message}`);
     }
   }
@@ -569,7 +634,12 @@ class HubtelTransferService {
 
     try {
       const endpoint = `${this.momoEndpoint}/transactions/${clientReference}/status`;
-      
+
+      logger.info('[HubtelRequest] [StatusCheck] Checking transaction status', {
+        clientReference,
+        endpoint
+      });
+
       const response = await this.httpClient.get(endpoint, {
         headers: {
           'Authorization': this.basicAuthHeader,
@@ -578,22 +648,30 @@ class HubtelTransferService {
       });
 
       const responseData = response.data;
-      
+      const mappedStatus = this._mapTransactionStatus(responseData.status || responseData.responseCode);
+
+      logger.info('[HubtelResponse] [StatusCheck] Status response received', {
+        clientReference,
+        rawStatus: responseData.status || responseData.responseCode,
+        mappedStatus,
+        responseCode: responseData.responseCode,
+        httpStatus: response.status
+      });
+
       return {
         success: true,
-        status: this._mapTransactionStatus(responseData.status || responseData.responseCode),
+        status: mappedStatus,
         responseCode: responseData.responseCode,
         data: responseData.data
       };
 
     } catch (error) {
-      console.error(JSON.stringify({
-        label: 'HUBTEL_STATUS_CHECK_ERROR',
-        timestamp: new Date().toISOString(),
-        clientReference: clientReference,
-        error: error.message
-      }, null, 2));
-
+      logger.error('[ProviderCatch] [StatusCheck]', {
+        clientReference,
+        error: error.message,
+        code: error.code,
+        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout')
+      });
       throw new Error(`Failed to check transaction status: ${error.message}`);
     }
   }
@@ -608,11 +686,12 @@ class HubtelTransferService {
       'PENDING': 'pending',
       'pending': 'pending',
       'FAILED': 'failed',
-      'FAILED': 'failed',
       'CANCELLED': 'cancelled',
       'cancelled': 'cancelled'
     };
-    return statusMap[status] || 'pending';
+    const mapped = statusMap[status] || 'pending';
+    logger.debug('[HubtelTransferService] Status mapped', { rawStatus: status, mappedStatus: mapped });
+    return mapped;
   }
 
   /**
@@ -637,7 +716,6 @@ class HubtelTransferService {
         { code: 'MTN-2GB', name: 'MTN 2GB (30 Days)', price: 60.00 },
         { code: 'MTN-5GB', name: 'MTN 5GB (30 Days)', price: 120.00 }
       ],
-      // FIX: Key was 'TELECOM' (typo) — frontend sends 'TELECEL', so lookup always failed
       TELECEL: [
         { code: 'TELECEL-10MB', name: 'Telecel 10MB (1 Day)', price: 1.50 },
         { code: 'TELECEL-50MB', name: 'Telecel 50MB (3 Days)', price: 3.50 },
@@ -655,13 +733,87 @@ class HubtelTransferService {
         { code: 'AIRTEL-1GB', name: 'AirtelTigo 1GB (30 Days)', price: 35.00 }
       ]
     };
-    
+
     const result = bundles[network] || bundles['MTN'];
     if (network && network !== 'MTN' && !bundles[network]) {
-      console.warn(`[HubtelTransferService] [DataBundles] Unknown network "${network}", falling back to MTN bundles`);
+      logger.warn('[HubtelTransferService] [DataBundles] Unknown network, falling back to MTN bundles', { network });
     }
     return result;
   }
 }
 
+/**
+ * Scan for transactions stuck in pending_confirmation beyond the configured timeout
+ * and mark them as failed with wallet refund.
+ * Intended to be called periodically (e.g. via a cron job or setInterval).
+ */
+async function expireStalePendingConfirmations() {
+  const Transaction = require('../models/Transaction');
+  const Wallet = require('../models/Wallet');
+  const timeoutMs = new HubtelTransferService().pendingConfirmationTimeoutMs;
+  const cutoff = new Date(Date.now() - timeoutMs);
+
+  logger.info('[TransactionLifecycle] Scanning for stale pending_confirmation transactions', {
+    cutoff: cutoff.toISOString(),
+    timeoutMs
+  });
+
+  const staleTxns = await Transaction.find({
+    status: 'pending_confirmation',
+    createdAt: { $lt: cutoff },
+    'metadata.transactionType': { $in: ['AIRTIME_PURCHASE', 'DATA_PURCHASE'] }
+  });
+
+  if (staleTxns.length === 0) {
+    logger.info('[TransactionLifecycle] No stale pending_confirmation transactions found');
+    return { scanned: 0, expired: 0, errors: 0 };
+  }
+
+  logger.warn('[TransactionLifecycle] Stale pending_confirmation transactions found', {
+    count: staleTxns.length
+  });
+
+  let expired = 0;
+  let errors = 0;
+
+  for (const tx of staleTxns) {
+    try {
+      tx.status = 'failed';
+      tx.description += ` - AUTO-FAILED: No provider callback received within ${timeoutMs / 1000}s`;
+      tx.metadata = {
+        ...tx.metadata,
+        failedAt: new Date(),
+        failureReason: `Provider did not confirm within ${timeoutMs / 1000}s timeout`,
+        autoFailed: true,
+        timeoutMs
+      };
+      await tx.save();
+
+      // Refund wallet
+      await Wallet.findOneAndUpdate(
+        { userId: tx.userId },
+        { $inc: { balance: tx.amount }, $set: { updatedAt: new Date() } }
+      );
+
+      logger.warn('[TransactionLifecycle] Transaction auto-failed and wallet refunded', {
+        reference: tx.reference,
+        userId: tx.userId,
+        amount: tx.amount,
+        type: tx.metadata.transactionType
+      });
+      expired++;
+    } catch (err) {
+      logger.error('[TransactionLifecycle] Failed to auto-expire transaction', {
+        reference: tx.reference,
+        error: err.message
+      });
+      errors++;
+    }
+  }
+
+  logger.info('[TransactionLifecycle] Stale transaction scan complete', { scanned: staleTxns.length, expired, errors });
+  return { scanned: staleTxns.length, expired, errors };
+}
+
 module.exports = new HubtelTransferService();
+module.exports.expireStalePendingConfirmations = expireStalePendingConfirmations;
