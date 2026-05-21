@@ -201,91 +201,176 @@ class HubtelCallbackController {
 
   /**
    * Handle Airtime callback
+   * CRITICAL: This is the authoritative source for final fulfillment status.
+   * The transaction is created as 'pending_confirmation' and only marked
+   * 'completed' here when Hubtel confirms successful delivery.
    */
   async handleAirtimeCallback(req, res) {
     try {
-      console.log('[Callback] Airtime callback received:', JSON.stringify(req.body, null, 2));
+      console.log('[Callback] [AirtimeCallback] Received:', JSON.stringify(req.body, null, 2));
 
-      const { clientReference, status, responseCode, responseMessage, transactionId } = req.body;
+      const { clientReference, status, responseCode, responseMessage, transactionId, amount, phoneNumber, network } = req.body;
 
       if (!clientReference) {
+        console.error('[Callback] [AirtimeCallback] Missing clientReference');
         return res.status(400).json({ error: 'Missing clientReference' });
       }
 
       const transaction = await Transaction.findOne({ reference: clientReference });
 
       if (!transaction) {
+        console.error(`[Callback] [AirtimeCallback] Transaction not found: ${clientReference}`);
         return res.status(404).json({ error: 'Transaction not found' });
       }
 
-      // Airtime is already deducted from wallet at purchase time
-      // This callback just confirms the status
-      if (transaction.status !== 'completed') {
-        const isSuccess = responseCode === '0000' || status === 'SUCCESS';
-        
-        transaction.status = isSuccess ? 'completed' : 'failed';
+      // Idempotency: if already in a terminal state, skip
+      if (transaction.status === 'completed' || transaction.status === 'failed') {
+        console.log(`[Callback] [AirtimeCallback] Already processed: ${clientReference}, status: ${transaction.status}`);
+        return res.json({ status: 'already_processed' });
+      }
+
+      // Hubtel response codes: 0000 = success
+      const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
+
+      console.log(`[Callback] [AirtimeCallback] Processing: ${clientReference}, isSuccess: ${isSuccess}, responseCode: ${responseCode}`);
+
+      if (isSuccess) {
+        // Wallet was already deducted at purchase time (balanceAfter set in route)
+        // Just confirm the transaction as completed
+        transaction.status = 'completed';
         transaction.metadata = {
           ...transaction.metadata,
           hubtelTransactionId: transactionId,
-          callbackResponse: { responseCode, responseMessage }
+          completedAt: new Date(),
+          callbackResponse: { responseCode, responseMessage },
+          providerStatus: 'delivered'
         };
-        
-        if (!isSuccess) {
-          transaction.description += ' - FAILED';
-        }
-        
         await transaction.save();
+
+        console.log(`[Callback] [AirtimeCallback] COMPLETED: ${clientReference}, amount: ${transaction.amount}, hubtelTxnId: ${transactionId}`);
+      } else {
+        // Provider failed — refund the wallet
+        transaction.status = 'failed';
+        transaction.description += ` - FAILED: ${responseMessage || 'Airtime delivery failed'}`;
+        transaction.metadata = {
+          ...transaction.metadata,
+          hubtelTransactionId: transactionId,
+          failedAt: new Date(),
+          failureReason: responseMessage || 'Airtime delivery failed',
+          callbackResponse: { responseCode, responseMessage },
+          providerStatus: 'failed'
+        };
+        await transaction.save();
+
+        // Refund wallet
+        try {
+          await Wallet.findOneAndUpdate(
+            { userId: transaction.userId },
+            {
+              $inc: { balance: transaction.amount },
+              $set: { updatedAt: new Date() }
+            }
+          );
+          console.log(`[Callback] [AirtimeCallback] Wallet refunded: ${clientReference}, amount: ${transaction.amount}`);
+        } catch (refundError) {
+          console.error(`[Callback] [AirtimeCallback] CRITICAL: Wallet refund failed for ${clientReference}:`, refundError.message);
+        }
+
+        console.log(`[Callback] [AirtimeCallback] FAILED: ${clientReference}, reason: ${responseMessage}`);
       }
 
       res.json({ status: 'processed' });
 
     } catch (error) {
-      console.error('[Callback] Airtime callback error:', error);
+      console.error('[Callback] [AirtimeCallback] Error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }
 
   /**
    * Handle Data callback
+   * CRITICAL: This is the authoritative source for final fulfillment status.
+   * The transaction is created as 'pending_confirmation' and only marked
+   * 'completed' here when Hubtel confirms successful delivery.
    */
   async handleDataCallback(req, res) {
     try {
-      console.log('[Callback] Data callback received:', JSON.stringify(req.body, null, 2));
+      console.log('[Callback] [DataCallback] Received:', JSON.stringify(req.body, null, 2));
 
-      const { clientReference, status, responseCode, responseMessage, transactionId } = req.body;
+      const { clientReference, status, responseCode, responseMessage, transactionId, amount, phoneNumber, network } = req.body;
 
       if (!clientReference) {
+        console.error('[Callback] [DataCallback] Missing clientReference');
         return res.status(400).json({ error: 'Missing clientReference' });
       }
 
       const transaction = await Transaction.findOne({ reference: clientReference });
 
       if (!transaction) {
+        console.error(`[Callback] [DataCallback] Transaction not found: ${clientReference}`);
         return res.status(404).json({ error: 'Transaction not found' });
       }
 
-      // Data is already deducted from wallet at purchase time
-      if (transaction.status !== 'completed') {
-        const isSuccess = responseCode === '0000' || status === 'SUCCESS';
-        
-        transaction.status = isSuccess ? 'completed' : 'failed';
+      // Idempotency: if already in a terminal state, skip
+      if (transaction.status === 'completed' || transaction.status === 'failed') {
+        console.log(`[Callback] [DataCallback] Already processed: ${clientReference}, status: ${transaction.status}`);
+        return res.json({ status: 'already_processed' });
+      }
+
+      // Hubtel response codes: 0000 = success
+      const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
+
+      console.log(`[Callback] [DataCallback] Processing: ${clientReference}, isSuccess: ${isSuccess}, responseCode: ${responseCode}`);
+
+      if (isSuccess) {
+        // Wallet was already deducted at purchase time (balanceAfter set in route)
+        // Just confirm the transaction as completed
+        transaction.status = 'completed';
         transaction.metadata = {
           ...transaction.metadata,
           hubtelTransactionId: transactionId,
-          callbackResponse: { responseCode, responseMessage }
+          completedAt: new Date(),
+          callbackResponse: { responseCode, responseMessage },
+          providerStatus: 'delivered'
         };
-        
-        if (!isSuccess) {
-          transaction.description += ' - FAILED';
-        }
-        
         await transaction.save();
+
+        console.log(`[Callback] [DataCallback] COMPLETED: ${clientReference}, amount: ${transaction.amount}, hubtelTxnId: ${transactionId}`);
+      } else {
+        // Provider failed — refund the wallet
+        transaction.status = 'failed';
+        transaction.description += ` - FAILED: ${responseMessage || 'Data delivery failed'}`;
+        transaction.metadata = {
+          ...transaction.metadata,
+          hubtelTransactionId: transactionId,
+          failedAt: new Date(),
+          failureReason: responseMessage || 'Data delivery failed',
+          callbackResponse: { responseCode, responseMessage },
+          providerStatus: 'failed'
+        };
+        await transaction.save();
+
+        // Refund wallet
+        try {
+          await Wallet.findOneAndUpdate(
+            { userId: transaction.userId },
+            {
+              $inc: { balance: transaction.amount },
+              $set: { updatedAt: new Date() }
+            }
+          );
+          console.log(`[Callback] [DataCallback] Wallet refunded: ${clientReference}, amount: ${transaction.amount}`);
+        } catch (refundError) {
+          console.error(`[Callback] [DataCallback] CRITICAL: Wallet refund failed for ${clientReference}:`, refundError.message);
+        }
+
+        console.log(`[Callback] [DataCallback] FAILED: ${clientReference}, reason: ${responseMessage}`);
       }
 
       res.json({ status: 'processed' });
 
     } catch (error) {
-      console.error('[Callback] Data callback error:', error);
+      console.error('[Callback] [DataCallback] Error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }

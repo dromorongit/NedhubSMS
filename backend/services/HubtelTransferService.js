@@ -86,20 +86,29 @@ class HubtelTransferService {
    * Validate phone number format (Ghana format)
    */
   validatePhoneNumber(phone) {
-    // Remove any whitespace or special characters
-    let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    // Remove any whitespace or special characters (keep digits only)
+    let cleaned = phone.replace(/\D/g, '');
     
     // Handle various formats
-    if (cleaned.startsWith('233')) {
-      cleaned = '0' + cleaned.substring(3);
-    } else if (cleaned.startsWith('+233')) {
-      cleaned = '0' + cleaned.substring(4);
-    } else if (!cleaned.startsWith('0')) {
+    if (cleaned.startsWith('233') && cleaned.length === 12) {
+      // Already in 233XXXXXXXXX format — keep as-is for API
+      // (Hubtel API accepts both 0XXXXXXXXX and 233XXXXXXXXX)
+      return cleaned;
+    } else if (cleaned.startsWith('0') && cleaned.length === 10) {
+      // 0XXXXXXXXX format — keep as-is
+      return cleaned;
+    } else if (cleaned.length === 9) {
+      // 9-digit bare number — prepend 0
       cleaned = '0' + cleaned;
+      return cleaned;
+    } else if (cleaned.startsWith('233') && cleaned.length > 12) {
+      // Too long — strip leading 233 and prepend 0
+      cleaned = '0' + cleaned.substring(3);
+      return cleaned;
     }
     
-    // Validate length and format
-    if (cleaned.length !== 10 || !/^0[5-9]\d{8}$/.test(cleaned)) {
+    // Validate final format: must be 0XXXXXXXXX (10 digits) or 233XXXXXXXXX (12 digits)
+    if (!/^0[5-9]\d{8}$/.test(cleaned) && !/^233[5-9]\d{8}$/.test(cleaned)) {
       throw new Error('Invalid Ghana phone number format');
     }
     
@@ -628,7 +637,8 @@ class HubtelTransferService {
         { code: 'MTN-2GB', name: 'MTN 2GB (30 Days)', price: 60.00 },
         { code: 'MTN-5GB', name: 'MTN 5GB (30 Days)', price: 120.00 }
       ],
-      TELECOM: [
+      // FIX: Key was 'TELECOM' (typo) — frontend sends 'TELECEL', so lookup always failed
+      TELECEL: [
         { code: 'TELECEL-10MB', name: 'Telecel 10MB (1 Day)', price: 1.50 },
         { code: 'TELECEL-50MB', name: 'Telecel 50MB (3 Days)', price: 3.50 },
         { code: 'TELECEL-100MB', name: 'Telecel 100MB (7 Days)', price: 6.00 },
@@ -646,7 +656,11 @@ class HubtelTransferService {
       ]
     };
     
-    return bundles[network] || bundles['MTN'];
+    const result = bundles[network] || bundles['MTN'];
+    if (network && network !== 'MTN' && !bundles[network]) {
+      console.warn(`[HubtelTransferService] [DataBundles] Unknown network "${network}", falling back to MTN bundles`);
+    }
+    return result;
   }
 }
 

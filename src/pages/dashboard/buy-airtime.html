@@ -1347,8 +1347,14 @@
                     if (response.error) {
                         showError(response.error);
                     } else if (response.data) {
-                        // Show success animation
-                        showSuccess(formattedPhone, amt);
+                        // Check if transaction is pending confirmation (awaiting provider callback)
+                        if (response.data.status === 'pending_confirmation') {
+                            // Show pending state — do NOT show success yet
+                            showPending(formattedPhone, amt, response.data.clientReference);
+                        } else {
+                            // Only show success if provider confirmed immediately
+                            showSuccess(formattedPhone, amt);
+                        }
                         form.reset();
                         
                         // Reset UI
@@ -1382,6 +1388,72 @@
                 setTimeout(() => {
                     successDiv.style.display = 'none';
                 }, 3000);
+            }
+
+            function showPending(phone, amount, clientReference) {
+                const successDiv = document.getElementById('successAnimation');
+                const message = document.getElementById('successMessage');
+                // Show pending state — airtime is being processed
+                message.textContent = `₵${amount.toFixed(2)} airtime for 0${phone} is being processed...`;
+                successDiv.style.display = 'block';
+                successDiv.querySelector('.success-icon').style.background = 'linear-gradient(135deg, #FFC107 0%, #FF9800 100%)';
+                successDiv.querySelector('h3').textContent = 'Processing...';
+                
+                // Poll for transaction status update
+                pollTransactionStatus(clientReference, phone, amount);
+            }
+
+            async function pollTransactionStatus(clientReference, phone, amount) {
+                const maxAttempts = 30; // Poll for up to 5 minutes (30 * 10s)
+                let attempts = 0;
+                
+                const poll = async () => {
+                    attempts++;
+                    try {
+                        const response = await window.apiClient.request('GET', `/transfer/status/${clientReference}`);
+                        if (response.data && response.data.transaction) {
+                            const status = response.data.transaction.status;
+                            console.log(`[AirtimePurchase] [TransactionLifecycle] Status poll #${attempts}: ${status}`);
+                            
+                            if (status === 'completed') {
+                                const successDiv = document.getElementById('successAnimation');
+                                const message = document.getElementById('successMessage');
+                                message.textContent = `₵${amount.toFixed(2)} sent to 0${phone}`;
+                                successDiv.querySelector('.success-icon').style.background = 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)';
+                                successDiv.querySelector('h3').textContent = 'Purchase Successful!';
+                                setTimeout(() => { successDiv.style.display = 'none'; }, 3000);
+                                loadWalletBalance();
+                                return; // Stop polling
+                            } else if (status === 'failed') {
+                                const successDiv = document.getElementById('successAnimation');
+                                const message = document.getElementById('successMessage');
+                                message.textContent = `Airtime purchase failed. Your wallet has been refunded.`;
+                                successDiv.querySelector('.success-icon').style.background = 'linear-gradient(135deg, #f44336 0%, #c62828 100%)';
+                                successDiv.querySelector('h3').textContent = 'Purchase Failed';
+                                setTimeout(() => { successDiv.style.display = 'none'; }, 5000);
+                                loadWalletBalance();
+                                return; // Stop polling
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[AirtimePurchase] [TransactionLifecycle] Status poll error:', e.message);
+                    }
+                    
+                    if (attempts < maxAttempts) {
+                        setTimeout(poll, 10000); // Poll every 10 seconds
+                    } else {
+                        // Timeout — show message to check transaction history
+                        const successDiv = document.getElementById('successAnimation');
+                        const message = document.getElementById('successMessage');
+                        message.textContent = `Status update taking longer than expected. Check your transaction history.`;
+                        successDiv.querySelector('.success-icon').style.background = 'linear-gradient(135deg, #FFC107 0%, #FF9800 100%)';
+                        successDiv.querySelector('h3').textContent = 'Pending Confirmation';
+                        setTimeout(() => { successDiv.style.display = 'none'; }, 5000);
+                    }
+                };
+                
+                // Start polling after a short delay
+                setTimeout(poll, 5000);
             }
         }
 
