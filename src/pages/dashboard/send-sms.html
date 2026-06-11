@@ -1117,17 +1117,18 @@
             try {
                 const result = await window.apiClient.createSenderId(senderId, documentType, documentFile);
                 
-                if (result.error) {
-                    showToast(result.error, 'error');
-                } else {
-                    showToast('Sender ID submitted successfully! It will be reviewed for approval.', 'success');
-                    senderIdInput.value = '';
-                    document.getElementById('documentType').value = '';
-                    document.getElementById('documentUpload').value = '';
-                    document.getElementById('filePreview').style.display = 'none';
-                    loadAllSenderIdsForModal();
-                    loadSenderIds();
-                }
+if (result.error) {
+                     window.loggers?.senderId?.error('Sender ID creation failed', { error: result.error });
+                     showToast(result.error, 'error');
+                 } else {
+                     showToast('Sender ID submitted for approval', 'success');
+                     senderIdInput.value = '';
+                     document.getElementById('documentType').value = '';
+                     document.getElementById('documentUpload').value = '';
+                     document.getElementById('filePreview').style.display = 'none';
+                     loadAllSenderIdsForModal();
+                     loadSenderIds();
+                 }
             } catch (error) {
                 console.error('Create sender ID error:', error);
                 showToast('An error occurred. Please try again.', 'error');

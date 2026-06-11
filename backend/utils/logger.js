@@ -38,7 +38,11 @@ const LogTags = {
   PROVIDER_CATCH: '[ProviderCatch]',
   POLLING: '[Polling]',
   AIRTIME_EXECUTION: '[AirtimeExecution]',
-  DATA_EXECUTION: '[DataExecution]'
+  DATA_EXECUTION: '[DataExecution]',
+  HUBTEL_AUTH: '[HubtelAuth]',
+  HUBTEL_403: '[Hubtel403]',
+  HUBTEL_VALIDATION: '[HubtelValidation]',
+  PROVIDER_FAILURE: '[ProviderFailure]'
 };
 
 // Custom format to add tag
@@ -125,5 +129,14 @@ logger.providerCatch = createTaggedLogger(LogTags.PROVIDER_CATCH);
 logger.polling = createTaggedLogger(LogTags.POLLING);
 logger.airtimeExecution = createTaggedLogger(LogTags.AIRTIME_EXECUTION);
 logger.dataExecution = createTaggedLogger(LogTags.DATA_EXECUTION);
+logger.hubtelAuth = createTaggedLogger(LogTags.HUBTEL_AUTH);
+logger.hubtel403 = createTaggedLogger(LogTags.HUBTEL_403);
+logger.hubtelValidation = createTaggedLogger(LogTags.HUBTEL_VALIDATION);
+logger.providerFailure = createTaggedLogger(LogTags.PROVIDER_FAILURE);
+logger.senderIdCreation = createTaggedLogger('[SenderIDCreation]');
+logger.senderIdApproval = createTaggedLogger('[SenderIDApprovalRequest]');
+logger.senderIdNotification = createTaggedLogger('[SenderIDNotification]');
+logger.senderIdEmail = createTaggedLogger('[SenderIDEmail]');
+logger.senderIdError = createTaggedLogger('[SenderIDError]');
 
 module.exports = logger;

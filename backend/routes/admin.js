@@ -11,6 +11,8 @@ const FinancialSummary = require('../models/FinancialSummary');
 const CostCalculatorService = require('../services/CostCalculatorService');
 const WalletService = require('../services/WalletService');
 const { logAction } = require('../utils/audit');
+const HubtelAuthAuditService = require('../services/HubtelAuthAuditService');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -801,6 +803,43 @@ router.post('/payments/fix-credited', authorize(['admin', 'super_admin']), async
   } catch (error) {
     console.error('[Admin] Bulk credit fix error:', error);
     res.status(500).json({ error: 'Failed to fix uncredited payments' });
+  }
+});
+
+// Hubtel Authorization Audit Endpoint
+router.get('/hubtel/auth-audit', authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    logger.info('[HubtelAuth] Admin initiating authorization audit');
+
+    const auditResults = await HubtelAuthAuditService.runAuthAudit();
+
+    res.json({
+      success: true,
+      message: 'Hubtel authorization audit complete',
+      overallStatus: auditResults.overallStatus,
+      checks: auditResults.checks,
+      failures: auditResults.failures,
+      warnings: auditResults.warnings,
+      summary: {
+        totalChecks: Object.keys(auditResults.checks).length,
+        failureCount: auditResults.failures.length,
+        warningCount: auditResults.warnings.length
+      }
+    });
+
+    // Log the audit report
+    HubtelAuthAuditService.logAuditReport(auditResults);
+
+  } catch (error) {
+    logger.error('[HubtelAuth] Audit error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to run Hubtel authorization audit',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
   }
 });
 

@@ -6,7 +6,8 @@ const fs = require('fs');
 const { authenticate, authorize } = require('../middleware/auth');
 const SenderId = require('../models/SenderId');
 const User = require('../models/User');
-const EmailService = require('../services/email/emailService');
+const EmailServiceClass = require('../services/EmailService');
+const logger = require('../utils/logger');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -38,6 +39,59 @@ const upload = multer({
   }
 });
 
+// ==================== Helper: Send Admin Notification ====================
+async function sendAdminNotification(senderIdRecord) {
+  try {
+    const user = await User.findById(senderIdRecord.userId).select('name email');
+    if (!user) {
+      logger.senderIdNotification.warn('User not found for admin notification', {
+        senderId: senderIdRecord.senderId,
+        userId: senderIdRecord.userId
+      });
+      return false;
+    }
+
+    const emailService = new EmailServiceClass();
+    const success = await emailService.sendAdminSenderIdRequestNotification({
+      userName: user.name || 'N/A',
+      userEmail: user.email || 'N/A',
+      senderId: senderIdRecord.senderId,
+      businessName: '',
+      documentType: senderIdRecord.documentType,
+      requestId: senderIdRecord._id.toString(),
+      submittedAt: new Date().toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+    });
+
+    if (success) {
+      logger.senderIdNotification.info('Admin notification sent for Sender ID request', {
+        senderId: senderIdRecord.senderId,
+        requestId: senderIdRecord._id.toString(),
+        userEmail: user.email
+      });
+    } else {
+      logger.senderIdNotification.error('Failed to send admin notification for Sender ID request', {
+        senderId: senderIdRecord.senderId,
+        requestId: senderIdRecord._id.toString()
+      });
+    }
+    return success;
+  } catch (err) {
+    logger.senderIdEmail.error('Exception in sendAdminNotification', {
+      error: err.message,
+      stack: err.stack,
+      senderId: senderIdRecord?.senderId
+    });
+    return false;
+  }
+}
+
 // Request new Sender ID with document upload
 router.post('/', authenticate, upload.single('document'), async (req, res) => {
   try {
@@ -57,10 +111,45 @@ router.post('/', authenticate, upload.single('document'), async (req, res) => {
       return res.status(400).json({ error: 'Document upload is required' });
     }
 
-    // Check if Sender ID already exists
-    const existingSenderId = await SenderId.findOne({ senderId });
-    if (existingSenderId) {
-      return res.status(400).json({ error: 'Sender ID already exists' });
+    // Check if Sender ID already exists for current user with pending/approved status
+    // Note: senderId is unique globally, so we check if any existing record has pending/approved
+    const existingPendingOrApproved = await SenderId.findOne({ 
+      senderId, 
+      status: { $in: ['pending', 'approved'] } 
+    });
+    if (existingPendingOrApproved) {
+      logger.senderIdCreation.warn('Duplicate Sender ID submission blocked', {
+        senderId,
+        userId,
+        existingId: existingPendingOrApproved._id.toString(),
+        existingStatus: existingPendingOrApproved.status
+      });
+      return res.status(400).json({ 
+        error: existingPendingOrApproved.status === 'pending' 
+          ? 'Sender ID already submitted and pending approval' 
+          : 'Sender ID already approved' 
+      });
+    }
+
+    // If Sender ID exists with rejected status, only allow resubmission by same user
+    const rejectedSenderId = await SenderId.findOne({ senderId, status: 'rejected' });
+    if (rejectedSenderId) {
+      // Only the original user can resubmit; other users cannot take a rejected senderId
+      if (rejectedSenderId.userId.toString() !== userId) {
+        logger.senderIdCreation.warn('Rejected Sender ID resubmission blocked - different user', {
+          senderId,
+          userId,
+          rejectedByUserId: rejectedSenderId.userId.toString()
+        });
+        return res.status(400).json({ 
+          error: 'This Sender ID is not available' 
+        });
+      }
+      logger.senderIdCreation.info('Replacing rejected Sender ID for resubmission', {
+        senderId,
+        userId
+      });
+      await SenderId.deleteOne({ senderId, status: 'rejected' });
     }
 
     // Create new Sender ID request with document
@@ -75,35 +164,21 @@ router.post('/', authenticate, upload.single('document'), async (req, res) => {
 
     await newSenderId.save();
 
-    // Send admin notification (non-blocking - don't fail request if this fails)
-    // First get user details for the notification
-    const user = await User.findById(userId).select('name email');
-    if (user) {
-      EmailService.sendAdminSenderIdRequestNotification({
-        userName: user.name || 'N/A',
-        userEmail: user.email || 'N/A',
-        senderId: newSenderId.senderId,
-        businessName: '', // Could be extended to collect this
-        documentType: newSenderId.documentType,
-        requestId: newSenderId._id.toString(),
-        submittedAt: new Date().toLocaleString('en-GB', { 
-          day: '2-digit', 
-          month: '2-digit', 
-          year: 'numeric', 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        })
-      })
-        .then(success => {
-          if (success) {
-            console.log(`[SENDER_ID] Admin notification sent for request: ${newSenderId.senderId}`);
-          }
-        })
-        .catch(err => {
-          console.error(`[SENDER_ID][ERROR] Failed to send admin notification:`, err.message);
-        });
-    }
+    logger.senderIdCreation.info('Sender ID created successfully', {
+      senderId: newSenderId.senderId,
+      requestId: newSenderId._id.toString(),
+      userId,
+      status: newSenderId.status
+    });
+
+    // Send admin notification (non-blocking side effect - never fails the request)
+    // Fire and forget - run in background after response is sent
+    sendAdminNotification(newSenderId).catch(err => {
+      logger.senderIdNotification.error('Background admin notification failed', {
+        error: err.message,
+        senderId: newSenderId.senderId
+      });
+    });
 
     res.status(201).json({
       message: 'Sender ID request submitted successfully with document',
@@ -112,7 +187,12 @@ router.post('/', authenticate, upload.single('document'), async (req, res) => {
       documentType: newSenderId.documentType
     });
   } catch (error) {
-    console.error(error);
+    logger.senderIdError.error('Sender ID creation error', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user?.userId,
+      senderId: req.body?.senderId
+    });
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -136,7 +216,10 @@ router.get('/', authenticate, async (req, res) => {
 
     res.json({ senderIds: sanitizedSenderIds });
   } catch (error) {
-    console.error(error);
+    logger.api.error('Get Sender IDs error', {
+      error: error.message,
+      userId: req.user?.userId
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -148,7 +231,9 @@ router.get('/admin/all', authenticate, authorize(['admin']), async (req, res) =>
 
     res.json({ senderIds });
   } catch (error) {
-    console.error(error);
+    logger.api.error('Admin get Sender IDs error', {
+      error: error.message
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -168,13 +253,22 @@ router.put('/:id/approve', authenticate, authorize(['admin']), async (req, res) 
     senderId.remarks = remarks || '';
     await senderId.save();
 
+    logger.senderIdApproval.info('Sender ID approved', {
+      senderId: senderId.senderId,
+      requestId: senderId._id.toString(),
+      adminRemarks: remarks || ''
+    });
+
     res.json({
       message: 'Sender ID approved successfully',
       senderId: senderId.senderId,
       status: senderId.status
     });
   } catch (error) {
-    console.error(error);
+    logger.senderIdApproval.error('Sender ID approval error', {
+      error: error.message,
+      requestId: req.params?.id
+    });
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -194,13 +288,22 @@ router.put('/:id/reject', authenticate, authorize(['admin']), async (req, res) =
     senderId.remarks = remarks || '';
     await senderId.save();
 
+    logger.senderIdApproval.info('Sender ID rejected', {
+      senderId: senderId.senderId,
+      requestId: senderId._id.toString(),
+      adminRemarks: remarks || ''
+    });
+
     res.json({
       message: 'Sender ID rejected successfully',
       senderId: senderId.senderId,
       status: senderId.status
     });
   } catch (error) {
-    console.error(error);
+    logger.senderIdApproval.error('Sender ID rejection error', {
+      error: error.message,
+      requestId: req.params?.id
+    });
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });

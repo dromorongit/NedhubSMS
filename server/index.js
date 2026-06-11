@@ -443,8 +443,16 @@ try {
     // Start automatic pending_confirmation timeout recovery job
     try {
       const { expireStalePendingConfirmations } = require('../backend/services/HubtelTransferService');
+      const HubtelAuthAuditService = require('../backend/services/HubtelAuthAuditService');
       const pendingTimeoutMs = parseInt(process.env.PENDING_CONFIRMATION_TIMEOUT_MS) || 10 * 60 * 1000;
       const scanIntervalMs = parseInt(process.env.PENDING_CONFIRMATION_SCAN_INTERVAL_MS) || 60 * 1000;
+
+      // Run Hubtel authorization audit at startup
+      HubtelAuthAuditService.runAuthAudit().then(auditResults => {
+        HubtelAuthAuditService.logAuditReport(auditResults);
+      }).catch(err => {
+        logger.error('[HubtelAuth] Startup audit failed', { error: err.message });
+      });
 
       // Run once at startup
       expireStalePendingConfirmations().catch(err =>

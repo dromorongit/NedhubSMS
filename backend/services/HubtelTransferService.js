@@ -2,6 +2,14 @@ const crypto = require('crypto');
 const ResilientHttpClient = require('../utils/ResilientHttpClient');
 const logger = require('../utils/logger');
 
+// Log tags for structured logging
+const LogTags = {
+  HUBTEL_AUTH: '[HubtelAuth]',
+  HUBTEL_403: '[Hubtel403]',
+  HUBTEL_VALIDATION: '[HubtelValidation]',
+  PROVIDER_FAILURE: '[ProviderFailure]'
+};
+
 /**
  * HubtelTransferService
  * Handles Hubtel Direct API for Mobile Money, Bank Transfers, Airtime and Data
@@ -80,15 +88,83 @@ class HubtelTransferService {
     };
   }
 
-  /**
-   * Compute Basic Auth header from client credentials
-   */
+/**
+    * Compute Basic Auth header from client credentials
+    */
   _computeBasicAuthHeader() {
     if (!this.clientId || !this.clientSecret) {
-      logger.warn('[HubtelTransferService] Hubtel credentials not configured (HUBTEL_CLIENT_ID / HUBTEL_CLIENT_SECRET missing)');
+      logger.warn(LogTags.HUBTEL_AUTH + ' Hubtel credentials not configured');
       return null;
     }
     return 'Basic ' + Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
+  }
+
+  /**
+   * Mask client ID for logging (show first 4 and last 4 chars)
+   */
+  _maskClientId(clientId) {
+    if (!clientId) return 'NOT_CONFIGURED';
+    if (clientId.length <= 8) return '****' + clientId.slice(-4);
+    return clientId.slice(0, 4) + '****' + clientId.slice(-4);
+  }
+
+  /**
+   * Log full Hubtel response body for non-2xx responses with authorization context
+   */
+  _logNon2xxResponse(response, context) {
+    if (!response) return;
+
+    const status = response.status;
+    const data = response.data;
+
+    if (status >= 200 && status < 300) return;
+
+    const maskedClientId = this._maskClientId(this.clientId);
+
+    logger.error(LogTags.HUBTEL_AUTH + ' Non-2xx response received', {
+      ...context,
+      httpStatus: status,
+      endpointUrl: response.config?.url || context.endpoint,
+      merchantAccountNumber: this.merchantAccountNumber || 'NOT_CONFIGURED',
+      prepaidDepositId: this.prepaidDepositId || 'NOT_CONFIGURED',
+      clientIdHash: maskedClientId,
+      callbackUrl: this.airtimeCallbackUrl,
+      fullResponseBody: JSON.stringify(data),
+      responseHeaders: response.headers
+    });
+
+    if (status === 403) {
+      logger.error(LogTags.HUBTEL_403 + ' Authorization denied by Hubtel', {
+        ...context,
+        httpStatus: status,
+        endpointUrl: response.config?.url || context.endpoint,
+        merchantAccountNumber: this.merchantAccountNumber || 'NOT_CONFIGURED',
+        prepaidDepositId: this.prepaidDepositId || 'NOT_CONFIGURED',
+        clientIdHash: maskedClientId,
+        callbackUrl: this.airtimeCallbackUrl,
+        fullErrorPayload: JSON.stringify(data),
+        errorCode: data?.error || data?.responseCode || 'UNKNOWN',
+        errorMessage: data?.message || data?.responseMessage || data?.error || 'Access forbidden'
+      });
+    }
+
+    if (status >= 400 && status < 500) {
+      logger.error(LogTags.HUBTEL_VALIDATION + ' Client error from Hubtel', {
+        ...context,
+        httpStatus: status,
+        endpointUrl: response.config?.url || context.endpoint,
+        errorMsg: data?.error || data?.responseMessage || 'Unknown client error'
+      });
+    }
+
+    if (status >= 500) {
+      logger.error(LogTags.PROVIDER_FAILURE + ' Server error from Hubtel', {
+        ...context,
+        httpStatus: status,
+        endpointUrl: response.config?.url || context.endpoint,
+        errorMsg: data?.error || 'Unknown server error'
+      });
+    }
   }
 
   /**
@@ -164,9 +240,9 @@ class HubtelTransferService {
     return networks[prefix] || 'MTN'; // Default to MTN if unknown
   }
 
-  /**
-   * Send Mobile Money (MTN, Telecel, AirtelTigo)
-   */
+/**
+    * Send Mobile Money (MTN, Telecel, AirtelTigo)
+    */
   async sendMobileMoney(options) {
     const {
       recipientPhone,
@@ -176,6 +252,15 @@ class HubtelTransferService {
       clientReference,
       network
     } = options;
+
+    logger.info(LogTags.HUBTEL_VALIDATION + ' [MomoSend] Request initiated', {
+      recipientPhone,
+      network,
+      amount,
+      clientReference,
+      merchantAccountNumber: this.merchantAccountNumber || 'NOT_CONFIGURED',
+      prepaidDepositId: this.prepaidDepositId || 'NOT_CONFIGURED'
+    });
 
     // Validate required fields
     if (!recipientPhone) throw new Error('Recipient phone number is required');
@@ -215,13 +300,16 @@ class HubtelTransferService {
     try {
       const endpoint = `${this.momoEndpoint}/${this.prepaidDepositId}/send/mobilemoney`;
 
-      logger.info('[HubtelRequest] [MomoSend] Dispatching request', {
+      logger.info(LogTags.HUBTEL_AUTH + ' [MomoSend] Dispatching request', {
         clientReference: payload.clientReference,
         recipient: payload.recipient.phone,
         network: payload.recipient.network,
         amount: payload.amount,
-        endpoint,
-        callbackUrl: payload.callbackUrl
+        endpointUrl: endpoint,
+        callbackUrl: payload.callbackUrl,
+        merchantAccountNumber: this.merchantAccountNumber,
+        prepaidDepositId: this.prepaidDepositId,
+        clientIdHash: this._maskClientId(this.clientId)
       });
 
       const response = await this.httpClient.post(endpoint, payload, {
@@ -233,34 +321,52 @@ class HubtelTransferService {
 
       const responseData = response.data;
 
-      logger.info('[HubtelResponse] [MomoSend] Response received', {
+      // Log non-2xx responses with full body
+      this._logNon2xxResponse(response, {
+        check: 'momo_send',
+        clientReference: payload.clientReference
+      });
+
+      logger.info(LogTags.HUBTEL_RESPONSE + ' [MomoSend] Response received', {
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
         hubtelTransactionId: responseData.data?.transactionId || responseData.data?.hubtelTransactionId,
-        httpStatus: response.status
+        httpStatus: response.status,
+        is403: response.status === 403
       });
+
+      // CRITICAL: HTTP 403 must be treated as failure, not success
+      if (response.status === 403) {
+        logger.error(LogTags.HUBTEL_403 + ' [MomoSend] Treating 403 as failure', {
+          clientReference: payload.clientReference,
+          fullErrorPayload: responseData
+        });
+        throw new Error(responseData?.error || responseData?.responseMessage || 'Authorization failed (403)');
+      }
 
       // Hubtel may return errors as { error: "message" } (e.g. 403) or
       // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
       // Check both shapes since the HTTP client is configured to not throw on 4xx.
       if (responseData.error) {
-        logger.error('[HubtelResponse] [MomoSend] Provider returned error in response body', {
+        logger.error(LogTags.HUBTEL_RESPONSE + ' [MomoSend] Provider returned error in response body', {
           clientReference: payload.clientReference,
-          error: responseData.error
+          error: responseData.error,
+          fullResponseBody: responseData
         });
         throw new Error(responseData.error);
       }
       if (responseData.responseCode && responseData.responseCode !== '0000') {
-        logger.error('[HubtelResponse] [MomoSend] Provider returned non-success responseCode', {
+        logger.error(LogTags.HUBTEL_RESPONSE + ' [MomoSend] Provider returned non-success responseCode', {
           clientReference: payload.clientReference,
           responseCode: responseData.responseCode,
-          responseMessage: responseData.responseMessage
+          responseMessage: responseData.responseMessage,
+          fullResponseBody: responseData
         });
         throw new Error(responseData.responseMessage || 'Mobile money transfer failed');
       }
 
-      logger.info('[HubtelResponse] [MomoSend] Request successful', {
+      logger.info(LogTags.HUBTEL_RESPONSE + ' [MomoSend] Request successful', {
         clientReference: payload.clientReference,
         hubtelTransactionId: responseData.data?.transactionId || responseData.data?.hubtelTransactionId
       });
@@ -274,20 +380,23 @@ class HubtelTransferService {
       };
 
     } catch (error) {
-      logger.error('[ProviderCatch] [MomoSend]', {
+      logger.error(LogTags.PROVIDER_FAILURE + ' [MomoSend] Request failed', {
         clientReference: payload?.clientReference,
         error: error.message,
         code: error.code,
         response: error.response?.data,
-        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout')
+        httpStatus: error.response?.status,
+        fullErrorPayload: error.response?.data,
+        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
+        isNetworkError: !error.response
       });
       throw new Error(`Failed to send mobile money: ${error.message}`);
     }
   }
 
-  /**
-   * Send to Bank Account
-   */
+/**
+    * Send to Bank Account
+    */
   async sendToBank(options) {
     const {
       bankCode,
@@ -297,6 +406,14 @@ class HubtelTransferService {
       description,
       clientReference
     } = options;
+
+    logger.info(LogTags.HUBTEL_VALIDATION + ' [BankSend] Request initiated', {
+      bankCode,
+      amount,
+      clientReference,
+      merchantAccountNumber: this.merchantAccountNumber || 'NOT_CONFIGURED',
+      prepaidDepositId: this.prepaidDepositId || 'NOT_CONFIGURED'
+    });
 
     // Validate required fields
     if (!bankCode) throw new Error('Bank code is required');
@@ -328,12 +445,15 @@ class HubtelTransferService {
     try {
       const endpoint = `${this.bankEndpoint}/${this.prepaidDepositId}/send/bank/gh/${bankCode}`;
 
-      logger.info('[HubtelRequest] [BankSend] Dispatching request', {
+      logger.info(LogTags.HUBTEL_AUTH + ' [BankSend] Dispatching request', {
         clientReference: payload.clientReference,
         bankCode: payload.destination.bankCode,
         accountNumber: 'XXXX' + payload.destination.accountNumber.slice(-4),
         amount: payload.amount,
-        endpoint
+        endpointUrl: endpoint,
+        merchantAccountNumber: this.merchantAccountNumber,
+        prepaidDepositId: this.prepaidDepositId,
+        clientIdHash: this._maskClientId(this.clientId)
       });
 
       const response = await this.httpClient.post(endpoint, payload, {
@@ -345,34 +465,52 @@ class HubtelTransferService {
 
       const responseData = response.data;
 
-      logger.info('[HubtelResponse] [BankSend] Response received', {
+      // Log non-2xx responses with full body
+      this._logNon2xxResponse(response, {
+        check: 'bank_send',
+        clientReference: payload.clientReference
+      });
+
+      logger.info(LogTags.HUBTEL_RESPONSE + ' [BankSend] Response received', {
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
         hubtelTransactionId: responseData.data?.transactionId || responseData.data?.hubtelTransactionId,
-        httpStatus: response.status
+        httpStatus: response.status,
+        is403: response.status === 403
       });
+
+      // CRITICAL: HTTP 403 must be treated as failure, not success
+      if (response.status === 403) {
+        logger.error(LogTags.HUBTEL_403 + ' [BankSend] Treating 403 as failure', {
+          clientReference: payload.clientReference,
+          fullErrorPayload: responseData
+        });
+        throw new Error(responseData?.error || responseData?.responseMessage || 'Authorization failed (403)');
+      }
 
       // Hubtel may return errors as { error: "message" } (e.g. 403) or
       // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
       // Check both shapes since the HTTP client is configured to not throw on 4xx.
       if (responseData.error) {
-        logger.error('[HubtelResponse] [BankSend] Provider returned error in response body', {
+        logger.error(LogTags.HUBTEL_RESPONSE + ' [BankSend] Provider returned error in response body', {
           clientReference: payload.clientReference,
-          error: responseData.error
+          error: responseData.error,
+          fullResponseBody: responseData
         });
         throw new Error(responseData.error);
       }
       if (responseData.responseCode && responseData.responseCode !== '0000') {
-        logger.error('[HubtelResponse] [BankSend] Provider returned non-success responseCode', {
+        logger.error(LogTags.HUBTEL_RESPONSE + ' [BankSend] Provider returned non-success responseCode', {
           clientReference: payload.clientReference,
           responseCode: responseData.responseCode,
-          responseMessage: responseData.responseMessage
+          responseMessage: responseData.responseMessage,
+          fullResponseBody: responseData
         });
         throw new Error(responseData.responseMessage || 'Bank transfer failed');
       }
 
-      logger.info('[HubtelResponse] [BankSend] Request successful', {
+      logger.info(LogTags.HUBTEL_RESPONSE + ' [BankSend] Request successful', {
         clientReference: payload.clientReference,
         hubtelTransactionId: responseData.data?.transactionId || responseData.data?.hubtelTransactionId
       });
@@ -386,12 +524,15 @@ class HubtelTransferService {
       };
 
     } catch (error) {
-      logger.error('[ProviderCatch] [BankSend]', {
+      logger.error(LogTags.PROVIDER_FAILURE + ' [BankSend] Request failed', {
         clientReference: payload?.clientReference,
         error: error.message,
         code: error.code,
         response: error.response?.data,
-        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout')
+        httpStatus: error.response?.status,
+        fullErrorPayload: error.response?.data,
+        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
+        isNetworkError: !error.response
       });
       throw new Error(`Failed to send to bank: ${error.message}`);
     }
@@ -408,7 +549,14 @@ class HubtelTransferService {
       clientReference
     } = options;
 
-    logger.info('[AirtimeExecution] buyAirtime called', { phoneNumber, network, amount, clientReference });
+    logger.info(LogTags.HUBTEL_VALIDATION + ' [AirtimeBuy] Request initiated', {
+      phoneNumber,
+      network,
+      amount,
+      clientReference,
+      merchantAccountNumber: this.merchantAccountNumber || 'NOT_CONFIGURED',
+      prepaidDepositId: this.prepaidDepositId || 'NOT_CONFIGURED'
+    });
 
     // Validate required fields
     if (!phoneNumber) throw new Error('Phone number is required');
@@ -441,13 +589,16 @@ class HubtelTransferService {
     try {
       const endpoint = `${this.airtimeEndpoint}/${this.prepaidDepositId}/buy/airtime`;
 
-      logger.info('[HubtelRequest] [AirtimeBuy] Dispatching request to Hubtel', {
+      logger.info(LogTags.HUBTEL_AUTH + ' [AirtimeBuy] Dispatching request to Hubtel', {
         clientReference: payload.clientReference,
         phone: payload.recipient.phone,
         network: payload.recipient.network,
         amount: payload.amount,
-        endpoint,
-        callbackUrl: payload.callbackUrl
+        endpointUrl: endpoint,
+        callbackUrl: payload.callbackUrl,
+        merchantAccountNumber: this.merchantAccountNumber,
+        prepaidDepositId: this.prepaidDepositId,
+        clientIdHash: this._maskClientId(this.clientId)
       });
 
       const response = await this.httpClient.post(endpoint, payload, {
@@ -459,34 +610,52 @@ class HubtelTransferService {
 
       const responseData = response.data;
 
-      logger.info('[HubtelResponse] [AirtimeBuy] Response received from Hubtel', {
+      // Log non-2xx responses with full body
+      this._logNon2xxResponse(response, {
+        check: 'airtime_purchase',
+        clientReference: payload.clientReference
+      });
+
+      logger.info(LogTags.HUBTEL_RESPONSE + ' [AirtimeBuy] Response received from Hubtel', {
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
         hubtelTransactionId: responseData.data?.transactionId,
-        httpStatus: response.status
+        httpStatus: response.status,
+        is403: response.status === 403
       });
+
+      // CRITICAL: HTTP 403 must be treated as failure, not success
+      if (response.status === 403) {
+        logger.error(LogTags.HUBTEL_403 + ' [AirtimeBuy] Treating 403 as failure', {
+          clientReference: payload.clientReference,
+          fullErrorPayload: responseData
+        });
+        throw new Error(responseData?.error || responseData?.responseMessage || 'Authorization failed (403)');
+      }
 
       // Hubtel may return errors as { error: "message" } (e.g. 403) or
       // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
       // Check both shapes since the HTTP client is configured to not throw on 4xx.
       if (responseData.error) {
-        logger.error('[HubtelResponse] [AirtimeBuy] Provider returned error in response body', {
+        logger.error(LogTags.HUBTEL_RESPONSE + ' [AirtimeBuy] Provider returned error in response body', {
           clientReference: payload.clientReference,
-          error: responseData.error
+          error: responseData.error,
+          fullResponseBody: responseData
         });
         throw new Error(responseData.error);
       }
       if (responseData.responseCode && responseData.responseCode !== '0000') {
-        logger.error('[HubtelResponse] [AirtimeBuy] Provider returned non-success responseCode', {
+        logger.error(LogTags.HUBTEL_RESPONSE + ' [AirtimeBuy] Provider returned non-success responseCode', {
           clientReference: payload.clientReference,
           responseCode: responseData.responseCode,
-          responseMessage: responseData.responseMessage
+          responseMessage: responseData.responseMessage,
+          fullResponseBody: responseData
         });
         throw new Error(responseData.responseMessage || 'Airtime purchase failed');
       }
 
-      logger.info('[HubtelResponse] [AirtimeBuy] Request successful', {
+      logger.info(LogTags.HUBTEL_RESPONSE + ' [AirtimeBuy] Request successful', {
         clientReference: payload.clientReference,
         hubtelTransactionId: responseData.data?.transactionId
       });
@@ -500,11 +669,13 @@ class HubtelTransferService {
       };
 
     } catch (error) {
-      logger.error('[ProviderCatch] [AirtimeBuy]', {
+      logger.error(LogTags.PROVIDER_FAILURE + ' [AirtimeBuy] Request failed', {
         clientReference: payload?.clientReference,
         error: error.message,
         code: error.code,
         response: error.response?.data,
+        httpStatus: error.response?.status,
+        fullErrorPayload: error.response?.data,
         isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
         isNetworkError: !error.response
       });
@@ -523,7 +694,14 @@ class HubtelTransferService {
       clientReference
     } = options;
 
-    logger.info('[DataExecution] buyData called', { phoneNumber, network, dataBundleCode, clientReference });
+    logger.info(LogTags.HUBTEL_VALIDATION + ' [DataBuy] Request initiated', {
+      phoneNumber,
+      network,
+      dataBundleCode,
+      clientReference,
+      merchantAccountNumber: this.merchantAccountNumber || 'NOT_CONFIGURED',
+      prepaidDepositId: this.prepaidDepositId || 'NOT_CONFIGURED'
+    });
 
     // Validate required fields
     if (!phoneNumber) throw new Error('Phone number is required');
@@ -554,13 +732,16 @@ class HubtelTransferService {
     try {
       const endpoint = `${this.dataEndpoint}/${this.prepaidDepositId}/buy/databundle`;
 
-      logger.info('[HubtelRequest] [DataBuy] Dispatching request to Hubtel', {
+      logger.info(LogTags.HUBTEL_AUTH + ' [DataBuy] Dispatching request to Hubtel', {
         clientReference: payload.clientReference,
         phone: payload.recipient.phone,
         network: payload.recipient.network,
         bundleId: payload.bundleId,
-        endpoint,
-        callbackUrl: payload.callbackUrl
+        endpointUrl: endpoint,
+        callbackUrl: payload.callbackUrl,
+        merchantAccountNumber: this.merchantAccountNumber,
+        prepaidDepositId: this.prepaidDepositId,
+        clientIdHash: this._maskClientId(this.clientId)
       });
 
       const response = await this.httpClient.post(endpoint, payload, {
@@ -572,34 +753,52 @@ class HubtelTransferService {
 
       const responseData = response.data;
 
-      logger.info('[HubtelResponse] [DataBuy] Response received from Hubtel', {
+      // Log non-2xx responses with full body
+      this._logNon2xxResponse(response, {
+        check: 'data_purchase',
+        clientReference: payload.clientReference
+      });
+
+      logger.info(LogTags.HUBTEL_RESPONSE + ' [DataBuy] Response received from Hubtel', {
         clientReference: payload.clientReference,
         responseCode: responseData.responseCode,
         responseMessage: responseData.responseMessage,
         hubtelTransactionId: responseData.data?.transactionId,
-        httpStatus: response.status
+        httpStatus: response.status,
+        is403: response.status === 403
       });
+
+      // CRITICAL: HTTP 403 must be treated as failure, not success
+      if (response.status === 403) {
+        logger.error(LogTags.HUBTEL_403 + ' [DataBuy] Treating 403 as failure', {
+          clientReference: payload.clientReference,
+          fullErrorPayload: responseData
+        });
+        throw new Error(responseData?.error || responseData?.responseMessage || 'Authorization failed (403)');
+      }
 
       // Hubtel may return errors as { error: "message" } (e.g. 403) or
       // as { responseCode: "XXXX", responseMessage: "..." } (e.g. 200 with error code).
       // Check both shapes since the HTTP client is configured to not throw on 4xx.
       if (responseData.error) {
-        logger.error('[HubtelResponse] [DataBuy] Provider returned error in response body', {
+        logger.error(LogTags.HUBTEL_RESPONSE + ' [DataBuy] Provider returned error in response body', {
           clientReference: payload.clientReference,
-          error: responseData.error
+          error: responseData.error,
+          fullResponseBody: responseData
         });
         throw new Error(responseData.error);
       }
       if (responseData.responseCode && responseData.responseCode !== '0000') {
-        logger.error('[HubtelResponse] [DataBuy] Provider returned non-success responseCode', {
+        logger.error(LogTags.HUBTEL_RESPONSE + ' [DataBuy] Provider returned non-success responseCode', {
           clientReference: payload.clientReference,
           responseCode: responseData.responseCode,
-          responseMessage: responseData.responseMessage
+          responseMessage: responseData.responseMessage,
+          fullResponseBody: responseData
         });
         throw new Error(responseData.responseMessage || 'Data bundle purchase failed');
       }
 
-      logger.info('[HubtelResponse] [DataBuy] Request successful', {
+      logger.info(LogTags.HUBTEL_RESPONSE + ' [DataBuy] Request successful', {
         clientReference: payload.clientReference,
         hubtelTransactionId: responseData.data?.transactionId
       });
@@ -613,11 +812,13 @@ class HubtelTransferService {
       };
 
     } catch (error) {
-      logger.error('[ProviderCatch] [DataBuy]', {
+      logger.error(LogTags.PROVIDER_FAILURE + ' [DataBuy] Request failed', {
         clientReference: payload?.clientReference,
         error: error.message,
         code: error.code,
         response: error.response?.data,
+        httpStatus: error.response?.status,
+        fullErrorPayload: error.response?.data,
         isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
         isNetworkError: !error.response
       });

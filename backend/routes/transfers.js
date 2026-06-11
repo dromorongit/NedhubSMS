@@ -6,6 +6,14 @@ const Transaction = require('../models/Transaction');
 const HubtelTransferService = require('../services/HubtelTransferService');
 const logger = require('../utils/logger');
 
+// Log tags for structured logging
+const LogTags = {
+  HUBTEL_AUTH: '[HubtelAuth]',
+  HUBTEL_403: '[Hubtel403]',
+  HUBTEL_VALIDATION: '[HubtelValidation]',
+  PROVIDER_FAILURE: '[ProviderFailure]'
+};
+
 /**
  * POST /api/transfer/airtime
  * Buy airtime for phone number
@@ -120,42 +128,72 @@ router.post('/airtime', authenticate, async (req, res) => {
      phase: 'provider_request_start'
    });
 
-   // Initiate airtime purchase with Hubtel
-   let hubtelResult;
-   try {
-     hubtelResult = await HubtelTransferService.buyAirtime({
-       phoneNumber,
-       network,
-       amount,
-       clientReference
-     });
-   } catch (hubtelError) {
-     logger.error('[AirtimeExecution] Provider request failed', {
-       userId, clientReference, phoneNumber, network, amount,
-       phase: 'provider_request_failed',
-       error: hubtelError.message,
-       code: hubtelError.code,
-       response: hubtelError.response?.data
-     });
+// Initiate airtime purchase with Hubtel
+    let hubtelResult;
+    try {
+      hubtelResult = await HubtelTransferService.buyAirtime({
+        phoneNumber,
+        network,
+        amount,
+        clientReference
+      });
+    } catch (hubtelError) {
+      const httpStatus = hubtelError.response?.status;
+      const is4xx = httpStatus >= 400 && httpStatus < 500;
+      const is5xx = httpStatus >= 500;
 
-     // Rollback: mark transaction as failed
-     transaction.status = 'failed';
-     transaction.description += ' - FAILED';
-     transaction.metadata = {
-       ...transaction.metadata,
-       failureReason: hubtelError.message,
-       failedAt: new Date()
-     };
-     try {
-       await transaction.save();
-       logger.info('[AirtimeExecution] Transaction marked as failed after provider error', {
-         clientReference, phase: 'rollback_complete'
-       });
-     } catch (saveError) {
-       logger.error('[AirtimeExecution] CRITICAL: Failed to save failed transaction status', {
-         clientReference, error: saveError.message
-       });
-     }
+      logger.error(LogTags.PROVIDER_FAILURE + ' [AirtimeBuy] Provider request failed', {
+        userId, clientReference, phoneNumber, network, amount,
+        phase: 'provider_request_failed',
+        error: hubtelError.message,
+        code: hubtelError.code,
+        httpStatus: httpStatus,
+        is4xx,
+        is5xx,
+        fullErrorPayload: hubtelError.response?.data,
+        response: hubtelError.response?.data
+      });
+
+      // CRITICAL: Release wallet reservation on 4xx or 5xx responses
+      if (is4xx || is5xx) {
+        logger.warn(LogTags.PROVIDER_FAILURE + ' [AirtimeBuy] Releasing wallet due to provider error', {
+          clientReference, httpStatus, amount
+        });
+        try {
+          await Wallet.findOneAndUpdate(
+            { userId },
+            { $inc: { balance: amount }, $set: { updatedAt: new Date() } }
+          );
+          logger.info(LogTags.PROVIDER_FAILURE + ' [AirtimeBuy] Wallet balance restored after failure', {
+            clientReference, userId, amount
+          });
+        } catch (walletError) {
+          logger.error(LogTags.PROVIDER_FAILURE + ' [AirtimeBuy] Failed to restore wallet after provider error', {
+            clientReference, error: walletError.message
+          });
+        }
+      }
+
+      // Rollback: mark transaction as failed
+      transaction.status = 'failed';
+      transaction.description += ' - FAILED';
+      transaction.metadata = {
+        ...transaction.metadata,
+        failureReason: hubtelError.message,
+        failedAt: new Date(),
+        providerErrorCode: httpStatus,
+        fullErrorPayload: hubtelError.response?.data
+      };
+      try {
+        await transaction.save();
+        logger.info(LogTags.HUBTEL_VALIDATION + ' [AirtimeBuy] Transaction marked as failed after provider error', {
+          clientReference, phase: 'rollback_complete'
+        });
+      } catch (saveError) {
+        logger.error(LogTags.HUBTEL_AUTH + ' CRITICAL: Failed to save failed transaction status', {
+          clientReference, error: saveError.message
+        });
+      }
 
      // Return a more specific error message based on the error type
      let userMessage = 'Failed to buy airtime. Please try again.';
@@ -329,42 +367,72 @@ router.post('/data', authenticate, async (req, res) => {
      phase: 'provider_request_start'
    });
 
-   // Initiate data purchase with Hubtel
-   let hubtelResult;
-   try {
-     hubtelResult = await HubtelTransferService.buyData({
-       phoneNumber,
-       network,
-       dataBundleCode: bundleCode,
-       clientReference
-     });
-   } catch (hubtelError) {
-     logger.error('[DataExecution] Provider request failed', {
-       userId, clientReference, phoneNumber, network, bundleCode, price,
-       phase: 'provider_request_failed',
-       error: hubtelError.message,
-       code: hubtelError.code,
-       response: hubtelError.response?.data
-     });
+// Initiate data purchase with Hubtel
+    let hubtelResult;
+    try {
+      hubtelResult = await HubtelTransferService.buyData({
+        phoneNumber,
+        network,
+        dataBundleCode: bundleCode,
+        clientReference
+      });
+    } catch (hubtelError) {
+      const httpStatus = hubtelError.response?.status;
+      const is4xx = httpStatus >= 400 && httpStatus < 500;
+      const is5xx = httpStatus >= 500;
 
-     // Rollback: mark transaction as failed
-     transaction.status = 'failed';
-     transaction.description += ' - FAILED';
-     transaction.metadata = {
-       ...transaction.metadata,
-       failureReason: hubtelError.message,
-       failedAt: new Date()
-     };
-     try {
-       await transaction.save();
-       logger.info('[DataExecution] Transaction marked as failed after provider error', {
-         clientReference, phase: 'rollback_complete'
-       });
-     } catch (saveError) {
-       logger.error('[DataExecution] CRITICAL: Failed to save failed transaction status (Data)', {
-         clientReference, error: saveError.message
-       });
-     }
+      logger.error(LogTags.PROVIDER_FAILURE + ' [DataBuy] Provider request failed', {
+        userId, clientReference, phoneNumber, network, bundleCode, price,
+        phase: 'provider_request_failed',
+        error: hubtelError.message,
+        code: hubtelError.code,
+        httpStatus: httpStatus,
+        is4xx,
+        is5xx,
+        fullErrorPayload: hubtelError.response?.data,
+        response: hubtelError.response?.data
+      });
+
+      // CRITICAL: Release wallet reservation on 4xx or 5xx responses
+      if (is4xx || is5xx) {
+        logger.warn(LogTags.PROVIDER_FAILURE + ' [DataBuy] Releasing wallet due to provider error', {
+          clientReference, httpStatus, price
+        });
+        try {
+          await Wallet.findOneAndUpdate(
+            { userId },
+            { $inc: { balance: price }, $set: { updatedAt: new Date() } }
+          );
+          logger.info(LogTags.PROVIDER_FAILURE + ' [DataBuy] Wallet balance restored after failure', {
+            clientReference, userId, price
+          });
+        } catch (walletError) {
+          logger.error(LogTags.PROVIDER_FAILURE + ' [DataBuy] Failed to restore wallet after provider error', {
+            clientReference, error: walletError.message
+          });
+        }
+      }
+
+      // Rollback: mark transaction as failed
+      transaction.status = 'failed';
+      transaction.description += ' - FAILED';
+      transaction.metadata = {
+        ...transaction.metadata,
+        failureReason: hubtelError.message,
+        failedAt: new Date(),
+        providerErrorCode: httpStatus,
+        fullErrorPayload: hubtelError.response?.data
+      };
+      try {
+        await transaction.save();
+        logger.info(LogTags.HUBTEL_VALIDATION + ' [DataBuy] Transaction marked as failed after provider error', {
+          clientReference, phase: 'rollback_complete'
+        });
+      } catch (saveError) {
+        logger.error(LogTags.HUBTEL_AUTH + ' CRITICAL: Failed to save failed transaction status (Data)', {
+          clientReference, error: saveError.message
+        });
+      }
 
      // Return a more specific error message based on the error type
      let userMessage = 'Failed to buy data bundle. Please try again.';
