@@ -1873,10 +1873,10 @@ if (result.error) {
            // RECIPIENT CHIPS MANAGEMENT
            // ============================================
            
-           // Unified recipient storage (canonical schema: {recipientName, phoneNumber, normalizedPhoneNumber, source, id?})
-           let allRecipients = [];
-           
-// Add recipients with automatic deduplication
+// Unified recipient storage (canonical schema: {recipientName, phoneNumber, normalizedPhoneNumber, source, id?})
+            let allRecipients = [];
+
+            // Add recipients with automatic deduplication
             function addRecipientsWithDeduplication(newRecipients) {
                 let addedCount = 0;
                 let duplicateCount = 0;
