@@ -1876,53 +1876,54 @@ if (result.error) {
            // Unified recipient storage (canonical schema: {recipientName, phoneNumber, normalizedPhoneNumber, source, id?})
            let allRecipients = [];
            
-           // Add recipients with automatic deduplication
-           function addRecipientsWithDeduplication(newRecipients) {
-               let addedCount = 0;
-               let duplicateCount = 0;
-               let invalidCount = 0;
+// Add recipients with automatic deduplication
+            function addRecipientsWithDeduplication(newRecipients) {
+                let addedCount = 0;
+                let duplicateCount = 0;
+                let invalidCount = 0;
 
-               console.log('[RecipientSelection] Adding recipients with deduplication', {
-                   newCount: newRecipients.length
-               });
+                console.log('[RecipientSelection] Adding recipients with deduplication', {
+                    newCount: newRecipients.length
+                });
 
-               newRecipients.forEach(recipient => {
-                   // Normalize phone number
-                   const validation = validatePhoneNumber(recipient.phoneNumber);
-                   if (!validation.isValid) {
-                       console.warn('[RecipientSelection] Invalid phone number skipped', {
-                           phone: recipient.phoneNumber,
-                           name: recipient.recipientName
-                       });
-                       invalidCount++;
-                       return;
-                   }
+                newRecipients.forEach(recipient => {
+                    // Normalize phone number
+                    const validation = validatePhoneNumber(recipient.phoneNumber);
+                    if (!validation.isValid) {
+                        console.warn('[RecipientSelection] Invalid phone number skipped', {
+                            phone: recipient.phoneNumber,
+                            name: recipient.recipientName
+                        });
+                        invalidCount++;
+                        return;
+                    }
 
-                   const normalizedPhone = validation.normalizedNumber;
+                    const normalizedPhone = validation.normalizedNumber;
 
-                   // Check for duplicate
-                   const isDuplicate = allRecipients.some(r =>
-                       r.normalizedPhoneNumber === normalizedPhone
-                   );
+                    // Check for duplicate
+                    const isDuplicate = allRecipients.some(r =>
+                        r.normalizedPhoneNumber === normalizedPhone
+                    );
 
-                   if (isDuplicate) {
-                       duplicateCount++;
-                       console.log('[RecipientSelection] Duplicate skipped', {
-                           phone: recipient.phoneNumber,
-                           normalized: normalizedPhone
-                       });
-                   } else {
-                       allRecipients.push({
-                           recipientName: recipient.recipientName || 'Contact',
-                           phoneNumber: recipient.phoneNumber,
-                           normalizedPhoneNumber: normalizedPhone,
-                           source: recipient.source || 'manual'
-                       });
-                       addedCount++;
-                   }
-               });
+                    if (isDuplicate) {
+                        duplicateCount++;
+                        console.log('[RecipientSelection] Duplicate skipped', {
+                            phone: recipient.phoneNumber,
+                            normalized: normalizedPhone
+                        });
+                    } else {
+                        allRecipients.push({
+                            _id: recipient._id || recipient.id,
+                            recipientName: recipient.recipientName || 'Contact',
+                            phoneNumber: recipient.phoneNumber,
+                            normalizedPhoneNumber: normalizedPhone,
+                            source: recipient.source || 'manual'
+                        });
+                        addedCount++;
+                    }
+                });
 
-               if (duplicateCount > 0) {
+                if (duplicateCount > 0) {
                    showToast(`${duplicateCount} duplicate contact(s) skipped`, 'info');
                }
 
@@ -2189,40 +2190,41 @@ if (result.error) {
            // AUTO-POPULATE AFTER IMPORT
            // ============================================
            
-           // Auto-populate recipients from imported contacts
-           function autoPopulateFromImport(importedContacts) {
-               if (!importedContacts || importedContacts.length === 0) {
-                   console.warn('[Import] Auto-populate called with no contacts');
-                   return;
-               }
+// Auto-populate recipients from imported contacts
+            function autoPopulateFromImport(importedContacts) {
+                if (!importedContacts || importedContacts.length === 0) {
+                    console.warn('[Import] Auto-populate called with no contacts');
+                    return;
+                }
 
-               console.log('[Import] Auto-populating recipients from import', {
-                   importedCount: importedContacts.length
-               });
+                console.log('[Import] Auto-populating recipients from import', {
+                    importedCount: importedContacts.length
+                });
 
-               // Convert imported contacts to recipient format
-               const importRecipients = importedContacts.map(c => ({
-                   recipientName: c.recipientName || 'Contact',
-                   phoneNumber: c.normalizedPhoneNumber || c.phoneNumber,
-                   normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
-                   source: 'import'
-               }));
+                // Convert imported contacts to recipient format
+                const importRecipients = importedContacts.map(c => ({
+                    _id: c.id,
+                    recipientName: c.recipientName || 'Contact',
+                    phoneNumber: c.normalizedPhoneNumber || c.phoneNumber,
+                    normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
+                    source: 'import'
+                }));
 
-               // Add with deduplication
-               const addedCount = addRecipientsWithDeduplication(importRecipients);
+                // Add with deduplication
+                const addedCount = addRecipientsWithDeduplication(importRecipients);
 
-               console.log('[Import] Auto-population complete', {
-                   imported: importedContacts.length,
-                   added: addedCount,
-                   duplicatesSkipped: importedContacts.length - addedCount,
-                   totalRecipients: allRecipients.length
-               });
+                console.log('[Import] Auto-population complete', {
+                    imported: importedContacts.length,
+                    added: addedCount,
+                    duplicatesSkipped: importedContacts.length - addedCount,
+                    totalRecipients: allRecipients.length
+                });
 
-               // Update UI
-               updateRecipientChips();
-               updateCostEstimation();
-               schedulePreviewUpdate();
-           }
+                // Update UI
+                updateRecipientChips();
+                updateCostEstimation();
+                schedulePreviewUpdate();
+            }
            
            // ============================================
            // GET ALL RECIPIENTS (UPDATED)
@@ -3351,14 +3353,14 @@ if (result.error) {
                         });
                     }
 
-                    showImportSummary(result);
+showImportSummary(result);
                     updateCostEstimation();
                     schedulePreviewUpdate();
 
                     // Auto-populate recipients from imported contacts
                     autoPopulateFromImport(importedContacts);
 
-                    if (loadedContacts && loadedContacts.length >= 0) {
+                    if (loadedContacts && loadedContacts.length > 0) {
                         const newContacts = importedContacts.map(c => ({
                             _id: c.id,
                             recipientName: c.recipientName,

@@ -510,7 +510,8 @@ class ContactImportService {
           results.importedContacts.push({
             id: contactId,
             recipientName,
-            phoneNumber: normalizedPhone
+            phoneNumber: normalizedPhone,
+            normalizedPhoneNumber: normalizedPhone
           });
           
           // Update existing phones set to prevent duplicates in same batch
