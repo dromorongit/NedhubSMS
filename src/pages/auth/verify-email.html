@@ -288,7 +288,8 @@
                         // Store token if provided (token is in result.data after unwrapping)
                         const token = result.data.token;
                         if (token) {
-                            localStorage.setItem('authToken', token);
+                            const storage = window.getStorage ? window.getStorage() : localStorage;
+                            storage.setItem('authToken', token);
                             console.log('[VerifyEmail] Token stored:', !!token);
                         }
                         

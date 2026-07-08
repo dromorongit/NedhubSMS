@@ -205,8 +205,8 @@
         function logout() {
             const storage = window.getStorage ? window.getStorage() : localStorage;
             storage.removeItem('authToken');
-            localStorage.removeItem('userName');
-            localStorage.removeItem('userEmail');
+            storage.removeItem('userName');
+            storage.removeItem('userEmail');
             window.location.href = '../auth/login.html';
         }
 

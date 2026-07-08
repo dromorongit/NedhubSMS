@@ -336,6 +336,7 @@
 
         async function loadUserProfile() {
             try {
+                const storage = window.getStorage ? window.getStorage() : localStorage;
                 console.log('[Dashboard] Loading user profile...');
                 const response = await window.apiClient.getUserProfile();
                 console.log('[Dashboard] getUserProfile response:', response);
@@ -353,7 +354,7 @@
                     updateUserDisplay(firstName);
                     
                     // Store full name for later use
-                    localStorage.setItem('userName', user.name);
+                    storage.setItem('userName', user.name);
                     console.log('[Dashboard] User profile loaded:', user.name);
                 } else {
                     console.log('[Dashboard] No user data in response');
@@ -366,7 +367,8 @@
         }
 
         function useStoredUserName() {
-            const storedName = localStorage.getItem('userName');
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            const storedName = storage.getItem('userName');
             if (storedName) {
                 const firstName = storedName.split(' ')[0];
                 updateUserDisplay(firstName);

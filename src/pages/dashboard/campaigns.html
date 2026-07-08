@@ -482,12 +482,13 @@
 
         async function loadUserProfile() {
             try {
+                const storage = window.getStorage ? window.getStorage() : localStorage;
                 const response = await window.apiClient.getUserProfile();
                 if (response.data && response.data.user) {
                     const user = response.data.user;
                     const firstName = user.name ? user.name.split(' ')[0] : 'User';
                     updateUserDisplay(firstName);
-                    localStorage.setItem('userName', user.name);
+                    storage.setItem('userName', user.name);
                 } else {
                     useStoredUserName();
                 }
@@ -498,7 +499,8 @@
         }
 
         function useStoredUserName() {
-            const storedName = localStorage.getItem('userName');
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            const storedName = storage.getItem('userName');
             if (storedName) {
                 const firstName = storedName.split(' ')[0];
                 updateUserDisplay(firstName);
@@ -998,8 +1000,8 @@
         function logout() {
             const storage = window.getStorage ? window.getStorage() : localStorage;
             storage.removeItem('authToken');
-            localStorage.removeItem('userName');
-            localStorage.removeItem('userEmail');
+            storage.removeItem('userName');
+            storage.removeItem('userEmail');
             window.location.href = '../auth/login.html';
         }
     </script>

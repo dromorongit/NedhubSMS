@@ -350,6 +350,7 @@
 
         async function loadUserProfile() {
             try {
+                const storage = window.getStorage ? window.getStorage() : localStorage;
                 const response = await window.apiClient.getUserProfile();
                 if (response.error) {
                     console.error('Error loading user profile:', response.error);
@@ -363,7 +364,7 @@
                     updateUserDisplay(firstName);
 
                     // Store full name for later use
-                    localStorage.setItem('userName', user.name);
+                    storage.setItem('userName', user.name);
                 } else {
                     useStoredUserName();
                 }
@@ -374,7 +375,8 @@
         }
 
         function useStoredUserName() {
-            const storedName = localStorage.getItem('userName');
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            const storedName = storage.getItem('userName');
             if (storedName) {
                 const firstName = storedName.split(' ')[0];
                 updateUserDisplay(firstName);

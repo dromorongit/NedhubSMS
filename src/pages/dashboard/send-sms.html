@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../../styles/dashboard.css">
     <link rel="stylesheet" href="../../styles/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
 </head>
@@ -800,7 +801,8 @@
         });
 
         async function checkAuthAndLoad() {
-            const token = localStorage.getItem('authToken');
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            const token = storage.getItem('authToken');
             if (!token) {
                 window.location.href = '../auth/login.html';
                 return;
@@ -813,6 +815,7 @@
 
         async function loadUserProfile() {
             try {
+                const storage = window.getStorage ? window.getStorage() : localStorage;
                 const response = await window.apiClient.getUserProfile();
                 if (response.error) {
                     useStoredUserName();
@@ -823,7 +826,7 @@
                     const user = response.data.user;
                     const firstName = user.name ? user.name.split(' ')[0] : 'User';
                     updateUserDisplay(firstName);
-                    localStorage.setItem('userName', user.name);
+                    storage.setItem('userName', user.name);
                 } else {
                     useStoredUserName();
                 }
@@ -834,7 +837,8 @@
         }
 
         function useStoredUserName() {
-            const storedName = localStorage.getItem('userName');
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            const storedName = storage.getItem('userName');
             if (storedName) {
                 const firstName = storedName.split(' ')[0];
                 updateUserDisplay(firstName);
@@ -2726,9 +2730,10 @@ function resetForm() {
 
         // Logout function
         function logout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userName');
-            localStorage.removeItem('userEmail');
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            storage.removeItem('authToken');
+            storage.removeItem('userName');
+            storage.removeItem('userEmail');
             window.location.href = '../auth/login.html';
         }
 
