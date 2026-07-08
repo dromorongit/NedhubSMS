@@ -707,6 +707,153 @@
         </div>
     </div>
 
+    <!-- Pre-Send Review Modal -->
+    <div class="modal" id="smsConfirmationModal" role="dialog" aria-labelledby="confirmationModalTitle" aria-modal="true" style="display: none;">
+        <div class="modal-content pre-send-review-content">
+            <button class="modal-close" id="confirmationModalClose" aria-label="Close review">&times;</button>
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                    </svg>
+                </div>
+                <h3 id="confirmationModalTitle">Pre-Send Review</h3>
+                <p>Review your campaign details before sending</p>
+            </div>
+            <div class="confirmation-details" id="confirmationDetails">
+                <!-- Campaign Summary Section -->
+                <div class="confirmation-section campaign-summary-section">
+                    <h4>Campaign Summary</h4>
+                    <div class="confirmation-row">
+                        <span class="confirm-label">Message Mode:</span>
+                        <span class="confirm-value" id="reviewMessageMode">-</span>
+                    </div>
+                    <div class="confirmation-row">
+                        <span class="confirm-label">Delivery Type:</span>
+                        <span class="confirm-value" id="reviewSendType">-</span>
+                    </div>
+                    <div class="confirmation-row scheduled-datetime-row" id="scheduledDateTimeRow" style="display: none;">
+                        <span class="confirm-label">Scheduled Date & Time:</span>
+                        <span class="confirm-value" id="reviewScheduledDateTime">-</span>
+                    </div>
+                    <div class="confirmation-row">
+                        <span class="confirm-label">Sender ID:</span>
+                        <span class="confirm-value" id="reviewSenderId">-</span>
+                    </div>
+                    <div class="confirmation-row">
+                        <span class="confirm-label">Recipient Source:</span>
+                        <span class="confirm-value" id="reviewRecipientSource">-</span>
+                    </div>
+                </div>
+
+                <!-- Recipients Section -->
+                <div class="confirmation-section recipients-section">
+                    <h4>Recipients</h4>
+                    <div class="recipients-stats-row">
+                        <div class="recipient-stat">
+                            <span class="stat-label">Total:</span>
+                            <span class="stat-value" id="reviewTotalRecipients">-</span>
+                        </div>
+                        <div class="recipient-stat valid">
+                            <span class="stat-label">Valid:</span>
+                            <span class="stat-value" id="reviewValidRecipients">-</span>
+                        </div>
+                        <div class="recipient-stat invalid" id="reviewInvalidRecipientsContainer" style="display: none;">
+                            <span class="stat-label">Invalid:</span>
+                            <span class="stat-value warning" id="reviewInvalidRecipients">-</span>
+                        </div>
+                        <div class="recipient-stat duplicate" id="reviewDuplicateRecipientsContainer" style="display: none;">
+                            <span class="stat-label">Duplicates Removed:</span>
+                            <span class="stat-value" id="reviewDuplicateRecipients">-</span>
+                        </div>
+                    </div>
+                    <div class="recipient-search-container">
+                        <input type="text" id="recipientSearchInput" placeholder="Search recipients..." class="recipient-search-input">
+                    </div>
+                    <div class="recipient-preview-scrollable">
+                        <div class="recipient-preview-chips" id="reviewRecipientPreviewChips">
+                            <!-- First 10 recipients will be shown here -->
+                        </div>
+                        <div class="more-recipients-info" id="moreRecipientsInfo">
+                            <span id="moreRecipientsCount"></span>
+                            <button type="button" class="btn-view-all-recipients" id="viewAllRecipientsBtn">View All Recipients</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Preview Section -->
+                <div class="confirmation-section message-preview-section">
+                    <h4>Message Preview</h4>
+                    <div class="confirm-message" id="reviewMessageContent">-</div>
+                </div>
+
+                <!-- Personalization Preview Section -->
+                <div class="confirmation-section personalization-preview-section" id="personalizationPreviewSection" style="display: none;">
+                    <h4>Personalization Preview</h4>
+                    <div class="personalization-previews" id="personalizationPreviews">
+                        <!-- Sample personalized messages will be shown here -->
+                    </div>
+                </div>
+
+                <!-- SMS Analysis Section -->
+                <div class="confirmation-section sms-analysis-section">
+                    <h4>SMS Analysis</h4>
+                    <div class="sms-analysis-grid">
+                        <div class="analysis-item">
+                            <span class="analysis-label">Character Count:</span>
+                            <span class="analysis-value" id="reviewCharCount">-</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Encoding:</span>
+                            <span class="analysis-value" id="reviewEncodingType">-</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">SMS Parts:</span>
+                            <span class="analysis-value" id="reviewSmsParts">-</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Estimated Cost:</span>
+                            <span class="analysis-value cost-value" id="reviewEstimatedCost">-</span>
+                        </div>
+                        <div class="analysis-item full-width" id="walletDeductionRow">
+                            <span class="analysis-label">Estimated Wallet Deduction:</span>
+                            <span class="analysis-value" id="reviewWalletDeduction">-</span>
+                        </div>
+                        <div class="analysis-item full-width" id="remainingBalanceRow" style="display: none;">
+                            <span class="analysis-label">Remaining Balance:</span>
+                            <span class="analysis-value" id="reviewRemainingBalance">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Warnings Section -->
+                <div class="confirmation-section warnings-section" id="confirmationWarningsSection" style="display: none;">
+                    <h4>Please Note</h4>
+                    <div class="confirmation-warnings" id="confirmationWarnings">
+                        <!-- Warnings will be populated here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions modal-actions-sticky">
+                <button type="button" class="btn-secondary" id="backToEditBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to Edit
+                </button>
+                <button type="button" class="btn-secondary" id="reviewCancelBtn">Cancel</button>
+                <button type="button" class="btn-primary" id="confirmationSendBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="send-spinner" style="display: none;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="sendBtnText">Confirm & Send</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Contacts Picker Modal -->
     <div class="modal" id="contactsPickerModal">
         <div class="modal-content contacts-modal-content">
@@ -3862,56 +4009,63 @@ showImportSummary(result);
         // REMAINING EXISTING FUNCTIONS
         // ============================================
 
-        // Send Now button handler
-        document.getElementById('sendNowBtn').addEventListener('click', async function() {
-            // Validate default mode input before getting recipients
-            if (currentMessagingMode === 'default') {
-                // Only validate comma-separated input if manual entry tab is active
-                const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
-                const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
-                if (activeTab === 'manual') {
-                    const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
-                    console.log('[ManualEntry] Pre-send validation', {
-                        input: commaSeparatedInput.value,
-                        originalCount: validationResult.originalCount,
-                        validCount: validationResult.count,
-                        invalidCount: validationResult.invalidCount || 0,
-                        error: validationResult.error
-                    });
-                    // Show warning for invalid numbers but do not block sending
-                    if (validationResult.error) {
-                        showToast(validationResult.error, 'warning');
-                    }
-                }
-            }
+// Send Now button handler
+         document.getElementById('sendNowBtn').addEventListener('click', async function() {
+             // Prevent double-click
+             if (this.disabled) return;
 
-            let recipients = getAllRecipients();
+             // Validate default mode input before getting recipients
+             if (currentMessagingMode === 'default') {
+                 // Only validate comma-separated input if manual entry tab is active
+                 const activeTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
+                 const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : 'manual';
+                 if (activeTab === 'manual') {
+                     const validationResult = parseCommaSeparatedRecipients(commaSeparatedInput.value);
+                     console.log('[ManualEntry] Pre-send validation', {
+                         input: commaSeparatedInput.value,
+                         originalCount: validationResult.originalCount,
+                         validCount: validationResult.count,
+                         invalidCount: validationResult.invalidCount || 0,
+                         error: validationResult.error
+                     });
+                     // Show warning for invalid numbers but do not block sending
+                     if (validationResult.error) {
+                         showToast(validationResult.error, 'warning');
+                     }
+                 }
+             }
 
-            // Normalize all recipient phone numbers using the shared utility
-            recipients = recipients.map(r => {
-                const validation = validatePhoneNumber(r.phoneNumber);
-                return {
-                    recipientName: r.recipientName || '',
-                    phoneNumber: validation.isValid ? validation.normalizedNumber : r.phoneNumber
-                };
-            });
+             let recipients = getAllRecipients();
 
-            if (recipients.length === 0) {
-                showToast('Please add at least one recipient', 'error');
-                return;
-            }
+             // Normalize all recipient phone numbers using the shared utility
+             recipients = recipients.map(r => {
+                 const validation = validatePhoneNumber(r.phoneNumber);
+                 return {
+                     recipientName: r.recipientName || '',
+                     phoneNumber: validation.isValid ? validation.normalizedNumber : r.phoneNumber
+                 };
+             });
 
-            // Enforce maximum recipients limit for all sources
-            if (recipients.length > MAX_RECIPIENTS) {
-                showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
-                return;
-            }
+             if (recipients.length === 0) {
+                 showToast('Please add at least one recipient', 'error');
+                 return;
+             }
 
-            await sendOrScheduleCampaign('immediate', recipients);
-        });
+             // Enforce maximum recipients limit for all sources
+             if (recipients.length > MAX_RECIPIENTS) {
+                 showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
+                 return;
+             }
 
-        // Schedule button handler
-         document.getElementById('scheduleBtn').addEventListener('click', async function() {
+             // Open confirmation modal instead of sending directly
+             await openConfirmationModal('immediate', recipients, null, this);
+         });
+
+         // Schedule button handler
+          document.getElementById('scheduleBtn').addEventListener('click', async function() {
+              // Prevent double-click
+              if (this.disabled) return;
+
               // Validate default mode input before getting recipients
               if (currentMessagingMode === 'default') {
                   // Only validate comma-separated input if manual entry tab is active
@@ -3970,8 +4124,9 @@ showImportSummary(result);
                  return;
              }
 
-             await sendOrScheduleCampaign('scheduled', recipients, scheduledAt);
-         });
+             // Open confirmation modal instead of scheduling directly
+             await openConfirmationModal('scheduled', recipients, scheduledAt, this);
+          });
 
          async function sendOrScheduleCampaign(sendMode, recipients, scheduledAt = null) {
              // Get active messaging mode
@@ -4231,66 +4386,485 @@ showImportSummary(result);
         }
 
         function resetForm() {
-            document.getElementById('sendSmsForm').reset();
-            document.getElementById('customSalutationGroup').style.display = 'none';
-            // Keep schedule settings visible after reset (don't hide)
-            // Clear schedule fields and re-validate
-            const scheduledDate = document.getElementById('scheduledDate');
-            const scheduledTime = document.getElementById('scheduledTime');
-            if (scheduledDate) scheduledDate.value = '';
-            if (scheduledTime) scheduledTime.value = '';
-            // Re-validate to disable schedule button and clear preview
-            validateAndUpdateSchedule();
+    document.getElementById('sendSmsForm').reset();
+    document.getElementById('customSalutationGroup').style.display = 'none';
+    // Keep schedule settings visible after reset (don't hide)
+    // Clear schedule fields and re-validate
+    const scheduledDate = document.getElementById('scheduledDate');
+    const scheduledTime = document.getElementById('scheduledTime');
+    if (scheduledDate) scheduledDate.value = '';
+    if (scheduledTime) scheduledTime.value = '';
+    // Re-validate to disable schedule button and clear preview
+    validateAndUpdateSchedule();
 
-            // Clear manual recipients (personalized mode)
-            document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => item.remove());
-            manualRecipients = [];
+    // Clear manual recipients (personalized mode)
+    document.querySelectorAll('.manual-recipient-item:not(.template)').forEach(item => item.remove());
+    manualRecipients = [];
 
-            // Clear comma-separated input (default mode) and reset validation
-            if (commaSeparatedInput) {
-                commaSeparatedInput.value = '';
-                // Reset counter
-                if (recipientCountEl) {
-                    recipientCountEl.textContent = '0';
-                    recipientCountEl.parentElement.classList.remove('warning', 'error');
-                }
-                // Hide validation message
-                if (validationMessageEl) {
-                    validationMessageEl.style.display = 'none';
-                    validationMessageEl.classList.remove('success');
-                }
-                commaSeparatedInput.classList.remove('error');
-            }
-
-            // Clear uploaded files
-            removeUploadedFile();
-
-            // Clear selected contacts
-            selectedContacts = [];
-            const contactCheckboxes = document.querySelectorAll('#contactGroups input[type="checkbox"]');
-            contactCheckboxes.forEach(cb => cb.checked = false);
-            const previewEl = document.getElementById('selectedContactsPreview');
-            if (previewEl) {
-                previewEl.innerHTML = '<p class="no-contacts">No contacts selected</p>';
-            }
-
-            // Reset character counter and cost estimation
-            document.getElementById('charCount').textContent = '0';
-            document.getElementById('encodingType').textContent = 'GSM-7';
-            document.getElementById('smsCount').textContent = '1';
-            document.getElementById('estimatedCost').textContent = 'GHS 0.00';
-            document.getElementById('costWarnings').style.display = 'none';
-
-            // Reset recipient source states to manual for both modes
-            recipientSourceState.default = 'manual';
-            recipientSourceState.personalized = 'manual';
-
-            // Switch back to default mode (which will also switch to manual recipient source)
-            const defaultModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn[data-mode="default"]');
-            if (defaultModeBtn) {
-                defaultModeBtn.click(); // This will restore recipient source based on updated state
-            }
+    // Clear comma-separated input (default mode) and reset validation
+    if (commaSeparatedInput) {
+        commaSeparatedInput.value = '';
+        // Reset counter
+        if (recipientCountEl) {
+            recipientCountEl.textContent = '0';
+            recipientCountEl.parentElement.classList.remove('warning', 'error');
         }
+        // Hide validation message
+        if (validationMessageEl) {
+            validationMessageEl.style.display = 'none';
+            validationMessageEl.classList.remove('success');
+        }
+        commaSeparatedInput.classList.remove('error');
+    }
+
+    // Clear uploaded files
+    removeUploadedFile();
+
+    // Clear selected contacts
+    selectedContacts = [];
+    const contactCheckboxes = document.querySelectorAll('#contactGroups input[type="checkbox"]');
+    contactCheckboxes.forEach(cb => cb.checked = false);
+    const previewEl = document.getElementById('selectedContactsPreview');
+    if (previewEl) {
+        previewEl.innerHTML = '<p class="no-contacts">No contacts selected</p>';
+    }
+
+    // Reset character counter and cost estimation
+    document.getElementById('charCount').textContent = '0';
+    document.getElementById('encodingType').textContent = 'GSM-7';
+    document.getElementById('smsCount').textContent = '1';
+    document.getElementById('estimatedCost').textContent = 'GHS 0.00';
+    document.getElementById('costWarnings').style.display = 'none';
+
+    // Reset recipient source states to manual for both modes
+    recipientSourceState.default = 'manual';
+    recipientSourceState.personalized = 'manual';
+
+    // Switch back to default mode (which will also switch to manual recipient source)
+    const defaultModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn[data-mode="default"]');
+    if (defaultModeBtn) {
+        defaultModeBtn.click(); // This will restore recipient source based on updated state
+    }
+}
+
+
+// ============================================
+// PRE-SEND REVIEW MODAL FUNCTIONS
+// ============================================
+
+// Modal state tracking (prevents double-open and tracks triggering element for focus)
+let confirmationModalOpen = false;
+let lastTriggeringButton = null;
+
+// Open confirmation modal
+async function openConfirmationModal(sendMode, recipients, scheduledAt = null, triggeringButton = null) {
+    // Prevent opening modal if already open
+    if (confirmationModalOpen) {
+        console.log('[ConfirmationModal] Modal already open, ignoring duplicate open request');
+        return;
+    }
+
+    // Prevent opening modal if a send operation is in progress
+    const confirmBtn = document.getElementById('confirmationSendBtn');
+    if (confirmBtn && confirmBtn.disabled) {
+        console.log('[ConfirmationModal] Send operation in progress, ignoring open request');
+        return;
+    }
+
+    confirmationModalOpen = true;
+    lastTriggeringButton = triggeringButton;
+    console.log('[ConfirmationModal] Opening modal', { sendMode, recipientCount: recipients.length });
+
+    const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
+    const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
+
+    // Get all the data needed for the modal
+    const senderId = document.getElementById('senderId').value;
+    const messageBody = document.getElementById('messageBody').value;
+    const salutation = isPersonalizedMode ? document.getElementById('salutation').value : null;
+    const customSalutation = isPersonalizedMode ? document.getElementById('customSalutation').value : null;
+
+    // Get recipient source
+    const activeRecipientTabBtn = document.querySelector('.recipient-source-tabs .tab-btn.active');
+    const recipientSource = activeRecipientTabBtn ? activeRecipientTabBtn.dataset.tab : 'manual';
+
+    // Analyze recipients for duplicate/blacklist info
+    const analysis = await analyzeRecipientsForModal();
+
+    // Populate the modal
+    populateConfirmationModal(recipients, sendMode, scheduledAt, recipientSource, {
+        senderId,
+        messageBody,
+        isPersonalizedMode,
+        salutation,
+        customSalutation,
+        analysis
+    });
+
+    // Show modal
+    const modal = document.getElementById('smsConfirmationModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+// Analyze recipients for modal display
+async function analyzeRecipientsForModal() {
+    const recipients = getAllRecipients();
+    const removeDuplicatesEl = document.querySelector('input[name="duplicateHandling"]:checked');
+    const removeDuplicates = removeDuplicatesEl ? removeDuplicatesEl.value === 'remove' : true;
+
+    const analysis = {
+        total: recipients.length,
+        valid: 0,
+        invalid: 0,
+        duplicates: 0,
+        duplicatesRemoved: 0,
+        blacklisted: 0,
+        toSend: 0
+    };
+
+    // Validate recipients and count unique phone numbers
+    const seenNormalized = new Set();
+    for (const r of recipients) {
+        const validation = validatePhoneNumber(r.phoneNumber);
+        if (validation.isValid) {
+            analysis.valid++;
+            const normalized = validation.normalizedNumber;
+            // Track duplicates based on normalized phone numbers
+            if (seenNormalized.has(normalized)) {
+                analysis.duplicates++;
+            } else {
+                seenNormalized.add(normalized);
+            }
+        } else {
+            analysis.invalid++;
+        }
+    }
+
+    // Calculate duplicates removed based on setting
+    analysis.duplicatesRemoved = removeDuplicates ? analysis.duplicates : 0;
+    analysis.toSend = recipients.length - analysis.invalid - analysis.duplicatesRemoved;
+
+    // Check for blacklisted (approximate - would need backend check for accurate count)
+    analysis.blacklisted = 0;
+
+    return analysis;
+}
+
+// Populate the confirmation modal with data
+function populateConfirmationModal(recipients, sendMode, scheduledAt, recipientSource, campaignData) {
+    // Get DOM elements
+    const messageModeEl = document.getElementById('reviewMessageMode');
+    const sendTypeEl = document.getElementById('reviewSendType');
+    const scheduledDateTimeRow = document.getElementById('scheduledDateTimeRow');
+    const scheduledDateTimeEl = document.getElementById('reviewScheduledDateTime');
+    const senderIdEl = document.getElementById('reviewSenderId');
+    const recipientSourceEl = document.getElementById('reviewRecipientSource');
+    const totalRecipientsEl = document.getElementById('reviewTotalRecipients');
+    const validRecipientsEl = document.getElementById('reviewValidRecipients');
+    const invalidRecipientsContainer = document.getElementById('reviewInvalidRecipientsContainer');
+    const invalidRecipientsEl = document.getElementById('reviewInvalidRecipients');
+    const duplicateRecipientsContainer = document.getElementById('reviewDuplicateRecipientsContainer');
+    const duplicateRecipientsEl = document.getElementById('reviewDuplicateRecipients');
+    const messageContentEl = document.getElementById('reviewMessageContent');
+    const personalizationSection = document.getElementById('personalizationPreviewSection');
+    const personalizationPreviewsEl = document.getElementById('personalizationPreviews');
+    const charCountEl = document.getElementById('reviewCharCount');
+    const encodingTypeEl = document.getElementById('reviewEncodingType');
+    const smsPartsEl = document.getElementById('reviewSmsParts');
+    const estimatedCostEl = document.getElementById('reviewEstimatedCost');
+    const recipientPreviewChipsEl = document.getElementById('reviewRecipientPreviewChips');
+    const moreRecipientsInfo = document.getElementById('moreRecipientsInfo');
+    const moreRecipientsCount = document.getElementById('moreRecipientsCount');
+
+    // Populate campaign summary
+    if (messageModeEl) {
+        messageModeEl.textContent = campaignData.isPersonalizedMode ? 'Personalized' : 'Default';
+    }
+    if (sendTypeEl) {
+        sendTypeEl.textContent = sendMode === 'immediate' ? 'Send Now' : 'Scheduled';
+    }
+    if (scheduledDateTimeRow && scheduledAt) {
+        if (sendMode === 'scheduled') {
+            scheduledDateTimeRow.style.display = 'flex';
+            const options = {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            };
+            scheduledDateTimeEl.textContent = scheduledAt.toLocaleString(undefined, options);
+        } else {
+            scheduledDateTimeRow.style.display = 'none';
+        }
+    }
+    if (senderIdEl) {
+        senderIdEl.textContent = campaignData.senderId || '-';
+    }
+    if (recipientSourceEl) {
+        const sourceLabels = {
+            'manual': 'Manual Entry',
+            'upload': 'File Upload',
+            'contacts': 'Saved Contacts'
+        };
+        recipientSourceEl.textContent = sourceLabels[recipientSource] || 'Manual Entry';
+    }
+
+    // Populate recipients stats
+    const analysis = campaignData.analysis;
+    if (totalRecipientsEl) totalRecipientsEl.textContent = analysis.total;
+    if (validRecipientsEl) validRecipientsEl.textContent = analysis.valid;
+    if (invalidRecipientsContainer && invalidRecipientsEl) {
+        if (analysis.invalid > 0) {
+            invalidRecipientsContainer.style.display = 'flex';
+            invalidRecipientsEl.textContent = analysis.invalid;
+        } else {
+            invalidRecipientsContainer.style.display = 'none';
+        }
+    }
+    if (duplicateRecipientsContainer && duplicateRecipientsEl) {
+        if (analysis.duplicates > 0) {
+            duplicateRecipientsContainer.style.display = 'flex';
+            duplicateRecipientsEl.textContent = analysis.duplicates;
+        } else {
+            duplicateRecipientsContainer.style.display = 'none';
+        }
+    }
+
+    // Populate message preview
+    if (messageContentEl) {
+        messageContentEl.textContent = campaignData.messageBody || 'No message';
+    }
+
+    // Populate personalization preview
+    if (personalizationSection && personalizationPreviewsEl) {
+        if (campaignData.isPersonalizedMode && recipients.length > 0) {
+            personalizationSection.style.display = 'block';
+            const finalSalutation = campaignData.salutation === 'Custom' ? campaignData.customSalutation : campaignData.salutation;
+            const sampleRecipients = recipients.slice(0, 3);
+            let html = '';
+            sampleRecipients.forEach(r => {
+                const personalizedMsg = campaignData.messageBody
+                    .replace(/\{\{name\}\}/g, r.recipientName || 'User')
+                    .replace(/\{\{salutation\}\}/g, finalSalutation);
+                html += `
+                    <div class="personalization-preview-item">
+                        <span class="preview-recipient">${r.recipientName || 'User'}</span>
+                        <span class="preview-phone">${r.phoneNumber}</span>
+                        <div class="preview-message">${personalizedMsg}</div>
+                    </div>
+                `;
+            });
+            personalizationPreviewsEl.innerHTML = html;
+        } else {
+            personalizationSection.style.display = 'none';
+        }
+    }
+
+    // Populate recipient preview chips
+    if (recipientPreviewChipsEl) {
+        const displayRecipients = recipients.slice(0, 10);
+        let chipsHtml = '';
+        displayRecipients.forEach(r => {
+            chipsHtml += `
+                <div class="recipient-preview-chip">
+                    <span class="chip-name">${r.recipientName || 'User'}</span>
+                    <span class="chip-phone">${r.phoneNumber}</span>
+                </div>
+            `;
+        });
+        recipientPreviewChipsEl.innerHTML = chipsHtml;
+    }
+
+    // Update more recipients info
+    if (moreRecipientsInfo && moreRecipientsCount) {
+        if (recipients.length > 10) {
+            moreRecipientsCount.textContent = `${recipients.length - 10} more recipients not shown`;
+            moreRecipientsInfo.style.display = 'flex';
+        } else {
+            moreRecipientsInfo.style.display = 'none';
+        }
+    }
+
+    // Setup View All Recipients button
+    const viewAllBtn = document.getElementById('viewAllRecipientsBtn');
+    if (viewAllBtn) {
+        viewAllBtn.onclick = function() {
+            const chips = document.getElementById('reviewRecipientPreviewChips');
+            if (chips) {
+                const allChipsHtml = recipients.map(r => `
+                    <div class="recipient-preview-chip">
+                        <span class="chip-name">${r.recipientName || 'User'}</span>
+                        <span class="chip-phone">${r.phoneNumber}</span>
+                    </div>
+                `).join('');
+                chips.innerHTML = allChipsHtml;
+                if (moreRecipientsInfo) moreRecipientsInfo.style.display = 'none';
+            }
+        };
+    }
+
+    // Setup recipient search
+    const searchInput = document.getElementById('recipientSearchInput');
+    if (searchInput) {
+        searchInput.oninput = function() {
+            const query = this.value.toLowerCase();
+            const chips = document.getElementById('reviewRecipientPreviewChips');
+            if (chips) {
+                const filteredRecipients = recipients.filter(r =>
+                    r.recipientName?.toLowerCase().includes(query) ||
+                    r.phoneNumber?.toLowerCase().includes(query)
+                );
+                const filteredChipsHtml = filteredRecipients.map(r => `
+                    <div class="recipient-preview-chip">
+                        <span class="chip-name">${r.recipientName || 'User'}</span>
+                        <span class="chip-phone">${r.phoneNumber}</span>
+                    </div>
+                `).join('');
+                chips.innerHTML = filteredChipsHtml || '<div class="no-search-results">No recipients match your search</div>';
+                if (moreRecipientsInfo) moreRecipientsInfo.style.display = 'none';
+            }
+        };
+    }
+
+    // Populate SMS analysis - use values from main UI for consistency
+    const segmentResult = calculateSmsSegments(campaignData.messageBody);
+    const charCount = campaignData.messageBody ? campaignData.messageBody.length : 0;
+    const mainSmsCountEl = document.getElementById('smsCount');
+    const mainEstimatedCostEl = document.getElementById('estimatedCost');
+
+    if (charCountEl) charCountEl.textContent = charCount;
+    if (encodingTypeEl) encodingTypeEl.textContent = segmentResult.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
+    if (smsPartsEl) smsPartsEl.textContent = mainSmsCountEl ? mainSmsCountEl.textContent : segmentResult.segments;
+
+    // Get estimated cost from main UI (already calculated via backend API)
+    if (estimatedCostEl) {
+        // Use the value from the main estimated cost element for consistency
+        const mainCostText = mainEstimatedCostEl ? mainEstimatedCostEl.textContent : 'GHS 0.00';
+        // Extract numeric value and format consistently
+        const costMatch = mainCostText.match(/GHS\s*([\d.]+)/);
+        estimatedCostEl.textContent = mainCostText;
+    }
+
+    // Store recipients and send mode for later use
+    window.confirmationModalData = { recipients, sendMode, scheduledAt };
+}
+
+// Close confirmation modal
+function closeConfirmationModal() {
+    const modal = document.getElementById('smsConfirmationModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    window.confirmationModalData = null;
+    confirmationModalOpen = false;
+    // Return focus to the triggering button
+    if (lastTriggeringButton) {
+        setTimeout(() => {
+            lastTriggeringButton.focus();
+        }, 10);
+    }
+}
+
+// Handle confirm send button click
+async function handleConfirmSend() {
+    if (!window.confirmationModalData) return;
+
+    // Prevent double submission
+    if (handleConfirmSend.inProgress) {
+        console.log('[ConfirmationModal] Double submit prevented');
+        return;
+    }
+
+    const { recipients, sendMode, scheduledAt } = window.confirmationModalData;
+    const confirmBtn = document.getElementById('confirmationSendBtn');
+    const sendBtnText = document.getElementById('sendBtnText');
+
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+    }
+    if (sendBtnText) {
+        sendBtnText.textContent = 'Sending...';
+    }
+
+    // Set in-progress flag to prevent double submission
+    handleConfirmSend.inProgress = true;
+
+    try {
+        // Call the actual send function
+        await sendOrScheduleCampaign(sendMode, recipients, scheduledAt);
+    } finally {
+        // Reset in-progress flag
+        handleConfirmSend.inProgress = false;
+        // Close modal after sending
+        closeConfirmationModal();
+    }
+}
+
+// ============================================
+// CONFIRMATION MODAL EVENT LISTENERS
+// ============================================
+
+// Track if Escape handler is already attached
+let confirmationEscapeHandlerAttached = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Close button
+    const closeBtn = document.getElementById('confirmationModalClose');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeConfirmationModal);
+    }
+
+    // Cancel button
+    const cancelBtn = document.getElementById('reviewCancelBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeConfirmationModal);
+    }
+
+    // Back to edit button
+    const backBtn = document.getElementById('backToEditBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', closeConfirmationModal);
+    }
+
+    // Confirm send button
+    const confirmSendBtn = document.getElementById('confirmationSendBtn');
+    if (confirmSendBtn) {
+        confirmSendBtn.addEventListener('click', handleConfirmSend);
+    }
+
+    // Close modal on outside click
+    const modal = document.getElementById('smsConfirmationModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeConfirmationModal();
+            }
+        });
+    }
+
+    // Close modal on Escape key and Enter key support (only attach once)
+    if (!confirmationEscapeHandlerAttached) {
+        document.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('smsConfirmationModal');
+            if (!modal || modal.style.display !== 'flex') return;
+
+            if (e.key === 'Escape') {
+                closeConfirmationModal();
+            } else if (e.key === 'Enter') {
+                // Enter triggers confirm send when modal is open
+                const confirmBtn = document.getElementById('confirmationSendBtn');
+                if (confirmBtn && !confirmBtn.disabled) {
+                    handleConfirmSend();
+                }
+            }
+        });
+        confirmationEscapeHandlerAttached = true;
+    }
+});
 
 
         // Convert Unicode to GSM-compatible text
@@ -5973,6 +6547,318 @@ showImportSummary(result);
         .validation-status.invalid {
             color: #c62828;
             font-weight: 600;
+        }
+
+        /* Pre-Send Review Modal Styles */
+        .pre-send-review-content {
+            max-width: 680px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .confirmation-details {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        /* Campaign Summary Section */
+        .campaign-summary-section .confirmation-row {
+            padding: 0.5rem 0;
+        }
+
+        .scheduled-datetime-row {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px dashed #e0e0e0;
+        }
+
+        /* Recipients Section */
+        .recipients-section {
+            padding: 1rem 0;
+        }
+
+        .recipients-stats-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .recipient-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .recipient-stat .stat-label {
+            color: #666;
+        }
+
+        .recipient-stat .stat-value {
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        .recipient-stat.warning .stat-value {
+            color: #f57c00;
+        }
+
+        .recipient-search-container {
+            margin-bottom: 0.75rem;
+        }
+
+        .recipient-search-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .recipient-preview-scrollable {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .more-recipients-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .btn-view-all-recipients {
+            background: none;
+            border: 1px solid var(--accent-orange);
+            color: var(--accent-orange);
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        /* Message Preview Section */
+        .message-preview-section {
+            padding: 1rem 0;
+        }
+
+        .confirm-message {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        /* Personalization Preview Section */
+        .personalization-preview-section {
+            padding: 1rem 0;
+        }
+
+        .personalization-previews {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .personalization-preview-item {
+            background: #f5f5f5;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-orange);
+        }
+
+        .personalization-preview-item .preview-recipient {
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .personalization-preview-item .preview-phone {
+            font-size: 0.75rem;
+            color: #666;
+            margin-left: 0.5rem;
+        }
+
+        .personalization-preview-item .preview-message {
+            font-size: 0.85rem;
+            color: var(--primary-dark);
+            padding-top: 0.5rem;
+            border-top: 1px solid #e0e0e0;
+            white-space: pre-wrap;
+        }
+
+        /* SMS Analysis Section */
+        .sms-analysis-section {
+            padding: 1rem 0;
+        }
+
+        .sms-analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+        }
+
+        .analysis-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .analysis-label {
+            color: #666;
+        }
+
+        .analysis-value {
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+.analysis-value.cost-value {
+         color: var(--accent-orange);
+     }
+
+     .no-search-results {
+         padding: 1rem;
+         text-align: center;
+         color: #999;
+         font-style: italic;
+         font-size: 0.85rem;
+     }
+
+     /* Warnings Section */
+        .warnings-section {
+            padding: 1rem 0;
+        }
+
+        .warnings-list {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        .warning-item {
+            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .warning-item.unicode-warning {
+            color: #1565c0;
+        }
+
+        .warning-item.multipart-warning {
+            color: #e65100;
+        }
+
+        .warning-item.senderid-warning {
+            color: #c62828;
+        }
+
+        .warning-item.personalization-warning {
+            color: #7b1fa2;
+        }
+
+        .warning-item.wallet-warning {
+            color: #c62828;
+            font-weight: 600;
+        }
+
+/* Sticky Footer Actions */
+         .modal-actions-sticky {
+             position: sticky;
+             bottom: 0;
+             background: white;
+             padding: 1rem 0 0;
+             border-top: 1px solid #e0e0e0;
+             margin-top: 1rem;
+             z-index: 10;
+         }
+
+         /* Ensure confirmation content has bottom padding to account for sticky footer */
+         .confirmation-details {
+             padding-bottom: calc(4rem + 1px);
+         }
+
+         .send-spinner {
+            display: none;
+            animation: spin 1s linear infinite;
+            width: 16px;
+            height: 16px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Recipient Preview Chips */
+        .recipient-preview-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .recipient-preview-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            background: #e8e8e8;
+            padding: 0.25rem 0.5rem;
+            border-radius: 16px;
+            font-size: 0.75rem;
+        }
+
+        .recipient-preview-chip .chip-name {
+            font-weight: 500;
+        }
+
+        .recipient-preview-chip .chip-phone {
+            color: #666;
+        }
+
+        /* Confirmation Section Headers */
+        .confirmation-section {
+            margin-bottom: 1rem;
+        }
+
+        .confirmation-section h4 {
+            margin: 0 0 0.75rem 0;
+            font-size: 0.95rem;
+            color: var(--primary-dark);
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 0.25rem;
+        }
+
+        .confirmation-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.25rem 0;
+        }
+
+        .confirm-label {
+            font-weight: 500;
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .confirm-value {
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 0.85rem;
         }
     </style>
 </body>
