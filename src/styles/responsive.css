@@ -511,6 +511,75 @@ body .dashboard-content {
 }
 
 /* ============================================
+   PRE-SEND REVIEW MODAL - CENTERED DIALOG (NOT FULL SCREEN)
+   ============================================ */
+
+/* Override mobile modal styles for Pre-Send Review - keep centered on all devices */
+.pre-send-modal {
+    padding: 20px !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.pre-send-modal.active {
+    display: flex !important;
+}
+
+.pre-send-review-content {
+    width: 90% !important;
+    max-width: 900px !important;
+    max-height: 90vh !important;
+    margin: 0 !important;
+    border-radius: 16px !important;
+    animation: modalSlideIn 0.3s ease !important;
+}
+
+/* Tablet overrides */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .pre-send-review-content {
+        max-width: 760px !important;
+        border-radius: 14px !important;
+    }
+
+    .pre-send-header,
+    .pre-send-content,
+    .pre-send-footer {
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+    }
+
+    .pre-send-header {
+        padding-top: 20px !important;
+        padding-bottom: 16px !important;
+    }
+
+    .pre-send-content {
+        padding-top: 16px !important;
+        padding-bottom: 16px !important;
+    }
+}
+
+/* Mobile specific Pre-Send modal - keep centered like desktop */
+@media (max-width: 767px) {
+    .pre-send-modal {
+        padding: 12px !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .pre-send-review-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92vh !important;
+        border-radius: 14px !important;
+    }
+
+    .pre-send-footer {
+        flex-direction: column !important;
+    }
+}
+
+/* ============================================
    SEARCH AND FILTER - MOBILE
    ============================================ */
 
