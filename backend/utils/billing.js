@@ -2,7 +2,7 @@ const Transaction = require('../models/Transaction');
 const Wallet = require('../models/Wallet');
 
 // SMS cost per segment (in GHS)
-const COST_PER_SMS_SEGMENT = 0.095;
+const COST_PER_SMS_SEGMENT = 0.07;
 
 // Calculate SMS segments based on encoding
 const calculateSMSSegments = (message) => {

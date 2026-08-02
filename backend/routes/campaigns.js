@@ -6,7 +6,8 @@ const SmsRecipient = require('../models/SmsRecipient');
 const SmsRecipientService = require('../services/SmsRecipientService');
 const Template = require('../models/Template');
 const SenderId = require('../models/SenderId');
-const { calculateSMSCost, deductCredits } = require('../utils/billing');
+const CostCalculatorService = require('../services/CostCalculatorService');
+const WalletService = require('../services/WalletService');
 const { sendSMS } = require('../utils/nalo');
 const SmsMessage = require('../models/SmsMessage');
 
@@ -56,35 +57,27 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     // Calculate cost
-    const cost = calculateSMSCost(messageContent, recipients.length);
+    const costEstimation = await CostCalculatorService.calculateLiveCost(
+      userId,
+      messageContent,
+      recipients.length
+    );
+    const cost = costEstimation.estimatedCost;
 
-    // Check wallet balance and deduct GHS
-    try {
-      await deductCredits(userId, cost, `Campaign: ${name}`);
-    } catch (error) {
-      if (error.message === 'Insufficient balance') {
-        return res.status(402).json({
-          success: false,
-          message: 'Insufficient wallet balance',
-          error: { code: 'INSUFFICIENT_BALANCE' }
-        });
-      }
-      if (error.message === 'Daily SMS limit reached') {
-        return res.status(429).json({
-          success: false,
-          message: 'Daily SMS limit reached',
-          error: { code: 'DAILY_LIMIT_EXCEEDED' }
-        });
-      }
-      if (error.message === 'Monthly SMS limit reached') {
-        return res.status(429).json({
-          success: false,
-          message: 'Monthly SMS limit reached',
-          error: { code: 'MONTHLY_LIMIT_EXCEEDED' }
-        });
-      }
-      throw error;
+    const availableBalance = await WalletService.getAvailableBalance(userId);
+    if (availableBalance < cost) {
+      return res.status(402).json({
+        success: false,
+        message: 'Insufficient available balance',
+        error: { code: 'INSUFFICIENT_BALANCE', required: cost, available: availableBalance }
+      });
     }
+
+    const deductionResult = await WalletService.deductGhsForSms(
+      userId,
+      costEstimation,
+      `Campaign: ${name}`
+    );
 
     // Create campaign
     const campaign = new Campaign({
@@ -110,12 +103,18 @@ router.post('/', authenticate, async (req, res) => {
         const naloResponse = await sendSMS(senderId, recipients, messageContent);
 
         // Log messages
+        const costEstimation = await CostCalculatorService.calculateLiveCost(
+          userId,
+          messageContent,
+          recipients.length
+        );
+        const sellPricePerSms = costEstimation.sellPricePerSms;
+        const providerCostPerSms = costEstimation.providerCostPerSms;
+        const segmentResult = costEstimation.segments.segments || costEstimation.avgSegments || 1;
+
         for (const recipient of recipients) {
-          const segments = Math.ceil(messageContent.length / 160);
-          const sellPricePerSms = 0.095;
-          const providerCostPerSms = 0.082;
-          const totalChargedToUser = sellPricePerSms * segments;
-          const totalCostToProvider = providerCostPerSms * segments;
+          const totalChargedToUser = sellPricePerSms * segmentResult;
+          const totalCostToProvider = providerCostPerSms * segmentResult;
           const profitAmount = totalChargedToUser - totalCostToProvider;
         
           const smsMessage = new SmsMessage({
@@ -127,7 +126,7 @@ router.post('/', authenticate, async (req, res) => {
             status: 'sent',
             sellPricePerSms,
             providerCostPerSms,
-            segments,
+            segments: segmentResult,
             recipientsCount: 1,
             totalChargedToUser,
             totalCostToProvider,

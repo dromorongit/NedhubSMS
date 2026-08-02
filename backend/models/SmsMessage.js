@@ -55,7 +55,7 @@ const smsMessageSchema = new mongoose.Schema({
   // Financial tracking fields
   sellPricePerSms: {
     type: Number,
-    default: 0.095,
+    default: 0.07,
     min: 0
   },
   providerCostPerSms: {

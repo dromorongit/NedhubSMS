@@ -1,25 +1,26 @@
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
 const SmsMessage = require('../models/SmsMessage');
-const { calculateSMSCost } = require('./billing');
+const CostCalculatorService = require('../services/CostCalculatorService');
+
+const costCalculator = new CostCalculatorService();
 
 async function migrateMessages() {
   try {
     console.log('Starting message migration...');
 
-    // Get all legacy messages
     const legacyMessages = await Message.find({});
     console.log(`Found ${legacyMessages.length} legacy messages to migrate`);
 
     let migratedCount = 0;
     let errorCount = 0;
 
+    const sellPricePerSms = await costCalculator.getSellPricePerSms();
+
     for (const legacy of legacyMessages) {
       try {
-        // Legacy messages have recipients as array, but typically one recipient
         const recipients = Array.isArray(legacy.recipients) ? legacy.recipients : [legacy.recipients];
 
-        // Map legacy status to canonical status (handle any old 'pending' values)
         const statusMap = {
           'pending': 'queued',
           'queued': 'queued',
@@ -32,11 +33,10 @@ async function migrateMessages() {
         };
         const canonicalStatus = statusMap[legacy.status] || 'queued';
 
-        // Create SmsMessage for each recipient
         for (const recipient of recipients) {
-          const segments = Math.ceil(legacy.messageBody.length / 160);
-          const sellPricePerSms = 0.095;
-          const providerCostPerSms = 0.082;
+          const segmentResult = costCalculator.calculateSegments(legacy.messageBody);
+          const segments = segmentResult.segments;
+          const providerCostPerSms = costCalculator.getProviderCostPerSms(0);
           const totalChargedToUser = sellPricePerSms * segments;
           const totalCostToProvider = providerCostPerSms * segments;
           const profitAmount = totalChargedToUser - totalCostToProvider;
@@ -56,7 +56,7 @@ async function migrateMessages() {
             totalCostToProvider,
             profitAmount,
             createdAt: legacy.createdAt,
-            updatedAt: legacy.createdAt // No updatedAt in legacy
+            updatedAt: legacy.createdAt
           });
 
           await newMessage.save();
