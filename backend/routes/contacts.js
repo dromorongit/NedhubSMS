@@ -140,6 +140,7 @@ router.post('/import/confirm', authenticate, async (req, res) => {
           skippedRows: storedImport.skippedRows
         },
         importedContacts: [],
+        existingContacts: [],
         errors: []
       });
     }
@@ -193,6 +194,7 @@ router.post('/import/confirm', authenticate, async (req, res) => {
         skippedRows: results.skippedRows
       },
       importedContacts: results.importedContacts,
+      existingContacts: results.existingContacts,
       errors: results.errors.slice(0, 50) // Return first 50 errors only
     });
   } catch (error) {

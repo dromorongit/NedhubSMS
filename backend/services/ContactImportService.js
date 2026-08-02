@@ -388,8 +388,9 @@ class ContactImportService {
 
     // Pre-load existing contacts for this user to detect duplicates (single query)
     console.log('[Validation] Loading existing contacts for duplicate detection', { userId });
-    const existingContacts = await Contact.find({ userId }).select('phoneNumber normalizedPhoneNumber');
-    const existingPhones = new Set(existingContacts.map(c => c.normalizedPhoneNumber));
+    const existingContacts = await Contact.find({ userId }).select('recipientName phoneNumber normalizedPhoneNumber');
+    const existingPhones = new Map();
+    existingContacts.forEach(c => existingPhones.set(c.normalizedPhoneNumber, c));
     console.log('[Validation] Existing contacts loaded', { count: existingPhones.size });
 
     // Track duplicates within the uploaded file
@@ -404,6 +405,7 @@ class ContactImportService {
       importedRows: 0,
       skippedRows: 0,
       importedContacts: [],
+      existingContacts: [],
       errors: []
     };
 
@@ -473,15 +475,23 @@ class ContactImportService {
 
         // Check for duplicates against existing contacts
         if (existingPhones.has(normalizedPhone)) {
+          const existingContact = existingPhones.get(normalizedPhone);
+          results.existingContacts.push({
+            id: existingContact._id,
+            recipientName: existingContact.recipientName,
+            phoneNumber: existingContact.phoneNumber,
+            normalizedPhoneNumber: existingContact.normalizedPhoneNumber
+          });
           results.duplicateRows++;
           results.errors.push({
             row: rowNumber,
             error: 'Phone number already exists in your contacts',
             data: { recipientName, phoneNumber }
           });
-          console.log('[Validation] Row SKIPPED: Duplicate with existing contacts', { 
-            row: rowNumber, 
-            normalizedPhone 
+          console.log('[Validation] Row MATCHED existing contact', {
+            row: rowNumber,
+            normalizedPhone,
+            recipientName: existingContact.recipientName
           });
           continue;
         }
@@ -503,14 +513,14 @@ class ContactImportService {
 
         // All validations passed - create contact with atomic operation
         try {
-          const contactId = await Contact.create(userId, recipientName, normalizedPhone, 'Imported');
+          const contactId = await Contact.create(userId, recipientName, phoneNumber, 'Imported');
           
           results.validRows++;
           results.importedRows++;
           results.importedContacts.push({
             id: contactId,
             recipientName,
-            phoneNumber: normalizedPhone,
+            phoneNumber: phoneNumber,
             normalizedPhoneNumber: normalizedPhone
           });
           

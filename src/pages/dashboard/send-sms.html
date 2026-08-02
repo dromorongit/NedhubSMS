@@ -2278,7 +2278,7 @@ if (result.error) {
                 uploadedContacts.forEach(contact => {
                     addRecipient({
                         recipientName: contact.recipientName,
-                        phoneNumber: contact.normalizedPhoneNumber || contact.phoneNumber
+                        phoneNumber: contact.phoneNumber
                     }, 'upload', contact._id || contact.id);
                 });
 
@@ -2286,7 +2286,7 @@ if (result.error) {
                 selectedContacts.forEach(contact => {
                     addRecipient({
                         recipientName: contact.recipientName,
-                        phoneNumber: contact.normalizedPhoneNumber || contact.phoneNumber
+                        phoneNumber: contact.phoneNumber
                     }, 'saved', contact._id || contact.id);
                 });
 
@@ -2342,7 +2342,7 @@ if (result.error) {
                 const importRecipients = importedContacts.map(c => ({
                     _id: c.id,
                     recipientName: c.recipientName || 'Contact',
-                    phoneNumber: c.normalizedPhoneNumber || c.phoneNumber,
+                    phoneNumber: c.phoneNumber,
                     normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
                     source: 'import'
                 }));
@@ -3418,11 +3418,14 @@ if (result.error) {
 
                     const summary = result.summary;
                     const importedContacts = result.importedContacts || [];
+                    const existingContacts = result.existingContacts || [];
                     const errors = result.errors || [];
+                    const allImportedContacts = [...importedContacts, ...existingContacts];
 
                     console.log('[ImportResult] Summary counts', {
                         total: summary.totalRows,
                         imported: summary.importedRows,
+                        existing: existingContacts.length,
                         valid: summary.validRows,
                         invalid: summary.invalidRows,
                         duplicates: summary.duplicateRows,
@@ -3434,6 +3437,7 @@ if (result.error) {
                         window.loggers.import.log('Import completed', {
                             summary,
                             importedContactsCount: importedContacts.length,
+                            existingContactsCount: existingContacts.length,
                             errorsCount: errors.length
                         });
                     }
@@ -3441,19 +3445,22 @@ if (result.error) {
                     let toastMessage;
                     let toastType;
                     const { importedRows = 0, duplicateRows = 0, blacklistedRows = 0, invalidRows = 0 } = summary;
+                    const existingRows = existingContacts.length;
 
-                    if (importedRows > 0) {
+                    if (importedRows > 0 || existingRows > 0) {
+                        const parts = [];
+                        if (importedRows > 0) parts.push(`${importedRows} new contact${importedRows !== 1 ? 's' : ''} imported`);
+                        if (existingRows > 0) parts.push(`${existingRows} existing contact${existingRows !== 1 ? 's' : ''} reused`);
                         if (duplicateRows > 0 || blacklistedRows > 0 || invalidRows > 0) {
-                            const parts = [];
-                            if (duplicateRows > 0) parts.push(`${duplicateRows} duplicates`);
-                            if (blacklistedRows > 0) parts.push(`${blacklistedRows} blacklisted`);
-                            if (invalidRows > 0) parts.push(`${invalidRows} invalid`);
-                            toastMessage = `${importedRows} contacts imported successfully. ${parts.join(', ')} skipped.`;
-                            toastType = 'success';
+                            const skipParts = [];
+                            if (duplicateRows > 0) skipParts.push(`${duplicateRows} duplicates`);
+                            if (blacklistedRows > 0) skipParts.push(`${blacklistedRows} blacklisted`);
+                            if (invalidRows > 0) skipParts.push(`${invalidRows} invalid`);
+                            toastMessage = `${parts.join(', ')}. ${skipParts.join(', ')} skipped.`;
                         } else {
-                            toastMessage = `Successfully imported all ${importedRows} contacts!`;
-                            toastType = 'success';
+                            toastMessage = `${parts.join(', ')}!`;
                         }
+                        toastType = 'success';
                     } else {
                         if (duplicateRows > 0 && invalidRows === 0 && blacklistedRows === 0) {
                             toastMessage = 'All contacts already exist. No new contacts were imported.';
@@ -3481,7 +3488,7 @@ if (result.error) {
 
                     document.getElementById('filePreview').style.display = 'flex';
                     document.getElementById('uploadedFileName').textContent = fileName;
-                    uploadedContacts = importedContacts;
+                    uploadedContacts = allImportedContacts;
 
                     if (window.loggers && window.loggers.contacts) {
                         window.loggers.contacts.log('Imported contacts updated in UI', {
@@ -3490,19 +3497,19 @@ if (result.error) {
                         });
                     }
 
-showImportSummary(result);
+                    showImportSummary(result);
                     updateCostEstimation();
                     schedulePreviewUpdate();
 
-                    // Auto-populate recipients from imported contacts
-                    autoPopulateFromImport(importedContacts);
+                    // Auto-populate recipients from imported and existing contacts
+                    autoPopulateFromImport(allImportedContacts);
 
                     if (loadedContacts && loadedContacts.length > 0) {
-                        const newContacts = importedContacts.map(c => ({
+                        const newContacts = allImportedContacts.map(c => ({
                             _id: c.id,
                             recipientName: c.recipientName,
                             phoneNumber: c.phoneNumber,
-                            normalizedPhoneNumber: c.phoneNumber,
+                            normalizedPhoneNumber: c.normalizedPhoneNumber || c.phoneNumber,
                             groupIds: []
                         }));
                         loadedContacts = [...newContacts, ...loadedContacts];
