@@ -224,11 +224,11 @@
                                        <!-- Default Mode: Comma-separated input (shown only in default mode) -->
                                        <div id="defaultModeRecipients" class="mode-recipients-container">
                                            <textarea id="commaSeparatedRecipients"
-                                                     placeholder="Enter phone numbers separated by comma (max 20 contacts)&#10;Example: 0241234567, 0201234567, 0251234567"
+                                                     placeholder="Enter phone numbers separated by comma (max 200 contacts)&#10;Example: 0241234567, 0201234567, 0251234567"
                                                      rows="4"
                                                      maxlength="500"></textarea>
                                            <div class="recipient-counter">
-                                               <span id="recipientCount">0</span>/20 contacts entered
+                                               <span id="recipientCount">0</span>/200 contacts entered
                                            </div>
                                            <div class="validation-message" id="recipientValidationMessage" style="display: none;"></div>
                                        </div>
@@ -1583,27 +1583,30 @@ if (result.error) {
                }
            }
           
-          // Handle contact selection
-          function handleContactSelection(checkbox) {
-              const contactId = checkbox.value;
-              const contactName = checkbox.dataset.name;
-              const contactPhone = checkbox.dataset.phone;
-              
-              if (checkbox.checked) {
-                  selectedContacts.push({
-                      id: contactId,
-                      recipientName: contactName,
-                      phoneNumber: contactPhone
-                  });
-               } else {
-                   selectedContacts = selectedContacts.filter(c => c.id !== contactId);
-               }
+           // Handle contact selection
+           function handleContactSelection(checkbox) {
+               const contactId = checkbox.value;
+               const contactName = checkbox.dataset.name;
+               const contactPhone = checkbox.dataset.phone;
                
-               updateSelectedContactsPreview();
-               updateCostEstimation();
-               schedulePreviewUpdate();
-               updateRecipientChips();
-           }
+               if (checkbox.checked) {
+                   const normalizedPhone = normalizePhoneNumber(contactPhone);
+                   selectedContacts.push({
+                       id: contactId,
+                       recipientName: contactName || '',
+                       phoneNumber: contactPhone,
+                       normalizedPhoneNumber: normalizedPhone,
+                       source: 'saved'
+                   });
+                } else {
+                    selectedContacts = selectedContacts.filter(c => c.id !== contactId);
+                }
+                
+                updateSelectedContactsPreview();
+                updateCostEstimation();
+                schedulePreviewUpdate();
+                updateRecipientChips();
+            }
           
           // Update selected contacts preview
           function updateSelectedContactsPreview() {
@@ -1975,13 +1978,14 @@ if (result.error) {
                     return contactsModalSelectedIds.has(id);
                 });
 
-                // Convert to canonical recipient format with deduplication
-                const newRecipients = selectedContactsArray.map(c => ({
-                    recipientName: c.recipientName || 'Contact',
-                    phoneNumber: c.normalizedPhoneNumber || c.phoneNumber,
-                    normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
-                    source: 'contacts-modal'
-                }));
+                 // Convert to canonical recipient format with deduplication
+                 const newRecipients = selectedContactsArray.map(c => ({
+                     id: c._id || c.id,
+                     recipientName: c.recipientName || '',
+                     phoneNumber: c.phoneNumber,
+                     normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
+                     source: 'contacts-modal'
+                 }));
 
                 // Add to recipients with deduplication
                 const addedCount = addRecipientsWithDeduplication(newRecipients);
@@ -2049,13 +2053,13 @@ if (result.error) {
                             normalized: normalizedPhone
                         });
                     } else {
-                        allRecipients.push({
-                            _id: recipient._id || recipient.id,
-                            recipientName: recipient.recipientName || 'Contact',
-                            phoneNumber: recipient.phoneNumber,
-                            normalizedPhoneNumber: normalizedPhone,
-                            source: recipient.source || 'manual'
-                        });
+                         allRecipients.push({
+                             id: recipient.id || recipient._id,
+                             recipientName: recipient.recipientName || '',
+                             phoneNumber: recipient.phoneNumber,
+                             normalizedPhoneNumber: normalizedPhone,
+                             source: recipient.source || 'manual'
+                         });
                         addedCount++;
                     }
                 });
@@ -2261,7 +2265,8 @@ if (result.error) {
                     if (!seen.has(normalized)) {
                         seen.add(normalized);
                         collected.push({
-                            recipientName: recipient.recipientName || 'Contact',
+                            id: recipient.id || recipient._id,
+                            recipientName: recipient.recipientName || '',
                             phoneNumber: recipient.phoneNumber,
                             normalizedPhoneNumber: normalized,
                             source: source,
@@ -2272,21 +2277,25 @@ if (result.error) {
                 };
 
                 // 1. Add from unified allRecipients (imported + contacts modal selections)
-                allRecipients.forEach(r => addRecipient(r, r.source || 'import', r._id));
+                allRecipients.forEach(r => addRecipient(r, r.source || 'import', r.id || r._id));
 
                 // 2. Add from uploadedContacts (if on upload tab or just in case)
                 uploadedContacts.forEach(contact => {
                     addRecipient({
-                        recipientName: contact.recipientName,
-                        phoneNumber: contact.phoneNumber
+                        id: contact._id || contact.id,
+                        recipientName: contact.recipientName || '',
+                        phoneNumber: contact.phoneNumber,
+                        normalizedPhoneNumber: contact.normalizedPhoneNumber || normalizePhoneNumber(contact.phoneNumber)
                     }, 'upload', contact._id || contact.id);
                 });
 
                 // 3. Add from selectedContacts (saved contacts selection)
                 selectedContacts.forEach(contact => {
                     addRecipient({
-                        recipientName: contact.recipientName,
-                        phoneNumber: contact.phoneNumber
+                        id: contact._id || contact.id,
+                        recipientName: contact.recipientName || '',
+                        phoneNumber: contact.phoneNumber,
+                        normalizedPhoneNumber: contact.normalizedPhoneNumber || normalizePhoneNumber(contact.phoneNumber)
                     }, 'saved', contact._id || contact.id);
                 });
 
@@ -2308,8 +2317,10 @@ if (result.error) {
                         if (phone) {
                             const norm = normalizePhoneNumber(phone);
                             addRecipient({
-                                recipientName: name || 'Recipient',
-                                phoneNumber: phone
+                                id: `item-${idx}-${norm}`,
+                                recipientName: name || '',
+                                phoneNumber: phone,
+                                normalizedPhoneNumber: norm
                             }, 'manual-personalized', `item-${idx}-${norm}`);
                         }
                     });
@@ -2340,8 +2351,8 @@ if (result.error) {
 
                 // Convert imported contacts to recipient format
                 const importRecipients = importedContacts.map(c => ({
-                    _id: c.id,
-                    recipientName: c.recipientName || 'Contact',
+                    id: c.id,
+                    recipientName: c.recipientName || '',
                     phoneNumber: c.phoneNumber,
                     normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
                     source: 'import'
@@ -2890,7 +2901,7 @@ if (result.error) {
         const validationMessageEl = document.getElementById('recipientValidationMessage');
         
         // Maximum allowed contacts
-        const MAX_RECIPIENTS = 20;
+        const MAX_RECIPIENTS = 200;
 
         // Parse comma-separated phone numbers
         function parseCommaSeparatedRecipients(input) {
@@ -2927,9 +2938,11 @@ if (result.error) {
                 
                 if (validation.isValid) {
                     recipients.push({
-                        recipientName: 'Recipient', // Default name for default mode
-                        phoneNumber: phone, // original raw phone
-                        normalizedPhoneNumber: validation.normalizedNumber
+                        id: undefined,
+                        recipientName: '',
+                        phoneNumber: phone,
+                        normalizedPhoneNumber: validation.normalizedNumber,
+                        source: 'manual'
                     });
                 } else {
                     invalidNumbers.push(`${phone} (${validation.error})`);
@@ -3509,7 +3522,7 @@ if (result.error) {
                             _id: c.id,
                             recipientName: c.recipientName,
                             phoneNumber: c.phoneNumber,
-                            normalizedPhoneNumber: c.normalizedPhoneNumber || c.phoneNumber,
+                            normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
                             groupIds: []
                         }));
                         loadedContacts = [...newContacts, ...loadedContacts];
@@ -3619,9 +3632,9 @@ if (result.error) {
                 // Get first selected recipient
                 const firstRecipient = getFirstRecipient();
                 if (firstRecipient) {
-                    recipientName = firstRecipient.recipientName || firstRecipient.name || 'John';
+                    recipientName = firstRecipient.recipientName || firstRecipient.name || 'Unknown Recipient';
                 } else {
-                    recipientName = 'John'; // placeholder
+                    recipientName = 'Unknown Recipient';
                 }
                 
                 // Replace {{name}} and {{salutation}} placeholders
@@ -3663,7 +3676,7 @@ if (result.error) {
             }, 100);
         }
         
-        // Get first recipient for preview (canonical schema: recipientName, phoneNumber)
+        // Get first recipient for preview
         function getFirstRecipient() {
             // Check manual recipients first
             const manualItems = document.querySelectorAll('.manual-recipient-item:not(.template)');
@@ -3673,25 +3686,36 @@ if (result.error) {
                 const name = nameInput ? nameInput.value.trim() : '';
                 const phone = phoneInput ? phoneInput.value.trim() : '';
                 if (phone) {
-                    return { recipientName: name || 'Recipient', phoneNumber: phone };
+                    const norm = normalizePhoneNumber(phone);
+                    return {
+                        id: `item-${norm}`,
+                        recipientName: name || '',
+                        phoneNumber: phone,
+                        normalizedPhoneNumber: norm,
+                        source: 'manual-personalized'
+                    };
                 }
             }
 
-            // Check uploaded contacts (from import - canonical schema)
+            // Check uploaded contacts (from import)
             if (uploadedContacts.length > 0) {
                 const contact = uploadedContacts[0];
                 return {
-                    recipientName: contact.recipientName || 'Contact',
-                    phoneNumber: contact.phoneNumber || contact.normalizedPhoneNumber || ''
+                    id: contact._id || contact.id,
+                    recipientName: contact.recipientName || '',
+                    phoneNumber: contact.phoneNumber,
+                    normalizedPhoneNumber: contact.normalizedPhoneNumber || normalizePhoneNumber(contact.phoneNumber)
                 };
             }
 
-              // Check selected contacts (already canonical)
+              // Check selected contacts
               if (selectedContacts.length > 0) {
                   const contact = selectedContacts[0];
                   return {
-                      recipientName: contact.recipientName || 'Contact',
-                      phoneNumber: contact.phoneNumber || contact.normalizedPhoneNumber || ''
+                      id: contact._id || contact.id,
+                      recipientName: contact.recipientName || '',
+                      phoneNumber: contact.phoneNumber,
+                      normalizedPhoneNumber: contact.normalizedPhoneNumber || normalizePhoneNumber(contact.phoneNumber)
                   };
               }
               
@@ -3699,8 +3723,10 @@ if (result.error) {
               if (allRecipients.length > 0) {
                   const contact = allRecipients[0];
                   return {
-                      recipientName: contact.recipientName || 'Contact',
-                      phoneNumber: contact.phoneNumber || contact.normalizedPhoneNumber || ''
+                      id: contact.id || contact._id,
+                      recipientName: contact.recipientName || '',
+                      phoneNumber: contact.phoneNumber,
+                      normalizedPhoneNumber: contact.normalizedPhoneNumber
                   };
               }
               
@@ -4036,21 +4062,24 @@ if (result.error) {
 
              let recipients = getAllRecipients();
 
-             // Normalize all recipient phone numbers using the shared utility
-             recipients = recipients.map(r => {
-                 const validation = validatePhoneNumber(r.phoneNumber);
-                 return {
-                     recipientName: r.recipientName || '',
-                     phoneNumber: validation.isValid ? validation.normalizedNumber : r.phoneNumber
-                 };
-             });
+              // Normalize all recipient phone numbers using the shared utility
+              recipients = recipients.map(r => {
+                  const validation = validatePhoneNumber(r.phoneNumber);
+                  return {
+                      id: r.id,
+                      recipientName: r.recipientName || '',
+                      phoneNumber: r.phoneNumber,
+                      normalizedPhoneNumber: validation.isValid ? validation.normalizedNumber : (r.normalizedPhoneNumber || normalizePhoneNumber(r.phoneNumber)),
+                      source: r.source
+                  };
+              });
 
-             if (recipients.length === 0) {
-                 showToast('Please add at least one recipient', 'error');
-                 return;
-             }
+              if (recipients.length === 0) {
+                  showToast('Please add at least one recipient', 'error');
+                  return;
+              }
 
-             // Enforce maximum recipients limit for all sources
+              // Enforce maximum recipients limit for all sources
              if (recipients.length > MAX_RECIPIENTS) {
                  showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
                  return;
@@ -4092,8 +4121,11 @@ if (result.error) {
               recipients = recipients.map(r => {
                   const validation = validatePhoneNumber(r.phoneNumber);
                   return {
+                      id: r.id,
                       recipientName: r.recipientName || '',
-                      phoneNumber: validation.isValid ? validation.normalizedNumber : r.phoneNumber
+                      phoneNumber: r.phoneNumber,
+                      normalizedPhoneNumber: validation.isValid ? validation.normalizedNumber : (r.normalizedPhoneNumber || normalizePhoneNumber(r.phoneNumber)),
+                      source: r.source
                   };
               });
 
@@ -4224,18 +4256,24 @@ if (result.error) {
              try {
                  let result;
                  
-                 if (isPersonalizedMode) {
-                     // Personalized messaging mode
-                     console.log('[Send] Preparing personalized campaign. Recipients (raw):', JSON.stringify(recipients));
-                     const campaignData = {
-                         title,
-                         messageBody,
-                         salutation,
-                         customSalutation,
-                         recipients: recipients.map(r => ({ recipientName: r.recipientName, phoneNumber: r.phoneNumber })),
-                         senderId,
-                         removeDuplicates
-                     };
+                  if (isPersonalizedMode) {
+                      // Personalized messaging mode
+                      console.log('[Send] Preparing personalized campaign. Recipients (raw):', JSON.stringify(recipients));
+                      const campaignData = {
+                          title,
+                          messageBody,
+                          salutation,
+                          customSalutation,
+                          recipients: recipients.map(r => ({
+                              id: r.id,
+                              recipientName: r.recipientName || '',
+                              phoneNumber: r.phoneNumber,
+                              normalizedPhoneNumber: r.normalizedPhoneNumber,
+                              source: r.source
+                          })),
+                          senderId,
+                          removeDuplicates
+                      };
                      console.log('[Send] Campaign payload (personalized):', JSON.stringify(campaignData));
  
                      if (sendMode === 'scheduled') {
@@ -4246,13 +4284,19 @@ if (result.error) {
                      result = sendMode === 'immediate' ?
                          await window.apiClient.sendPersonalizedCampaign(campaignData) :
                          await window.apiClient.schedulePersonalizedCampaign(campaignData);
-                 } else {
-                     // Default messaging mode
-                     const campaignData = {
-                         senderId,
-                         message: messageBody,
-                         recipients: recipients.map(r => r.phoneNumber)
-                     };
+                  } else {
+                      // Default messaging mode
+                      const campaignData = {
+                          senderId,
+                          message: messageBody,
+                          recipients: recipients.map(r => ({
+                              id: r.id,
+                              recipientName: r.recipientName || '',
+                              phoneNumber: r.phoneNumber,
+                              normalizedPhoneNumber: r.normalizedPhoneNumber,
+                              source: r.source
+                          }))
+                      };
  
                      if (sendMode === 'scheduled') {
                          campaignData.scheduledAt = scheduledAt.toISOString();
@@ -4646,18 +4690,18 @@ function populateConfirmationModal(recipients, sendMode, scheduledAt, recipientS
             const finalSalutation = campaignData.salutation === 'Custom' ? campaignData.customSalutation : campaignData.salutation;
             const sampleRecipients = recipients.slice(0, 3);
             let html = '';
-            sampleRecipients.forEach(r => {
-                const personalizedMsg = campaignData.messageBody
-                    .replace(/\{\{name\}\}/g, r.recipientName || 'User')
-                    .replace(/\{\{salutation\}\}/g, finalSalutation);
-                html += `
-                    <div class="personalization-preview-item">
-                        <span class="preview-recipient">${r.recipientName || 'User'}</span>
-                        <span class="preview-phone">${r.phoneNumber}</span>
-                        <div class="preview-message">${personalizedMsg}</div>
-                    </div>
-                `;
-            });
+sampleRecipients.forEach(r => {
+                    const personalizedMsg = campaignData.messageBody
+                        .replace(/\{\{name\}\}/g, r.recipientName || 'Unknown Recipient')
+                        .replace(/\{\{salutation\}\}/g, finalSalutation);
+                    html += `
+                        <div class="personalization-preview-item">
+                            <span class="preview-recipient">${r.recipientName || 'Unknown Recipient'}</span>
+                            <span class="preview-phone">${r.phoneNumber}</span>
+                            <div class="preview-message">${personalizedMsg}</div>
+                        </div>
+                    `;
+                });
             personalizationPreviewsEl.innerHTML = html;
         } else {
             personalizationSection.style.display = 'none';
@@ -4671,7 +4715,7 @@ function populateConfirmationModal(recipients, sendMode, scheduledAt, recipientS
         displayRecipients.forEach(r => {
             chipsHtml += `
                 <div class="recipient-preview-chip">
-                    <span class="chip-name">${r.recipientName || 'User'}</span>
+                    <span class="chip-name">${r.recipientName || 'Unknown Recipient'}</span>
                     <span class="chip-phone">${r.phoneNumber}</span>
                 </div>
             `;
@@ -4697,7 +4741,7 @@ function populateConfirmationModal(recipients, sendMode, scheduledAt, recipientS
             if (chips) {
                 const allChipsHtml = recipients.map(r => `
                     <div class="recipient-preview-chip">
-                        <span class="chip-name">${r.recipientName || 'User'}</span>
+                        <span class="chip-name">${r.recipientName || 'Unknown Recipient'}</span>
                         <span class="chip-phone">${r.phoneNumber}</span>
                     </div>
                 `).join('');
@@ -4720,7 +4764,7 @@ function populateConfirmationModal(recipients, sendMode, scheduledAt, recipientS
                 );
                 const filteredChipsHtml = filteredRecipients.map(r => `
                     <div class="recipient-preview-chip">
-                        <span class="chip-name">${r.recipientName || 'User'}</span>
+                        <span class="chip-name">${r.recipientName || 'Unknown Recipient'}</span>
                         <span class="chip-phone">${r.phoneNumber}</span>
                     </div>
                 `).join('');

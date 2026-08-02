@@ -137,10 +137,10 @@ function parseManualRecipientInput(input) {
   const phoneIndex = trimmed.indexOf(phoneNumber);
   let recipientName = trimmed.substring(0, phoneIndex).trim();
   
-  // If no name provided, use fallback
-  if (!recipientName) {
-    recipientName = 'User';
-  }
+// If no name provided, leave empty - backend will use 'Unknown Recipient'
+    if (!recipientName) {
+      recipientName = '';
+    }
 
   return {
     recipientName,

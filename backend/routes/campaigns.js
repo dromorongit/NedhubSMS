@@ -10,6 +10,7 @@ const CostCalculatorService = require('../services/CostCalculatorService');
 const WalletService = require('../services/WalletService');
 const { sendSMS } = require('../utils/nalo');
 const SmsMessage = require('../models/SmsMessage');
+const { MAX_SMS_RECIPIENTS } = require('../utils/constants');
 
 // Create and send campaign
 router.post('/', authenticate, async (req, res) => {
@@ -23,6 +24,15 @@ router.post('/', authenticate, async (req, res) => {
         success: false,
         message: 'Name, sender ID, and recipients are required',
         error: { code: 'VALIDATION_ERROR' }
+      });
+    }
+
+    // Enforce maximum recipient limit
+    if (recipients.length > MAX_SMS_RECIPIENTS) {
+      return res.status(400).json({
+        success: false,
+        message: `Maximum ${MAX_SMS_RECIPIENTS} recipients allowed per campaign`,
+        error: { code: 'VALIDATION_ERROR', limit: MAX_SMS_RECIPIENTS }
       });
     }
 

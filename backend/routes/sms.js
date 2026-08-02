@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { MAX_SMS_RECIPIENTS } = require('../utils/constants');
 const { authenticate } = require('../middleware/auth');
 const { checkBalance } = require('../utils/nalo');
 const Message = require('../models/Message');
@@ -40,6 +41,15 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
+    // Enforce maximum recipient limit
+    if (recipients.length > MAX_SMS_RECIPIENTS) {
+      return res.status(400).json({
+        success: false,
+        message: `Maximum ${MAX_SMS_RECIPIENTS} recipients allowed per campaign`,
+        error: { code: 'VALIDATION_ERROR', limit: MAX_SMS_RECIPIENTS }
+      });
+    }
+
     // NaloSmsService handles wallet deduction internally, so we don't need to deduct here
     // Check Nalo SMS balance
     const naloBalance = await checkBalance();
@@ -51,15 +61,17 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
-    // Normalize recipients: extract phoneNumber from either string or object format
+    // Normalize recipients to canonical schema
     const normalizedRecipients = recipients.map(r => {
       if (typeof r === 'string') {
-        return { phoneNumber: r, recipientName: r };
+        return { phoneNumber: r, recipientName: '' };
       }
-      // Canonical object: { recipientName, phoneNumber }
       return {
-        phoneNumber: r.phoneNumber || r.recipient || r,
-        recipientName: r.recipientName || r.name || r.phoneNumber || r
+        id: r.id,
+        recipientName: r.recipientName ?? '',
+        phoneNumber: r.phoneNumber || String(r),
+        normalizedPhoneNumber: r.normalizedPhoneNumber || '',
+        source: r.source || ''
       };
     });
 
@@ -227,13 +239,12 @@ router.post('/send', authenticate, async (req, res) => {
       }
 
       // Enforce maximum recipient limit for safety
-      const MAX_RECIPIENTS = 1000;
-      if (recipients.length > MAX_RECIPIENTS) {
-        logger.warn('[Schedule] Recipient limit exceeded', { userId, count: recipients.length, limit: MAX_RECIPIENTS });
+      if (recipients.length > MAX_SMS_RECIPIENTS) {
+        logger.warn('[Schedule] Recipient limit exceeded', { userId, count: recipients.length, limit: MAX_SMS_RECIPIENTS });
         return res.status(400).json({
           success: false,
-          message: `Maximum ${MAX_RECIPIENTS} recipients allowed per campaign`,
-          error: { code: 'VALIDATION_ERROR', limit: MAX_RECIPIENTS }
+          message: `Maximum ${MAX_SMS_RECIPIENTS} recipients allowed per campaign`,
+          error: { code: 'VALIDATION_ERROR', limit: MAX_SMS_RECIPIENTS }
         });
       }
 
@@ -277,11 +288,14 @@ router.post('/send', authenticate, async (req, res) => {
       // Normalize recipients from various formats to canonical schema
     const normalizedRecipients = recipients.map(r => {
       if (typeof r === 'string') {
-        return { recipientName: r, phoneNumber: r };
+        return { phoneNumber: r, recipientName: '' };
       }
       return {
-        recipientName: r.recipientName || r.name || r.phoneNumber || r,
-        phoneNumber: r.phoneNumber || r.recipient || r
+        id: r.id,
+        recipientName: r.recipientName ?? '',
+        phoneNumber: r.phoneNumber || String(r),
+        normalizedPhoneNumber: r.normalizedPhoneNumber || '',
+        source: r.source || ''
       };
     });
 
@@ -954,16 +968,25 @@ router.post('/schedule', authenticate, async (req, res) => {
        });
      }
 
-     // Validate recipients format
-     if (!Array.isArray(recipients) || recipients.length === 0) {
-       return res.status(400).json({
-         success: false,
-         message: 'Recipients must be a non-empty array',
-         error: { code: 'VALIDATION_ERROR' }
-       });
-     }
+// Validate recipients format
+      if (!Array.isArray(recipients) || recipients.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Recipients must be a non-empty array',
+          error: { code: 'VALIDATION_ERROR' }
+        });
+      }
 
-     // Validate scheduled time
+      // Enforce maximum recipient limit
+      if (recipients.length > MAX_SMS_RECIPIENTS) {
+        return res.status(400).json({
+          success: false,
+          message: `Maximum ${MAX_SMS_RECIPIENTS} recipients allowed per campaign`,
+          error: { code: 'VALIDATION_ERROR', limit: MAX_SMS_RECIPIENTS }
+        });
+      }
+
+      // Validate scheduled time
      const scheduleDate = new Date(scheduledAt);
      if (isNaN(scheduleDate.getTime())) {
        return res.status(400).json({
@@ -1007,11 +1030,11 @@ router.post('/schedule', authenticate, async (req, res) => {
       let phoneNumber;
 
       if (typeof recipient === 'string') {
-        recipientName = recipient;
+        recipientName = '';
         phoneNumber = recipient;
       } else {
-        recipientName = recipient.recipientName || recipient.name || '';
-        phoneNumber = recipient.phoneNumber || recipient.recipient || String(recipient);
+        recipientName = recipient.recipientName ?? '';
+        phoneNumber = recipient.phoneNumber || String(recipient);
       }
 
       // Normalize phone number to canonical 233XXXXXXXXX format
@@ -1106,7 +1129,7 @@ router.post('/schedule', authenticate, async (req, res) => {
       const smsRecipient = new SmsRecipient({
         campaignId: campaign._id,
         userId,
-        recipientName: recipient.recipientName || '',
+        recipientName: recipient.recipientName ?? '',
         phoneNumber: recipient.phoneNumber,
         normalizedPhoneNumber: recipient.normalizedPhoneNumber,
         personalizedMessage: message,

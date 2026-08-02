@@ -254,7 +254,7 @@ function formatPersonalizedMessage(messageBody, salutation, recipientName) {
   if (!messageBody) return '';
   
   const finalSalutation = salutation || 'Dear';
-  const finalName = recipientName || 'Customer';
+  const finalName = recipientName || 'Unknown Recipient';
   
   // If message already contains placeholders, replace them
   let formatted = messageBody;

@@ -8,7 +8,7 @@ class MessagePersonalizationService {
       'Honourable': 'Honourable'
     };
 
-    this.defaultFallbackName = 'Customer';
+    this.defaultFallbackName = 'Unknown Recipient';
   }
 
   /**
@@ -97,8 +97,11 @@ class MessagePersonalizationService {
       );
 
       return {
+        id: recipient.id,
         recipientName: recipient.recipientName,
         phoneNumber: recipient.phoneNumber,
+        normalizedPhoneNumber: recipient.normalizedPhoneNumber,
+        source: recipient.source,
         personalizedMessage
       };
     });

@@ -11,6 +11,7 @@ const CostCalculatorService = require('../services/CostCalculatorService');
 const SmsRecipientService = require('../services/SmsRecipientService');
 const SmsSchedulerService = require('../services/SmsSchedulerService');
 const SmsCampaignRetryService = require('../services/SmsCampaignRetryService');
+const { MAX_SMS_RECIPIENTS } = require('../utils/constants');
 const logger = require('../utils/logger');
 
 // Preview personalized messages
@@ -24,12 +25,21 @@ router.post('/preview-personalized', authenticate, async (req, res) => {
       fallbackName
     } = req.body;
 
-    // Validate required fields
-    if (!messageBody || !Array.isArray(sampleRecipients) || sampleRecipients.length === 0) {
+// Validate required fields
+    if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
       return res.status(400).json({
         success: false,
-        message: 'Message body and sample recipients are required',
+        message: 'Title, message body, recipients, and sender ID are required',
         error: { code: 'VALIDATION_ERROR' }
+      });
+    }
+
+    // Enforce maximum recipient limit
+    if (recipients.length > MAX_SMS_RECIPIENTS) {
+      return res.status(400).json({
+        success: false,
+        message: `Maximum ${MAX_SMS_RECIPIENTS} recipients allowed per campaign`,
+        error: { code: 'VALIDATION_ERROR', limit: MAX_SMS_RECIPIENTS }
       });
     }
 
@@ -225,6 +235,15 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
+    // Enforce maximum recipient limit
+    if (recipients.length > MAX_SMS_RECIPIENTS) {
+      return res.status(400).json({
+        success: false,
+        message: `Maximum ${MAX_SMS_RECIPIENTS} recipients allowed per campaign`,
+        error: { code: 'VALIDATION_ERROR', limit: MAX_SMS_RECIPIENTS }
+      });
+    }
+
     // Validate message template
     const validation = MessagePersonalizationService.validateMessageTemplate(messageBody);
     if (!validation.isValid) {
@@ -336,7 +355,7 @@ router.post('/send', authenticate, async (req, res) => {
 
         // Create recipient record
         const SmsRecipient = require('../models/SmsRecipient');
-        const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || recipient.phoneNumber);
+        const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || '');
         const smsRecipient = new SmsRecipient({
           campaignId: campaign._id,
           userId,
@@ -511,6 +530,16 @@ router.post('/schedule', authenticate, async (req, res) => {
       });
       return res.status(400).json({
         error: 'Title, message body, recipients, sender ID, and schedule time are required'
+      });
+    }
+
+    // Enforce maximum recipient limit
+    if (recipients.length > MAX_SMS_RECIPIENTS) {
+      logger.warn('[Schedule] Recipient limit exceeded', { userId, count: recipients.length, limit: MAX_SMS_RECIPIENTS });
+      return res.status(400).json({
+        success: false,
+        message: `Maximum ${MAX_SMS_RECIPIENTS} recipients allowed per campaign`,
+        error: { code: 'VALIDATION_ERROR', limit: MAX_SMS_RECIPIENTS }
       });
     }
 
@@ -689,7 +718,7 @@ router.post('/schedule', authenticate, async (req, res) => {
       const segmentResult = CostCalculatorService.calculateSegments(personalizedMessage);
       const recipientEstimatedCost = sellPrice * segmentResult.segments;
 
-      const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || recipient.phoneNumber);
+      const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || '');
       const smsRecipient = new SmsRecipient({
         campaignId: campaign._id,
         userId,
