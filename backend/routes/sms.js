@@ -77,12 +77,31 @@ router.post('/send', authenticate, async (req, res) => {
 
     console.log('[SendSMS] Normalized recipients (sample):', normalizedRecipients.slice(0, 3));
 
+    // Deduplicate recipients to avoid duplicate SMS sends and charges
+    const SmsRecipientService = require('../services/SmsRecipientService');
+    const processedRecipients = await SmsRecipientService.processRecipientsForCampaign(
+      normalizedRecipients,
+      userId,
+      true
+    );
+
+    console.log('[SendSMS] Recipient processing complete', {
+      originalCount: processedRecipients.originalCount,
+      duplicateCount: processedRecipients.duplicateCount,
+      invalidCount: processedRecipients.invalidRecipients.length,
+      blacklistedCount: processedRecipients.blacklistedRecipients.length,
+      finalCount: processedRecipients.finalCount
+    });
+
+    // Use only valid, unique recipients for sending
+    const recipientsToSend = processedRecipients.validRecipients;
+
     // Send SMS to ALL recipients (not just the first one)
     const results = [];
     let successCount = 0;
     let failedCount = 0;
 
-    for (const recipient of normalizedRecipients) {
+    for (const recipient of recipientsToSend) {
       try {
         // Use NaloSmsService for proper tracking and webhook support
         // Note: NaloSmsService handles wallet deduction internally
@@ -91,7 +110,7 @@ router.post('/send', authenticate, async (req, res) => {
           phoneNumber: recipient.phoneNumber,
           senderId,
           message,
-          recipientsCount: normalizedRecipients.length
+          recipientsCount: recipientsToSend.length
         });
         
         if (smsResult.success) {
@@ -123,11 +142,11 @@ router.post('/send', authenticate, async (req, res) => {
       }
     }
 
-    console.log('[SendSMS] Completed:', { total: recipients.length, success: successCount, failed: failedCount });
+    console.log('[SendSMS] Completed:', { total: recipientsToSend.length, success: successCount, failed: failedCount });
 
     // Determine overall status: 'sent' if all succeeded, 'partial_success' if some succeeded, 'failed' if none
     let overallStatus;
-    if (successCount === recipients.length) {
+    if (successCount === recipientsToSend.length) {
       overallStatus = 'sent';
     } else if (successCount > 0) {
       overallStatus = 'partial_success';
@@ -138,12 +157,16 @@ router.post('/send', authenticate, async (req, res) => {
     // Prepare canonical response data with standardized fields
     const responseData = {
       campaignId: null, // Quick send does not create a campaign
-      totalRecipients: recipients.length,
+      totalRecipients: recipientsToSend.length,
+      totalRecipientsBeforeDedup: recipients.length,
+      duplicatesRemoved: processedRecipients.duplicateCount,
+      invalidRecipients: processedRecipients.invalidRecipients.length,
+      blacklistedRecipients: processedRecipients.blacklistedRecipients.length,
       successfulRecipients: successCount,
       failedRecipients: failedCount,
       status: overallStatus,
       summary: {
-        total: recipients.length,
+        total: recipientsToSend.length,
         success: successCount,
         failed: failedCount
       },
@@ -362,7 +385,7 @@ router.post('/send', authenticate, async (req, res) => {
       }
 
       // Calculate cost estimation based on valid recipients
-      const CostCalculatorService = require('./CostCalculatorService');
+      const CostCalculatorService = require('../services/CostCalculatorService');
       const costEstimation = await CostCalculatorService.calculateLiveCost(
         userId,
         message,
@@ -468,7 +491,7 @@ router.post('/send', authenticate, async (req, res) => {
       });
   
       // Schedule with BullMQ
-      const SmsSchedulerService = require('./SmsSchedulerService');
+      const SmsSchedulerService = require('../services/SmsSchedulerService');
       logger.info('[Schedule] Scheduling campaign with BullMQ', {
         campaignId: campaign._id,
         scheduledAt: scheduledUtc.toISOString()
@@ -950,221 +973,6 @@ router.post('/resend', authenticate, async (req, res) => {
         details: error.message
       }
     });
-  }
-});
-
-// Schedule default SMS campaign (bulk messaging)
-router.post('/schedule', authenticate, async (req, res) => {
-  try {
-    const { senderId, recipients, message, scheduledAt, timezone = 'UTC' } = req.body;
-    const userId = req.user.userId;
-
-     // Validate required fields
-     if (!senderId || !recipients || !message || !scheduledAt) {
-       return res.status(400).json({
-         success: false,
-         message: 'Sender ID, recipients, message, and schedule time are required',
-         error: { code: 'VALIDATION_ERROR' }
-       });
-     }
-
-// Validate recipients format
-      if (!Array.isArray(recipients) || recipients.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Recipients must be a non-empty array',
-          error: { code: 'VALIDATION_ERROR' }
-        });
-      }
-
-      // Enforce maximum recipient limit
-      if (recipients.length > MAX_SMS_RECIPIENTS) {
-        return res.status(400).json({
-          success: false,
-          message: `Maximum ${MAX_SMS_RECIPIENTS} recipients allowed per campaign`,
-          error: { code: 'VALIDATION_ERROR', limit: MAX_SMS_RECIPIENTS }
-        });
-      }
-
-      // Validate scheduled time
-     const scheduleDate = new Date(scheduledAt);
-     if (isNaN(scheduleDate.getTime())) {
-       return res.status(400).json({
-         success: false,
-         message: 'Invalid scheduled time format',
-         error: { code: 'VALIDATION_ERROR' }
-       });
-     }
-     if (scheduleDate <= new Date()) {
-       return res.status(400).json({
-         success: false,
-         message: 'Scheduled time must be in the future',
-         error: { code: 'VALIDATION_ERROR' }
-       });
-     }
-
-     // Validate sender ID
-     const SenderId = require('../models/SenderId');
-     const validSender = await SenderId.findOne({ senderId, userId, status: 'approved' });
-     if (!validSender) {
-       return res.status(400).json({
-         success: false,
-         message: 'Invalid or unapproved Sender ID',
-         error: { code: 'INVALID_SENDER_ID' }
-       });
-     }
-
-    // Normalize and validate recipients using canonical schema
-    const naloSmsService = new (require('../services/NaloSmsService'))();
-    const validRecipients = [];
-    const invalidRecipients = [];
-
-    logger.info('[Schedule] Validating and normalizing recipients:', {
-      userId,
-      totalRecipients: recipients.length
-    });
-
-    for (const recipient of recipients) {
-      // Extract name and phone from various input formats
-      let recipientName = '';
-      let phoneNumber;
-
-      if (typeof recipient === 'string') {
-        recipientName = '';
-        phoneNumber = recipient;
-      } else {
-        recipientName = recipient.recipientName ?? '';
-        phoneNumber = recipient.phoneNumber || String(recipient);
-      }
-
-      // Normalize phone number to canonical 233XXXXXXXXX format
-      let normalizedPhone = String(phoneNumber).replace(/\D/g, '');
-      if (normalizedPhone.startsWith('233') && normalizedPhone.length === 12) {
-        // Already in international format
-      } else if (normalizedPhone.startsWith('0') && normalizedPhone.length === 10) {
-        normalizedPhone = '233' + normalizedPhone.substring(1);
-      } else if (normalizedPhone.length === 9) {
-        normalizedPhone = '233' + normalizedPhone;
-      }
-
-      if (naloSmsService.validateMsisdn(normalizedPhone)) {
-        validRecipients.push({
-          recipientName,
-          phoneNumber: normalizedPhone,
-          normalizedPhoneNumber: normalizedPhone
-        });
-      } else {
-        invalidRecipients.push(recipient);
-      }
-    }
-
-    logger.info('[Schedule] Recipient validation complete:', {
-      validCount: validRecipients.length,
-      invalidCount: invalidRecipients.length
-    });
-
-    if (validRecipients.length === 0) {
-      return res.status(400).json({
-        error: 'No valid phone numbers found',
-        invalidCount: invalidRecipients.length
-      });
-    }
-
-    // Calculate cost estimation
-    const CostCalculatorService = require('../services/CostCalculatorService');
-    const costEstimation = await CostCalculatorService.calculateLiveCost(
-      userId,
-      message,
-      validRecipients.length,
-      null
-    );
-
-    // Check wallet balance
-    const WalletService = require('../services/WalletService');
-    const availableBalance = await WalletService.getAvailableBalance(userId);
-    if (availableBalance < costEstimation.estimatedCost) {
-      return res.status(402).json({
-        error: 'Insufficient available balance',
-        required: costEstimation.estimatedCost,
-        available: availableBalance
-      });
-    }
-
-    // Reserve funds
-    const reservation = await WalletService.reserveFunds(userId, costEstimation.estimatedCost, null);
-
-    // Create campaign
-    const SmsCampaign = require('../models/SmsCampaign');
-    const campaign = new SmsCampaign({
-      userId,
-      title: `Bulk SMS - ${new Date().toLocaleString()}`,
-      senderId,
-      messageBody: message,
-      isPersonalized: false,
-      sendMode: 'scheduled',
-      scheduledAt: scheduleDate,
-      scheduledTimezone: timezone,
-      timezone: timezone,
-      status: 'scheduled',
-      scheduleStatus: 'scheduled',
-      recipientCount: validRecipients.length,
-      validRecipientCount: validRecipients.length,
-      invalidRecipientCount: invalidRecipients.length,
-      queuedCount: validRecipients.length,
-      totalSegments: costEstimation.totalSegments,
-      estimatedCost: costEstimation.estimatedCost,
-      walletChargeMode: 'reservation',
-      walletReservationId: reservation._id
-    });
-
-    await campaign.save();
-
-    // Create recipient records with canonical schema
-    const SmsRecipient = require('../models/SmsRecipient');
-    const sellPrice = await CostCalculatorService.getSellPricePerSms();
-    for (const recipient of validRecipients) {
-      const segmentResult = CostCalculatorService.calculateSegments(message);
-      const recipientEstimatedCost = sellPrice * segmentResult.segments;
-
-      const smsRecipient = new SmsRecipient({
-        campaignId: campaign._id,
-        userId,
-        recipientName: recipient.recipientName ?? '',
-        phoneNumber: recipient.phoneNumber,
-        normalizedPhoneNumber: recipient.normalizedPhoneNumber,
-        personalizedMessage: message,
-        segments: segmentResult.segments,
-        estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
-      });
-
-      await smsRecipient.save();
-    }
-
-    // Schedule with BullMQ
-    const SmsSchedulerService = require('../services/SmsSchedulerService');
-    await SmsSchedulerService.scheduleCampaign(campaign._id, scheduleDate);
-
-    res.json({
-      success: true,
-      campaignId: campaign._id,
-      message: 'Campaign scheduled successfully',
-      scheduledAt: scheduleDate,
-      timezone,
-      jobId: job.id,
-      estimatedCost: costEstimation.estimatedCost,
-      recipientCount: validRecipients.length,
-      validRecipientCount: validRecipients.length,
-      invalidRecipientCount: invalidRecipients.length,
-      processingSummary: {
-        originalCount: recipients.length,
-        invalidRemoved: invalidRecipients.length,
-        finalCount: validRecipients.length
-      }
-    });
-
-  } catch (error) {
-    console.error('Schedule SMS error:', error);
-    res.status(500).json({ error: 'Failed to schedule campaign: ' + error.message });
   }
 });
 

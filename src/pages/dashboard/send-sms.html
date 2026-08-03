@@ -267,14 +267,14 @@
                                       </div>
                                       <!-- Import Summary (shown after successful import) -->
                                       <div class="import-summary" id="importSummary" style="display: none; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-                                          <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #1a202c;">Import Summary</h4>
-                                          <div class="summary-stats" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
-                                              <div class="stat-item"><span style="color: #666;">Total:</span> <strong id="summaryTotal">0</strong></div>
-                                              <div class="stat-item" style="color: #22c55e;"><span>Imported:</span> <strong id="summaryImported">0</strong></div>
-                                              <div class="stat-item" style="color: #f59e0b;"><span>Invalid:</span> <strong id="summaryInvalid">0</strong></div>
-                                              <div class="stat-item" style="color: #ef4444;"><span>Duplicates:</span> <strong id="summaryDuplicates">0</strong></div>
-                                              <div class="stat-item" style="color: #8b5cf6;"><span>Blacklisted:</span> <strong id="summaryBlacklisted">0</strong></div>
-                                              <div class="stat-item"><span>Skipped:</span> <strong id="summarySkipped">0</strong></div>
+                                      <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #1a202c;">Upload Summary</h4>
+                                       <div class="summary-stats" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+                                           <div class="stat-item"><span style="color: #666;">Total:</span> <strong id="summaryTotal">0</strong></div>
+                                           <div class="stat-item" style="color: #22c55e;"><span>Valid:</span> <strong id="summaryImported">0</strong></div>
+                                           <div class="stat-item" style="color: #f59e0b;"><span>Invalid:</span> <strong id="summaryInvalid">0</strong></div>
+                                           <div class="stat-item" style="color: #ef4444;"><span>Duplicates:</span> <strong id="summaryDuplicates">0</strong></div>
+                                           <div class="stat-item" style="color: #8b5cf6;"><span>Blacklisted:</span> <strong id="summaryBlacklisted">0</strong></div>
+                                           <div class="stat-item"><span>Skipped:</span> <strong id="summarySkipped">0</strong></div>
                                           </div>
                                           <div class="import-errors" id="importErrors" style="display: none;">
                                               <h5 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Errors (first 10):</h5>
@@ -1616,15 +1616,15 @@ if (result.error) {
               if (selectedContacts.length === 0) {
                   previewEl.innerHTML = '<p class="no-contacts">No contacts selected</p>';
               } else {
-                  let html = '<div class="selected-contacts-list">';
-                  selectedContacts.forEach(contact => {
-                      html += `
-                          <span class="selected-contact-tag">
-                              ${contact.recipientName} (${contact.phoneNumber})
-                              <button type="button" onclick="removeSelectedContact('${contact.id}')">&times;</button>
-                          </span>
-                      `;
-                  });
+                let html = '<div class="selected-contacts-list">';
+                   selectedContacts.forEach(contact => {
+                       html += `
+                           <span class="selected-contact-tag">
+                               ${escapeHtml(contact.recipientName)} (${escapeHtml(contact.phoneNumber)})
+                               <button type="button" onclick="removeSelectedContact('${escapeHtml(contact.id)}')">&times;</button>
+                           </span>
+                       `;
+                   });
                   html += '</div>';
                   previewEl.innerHTML = html;
               }
@@ -2667,9 +2667,9 @@ if (result.error) {
                         analysis.duplicates.forEach(duplicate => {
                             html += `
                                 <div class="duplicate-item">
-                                    <span class="duplicate-name">${duplicate.recipientName}</span>
-                                    <span class="duplicate-phone">${duplicate.phoneNumber}</span>
-                                    <span class="duplicate-normalized">→ ${duplicate.normalizedPhoneNumber}</span>
+                                    <span class="duplicate-name">${escapeHtml(duplicate.recipientName)}</span>
+                                    <span class="duplicate-phone">${escapeHtml(duplicate.phoneNumber)}</span>
+                                    <span class="duplicate-normalized">→ ${escapeHtml(duplicate.normalizedPhoneNumber)}</span>
                                 </div>
                             `;
                         });
@@ -2694,9 +2694,9 @@ if (result.error) {
                         analysis.blacklistedRecipients.forEach(blacklisted => {
                             html += `
                                 <div class="blacklist-item">
-                                    <span class="blacklist-name">${blacklisted.recipientName}</span>
-                                    <span class="blacklist-phone">${blacklisted.phoneNumber}</span>
-                                    <span class="blacklist-reason">${blacklisted.reason || 'Blacklisted number'}</span>
+                                    <span class="blacklist-name">${escapeHtml(blacklisted.recipientName)}</span>
+                                    <span class="blacklist-phone">${escapeHtml(blacklisted.phoneNumber)}</span>
+                                    <span class="blacklist-reason">${escapeHtml(blacklisted.reason || 'Blacklisted number')}</span>
                                 </div>
                             `;
                         });
@@ -3077,11 +3077,8 @@ if (result.error) {
                 console.log('[Upload] File selected:', file.name, 'Size:', file.size);
             }
 
-            const formData = new FormData();
-            formData.append('file', file);
-
             try {
-                const response = await window.apiClient.uploadContacts(formData);
+                 const response = await window.apiClient.parseTempFile(file);
 
                 if (response.error) {
                     if (window.loggers && window.loggers.upload) {
@@ -3137,6 +3134,7 @@ if (result.error) {
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
         }
+        window.escapeHtml = escapeHtml;
 
         function showImportPreviewModal(data) {
             console.log('[Preview] Modal opening with data:', {
@@ -3318,7 +3316,7 @@ if (result.error) {
                         <span class="stat-value">${invalidPreview}</span>
                     </div>
                     <div class="stat-item stat-duplicate">
-                        <span class="stat-label">Duplicates (checked on import)</span>
+                        <span class="stat-label">Duplicates</span>
                         <span class="stat-value">0</span>
                     </div>
                 </div>
@@ -3367,11 +3365,10 @@ if (result.error) {
             document.getElementById('importSummary').style.display = 'none';
         }
 
-        async function confirmImport() {
+async function confirmImport() {
             const modal = document.getElementById('importPreviewModal');
             const nameColumn = document.getElementById('nameColumnSelect').value;
             const phoneColumn = document.getElementById('phoneColumnSelect').value;
-            // Use persistent session data (survives modal close)
             const fileData = currentImportSession.fileData;
             const fileName = currentImportSession.fileName;
 
@@ -3389,7 +3386,7 @@ if (result.error) {
             }
 
             if (window.loggers && window.loggers.import) {
-                window.loggers.import.log('Import starting', {
+                window.loggers.import.log('Processing recipients', {
                     fileName,
                     rows: fileData.length,
                     columns: { nameColumn, phoneColumn }
@@ -3397,159 +3394,160 @@ if (result.error) {
             }
 
             try {
-                console.log('[ImportConfirm] Sending import confirmation', {
+                console.log('[ImportConfirm] Processing recipients client-side', {
                     fileName,
                     fileDataCount: fileData.length,
                     columnMapping: { nameColumn, phoneColumn }
                 });
-                const response = await window.apiClient.confirmContactImport(fileData, { nameColumn, phoneColumn }, fileName);
 
-                console.log('[ImportConfirm] API response received', { hasError: !!response.error });
+                const errors = [];
+                const importedContacts = [];
+                const seenPhones = new Set();
+                let duplicateRows = 0;
+                let invalidRows = 0;
+                let validRows = 0;
 
-                if (response.error) {
-                    if (window.loggers && window.loggers.import) {
-                        window.loggers.import.error('Import failed', { error: response.error });
-                    }
-                    console.error('[ImportConfirm] Import failed', { error: response.error });
-                    if (response.error.includes('column') || response.error.includes('Column')) {
-                        showToast('Please select both name and phone columns', 'error');
-                    } else if (response.error.includes('file') || response.error.includes('File')) {
-                        showToast('File data is required. Please upload a file first', 'error');
-                    } else if (response.error.includes('format') || response.error.includes('Format')) {
-                        showToast('Invalid file format. Please check your file and try again', 'error');
-                    } else {
-                        showToast(response.error, 'error');
-                    }
-                } else {
-                    const result = response.data;
-                    console.log('[ImportResult] Import result', result);
+                for (let i = 0; i < fileData.length; i++) {
+                    const row = fileData[i];
+                    const rowNumber = i + 1;
 
-                    if (result.success === false) {
-                        showToast(result.message || 'Import failed', 'error');
-                        return;
-                    }
+                    const recipientName = row[nameColumn]?.toString().trim() || '';
+                    const rawPhone = row[phoneColumn]?.toString().trim() || '';
 
-                    const summary = result.summary;
-                    const importedContacts = result.importedContacts || [];
-                    const existingContacts = result.existingContacts || [];
-                    const errors = result.errors || [];
-                    const allImportedContacts = [...importedContacts, ...existingContacts];
-
-                    console.log('[ImportResult] Summary counts', {
-                        total: summary.totalRows,
-                        imported: summary.importedRows,
-                        existing: existingContacts.length,
-                        valid: summary.validRows,
-                        invalid: summary.invalidRows,
-                        duplicates: summary.duplicateRows,
-                        blacklisted: summary.blacklistedRows,
-                        skipped: summary.skippedRows
-                    });
-
-                    if (window.loggers && window.loggers.import) {
-                        window.loggers.import.log('Import completed', {
-                            summary,
-                            importedContactsCount: importedContacts.length,
-                            existingContactsCount: existingContacts.length,
-                            errorsCount: errors.length
+                    const phoneValidation = validatePhoneNumber(rawPhone);
+                    if (!phoneValidation.isValid) {
+                        invalidRows++;
+                        errors.push({
+                            row: rowNumber,
+                            error: phoneValidation.error || 'Invalid phone number',
+                            data: { recipientName, phoneNumber: rawPhone }
                         });
+                        continue;
                     }
 
-                    let toastMessage;
-                    let toastType;
-                    const { importedRows = 0, duplicateRows = 0, blacklistedRows = 0, invalidRows = 0 } = summary;
-                    const existingRows = existingContacts.length;
+                    const normalizedPhone = phoneValidation.normalizedNumber;
 
-                    if (importedRows > 0 || existingRows > 0) {
-                        const parts = [];
-                        if (importedRows > 0) parts.push(`${importedRows} new contact${importedRows !== 1 ? 's' : ''} imported`);
-                        if (existingRows > 0) parts.push(`${existingRows} existing contact${existingRows !== 1 ? 's' : ''} reused`);
-                        if (duplicateRows > 0 || blacklistedRows > 0 || invalidRows > 0) {
-                            const skipParts = [];
-                            if (duplicateRows > 0) skipParts.push(`${duplicateRows} duplicates`);
-                            if (blacklistedRows > 0) skipParts.push(`${blacklistedRows} blacklisted`);
-                            if (invalidRows > 0) skipParts.push(`${invalidRows} invalid`);
-                            toastMessage = `${parts.join(', ')}. ${skipParts.join(', ')} skipped.`;
-                        } else {
-                            toastMessage = `${parts.join(', ')}!`;
-                        }
-                        toastType = 'success';
-                    } else {
-                        if (duplicateRows > 0 && invalidRows === 0 && blacklistedRows === 0) {
-                            toastMessage = 'All contacts already exist. No new contacts were imported.';
-                            toastType = 'info';
-                        } else if (blacklistedRows > 0 && duplicateRows === 0 && invalidRows === 0) {
-                            toastMessage = 'All contacts are blacklisted. No contacts imported.';
-                            toastType = 'info';
-                        } else if (invalidRows > 0 && duplicateRows === 0 && blacklistedRows === 0) {
-                            toastMessage = 'No valid contacts found to import.';
-                            toastType = 'warning';
-                        } else {
-                            const parts = [];
-                            if (duplicateRows > 0) parts.push(`${duplicateRows} duplicates`);
-                            if (blacklistedRows > 0) parts.push(`${blacklistedRows} blacklisted`);
-                            if (invalidRows > 0) parts.push(`${invalidRows} invalid`);
-                            toastMessage = `No contacts imported. ${parts.join(', ')}.`;
-                            toastType = 'warning';
-                        }
-                    }
-
-                    console.log('[ImportUI] Toast', { type: toastType, message: toastMessage, summary });
-                    showToast(toastMessage, toastType);
-
-                    closeImportPreviewModal();
-
-                    document.getElementById('filePreview').style.display = 'flex';
-                    document.getElementById('uploadedFileName').textContent = fileName;
-                    uploadedContacts = allImportedContacts;
-
-                    if (window.loggers && window.loggers.contacts) {
-                        window.loggers.contacts.log('Imported contacts updated in UI', {
-                            count: uploadedContacts.length,
-                            sample: uploadedContacts.slice(0, 3)
+                    if (seenPhones.has(normalizedPhone)) {
+                        duplicateRows++;
+                        errors.push({
+                            row: rowNumber,
+                            error: 'Duplicate phone number within uploaded file',
+                            data: { recipientName, phoneNumber: rawPhone }
                         });
+                        continue;
                     }
 
-                    showImportSummary(result);
-                    updateCostEstimation();
-                    schedulePreviewUpdate();
-
-                    // Auto-populate recipients from imported and existing contacts
-                    autoPopulateFromImport(allImportedContacts);
-
-                    if (loadedContacts && loadedContacts.length > 0) {
-                        const newContacts = allImportedContacts.map(c => ({
-                            _id: c.id,
-                            recipientName: c.recipientName,
-                            phoneNumber: c.phoneNumber,
-                            normalizedPhoneNumber: c.normalizedPhoneNumber || normalizePhoneNumber(c.phoneNumber),
-                            groupIds: []
-                        }));
-                        loadedContacts = [...newContacts, ...loadedContacts];
-                        const contactsSection = document.getElementById('contactsSection');
-                        if (contactsSection && contactsSection.classList.contains('active')) {
-                            loadSavedContacts();
-                        } else {
-                            console.log('[Contacts] Import completed, cached contacts will be refreshed on tab switch');
-                        }
-                    }
-
-                    document.querySelector('.tab-btn[data-tab="upload"]').click();
-
-                    currentImportSession = { fileData: [], fileName: null, detectedColumns: null, preview: null };
-
-                    console.log('[ImportUI] Final UI state', {
-                        uploadedContactsCount: uploadedContacts.length,
-                        loadedContactsCount: loadedContacts.length,
-                        tab: 'upload'
+                    seenPhones.add(normalizedPhone);
+                    validRows++;
+                    importedContacts.push({
+                        id: `upload-${rowNumber}-${normalizedPhone}`,
+                        recipientName: recipientName || '',
+                        phoneNumber: rawPhone,
+                        normalizedPhoneNumber: normalizedPhone,
+                        source: 'upload'
                     });
                 }
+
+                const result = {
+                    success: true,
+                    summary: {
+                        totalRows: fileData.length,
+                        validRows: validRows,
+                        invalidRows: invalidRows,
+                        duplicateRows: duplicateRows,
+                        blacklistedRows: 0,
+                        importedRows: validRows,
+                        skippedRows: duplicateRows
+                    },
+                    importedContacts: importedContacts,
+                    existingContacts: [],
+                    errors: errors
+                };
+
+                console.log('[ImportResult] Processing complete', {
+                    total: result.summary.totalRows,
+                    valid: result.summary.validRows,
+                    invalid: result.summary.invalidRows,
+                    duplicates: result.summary.duplicateRows
+                });
+
+                if (window.loggers && window.loggers.import) {
+                    window.loggers.import.log('Recipients processed', {
+                        summary: result.summary,
+                        importedContactsCount: importedContacts.length,
+                        errorsCount: errors.length
+                    });
+                }
+
+                const { importedRows, duplicateRows: dupRows, invalidRows: invRows } = result.summary;
+
+                let toastMessage;
+                let toastType;
+
+                if (importedRows > 0) {
+                    const parts = [];
+                    parts.push(`${importedRows} recipient${importedRows !== 1 ? 's' : ''} ready to send`);
+                    if (dupRows > 0 || invRows > 0) {
+                        const skipParts = [];
+                        if (dupRows > 0) skipParts.push(`${dupRows} duplicate${dupRows !== 1 ? 's' : ''}`);
+                        if (invRows > 0) skipParts.push(`${invRows} invalid`);
+                        toastMessage = `${parts.join(', ')}. ${skipParts.join(', ')} skipped.`;
+                    } else {
+                        toastMessage = `${parts.join(', ')}!`;
+                    }
+                    toastType = 'success';
+                } else {
+                    if (dupRows > 0 && invRows === 0) {
+                        toastMessage = 'All recipients are duplicates. No recipients added.';
+                        toastType = 'info';
+                    } else if (invRows > 0 && dupRows === 0) {
+                        toastMessage = 'No valid recipients found. Please check your phone numbers.';
+                        toastType = 'warning';
+                    } else {
+                        const parts = [];
+                        if (dupRows > 0) parts.push(`${dupRows} duplicate${dupRows !== 1 ? 's' : ''}`);
+                        if (invRows > 0) parts.push(`${invRows} invalid`);
+                        toastMessage = `No recipients added. ${parts.join(', ')}.`;
+                        toastType = 'warning';
+                    }
+                }
+
+                console.log('[ImportUI] Toast', { type: toastType, message: toastMessage, summary: result.summary });
+                showToast(toastMessage, toastType);
+
+                closeImportPreviewModal();
+
+                document.getElementById('filePreview').style.display = 'flex';
+                document.getElementById('uploadedFileName').textContent = fileName;
+                uploadedContacts = importedContacts;
+
+                if (window.loggers && window.loggers.contacts) {
+                    window.loggers.contacts.log('Uploaded contacts updated in UI', {
+                        count: uploadedContacts.length,
+                        sample: uploadedContacts.slice(0, 3)
+                    });
+                }
+
+                showImportSummary(result);
+                updateCostEstimation();
+                schedulePreviewUpdate();
+
+                autoPopulateFromImport(importedContacts);
+
+                document.querySelector('.tab-btn[data-tab="upload"]').click();
+
+                currentImportSession = { fileData: [], fileName: null, detectedColumns: null, preview: null };
+
+                console.log('[ImportUI] Final UI state', {
+                    uploadedContactsCount: uploadedContacts.length,
+                    tab: 'upload'
+                });
             } catch (error) {
                 console.error('[ImportConfirm] Exception', { error: error.message, stack: error.stack });
                 if (window.loggers && window.loggers.import) {
                     window.loggers.import.error('Import exception', { message: error.message });
                 }
-                showToast('Error confirming import. Please try again', 'error');
+                showToast('Error processing file. Please try again', 'error');
             }
         }
 
@@ -4463,6 +4461,9 @@ if (result.error) {
     // Clear uploaded files
     removeUploadedFile();
 
+    // Clear unified recipient store
+    allRecipients = [];
+
     // Clear selected contacts
     selectedContacts = [];
     const contactCheckboxes = document.querySelectorAll('#contactGroups input[type="checkbox"]');
@@ -4696,9 +4697,9 @@ sampleRecipients.forEach(r => {
                         .replace(/\{\{salutation\}\}/g, finalSalutation);
                     html += `
                         <div class="personalization-preview-item">
-                            <span class="preview-recipient">${r.recipientName || 'Unknown Recipient'}</span>
-                            <span class="preview-phone">${r.phoneNumber}</span>
-                            <div class="preview-message">${personalizedMsg}</div>
+                            <span class="preview-recipient">${escapeHtml(r.recipientName || 'Unknown Recipient')}</span>
+                            <span class="preview-phone">${escapeHtml(r.phoneNumber)}</span>
+                            <div class="preview-message">${escapeHtml(personalizedMsg)}</div>
                         </div>
                     `;
                 });
@@ -4715,8 +4716,8 @@ sampleRecipients.forEach(r => {
         displayRecipients.forEach(r => {
             chipsHtml += `
                 <div class="recipient-preview-chip">
-                    <span class="chip-name">${r.recipientName || 'Unknown Recipient'}</span>
-                    <span class="chip-phone">${r.phoneNumber}</span>
+                    <span class="chip-name">${escapeHtml(r.recipientName || 'Unknown Recipient')}</span>
+                    <span class="chip-phone">${escapeHtml(r.phoneNumber)}</span>
                 </div>
             `;
         });
@@ -4741,8 +4742,8 @@ sampleRecipients.forEach(r => {
             if (chips) {
                 const allChipsHtml = recipients.map(r => `
                     <div class="recipient-preview-chip">
-                        <span class="chip-name">${r.recipientName || 'Unknown Recipient'}</span>
-                        <span class="chip-phone">${r.phoneNumber}</span>
+                        <span class="chip-name">${escapeHtml(r.recipientName || 'Unknown Recipient')}</span>
+                        <span class="chip-phone">${escapeHtml(r.phoneNumber)}</span>
                     </div>
                 `).join('');
                 chips.innerHTML = allChipsHtml;
@@ -4764,8 +4765,8 @@ sampleRecipients.forEach(r => {
                 );
                 const filteredChipsHtml = filteredRecipients.map(r => `
                     <div class="recipient-preview-chip">
-                        <span class="chip-name">${r.recipientName || 'Unknown Recipient'}</span>
-                        <span class="chip-phone">${r.phoneNumber}</span>
+                        <span class="chip-name">${escapeHtml(r.recipientName || 'Unknown Recipient')}</span>
+                        <span class="chip-phone">${escapeHtml(r.phoneNumber)}</span>
                     </div>
                 `).join('');
                 chips.innerHTML = filteredChipsHtml || '<div class="no-search-results">No recipients match your search</div>';

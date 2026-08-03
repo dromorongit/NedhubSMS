@@ -62,7 +62,7 @@ try {
 let authRoutes, contactRoutes, smsRoutes, naloSmsRoutes, walletRoutes, transferRoutes;
 let senderIdRoutes, templateRoutes, campaignRoutes, smsCampaignRoutes, analyticsRoutes;
 let reportsRoutes, adminRoutes, paymentRoutes, utilityRoutes, blacklistRoutes;
-let seedRoutes, healthRoutes, metricsRoutes, hubtelCallbackController;
+let seedRoutes, healthRoutes, metricsRoutes, hubtelCallbackController, smsUploadRoutes;
 try {
   authRoutes = require('../backend/routes/auth');
   contactRoutes = require('../backend/routes/contacts');
@@ -84,6 +84,7 @@ try {
   healthRoutes = require('../backend/routes/health');
   metricsRoutes = require('../backend/routes/metrics');
   hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
+  smsUploadRoutes = require('../backend/routes/sms-uploads');
   earlyLog('Routes loaded');
 } catch (e) {
   earlyLog('Route loading failed: ' + e.message + '\n' + e.stack);
@@ -356,6 +357,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/sms', naloSmsRoutes); // Nalo SMS routes
+app.use('/api/sms', smsUploadRoutes); // Send SMS upload (parse-only, no Contact DB)
 app.use('/api/sms-campaigns', smsCampaignRoutes); // New SMS campaigns routes
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportsRoutes);

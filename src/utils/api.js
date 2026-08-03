@@ -271,6 +271,47 @@ class ApiClient {
     return this.request('POST', '/contacts/preview', { fileData, columnMapping });
   }
 
+// SMS Campaign endpoints
+  async parseTempFile(file) {
+    const url = `${API_BASE_URL}/sms/upload-temp`;
+    const token = this.getToken();
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (response.status === 401) {
+        this.clearToken();
+        if (window.location.pathname.includes('/pages/dashboard/')) {
+          window.location.href = '../auth/login.html?session=expired';
+        } else {
+          window.location.href = '../auth/login.html';
+        }
+        return { error: 'Session expired. Please login again.' };
+      }
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { error: result.error || 'Failed to parse file' };
+      }
+
+      return { data: result };
+    } catch (error) {
+      console.error('Parse temp file error:', error);
+      return { error: 'Network error: ' + error.message };
+    }
+  }
+
   // Template endpoints
   async getTemplates() {
     return this.request('GET', '/templates');

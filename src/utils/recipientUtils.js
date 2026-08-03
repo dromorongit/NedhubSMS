@@ -275,11 +275,29 @@ function processRecipientsForCampaign(recipients, blacklistedSet = new Set(), re
   };
 }
 
-// Attach to window for global access
-window.normalizePhoneNumber = normalizePhoneNumber;
-window.validatePhoneNumber = validatePhoneNumber;
-window.detectNetwork = detectNetwork;
-window.parseManualRecipientInput = parseManualRecipientInput;
-window.deduplicateRecipients = deduplicateRecipients;
-window.validateRecipients = validateRecipients;
-window.processRecipientsForCampaign = processRecipientsForCampaign;
+/**
+ * Escape HTML special characters to prevent XSS
+ * @param {string} text - Text to escape
+ * @returns {string} Escaped text
+ */
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Attach to window for global access (browser only)
+if (typeof window !== 'undefined') {
+  window.escapeHtml = escapeHtml;
+  window.normalizePhoneNumber = normalizePhoneNumber;
+  window.validatePhoneNumber = validatePhoneNumber;
+  window.detectNetwork = detectNetwork;
+  window.parseManualRecipientInput = parseManualRecipientInput;
+  window.deduplicateRecipients = deduplicateRecipients;
+  window.validateRecipients = validateRecipients;
+  window.processRecipientsForCampaign = processRecipientsForCampaign;
+}
