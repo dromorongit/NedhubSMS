@@ -18,11 +18,13 @@ const logger = require('../utils/logger');
 router.post('/preview-personalized', authenticate, async (req, res) => {
   try {
     const {
+      title,
       messageBody,
       salutation,
       customSalutation,
       sampleRecipients,
-      fallbackName
+      fallbackName,
+      senderId
     } = req.body;
 
 // Validate required fields
@@ -385,33 +387,36 @@ router.post('/send', authenticate, async (req, res) => {
           successCount++;
           totalCost += smsResult.financial?.charged || 0;
 
-          results.push({
-            recipient: recipient.recipientName,
-            phoneNumber: recipient.phoneNumber,
-            success: true,
-            messageId: smsResult.messageId,
-            providerMessageId: smsResult.jobId
-          });
+           results.push({
+             recipient: recipient.recipientName,
+             phoneNumber: recipient.phoneNumber,
+             success: true,
+             messageId: smsResult.messageId,
+             providerMessageId: smsResult.jobId,
+             errorCode: smsResult.code || null
+           });
         } else {
           await smsRecipient.markAsFailed(smsResult.error);
 
-          results.push({
-            recipient: recipient.recipientName,
-            phoneNumber: recipient.phoneNumber,
-            success: false,
-            error: smsResult.error
-          });
+           results.push({
+             recipient: recipient.recipientName,
+             phoneNumber: recipient.phoneNumber,
+             success: false,
+             error: smsResult.error,
+             errorCode: smsResult.code || 'SMS_SEND_FAILED'
+           });
         }
 
       } catch (error) {
         console.error('Error sending to recipient:', error);
 
-        results.push({
-          recipient: recipient.recipientName,
-          phoneNumber: recipient.phoneNumber,
-          success: false,
-          error: error.message
-        });
+         results.push({
+           recipient: recipient.recipientName,
+           phoneNumber: recipient.phoneNumber,
+           success: false,
+           error: error.message,
+           errorCode: 'INTERNAL_ERROR'
+         });
       }
     }
 
@@ -529,7 +534,9 @@ router.post('/schedule', authenticate, async (req, res) => {
         hasScheduledAt: !!scheduledAt
       });
       return res.status(400).json({
-        error: 'Title, message body, recipients, sender ID, and schedule time are required'
+        success: false,
+        message: 'Title, message body, recipients, sender ID, and schedule time are required',
+        error: { code: 'VALIDATION_ERROR' }
       });
     }
 
@@ -617,15 +624,19 @@ router.post('/schedule', authenticate, async (req, res) => {
         invalidCount: processedRecipients.invalidRecipients.length,
         blacklistedCount: processedRecipients.blacklistedRecipients.length
       });
-      return res.status(400).json({
-        error: 'No valid recipients found after processing. All recipients were either duplicates, invalid, or blacklisted.',
-        details: {
-          duplicateCount: processedRecipients.duplicateCount,
-          invalidCount: processedRecipients.invalidRecipients.length,
-          blacklistedCount: processedRecipients.blacklistedRecipients.length
-        }
-      });
-    }
+       return res.status(400).json({
+         success: false,
+         message: 'No valid recipients found after processing. All recipients were either duplicates, invalid, or blacklisted.',
+         error: {
+           code: 'NO_VALID_RECIPIENTS',
+           details: {
+             duplicateCount: processedRecipients.duplicateCount,
+             invalidCount: processedRecipients.invalidRecipients.length,
+             blacklistedCount: processedRecipients.blacklistedRecipients.length
+           }
+         }
+       });
+     }
 
     logger.info('[Schedule] Recipient processing complete', {
       userId,

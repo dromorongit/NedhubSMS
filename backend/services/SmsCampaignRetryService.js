@@ -72,19 +72,19 @@ class SmsCampaignRetryService {
             recipientsCount: 1
           });
 
-          if (smsResult.success) {
-            await recipient.markAsSent(smsResult.jobId);
-            return { success: true, messageId: smsResult.messageId, retryCount: recipient.retryCount };
-          } else {
-            await recipient.markAsFailed(smsResult.error);
-            return { success: false, error: smsResult.error, retryCount: recipient.retryCount };
-          }
+           if (smsResult.success) {
+             await recipient.markAsSent(smsResult.jobId);
+             return { success: true, messageId: smsResult.messageId, retryCount: recipient.retryCount };
+           } else {
+             await recipient.markAsFailed(smsResult.error, smsResult.code || 'SMS_SEND_FAILED');
+             return { success: false, error: smsResult.error, errorCode: smsResult.code || 'SMS_SEND_FAILED', retryCount: recipient.retryCount };
+           }
 
-        } catch (error) {
-          console.error('Error retrying recipient:', error);
-          await recipient.markAsFailed(error.message);
-          return { success: false, error: error.message, retryCount: recipient.retryCount };
-        }
+         } catch (error) {
+           console.error('Error retrying recipient:', error);
+           await recipient.markAsFailed(error.message, 'INTERNAL_ERROR');
+           return { success: false, error: error.message, errorCode: 'INTERNAL_ERROR', retryCount: recipient.retryCount };
+         }
       };
 
       // Process retries in batches
@@ -252,19 +252,19 @@ class SmsCampaignRetryService {
             recipientsCount: 1
           });
 
-          if (smsResult.success) {
-            await recipient.markAsSent(smsResult.jobId);
-            return { success: true, messageId: smsResult.messageId };
-          } else {
-            await recipient.markAsFailed(smsResult.error);
-            return { success: false, error: smsResult.error };
-          }
+           if (smsResult.success) {
+             await recipient.markAsSent(smsResult.jobId);
+             return { success: true, messageId: smsResult.messageId };
+           } else {
+             await recipient.markAsFailed(smsResult.error, smsResult.code || 'SMS_SEND_FAILED');
+             return { success: false, error: smsResult.error, errorCode: smsResult.code || 'SMS_SEND_FAILED' };
+           }
 
-        } catch (error) {
-          console.error('Error sending to new recipient:', error);
-          await recipient.markAsFailed(error.message);
-          return { success: false, error: error.message };
-        }
+         } catch (error) {
+           console.error('Error sending to new recipient:', error);
+           await recipient.markAsFailed(error.message, 'INTERNAL_ERROR');
+           return { success: false, error: error.message, errorCode: 'INTERNAL_ERROR' };
+         }
       };
 
       // Send SMS in batches
@@ -282,7 +282,7 @@ class SmsCampaignRetryService {
 
         // Update new campaign status
         newCampaign.status = successCount === newRecipients.length ? 'sent' :
-                             successCount === 0 ? 'failed' : 'sent';
+                             successCount === 0 ? 'failed' : 'partial_success';
         newCampaign.sentCount = successCount;
         newCampaign.failedCount = failedCount;
         newCampaign.queuedCount = 0;
@@ -294,31 +294,12 @@ class SmsCampaignRetryService {
           recipientCount: newRecipients.length,
           successCount,
           failedCount,
-          totalCost: 0, // Would need to track individually
-          results: [] // Not returning individual results for memory reasons
+          totalCost: 0,
+          results: []
         };
       } else {
         throw new Error('Batch processing for duplicate campaign failed');
       }
-
-      // Update new campaign status
-      const finalFailedCount = newRecipients.length - successCount;
-      newCampaign.status = successCount === newRecipients.length ? 'sent' :
-                          successCount === 0 ? 'failed' : 'sent';
-      newCampaign.sentCount = successCount;
-      newCampaign.failedCount = finalFailedCount;
-      newCampaign.queuedCount = 0;
-      await newCampaign.save();
-
-      return {
-        success: true,
-        newCampaignId: newCampaign._id,
-        recipientCount: newRecipients.length,
-        successCount,
-        failedCount: finalFailedCount,
-        totalCost,
-        results
-      };
 
     } catch (error) {
       console.error('Duplicate campaign with failed error:', error);

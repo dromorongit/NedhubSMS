@@ -123,22 +123,24 @@ router.post('/send', authenticate, async (req, res) => {
           });
           successCount++;
         } else {
-          results.push({ 
-            recipient: recipient.phoneNumber,
-            recipientName: recipient.recipientName, 
-            success: false, 
-            error: smsResult.error 
-          });
-          failedCount++;
+         results.push({ 
+           recipient: recipient.phoneNumber,
+           recipientName: recipient.recipientName, 
+           success: false, 
+           error: smsResult.error,
+           errorCode: smsResult.code || 'SMS_SEND_FAILED'
+         });
+         failedCount++;
         }
       } catch (error) {
-        results.push({ 
-          recipient: recipient.phoneNumber,
-          recipientName: recipient.recipientName,
-          success: false, 
-          error: error.message 
-        });
-        failedCount++;
+         results.push({ 
+           recipient: recipient.phoneNumber,
+           recipientName: recipient.recipientName, 
+           success: false, 
+           error: error.message,
+           errorCode: 'INTERNAL_ERROR'
+         });
+         failedCount++;
       }
     }
 

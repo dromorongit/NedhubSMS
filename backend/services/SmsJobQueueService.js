@@ -429,17 +429,28 @@ class SmsJobQueueService {
         const captureResult = await WalletService.captureReservation(campaign.walletReservationId);
         campaign.actualCost = captureResult.transaction.amount;
         await campaign.save();
-      } catch (error) {
-        console.error(`[SmsJobQueueService] Failed to capture reservation for campaign ${campaign._id}:`, error);
-        campaign.status = 'failed';
-        await campaign.save();
-        console.log('[CampaignStatus]', {
-          campaignId: campaign._id,
-          status: campaign.status,
-          reason: 'Failed to capture reservation'
-        });
-        return;
-      }
+       } catch (error) {
+         console.error(`[SmsJobQueueService] Failed to capture reservation for campaign ${campaign._id}:`, error);
+         // Release reservation on capture failure to prevent wallet leak
+         if (campaign.walletReservationId) {
+           try {
+             await WalletService.releaseReservation(campaign.walletReservationId);
+             console.log(`[SmsJobQueueService] Released reservation ${campaign.walletReservationId} after capture failure`);
+           } catch (releaseErr) {
+             console.error(`[SmsJobQueueService] Failed to release reservation after capture failure:`, releaseErr.message);
+           }
+         }
+         campaign.status = 'failed';
+         campaign.scheduleStatus = 'failed';
+         campaign.errorMessage = 'Failed to capture wallet reservation';
+         await campaign.save();
+         console.log('[CampaignStatus]', {
+           campaignId: campaign._id,
+           status: campaign.status,
+           reason: 'Failed to capture reservation'
+         });
+         return;
+       }
     }
 
     // Check if there are any queued recipients
@@ -490,16 +501,19 @@ class SmsJobQueueService {
           logger.info('SMS sent successfully', { recipientName: recipient.recipientName, phoneNumber: recipient.phoneNumber });
           return { success: true };
         } else {
-          await recipient.markAsFailed(smsResult.error);
-          logger.error('SMS send failed', { recipientName: recipient.recipientName, phoneNumber: recipient.phoneNumber, error: smsResult.error });
-          return { success: false, error: smsResult.error };
+         await recipient.markAsFailed(smsResult.error, smsResult.code || 'SMS_SEND_FAILED');
+           logger.error('SMS send failed', {
+           recipientName: recipient.recipientName, phoneNumber: recipient.phoneNumber, error: smsResult.error,
+           errorCode: smsResult.code || 'SMS_SEND_FAILED'
+         });
+           return { success: false, error: smsResult.error, errorCode: smsResult.code || 'SMS_SEND_FAILED' };
         }
 
-      } catch (error) {
-        console.error(`[SmsJobQueueService] Error sending to ${recipient.recipientName}:`, error);
-        await recipient.markAsFailed(error.message);
-        return { success: false, error: error.message };
-      }
+       } catch (error) {
+         console.error(`[SmsJobQueueService] Error sending to ${recipient.recipientName}:`, error);
+         await recipient.markAsFailed(error.message, 'INTERNAL_ERROR');
+         return { success: false, error: error.message, errorCode: 'INTERNAL_ERROR' };
+       }
     };
 
     try {
@@ -557,35 +571,46 @@ class SmsJobQueueService {
         throw new Error('Batch processing failed');
       }
 
-    } catch (error) {
-      console.error(`[SmsJobQueueService] Batch processing error for campaign ${campaign._id}:`, error);
-      
-      // Re-fetch campaign to get latest counts (may have been updated by concurrent batch processing)
-      const currentCampaign = await SmsCampaign.findById(campaign._id);
-      if (currentCampaign) {
-        // Determine status based on actual results - never mark as failed if at least one succeeded
-        if (currentCampaign.sentCount === currentCampaign.recipientCount) {
-          currentCampaign.status = 'sent';
-          currentCampaign.scheduleStatus = 'sent';
-        } else if (currentCampaign.sentCount > 0) {
-          currentCampaign.status = 'partial_success';
-          currentCampaign.scheduleStatus = 'partial_success';
-        } else {
-          currentCampaign.status = 'failed';
-          currentCampaign.scheduleStatus = 'failed';
-        }
-        await currentCampaign.save();
-        
-        console.log('[CampaignStatus]', {
-          campaignId: currentCampaign._id,
-          status: currentCampaign.status,
-          sentCount: currentCampaign.sentCount,
-          failedCount: currentCampaign.failedCount,
-          error: error.message
-        });
-      }
-      throw error;
-    }
+     } catch (error) {
+       console.error(`[SmsJobQueueService] Batch processing error for campaign ${campaign._id}:`, error);
+       
+       // Release reservation on persistent batch failure to prevent wallet leak
+       if (campaign.walletReservationId) {
+         try {
+           await WalletService.releaseReservation(campaign.walletReservationId);
+           console.log(`[SmsJobQueueService] Released reservation ${campaign.walletReservationId} after batch failure`);
+         } catch (releaseErr) {
+           console.error(`[SmsJobQueueService] Failed to release reservation after batch failure:`, releaseErr.message);
+         }
+       }
+       
+       // Re-fetch campaign to get latest counts (may have been updated by concurrent batch processing)
+       const currentCampaign = await SmsCampaign.findById(campaign._id);
+       if (currentCampaign) {
+         // Determine status based on actual results - never mark as failed if at least one succeeded
+         if (currentCampaign.sentCount === currentCampaign.recipientCount) {
+           currentCampaign.status = 'sent';
+           currentCampaign.scheduleStatus = 'sent';
+         } else if (currentCampaign.sentCount > 0) {
+           currentCampaign.status = 'partial_success';
+           currentCampaign.scheduleStatus = 'partial_success';
+         } else {
+           currentCampaign.status = 'failed';
+           currentCampaign.scheduleStatus = 'failed';
+         }
+         currentCampaign.errorMessage = error.message;
+         await currentCampaign.save();
+         
+         console.log('[CampaignStatus]', {
+           campaignId: currentCampaign._id,
+           status: currentCampaign.status,
+           sentCount: currentCampaign.sentCount,
+           failedCount: currentCampaign.failedCount,
+           error: error.message
+         });
+       }
+       throw error;
+     }
   }
 
   /**

@@ -402,18 +402,36 @@ class NaloSmsService {
           } else {
             smsStatus = 'failed';  // Provider rejected - mark as failed
             errorCode = naloResponse.status;
-            // Provide more user-friendly error messages for common Nalo errors
-            if (naloResponse.status === '1707') {
-              errorMessage = 'Sender ID not registered with Nalo. Please contact admin to register your sender ID with the SMS provider.';
-            } else if (naloResponse.status === '1704') {
-              errorMessage = 'Invalid API key. Please contact admin to verify Nalo configuration.';
-            } else if (naloResponse.status === '1705') {
-              errorMessage = 'Account suspended. Please contact admin.';
-            } else if (naloResponse.status === '1025') {
-              errorMessage = 'Insufficient SMS credits. Please top up your account.';
-            } else {
-              errorMessage = naloResponse.error_message || this.mapErrorCode(naloResponse.status);
-            }
+           // Provide more user-friendly error messages for common Nalo errors
+           if (naloResponse.status === '1707') {
+             errorMessage = 'Sender ID not registered with Nalo. Please contact admin to register your sender ID with the SMS provider.';
+           } else if (naloResponse.status === '1704') {
+             errorMessage = 'Invalid API key. Please contact admin to verify Nalo configuration.';
+           } else if (naloResponse.status === '1705') {
+             errorMessage = 'Account suspended. Please contact admin.';
+           } else if (naloResponse.status === '1025') {
+             errorMessage = 'Insufficient SMS credits at provider. Please top up your Nalo account.';
+           } else if (naloResponse.status === '1706') {
+             errorMessage = 'Invalid destination number. The phone number format may be incorrect.';
+           } else if (naloResponse.status === '1708') {
+             errorMessage = 'Message too long. Maximum 160 characters per SMS segment.';
+           } else if (naloResponse.status === '1709') {
+             errorMessage = 'Message contains invalid characters.';
+           } else if (naloResponse.status === '1710') {
+             errorMessage = 'Internal provider error. Please try again later.';
+           } else if (naloResponse.status === '1711') {
+             errorMessage = 'Service temporarily unavailable. Please try again later.';
+           } else if (naloResponse.status === '1026') {
+             errorMessage = 'Message blocked by spam filter.';
+           } else if (naloResponse.status === '1027') {
+             errorMessage = 'Destination number is blacklisted.';
+           } else if (naloResponse.status === '1028') {
+             errorMessage = 'Invalid message format.';
+           } else if (naloResponse.status === '1703') {
+             errorMessage = 'Authentication failed. Please contact admin.';
+           } else {
+             errorMessage = naloResponse.error_message || this.mapErrorCode(naloResponse.status);
+           }
 
             logger.warn('[StatusMapping] SMS rejected by provider', {
               messageId: jobId,
@@ -444,21 +462,35 @@ class NaloSmsService {
             await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
           }
 
-        } catch (apiError) {
-          logger.smsSend.error('[NaloSmsService] Nalo API error', {
-            userId,
-            phoneNumber: formattedPhoneNumber,
-            error: apiError.message,
-            status: apiError.response?.status,
-            responseData: apiError.response?.data
-          });
-          smsStatus = 'failed';
-          // Provide more specific error for HTTP 412
-          if (apiError.response && apiError.response.status === 412) {
-            errorMessage = 'Sender ID not recognized by Nalo. Please ensure your sender ID is registered with the SMS provider.';
-          } else {
-            errorMessage = apiError.message;
-          }
+         } catch (apiError) {
+           logger.smsSend.error('[NaloSmsService] Nalo API error', {
+             userId,
+             phoneNumber: formattedPhoneNumber,
+             error: apiError.message,
+             status: apiError.response?.status,
+             responseData: apiError.response?.data
+           });
+           smsStatus = 'failed';
+           // Provide specific error messages for common HTTP status codes
+           if (apiError.response) {
+             const status = apiError.response.status;
+             const responseData = apiError.response.data;
+             if (status === 401) {
+               errorMessage = 'Authentication failed with Nalo provider. Please contact admin.';
+             } else if (status === 403) {
+               errorMessage = 'Access denied by Nalo provider. Please contact admin.';
+             } else if (status === 412) {
+               errorMessage = 'Sender ID not recognized by Nalo. Please ensure your sender ID is registered with the SMS provider.';
+             } else if (status === 429) {
+               errorMessage = 'Rate limited by Nalo provider. Please wait and try again.';
+             } else if (status >= 500) {
+               errorMessage = `Nalo provider error (HTTP ${status}). Please try again later.`;
+             } else {
+               errorMessage = responseData?.error_message || responseData?.message || apiError.message;
+             }
+           } else {
+             errorMessage = apiError.message;
+           }
 
           logger.error('[StatusMapping] SMS failed due to API error', {
             messageId: jobId,

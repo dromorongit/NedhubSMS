@@ -49,6 +49,10 @@ const smsRecipientSchema = new mongoose.Schema({
     enum: ['queued', 'sent', 'delivered', 'failed', 'undelivered', 'expired'],
     default: 'queued'
   },
+  errorCode: {
+    type: String,
+    index: true
+  },
   segments: {
     type: Number,
     default: 1,
@@ -216,10 +220,11 @@ smsRecipientSchema.methods.markAsDelivered = function() {
  };
 
 // Method to mark as failed
-smsRecipientSchema.methods.markAsFailed = function(errorMessage) {
+smsRecipientSchema.methods.markAsFailed = function(errorMessage, errorCode = null) {
   const oldStatus = this.status;
   this.status = 'failed';
   this.errorMessage = errorMessage;
+  if (errorCode) this.errorCode = errorCode;
   this.failedAt = new Date();
   this.updatedAt = new Date();
    const savePromise = this.save();
@@ -228,7 +233,8 @@ smsRecipientSchema.methods.markAsFailed = function(errorMessage) {
      campaignId: this.campaignId,
      oldStatus,
      newStatus: 'failed',
-     error: errorMessage
+     error: errorMessage,
+     errorCode
    });
    return savePromise;
  };

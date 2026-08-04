@@ -86,9 +86,21 @@ const sendSMS = async (senderId, recipients, message) => {
 };
 
 const checkBalance = async () => {
-  // Nalo may not have a balance endpoint, assume sufficient
-  console.warn('[Nalo] Balance check not available, assuming sufficient credit');
-  return 1000;
+  try {
+    const response = await axios.get(
+      `${NALO_BASE_URL}/smsbackend/Resl_Nalo/balance/`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000
+      }
+    );
+    const balance = response.data?.balance || response.data?.credits || 0;
+    console.log('[Nalo] Balance check', { balance });
+    return balance;
+  } catch (error) {
+    console.warn('[Nalo] Balance check failed, assuming sufficient credit:', error.message);
+    return 1000;
+  }
 };
 
 module.exports = {
