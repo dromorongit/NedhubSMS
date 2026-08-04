@@ -107,7 +107,7 @@ class BatchProcessorService {
     };
 
     // Calculate estimated completion if we have enough data
-    if (updated.processedRecipients > 0 && updated.currentBatch > 0) {
+    if (updated.currentBatch > 0) {
       const avgTimePerBatch = (Date.now() - new Date(current.lastUpdated).getTime()) / updated.currentBatch;
       const remainingBatches = updated.totalBatches - updated.currentBatch;
       updated.estimatedCompletion = new Date(Date.now() + (avgTimePerBatch * remainingBatches)).toISOString();
@@ -179,7 +179,7 @@ class BatchProcessorService {
         offset += batchSize;
 
         // Memory cleanup
-        if (global.gc) global.gc();
+        try { if (global.gc) global.gc(); } catch (e) { /* gc not available */ }
 
       } catch (error) {
         logger.error(`Batch ${batchNumber} processing failed for campaign ${campaignId}:`, error);
@@ -243,7 +243,8 @@ class BatchProcessorService {
         const batch = await SmsRecipient.find({
           campaignId,
           status: 'failed',
-          retryCount: { $lt: 3 } // Respect retry limits
+          retryCount: { $lt: options.maxRetries || config.RETRY_ATTEMPTS } // Respect retry limits
+          // Note: Retry query does not filter by batchNumber, so it may retry recipients from other batches as well. This is a known limitation.
         })
           .limit(batchSize)
           .skip(offset)

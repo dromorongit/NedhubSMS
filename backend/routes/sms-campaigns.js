@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { authenticate } = require('../middleware/auth');
 const SmsCampaign = require('../models/SmsCampaign');
 const SmsRecipient = require('../models/SmsRecipient');
@@ -24,7 +25,8 @@ router.post('/preview-personalized', authenticate, async (req, res) => {
       customSalutation,
       sampleRecipients,
       fallbackName,
-      senderId
+      senderId,
+      recipients
     } = req.body;
 
 // Validate required fields
@@ -335,88 +337,106 @@ router.post('/send', authenticate, async (req, res) => {
 
     await campaign.save();
 
-    // Process recipients and send messages
+    // Process recipients and send messages with bounded parallelism (CHUNK_SIZE = 10)
     const results = [];
     let successCount = 0;
     let totalCost = 0;
 
-    for (const recipient of processedRecipients.validRecipients) {
-      try {
-        // Personalize message for this recipient
-        const personalizedMessage = MessagePersonalizationService.personalizeMessage(
-          messageBody,
-          salutation,
-          customSalutation,
-          recipient.recipientName
-        );
+    const sellPrice = await CostCalculatorService.getSellPricePerSms();
+    const CHUNK_SIZE = 10;
+    const chunks = [];
+    for (let i = 0; i < processedRecipients.validRecipients.length; i += CHUNK_SIZE) {
+      chunks.push(processedRecipients.validRecipients.slice(i, i + CHUNK_SIZE));
+    }
 
-        // Calculate segments for this specific personalized message
-        const segmentResult = CostCalculatorService.calculateSegments(personalizedMessage);
-        const sellPrice = await CostCalculatorService.getSellPricePerSms();
-        const recipientEstimatedCost = sellPrice * segmentResult.segments;
+    for (const chunk of chunks) {
+      const chunkResults = await Promise.allSettled(
+        chunk.map(async recipient => {
+          try {
+            const personalizedMessage = MessagePersonalizationService.personalizeMessage(
+              messageBody,
+              salutation,
+              customSalutation,
+              recipient.recipientName
+            );
 
-        // Create recipient record
-        const SmsRecipient = require('../models/SmsRecipient');
-        const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || '');
-        const smsRecipient = new SmsRecipient({
-          campaignId: campaign._id,
-          userId,
-          recipientName: recipient.recipientName,
-          phoneNumber: recipient.phoneNumber,
-          normalizedPhoneNumber: recipient.normalizedPhoneNumber,
-          networkType: networkType,
-          personalizedMessage,
-          segments: segmentResult.segments,
-          estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
-        });
+            const segmentResult = CostCalculatorService.calculateSegments(personalizedMessage);
+            const recipientEstimatedCost = sellPrice * segmentResult.segments;
 
-        await smsRecipient.save();
+            const SmsRecipient = require('../models/SmsRecipient');
+            const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || '');
+            const smsRecipient = new SmsRecipient({
+              campaignId: campaign._id,
+              userId,
+              recipientName: recipient.recipientName,
+              phoneNumber: recipient.phoneNumber,
+              normalizedPhoneNumber: recipient.normalizedPhoneNumber,
+              networkType: networkType,
+              personalizedMessage,
+              segments: segmentResult.segments,
+              estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
+            });
 
-        // Send SMS
-        const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
-          userId,
-          phoneNumber: recipient.phoneNumber,
-          senderId,
-          message: personalizedMessage,
-          recipientsCount: 1
-        });
+            await smsRecipient.save();
 
-        if (smsResult.success) {
-          // Mark as sent and store provider message ID for webhook tracking
-          await smsRecipient.markAsSent(smsResult.jobId);
-          successCount++;
-          totalCost += smsResult.financial?.charged || 0;
+            const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
+              userId,
+              phoneNumber: recipient.phoneNumber,
+              senderId,
+              message: personalizedMessage,
+              recipientsCount: 1
+            });
 
-           results.push({
-             recipient: recipient.recipientName,
-             phoneNumber: recipient.phoneNumber,
-             success: true,
-             messageId: smsResult.messageId,
-             providerMessageId: smsResult.jobId,
-             errorCode: smsResult.code || null
-           });
+            if (smsResult.success) {
+              await smsRecipient.markAsSent(smsResult.jobId);
+              successCount++;
+              totalCost += smsResult.financial?.charged || 0;
+
+              return {
+                recipient: recipient.recipientName,
+                phoneNumber: recipient.phoneNumber,
+                success: true,
+                messageId: smsResult.messageId,
+                providerMessageId: smsResult.jobId,
+                errorCode: smsResult.code || null
+              };
+            } else {
+              await smsRecipient.markAsFailed(smsResult.error);
+
+              return {
+                recipient: recipient.recipientName,
+                phoneNumber: recipient.phoneNumber,
+                success: false,
+                error: smsResult.error,
+                errorCode: smsResult.code || 'SMS_SEND_FAILED'
+              };
+            }
+          } catch (error) {
+            console.error('Error sending to recipient:', error);
+
+            return {
+              recipient: recipient.recipientName,
+              phoneNumber: recipient.phoneNumber,
+              success: false,
+              error: error.message,
+              errorCode: 'INTERNAL_ERROR'
+            };
+          }
+        })
+      );
+
+      for (const chunkResult of chunkResults) {
+        if (chunkResult.status === 'fulfilled') {
+          results.push(chunkResult.value);
         } else {
-          await smsRecipient.markAsFailed(smsResult.error);
-
-           results.push({
-             recipient: recipient.recipientName,
-             phoneNumber: recipient.phoneNumber,
-             success: false,
-             error: smsResult.error,
-             errorCode: smsResult.code || 'SMS_SEND_FAILED'
-           });
+          results.push({
+            recipient: 'unknown',
+            phoneNumber: 'unknown',
+            success: false,
+            error: chunkResult.reason?.message || 'Unknown error',
+            errorCode: 'INTERNAL_ERROR'
+          });
         }
-
-      } catch (error) {
-        console.error('Error sending to recipient:', error);
-
-         results.push({
-           recipient: recipient.recipientName,
-           phoneNumber: recipient.phoneNumber,
-           success: false,
-           error: error.message,
-           errorCode: 'INTERNAL_ERROR'
-         });
       }
     }
 
@@ -582,7 +602,7 @@ router.post('/schedule', authenticate, async (req, res) => {
         error: { code: 'VALIDATION_ERROR' }
       });
     }
-    if (scheduleDate <= new Date()) {
+    if (scheduleDate <= new Date(Date.now() + 60000)) {
       logger.warn('[Schedule] Scheduled time must be in the future', {
         userId,
         scheduledAt,
@@ -668,15 +688,7 @@ router.post('/schedule', authenticate, async (req, res) => {
       });
     }
 
-    // Reserve funds immediately
-    logger.info('[Schedule] Reserving wallet funds', {
-      userId,
-      amount: costEstimation.estimatedCost,
-      campaignTitle: title
-    });
-    let reservation = await WalletService.reserveFunds(userId, costEstimation.estimatedCost, null);
-
-    // Create campaign
+    // Create campaign first so we have campaign._id for reservation
     campaign = new SmsCampaign({
       userId,
       title,
@@ -691,18 +703,28 @@ router.post('/schedule', authenticate, async (req, res) => {
       timezone: timezone || 'UTC',
       status: 'scheduled',
       scheduleStatus: 'scheduled',
-      jobId: null, // will be set by scheduler
+      jobId: null,
       recipientCount: processedRecipients.finalCount,
       validRecipientCount: processedRecipients.finalCount,
       invalidRecipientCount: processedRecipients.invalidRecipients.length,
       blacklistedCount: processedRecipients.blacklistedRecipients.length,
       duplicateCount: processedRecipients.duplicateCount,
-      queuedCount: processedRecipients.finalCount,  // All start as queued
+      queuedCount: processedRecipients.finalCount,
       totalSegments: costEstimation.totalSegments,
-      estimatedCost: costEstimation.estimatedCost,
-      walletChargeMode: 'reservation',
-      walletReservationId: reservation._id
+      estimatedCost: costEstimation.estimatedCost
     });
+
+    await campaign.save();
+
+    // Reserve funds after campaign is created
+    logger.info('[Schedule] Reserving wallet funds', {
+      userId,
+      amount: costEstimation.estimatedCost,
+      campaignId: campaign._id
+    });
+    reservation = await WalletService.reserveFunds(userId, costEstimation.estimatedCost, campaign._id);
+    campaign.walletChargeMode = 'reservation';
+    campaign.walletReservationId = reservation._id;
 
     await campaign.save();
 
@@ -718,6 +740,8 @@ router.post('/schedule', authenticate, async (req, res) => {
     // Create recipient records
     const SmsRecipient = require('../models/SmsRecipient');
     const sellPrice = await CostCalculatorService.getSellPricePerSms();
+
+    const recipientDocs = [];
     for (const recipient of processedRecipients.validRecipients) {
       const personalizedMessage = MessagePersonalizationService.personalizeMessage(
         messageBody,
@@ -730,7 +754,7 @@ router.post('/schedule', authenticate, async (req, res) => {
       const recipientEstimatedCost = sellPrice * segmentResult.segments;
 
       const networkType = SmsRecipient.detectNetwork(recipient.normalizedPhoneNumber || '');
-      const smsRecipient = new SmsRecipient({
+      recipientDocs.push({
         campaignId: campaign._id,
         userId,
         recipientName: recipient.recipientName,
@@ -741,9 +765,9 @@ router.post('/schedule', authenticate, async (req, res) => {
         segments: segmentResult.segments,
         estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
       });
-
-      await smsRecipient.save();
     }
+
+    await SmsRecipient.insertMany(recipientDocs);
 
     logger.info('[Schedule] Recipient records created', {
       campaignId: campaign._id,
@@ -825,9 +849,11 @@ router.post('/schedule', authenticate, async (req, res) => {
       }
     }
 
-    // If campaign was already created, mark it as failed
+    // If campaign was already created, mark it as failed and clean up orphaned recipients
     if (campaign && campaign._id) {
       try {
+        await SmsRecipient.deleteMany({ campaignId: campaign._id });
+
         const campaignToUpdate = await SmsCampaign.findById(campaign._id);
         if (campaignToUpdate) {
           campaignToUpdate.status = 'failed';
@@ -879,7 +905,7 @@ router.get('/scheduled', authenticate, async (req, res) => {
     const userId = req.user.userId;
 
     const campaigns = await SmsCampaign.findByUserId(userId);
-    const scheduledCampaigns = campaigns.filter(c => c.status === 'scheduled' || c.scheduledAt > new Date());
+    const scheduledCampaigns = campaigns.filter(c => c.status === 'scheduled' && c.scheduledAt && c.scheduledAt > new Date());
 
     res.json({
       success: true,
@@ -904,6 +930,15 @@ router.patch('/scheduled/:id', authenticate, async (req, res) => {
     const campaignId = req.params.id;
     const userId = req.user.userId;
     const updates = req.body;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(campaignId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid campaign ID',
+        error: { code: 'VALIDATION_ERROR' }
+      });
+    }
 
     const campaign = await SmsCampaign.findOne({ _id: campaignId, userId });
 
@@ -936,8 +971,14 @@ router.patch('/scheduled/:id', authenticate, async (req, res) => {
       updates.scheduledAt = newScheduleDate;
     }
 
-    // Update campaign
-    Object.assign(campaign, updates);
+    const allowedFields = ['scheduledAt', 'timezone', 'title'];
+    const filteredUpdates = {};
+    for (const key of allowedFields) {
+      if (updates[key] !== undefined) {
+        filteredUpdates[key] = updates[key];
+      }
+    }
+    Object.assign(campaign, filteredUpdates);
     await campaign.save();
 
     if (updates.scheduledAt) {
@@ -968,6 +1009,14 @@ router.delete('/scheduled/:id', authenticate, async (req, res) => {
   try {
     const campaignId = req.params.id;
     const userId = req.user.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(campaignId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid campaign ID',
+        error: { code: 'VALIDATION_ERROR' }
+      });
+    }
 
     const campaign = await SmsCampaign.findOne({ _id: campaignId, userId });
 
@@ -1023,6 +1072,14 @@ router.post('/:id/retry-failed', authenticate, async (req, res) => {
   try {
     const campaignId = req.params.id;
     const userId = req.user.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(campaignId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid campaign ID',
+        error: { code: 'VALIDATION_ERROR' }
+      });
+    }
 
     const result = await SmsCampaignRetryService.retryFailedRecipients(campaignId, userId);
 

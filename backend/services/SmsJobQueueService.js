@@ -115,8 +115,8 @@ class SmsJobQueueService {
       this.deadLetterQueue = new Queue('sms-dead-letter', {
         connection: this.redisConnection,
         defaultJobOptions: {
-          removeOnComplete: 0, // Keep all dead letter jobs
-          removeOnFail: 0,
+          removeOnComplete: 1000,
+          removeOnFail: 1000,
         },
       });
 
@@ -220,7 +220,7 @@ class SmsJobQueueService {
     }
 
     // Use unique job ID for idempotency
-    const jobId = `campaign-${campaignId}`;
+    const jobId = `campaign-${campaignId}-immediate`;
 
     const job = await this.queue.add('sendCampaign', { campaignId }, {
       jobId, // Unique job ID to prevent duplicates
@@ -244,10 +244,13 @@ class SmsJobQueueService {
       throw new Error('Queue service not initialized');
     }
 
-    const delay = Math.max(0, scheduledTime.getTime() - Date.now());
+     if (scheduledTime <= new Date()) {
+       throw new Error('Scheduled time must be in the future');
+     }
+     const delay = Math.max(0, scheduledTime.getTime() - Date.now());
 
     // Use deterministic job ID to prevent duplicates: "campaign-{campaignId}"
-    const jobId = `campaign-${campaignId}`;
+    const jobId = `campaign-${campaignId}-scheduled`;
 
     // Remove any existing job with the same ID (idempotency)
     try {
@@ -464,6 +467,17 @@ class SmsJobQueueService {
         status: campaign.status,
         reason: 'No queued recipients'
       });
+
+      if (campaign.walletReservationId) {
+        try {
+          const WalletService = require('./WalletService');
+          await WalletService.refundReservation(campaign.walletReservationId);
+          console.log(`[SmsJobQueueService] Refunded reservation ${campaign.walletReservationId} for empty campaign ${campaign._id}`);
+        } catch (refundErr) {
+          console.error(`[SmsJobQueueService] Failed to refund reservation for empty campaign ${campaign._id}:`, refundErr.message);
+        }
+      }
+
       return;
     }
 
@@ -574,15 +588,15 @@ class SmsJobQueueService {
      } catch (error) {
        console.error(`[SmsJobQueueService] Batch processing error for campaign ${campaign._id}:`, error);
        
-       // Release reservation on persistent batch failure to prevent wallet leak
-       if (campaign.walletReservationId) {
-         try {
-           await WalletService.releaseReservation(campaign.walletReservationId);
-           console.log(`[SmsJobQueueService] Released reservation ${campaign.walletReservationId} after batch failure`);
-         } catch (releaseErr) {
-           console.error(`[SmsJobQueueService] Failed to release reservation after batch failure:`, releaseErr.message);
-         }
-       }
+        // Refund reservation on persistent batch failure to prevent wallet leak
+        if (campaign.walletReservationId) {
+          try {
+            await WalletService.refundReservation(campaign.walletReservationId);
+            console.log(`[SmsJobQueueService] Refunded reservation ${campaign.walletReservationId} after batch failure`);
+          } catch (refundErr) {
+            console.error(`[SmsJobQueueService] Failed to refund reservation after batch failure:`, refundErr.message);
+          }
+        }
        
        // Re-fetch campaign to get latest counts (may have been updated by concurrent batch processing)
        const currentCampaign = await SmsCampaign.findById(campaign._id);

@@ -69,7 +69,8 @@ class SmsCampaignRetryService {
             phoneNumber: recipient.phoneNumber,
             senderId: campaign.senderId,
             message: recipient.personalizedMessage,
-            recipientsCount: 1
+            recipientsCount: 1,
+            skipDeduction: !!campaign.walletReservationId
           });
 
            if (smsResult.success) {

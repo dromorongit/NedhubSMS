@@ -112,7 +112,7 @@ class SmsSchedulerService {
       const job = await SmsJobQueueService.addImmediateJob(campaignId);
 
       // Update campaign
-      campaign.status = 'scheduled'; // Will be processed immediately
+      campaign.status = 'processing';
       campaign.jobId = job.id;
       await campaign.save();
 

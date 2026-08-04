@@ -7,25 +7,23 @@ class SmsRecipientService {
    * @returns {string} Normalized phone number
    */
   static normalizePhoneNumber(phoneNumber) {
-    if (!phoneNumber) return '';
+    if (!phoneNumber) return null;
 
     // Remove all non-digit characters
     let normalized = phoneNumber.replace(/\D/g, '');
 
     // Handle Ghanaian numbers
     if (normalized.startsWith('233') && normalized.length === 12) {
-      // Already in 233 format
       return normalized;
     } else if (normalized.startsWith('0') && normalized.length === 10) {
-      // Convert 0XXXXXXXXX to 233XXXXXXXXX
-      // Support 020-059 prefixes
       return '233' + normalized.substring(1);
     } else if (normalized.length === 9) {
-      // Assume it's missing the country code, add 233
-      // Support 20-59 prefixes
       return '233' + normalized;
     }
 
+    if (normalized.length !== 12 || !normalized.startsWith('233')) {
+      return null;
+    }
     return normalized;
   }
 
@@ -46,6 +44,13 @@ class SmsRecipientService {
 
     for (const recipient of recipients) {
       const normalizedPhone = this.normalizePhoneNumber(recipient.phoneNumber);
+      if (normalizedPhone === null) {
+        uniqueRecipients.push({
+          ...recipient,
+          normalizedPhoneNumber: normalizedPhone
+        });
+        continue;
+      }
 
       if (seen.has(normalizedPhone)) {
         const dupInfo = {
@@ -118,7 +123,7 @@ class SmsRecipientService {
     console.log('[Validation] Blacklisted numbers loaded', { count: blacklistedNumbers.length });
 
     const blacklistedSet = new Set(
-      blacklistedNumbers.map(b => this.normalizePhoneNumber(b.phoneNumber))
+      blacklistedNumbers.map(b => this.normalizePhoneNumber(b.phoneNumber)).filter(p => p !== null)
     );
 
     // Regex for valid Ghanaian phone numbers (accepts +233, 233, or 0 prefix)
@@ -126,6 +131,15 @@ class SmsRecipientService {
 
     for (const recipient of recipients) {
       const normalizedPhone = this.normalizePhoneNumber(recipient.phoneNumber);
+
+      if (normalizedPhone === null) {
+        invalidRecipients.push({
+          ...recipient,
+          normalizedPhoneNumber: normalizedPhone,
+          reason: 'Invalid phone number format'
+        });
+        continue;
+      }
 
       // Check if blacklisted
       if (blacklistedSet.has(normalizedPhone)) {

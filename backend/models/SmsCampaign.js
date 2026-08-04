@@ -162,10 +162,6 @@ const smsCampaignSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  jobId: {
-    type: String,
-    index: true
-  },
   createdAt: {
     type: Date,
     default: Date.now,

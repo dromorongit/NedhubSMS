@@ -459,7 +459,9 @@ class NaloSmsService {
             }
 
             // Refund wallet on failure
-            await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
+            if (!skipDeduction) {
+              await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
+            }
           }
 
          } catch (apiError) {
@@ -500,9 +502,11 @@ class NaloSmsService {
             error: errorMessage
           });
 
-          // Refund wallet on API error
-          await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund');
-        }
+           // Refund wallet on API error
+           if (!skipDeduction) {
+             await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund');
+           }
+         }
       }
 
         // Create SMS record
@@ -524,7 +528,7 @@ class NaloSmsService {
         recipientsCount: recipientsCount,
         totalChargedToUser: smsStatus === 'sent' && !skipDeduction ? financialBreakdown.totalChargedToUser : 0,
         totalCostToProvider: financialBreakdown.totalCostToProvider,
-        profitAmount: smsStatus === 'sent' ? financialBreakdown.profitAmount : 0
+        profitAmount: smsStatus === 'sent' && !skipDeduction ? financialBreakdown.profitAmount : 0
       };
 
       const savedMessage = await SmsMessage.create(smsMessageData);
@@ -609,20 +613,56 @@ class NaloSmsService {
 
     } catch (error) {
       console.error('[NaloSmsService] Error:', error.message);
-      
-      // Log send result with [SendResult] tag
+
+      let failedMessageId = null;
+      try {
+        const failedMessage = await SmsMessage.create({
+          userId,
+          phoneNumber: phoneNumber,
+          normalizedPhoneNumber: this.formatPhoneNumber(phoneNumber),
+          networkType: 'unknown',
+          senderId: '',
+          message: '',
+          provider: 'nalo',
+          jobId: `failed-${Date.now()}`,
+          status: 'failed',
+          errorCode: 'INTERNAL_ERROR',
+          errorMessage: error.message,
+          sellPricePerSms: 0,
+          providerCostPerSms: 0,
+          segments: 0,
+          recipientsCount: 1,
+          totalChargedToUser: 0,
+          totalCostToProvider: 0,
+          profitAmount: 0
+        });
+        failedMessageId = failedMessage._id.toString();
+      } catch (dbError) {
+        console.error('[NaloSmsService] Failed to create error SmsMessage record:', dbError.message);
+      }
+
+      if (!skipDeduction) {
+        try {
+          await this.refundWallet(userId, 0, 'SMS internal error - no deduction to refund');
+        } catch (refundErr) {
+          console.error('[NaloSmsService] Refund failed in outer catch:', refundErr.message);
+        }
+      }
+
       console.log('[SendResult]', {
         userId,
-        phoneNumber: phoneNumber, // original phone number from request
+        phoneNumber: phoneNumber,
         success: false,
         error: error.message,
-        code: 'INTERNAL_ERROR'
+        code: 'INTERNAL_ERROR',
+        messageId: failedMessageId
       });
-      
+
       return {
         success: false,
         error: error.message,
-        code: 'INTERNAL_ERROR'
+        code: 'INTERNAL_ERROR',
+        messageId: failedMessageId
       };
     }
   }

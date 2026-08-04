@@ -50,6 +50,15 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
+    // Message length validation
+    if (message.length > 160) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message exceeds maximum length of 160 characters',
+        error: { code: 'VALIDATION_ERROR' }
+      });
+    }
+
     // NaloSmsService handles wallet deduction internally, so we don't need to deduct here
     // Check Nalo SMS balance
     const naloBalance = await checkBalance();
@@ -58,6 +67,17 @@ router.post('/send', authenticate, async (req, res) => {
         success: false,
         message: 'Insufficient SMS balance with provider',
         error: { code: 'INSUFFICIENT_PROVIDER_BALANCE' }
+      });
+    }
+
+    // Wallet balance check
+    const WalletService = require('../services/WalletService');
+    const availableBalance = await WalletService.getAvailableBalance(userId);
+    if (availableBalance < 0.01) {
+      return res.status(402).json({
+        success: false,
+        message: 'Insufficient wallet balance',
+        error: { code: 'INSUFFICIENT_BALANCE' }
       });
     }
 
@@ -96,51 +116,80 @@ router.post('/send', authenticate, async (req, res) => {
     // Use only valid, unique recipients for sending
     const recipientsToSend = processedRecipients.validRecipients;
 
-    // Send SMS to ALL recipients (not just the first one)
+    if (recipientsToSend.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid recipients found after processing',
+        error: {
+          code: 'NO_VALID_RECIPIENTS',
+          details: {
+            duplicateCount: processedRecipients.duplicateCount,
+            invalidCount: processedRecipients.invalidRecipients.length,
+            blacklistedCount: processedRecipients.blacklistedRecipients.length
+          }
+        }
+      });
+    }
+
+    // Send SMS to ALL recipients with bounded parallelism (CHUNK_SIZE = 10)
     const results = [];
     let successCount = 0;
     let failedCount = 0;
 
-    for (const recipient of recipientsToSend) {
-      try {
-        // Use NaloSmsService for proper tracking and webhook support
-        // Note: NaloSmsService handles wallet deduction internally
-        const smsResult = await NaloSmsService.sendSmsWithFinancialTracking({
-          userId,
-          phoneNumber: recipient.phoneNumber,
-          senderId,
-          message,
-          recipientsCount: recipientsToSend.length
-        });
-        
-        if (smsResult.success) {
-          results.push({ 
-            recipient: recipient.phoneNumber, 
-            recipientName: recipient.recipientName,
-            success: true, 
-            messageId: smsResult.messageId, 
-            jobId: smsResult.jobId 
-          });
-          successCount++;
+    const CHUNK_SIZE = 10;
+    const chunks = [];
+    for (let i = 0; i < recipientsToSend.length; i += CHUNK_SIZE) {
+      chunks.push(recipientsToSend.slice(i, i + CHUNK_SIZE));
+    }
+
+    for (const chunk of chunks) {
+      const chunkResults = await Promise.allSettled(
+        chunk.map(recipient =>
+          NaloSmsService.sendSmsWithFinancialTracking({
+            userId,
+            phoneNumber: recipient.phoneNumber,
+            senderId,
+            message,
+            recipientsCount: 1
+          })
+        )
+      );
+
+      for (let j = 0; j < chunkResults.length; j++) {
+        const recipient = chunk[j];
+        const chunkResult = chunkResults[j];
+
+        if (chunkResult.status === 'fulfilled') {
+          const smsResult = chunkResult.value;
+          if (smsResult.success) {
+            results.push({
+              recipient: recipient.phoneNumber,
+              recipientName: recipient.recipientName,
+              success: true,
+              messageId: smsResult.messageId,
+              jobId: smsResult.jobId
+            });
+            successCount++;
+          } else {
+            results.push({
+              recipient: recipient.phoneNumber,
+              recipientName: recipient.recipientName,
+              success: false,
+              error: smsResult.error,
+              errorCode: smsResult.code || 'SMS_SEND_FAILED'
+            });
+            failedCount++;
+          }
         } else {
-         results.push({ 
-           recipient: recipient.phoneNumber,
-           recipientName: recipient.recipientName, 
-           success: false, 
-           error: smsResult.error,
-           errorCode: smsResult.code || 'SMS_SEND_FAILED'
-         });
-         failedCount++;
+          results.push({
+            recipient: recipient.phoneNumber,
+            recipientName: recipient.recipientName,
+            success: false,
+            error: chunkResult.reason?.message || 'Unknown error',
+            errorCode: 'INTERNAL_ERROR'
+          });
+          failedCount++;
         }
-      } catch (error) {
-         results.push({ 
-           recipient: recipient.phoneNumber,
-           recipientName: recipient.recipientName, 
-           success: false, 
-           error: error.message,
-           errorCode: 'INTERNAL_ERROR'
-         });
-         failedCount++;
       }
     }
 
@@ -285,7 +334,7 @@ router.post('/send', authenticate, async (req, res) => {
       }
    
       // Ensure scheduled time is in the future (using UTC)
-      if (scheduledUtc <= new Date()) {
+      if (scheduledUtc <= new Date(Date.now() + 60000)) {
         logger.warn('[Schedule] Scheduled time must be in the future', {
           userId,
           scheduledAt: scheduledUtc.toISOString(),
@@ -471,21 +520,21 @@ router.post('/send', authenticate, async (req, res) => {
       const sellPrice = await CostCalculatorService.getSellPricePerSms();
       const segmentResult = CostCalculatorService.calculateSegments(message);
 
-      for (const recipient of processedRecipients.validRecipients) {
-        const recipientEstimatedCost = sellPrice * segmentResult.segments;
-        const smsRecipient = new SmsRecipient({
-          campaignId: campaign._id,
-          userId,
-          recipientName: recipient.recipientName,
-          phoneNumber: recipient.phoneNumber,
-          normalizedPhoneNumber: recipient.normalizedPhoneNumber,
-          personalizedMessage: message,
-          segments: segmentResult.segments,
-          estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
-        });
-
-        await smsRecipient.save();
-      }
+      await SmsRecipient.insertMany(
+        processedRecipients.validRecipients.map(r => {
+          const recipientEstimatedCost = sellPrice * segmentResult.segments;
+          return {
+            campaignId: campaign._id,
+            userId,
+            recipientName: r.recipientName,
+            phoneNumber: r.phoneNumber,
+            normalizedPhoneNumber: r.normalizedPhoneNumber,
+            personalizedMessage: message,
+            segments: segmentResult.segments,
+            estimatedCost: Math.round(recipientEstimatedCost * 100) / 100
+          };
+        })
+      );
 
       logger.info('[Schedule] Recipient records created', {
         campaignId: campaign._id,
@@ -625,7 +674,7 @@ router.get('/logs', authenticate, async (req, res) => {
     // Fetch from all three models
     const [legacyMessages, newMessages, recipients] = await Promise.all([
       Message.findByUserId(userId),
-      SmsMessage.find({ userId }).sort({ createdAt: -1 }),
+      SmsMessage.find({ userId: userIdObj }).sort({ createdAt: -1 }),
       require('../models/SmsRecipient').find({ userId: userIdObj }).sort({ createdAt: -1 })
     ]);
     
@@ -674,7 +723,7 @@ router.get('/logs', authenticate, async (req, res) => {
           message: msg.personalizedMessage,
           status: msg.status,
           createdAt: msg.createdAt,
-          errorCode: msg.errorMessage,
+          errorCode: msg.errorCode,
           errorMessage: msg.errorMessage,
           source: 'recipient'
         };
@@ -793,6 +842,10 @@ router.get('/calculate-cost', authenticate, async (req, res) => {
 // Nalo callback endpoint for delivery reports
 router.post('/callback', async (req, res) => {
   try {
+    if (req.headers['x-webhook-secret'] !== process.env.NALO_WEBHOOK_SECRET) {
+      return res.status(403).json({ success: false, message: 'Unauthorized', error: { code: 'FORBIDDEN' } });
+    }
+
     const { messageId, status, recipient } = req.body;
 
     // Update message status in database (legacy)

@@ -207,17 +207,32 @@ class MessagePersonalizationService {
    * @returns {number} - Number of segments
    */
   calculateSmsSegments(message) {
-    const length = message.length;
+    if (!message || message.length === 0) return 1;
 
-    if (length <= 160) return 1;
-    if (length <= 306) return 2;
-    if (length <= 459) return 3;
-    if (length <= 612) return 4;
-    if (length <= 765) return 5;
-    if (length <= 918) return 6;
+    const costCalculator = require('./CostCalculatorService');
 
-    // For longer messages, calculate based on 153 characters per segment
-    return Math.ceil(length / 153);
+    let totalSeptets = 0;
+    let isUnicode = false;
+
+    for (let i = 0; i < message.length; i++) {
+      const char = message[i];
+      if (costCalculator.gsm7BasicChars.has(char)) {
+        totalSeptets += 1;
+      } else if (costCalculator.gsm7ExtendedChars.has(char)) {
+        totalSeptets += 2;
+      } else {
+        isUnicode = true;
+      }
+    }
+
+    if (isUnicode) {
+      const charCount = message.length;
+      if (charCount <= 70) return 1;
+      return Math.ceil(charCount / 67);
+    }
+
+    if (totalSeptets <= 160) return 1;
+    return Math.ceil(totalSeptets / 153);
   }
 }
 

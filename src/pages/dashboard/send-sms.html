@@ -2307,19 +2307,14 @@ if (result.error) {
                         addRecipient(r, 'manual-default', norm);
                     });
                 } else {
-                    // Personalized mode: individual items
-                    const items = document.querySelectorAll('.manual-recipient-item:not(.template)');
-                    items.forEach((item, idx) => {
-                        const nameInput = item.querySelector('.recipient-name-input');
-                        const phoneInput = item.querySelector('.recipient-phone-input');
-                        const name = nameInput ? nameInput.value.trim() : '';
-                        const phone = phoneInput ? phoneInput.value.trim() : '';
-                        if (phone) {
-                            const norm = normalizePhoneNumber(phone);
+                    // Personalized mode: use manualRecipients array as single source of truth
+                    manualRecipients.forEach((recipient, idx) => {
+                        if (recipient.phoneNumber) {
+                            const norm = normalizePhoneNumber(recipient.phoneNumber);
                             addRecipient({
                                 id: `item-${idx}-${norm}`,
-                                recipientName: name || '',
-                                phoneNumber: phone,
+                                recipientName: recipient.recipientName || '',
+                                phoneNumber: recipient.phoneNumber,
                                 normalizedPhoneNumber: norm
                             }, 'manual-personalized', `item-${idx}-${norm}`);
                         }
@@ -2857,39 +2852,52 @@ if (result.error) {
             newItem.style.display = 'flex';
             newItem.classList.remove('template');
 
-            // Add event listeners
-            const nameInput = newItem.querySelector('.recipient-name-input');
-            const phoneInput = newItem.querySelector('.recipient-phone-input');
+             // Add event listeners
+             const nameInput = newItem.querySelector('.recipient-name-input');
+             const phoneInput = newItem.querySelector('.recipient-phone-input');
 
-            nameInput.addEventListener('input', function() {
-                validateManualRecipient.call(this);
-                updateMessageBodyTemplate(); // Auto-update message when name is entered
-            });
+             manualRecipients.push({ recipientName: '', phoneNumber: '', normalizedPhoneNumber: '' });
+             const recipientIndex = manualRecipients.length - 1;
 
-            // Also trigger on change (when user finishes typing or leaves field)
-            nameInput.addEventListener('change', function() {
-                updateMessageBodyTemplate(); // Update message body when name is completed
-            });
-            phoneInput.addEventListener('input', validateManualRecipient);
+             nameInput.addEventListener('input', function() {
+                 validateManualRecipient.call(this);
+                 if (recipientIndex < manualRecipients.length) {
+                     manualRecipients[recipientIndex].recipientName = this.value.trim();
+                 }
+             });
 
-            document.getElementById('manualRecipientList').appendChild(newItem);
+             // Also trigger on change (when user finishes typing or leaves field)
+             nameInput.addEventListener('change', function() {
+                 if (recipientIndex < manualRecipients.length) {
+                     manualRecipients[recipientIndex].recipientName = this.value.trim();
+                 }
+             });
+             phoneInput.addEventListener('input', function() {
+                 validateManualRecipient.call(this);
+                 if (recipientIndex < manualRecipients.length) {
+                     manualRecipients[recipientIndex].phoneNumber = this.value.trim();
+                     manualRecipients[recipientIndex].normalizedPhoneNumber = validatePhoneNumber(this.value.trim()).normalizedNumber || '';
+                 }
+             });
 
-            // Auto-populate message body with salutation template on first recipient
-            const existingRecipients = document.querySelectorAll('.manual-recipient-item:not(.template)');
-            if (existingRecipients.length === 1) {
-                updateMessageBodyTemplate();
-            }
+             document.getElementById('manualRecipientList').appendChild(newItem);
 
-            // Update cost estimation and live preview when recipients change
+              // Update cost estimation and live preview when recipients change
             updateCostEstimation();
             schedulePreviewUpdate();
             updateRecipientChips();
         }
 
-          function removeManualRecipient(btn) {
-              console.log('[RecipientSelection] Removing manual recipient');
-              btn.closest('.manual-recipient-item').remove();
-              // Update cost estimation and live preview when recipients change
+           function removeManualRecipient(btn) {
+               console.log('[RecipientSelection] Removing manual recipient');
+               const itemToRemove = btn.closest('.manual-recipient-item');
+               const allItems = Array.from(document.querySelectorAll('.manual-recipient-item:not(.template)'));
+               const index = allItems.indexOf(itemToRemove);
+               itemToRemove.remove();
+               if (index >= 0 && index < manualRecipients.length) {
+                   manualRecipients.splice(index, 1);
+               }
+               // Update cost estimation and live preview when recipients change
               updateCostEstimation();
               schedulePreviewUpdate();
               updateRecipientChips();
@@ -3759,20 +3767,6 @@ async function confirmImport() {
         }
         
         // Custom salutation input
-        if (customSalutationEl) {
-            customSalutationEl.addEventListener('input', schedulePreviewUpdate);
-        }
-        
-        // Messaging mode switch
-        document.querySelectorAll('.messaging-mode-tabs .tab-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                setTimeout(() => {
-                    updateModeDependentUI();
-                    schedulePreviewUpdate();
-                }, 0);
-            });
-        });
-        
         // Recipient changes (manual, contacts, upload)
         // Manual recipient changes
         const manualRecipientList = document.getElementById('manualRecipientList');
@@ -3788,20 +3782,7 @@ async function confirmImport() {
             selectedContactsPreview.addEventListener('click', schedulePreviewUpdate);
         }
         
-         // File upload changes
-         const contactFileInput = document.getElementById('contactFile');
-         if (contactFileInput) {
-             contactFileInput.addEventListener('change', schedulePreviewUpdate);
-         }
-         
-         // Recipient source tab changes
-         document.querySelectorAll('.recipient-source-tabs .tab-btn').forEach(btn => {
-             btn.addEventListener('click', function() {
-                 // Small delay to allow the tab content to become active
-                 setTimeout(schedulePreviewUpdate, 0);
-             });
-         });
-         
+        // File upload changes
           // Sender ID change
          const senderIdEl = document.getElementById('senderId');
          if (senderIdEl) {
@@ -4284,17 +4265,18 @@ async function confirmImport() {
                          await window.apiClient.schedulePersonalizedCampaign(campaignData);
                   } else {
                       // Default messaging mode
-                      const campaignData = {
-                          senderId,
-                          message: messageBody,
-                          recipients: recipients.map(r => ({
-                              id: r.id,
-                              recipientName: r.recipientName || '',
-                              phoneNumber: r.phoneNumber,
-                              normalizedPhoneNumber: r.normalizedPhoneNumber,
-                              source: r.source
-                          }))
-                      };
+                       const campaignData = {
+                           senderId,
+                           message: messageBody,
+                           recipients: recipients.map(r => ({
+                               id: r.id,
+                               recipientName: r.recipientName || '',
+                               phoneNumber: r.phoneNumber,
+                               normalizedPhoneNumber: r.normalizedPhoneNumber,
+                               source: r.source
+                           })),
+                           removeDuplicates: removeDuplicates
+                       };
  
                      if (sendMode === 'scheduled') {
                          campaignData.scheduledAt = scheduledAt.toISOString();
@@ -4461,6 +4443,9 @@ async function confirmImport() {
     // Clear uploaded files
     removeUploadedFile();
 
+    // Clear persistent import session
+    currentImportSession = { fileData: [], fileName: null, detectedColumns: null, preview: null };
+
     // Clear unified recipient store
     allRecipients = [];
 
@@ -4591,8 +4576,25 @@ async function analyzeRecipientsForModal() {
     analysis.duplicatesRemoved = removeDuplicates ? analysis.duplicates : 0;
     analysis.toSend = recipients.length - analysis.invalid - analysis.duplicatesRemoved;
 
-    // Check for blacklisted (approximate - would need backend check for accurate count)
-    analysis.blacklisted = 0;
+    // Check for blacklisted
+    try {
+        const blacklistResponse = await window.apiClient.getBlacklist();
+        if (blacklistResponse && blacklistResponse.data && Array.isArray(blacklistResponse.data)) {
+            const blacklistedNumbers = new Set();
+            blacklistResponse.data.forEach(entry => {
+                const normalized = normalizePhoneNumber(entry.phoneNumber || entry.number || '');
+                if (normalized) blacklistedNumbers.add(normalized);
+            });
+            recipients.forEach(r => {
+                const validation = validatePhoneNumber(r.phoneNumber);
+                if (validation.isValid && blacklistedNumbers.has(validation.normalizedNumber)) {
+                    analysis.blacklisted++;
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('[Blacklist] Could not fetch blacklist:', e);
+    }
 
     return analysis;
 }
@@ -4915,23 +4917,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-        // Convert Unicode to GSM-compatible text
-         function convertToGsmCompatible() {
-             const messageBodyEl = document.getElementById('messageBody');
-             if (!messageBodyEl) return;
-             
-             const originalMessage = messageBodyEl.value;
-             const convertedMessage = window.convertToGsmCompatible(originalMessage);
-             
-             if (convertedMessage !== originalMessage) {
-                 messageBodyEl.value = convertedMessage;
-                 // Trigger input event to update counters
-                 messageBodyEl.dispatchEvent(new Event('input', { bubbles: true }));
-                 showToast('Message converted to GSM-compatible text', 'success');
-             } else {
-                 showToast('No Unicode characters to convert', 'info');
-             }
-         }
+         // Convert Unicode to GSM-compatible text
+          function convertToGsmCompatible() {
+              if (typeof window.convertToGsmCompatible !== 'function') {
+                  showToast('GSM conversion not available', 'error');
+                  return;
+              }
+              const messageBodyEl = document.getElementById('messageBody');
+              if (!messageBodyEl) return;
+              
+              const originalMessage = messageBodyEl.value;
+              const convertedMessage = window.convertToGsmCompatible(originalMessage);
+              
+              if (convertedMessage !== originalMessage) {
+                  messageBodyEl.value = convertedMessage;
+                  // Trigger input event to update counters
+                  messageBodyEl.dispatchEvent(new Event('input', { bubbles: true }));
+                  showToast('Message converted to GSM-compatible text', 'success');
+              } else {
+                  showToast('No Unicode characters to convert', 'info');
+              }
+          }
 
         // Close preview modal
         function closePreviewModal() {

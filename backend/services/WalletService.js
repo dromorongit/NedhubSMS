@@ -353,6 +353,78 @@ class WalletService {
       throw error;
     }
   }
+
+  /**
+   * Refund a captured reservation (credit wallet and create refund transaction)
+   * @param {string} reservationId - Reservation ID
+   * @returns {Object} - Refunded reservation
+   */
+  async refundReservation(reservationId) {
+    try {
+      // Find the reservation
+      const reservation = await WalletReservation.findById(reservationId);
+      if (!reservation) {
+        throw new Error('Reservation not found');
+      }
+
+      if (reservation.status !== 'captured') {
+        throw new Error(`Reservation is not captured (status: ${reservation.status})`);
+      }
+
+      // Find the wallet
+      const wallet = await Wallet.findOne({ userId: reservation.userId });
+      if (!wallet) {
+        throw new Error('Wallet not found');
+      }
+
+      const balanceBefore = wallet.balance;
+
+      // Credit the wallet
+      const updatedWallet = await Wallet.findOneAndUpdate(
+        { userId: reservation.userId },
+        {
+          $inc: { balance: reservation.amount },
+          $set: { updatedAt: new Date() }
+        },
+        { new: true }
+      );
+
+      if (!updatedWallet) {
+        throw new Error('Failed to credit wallet');
+      }
+
+      // Create refund transaction
+      const reference = `REFUND-RESERVATION-${reservationId}`;
+      const transaction = new Transaction({
+        userId: reservation.userId,
+        type: 'credit',
+        amount: reservation.amount,
+        description: `Campaign reservation refund`,
+        reference,
+        balanceBefore,
+        balanceAfter: balanceBefore + reservation.amount
+      });
+
+      await transaction.save();
+
+      // Update reservation status
+      reservation.status = 'refunded';
+      reservation.refundedAt = new Date();
+      await reservation.save();
+
+      console.log(`[WalletService] Refunded reservation ${reservationId}, credited ${reservation.amount} GHS`);
+
+      return {
+        reservation,
+        transaction,
+        wallet: updatedWallet,
+        amountRefunded: reservation.amount
+      };
+    } catch (error) {
+      console.error('[WalletService] Refund reservation failed:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new WalletService();

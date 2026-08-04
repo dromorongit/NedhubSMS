@@ -92,35 +92,23 @@ walletSchema.statics.getBalance = async function(userId) {
 
 // Static method to credit wallet
 walletSchema.statics.credit = async function(userId, amount, description, adminId) {
-  let wallet = await this.findOne({ userId: userId });
-  
-  if (!wallet) {
-    // Create wallet if doesn't exist
-    wallet = await this.create({ userId, balance: amount });
-  } else {
-    wallet.balance += amount;
-    await wallet.save();
-  }
-  
-  return wallet;
+  const updatedWallet = await this.findOneAndUpdate(
+    { userId },
+    { $inc: { balance: amount, smsBalance: amount } },
+    { new: true, upsert: true }
+  );
+  return updatedWallet;
 };
 
 // Static method to debit wallet
 walletSchema.statics.debit = async function(userId, amount, description) {
-  const wallet = await this.findOne({ userId: userId });
-  
-  if (!wallet) {
-    throw new Error('Wallet not found');
-  }
-  
-  if (wallet.balance < amount) {
-    throw new Error('Insufficient balance');
-  }
-  
-  wallet.balance -= amount;
-  await wallet.save();
-  
-  return wallet;
+  const updatedWallet = await this.findOneAndUpdate(
+    { userId, balance: { $gte: amount } },
+    { $inc: { balance: -amount } },
+    { new: true }
+  );
+  if (!updatedWallet) throw new Error('Insufficient balance or wallet not found');
+  return updatedWallet;
 };
 
 // Method to check if daily limit is reached

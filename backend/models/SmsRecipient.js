@@ -131,7 +131,20 @@ smsRecipientSchema.index({ createdAt: 1 });
 
 // Update updatedAt before saving
 smsRecipientSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
+  if (this.phoneNumber) {
+    let normalized = this.phoneNumber.replace(/\D/g, '');
+    if (normalized.startsWith('233') && normalized.length === 12) {
+      // already good
+    } else if (normalized.startsWith('0') && normalized.length === 10) {
+      normalized = '233' + normalized.substring(1);
+    } else if (normalized.length === 9) {
+      normalized = '233' + normalized;
+    } else {
+      // Invalid length, but let it through for validation later
+    }
+    this.normalizedPhoneNumber = normalized;
+  }
+  this.updatedAt = new Date();
   next();
 });
 
@@ -174,6 +187,12 @@ smsRecipientSchema.statics.updateStatus = async function(id, status, providerMes
 
   if (providerMessageId) updateData.providerMessageId = providerMessageId;
   if (errorMessage) updateData.errorMessage = errorMessage;
+
+  if (status === 'sent') { updateData.providerStatus = 'sent'; }
+  else if (status === 'delivered') { updateData.providerStatus = 'delivered'; }
+  else if (status === 'failed') { updateData.providerStatus = 'failed'; }
+  else if (status === 'processing') { updateData.providerStatus = 'processing'; }
+  else if (status === 'cancelled') { updateData.providerStatus = 'cancelled'; }
 
   if (status === 'sent') updateData.sentAt = new Date();
   if (status === 'delivered') updateData.deliveredAt = new Date();

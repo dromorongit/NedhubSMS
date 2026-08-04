@@ -90,7 +90,7 @@ router.post('/', authenticate, async (req, res) => {
     );
 
     // Create campaign
-    const campaign = new Campaign({
+    const campaign = new SmsCampaign({
       userId,
       name,
       senderId,

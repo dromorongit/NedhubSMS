@@ -42,7 +42,7 @@ const transactionSchema = new mongoose.Schema({
   },
   metadata: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
+    default: () => ({})
   },
   createdAt: {
     type: Date,

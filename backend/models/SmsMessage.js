@@ -29,7 +29,8 @@ const smsMessageSchema = new mongoose.Schema({
   },
   message: {
     type: String,
-    required: true
+    required: true,
+    maxlength: 160
   },
   provider: {
     type: String,
@@ -38,6 +39,7 @@ const smsMessageSchema = new mongoose.Schema({
   },
   jobId: {
     type: String,
+    unique: true,
     index: true
   },
   status: {
@@ -55,7 +57,7 @@ const smsMessageSchema = new mongoose.Schema({
   // Financial tracking fields
   sellPricePerSms: {
     type: Number,
-    default: 0.07,
+    default: 0.082,
     min: 0
   },
   providerCostPerSms: {
@@ -85,7 +87,8 @@ const smsMessageSchema = new mongoose.Schema({
   },
   profitAmount: {
     type: Number,
-    default: 0
+    default: 0,
+    min: 0
   },
   createdAt: {
     type: Date,
@@ -101,7 +104,7 @@ const smsMessageSchema = new mongoose.Schema({
   }
 });
 
-// Auto-normalize phone number before save
+// Auto-normalize phone number and update updatedAt before save
 smsMessageSchema.pre('save', function(next) {
   if (this.phoneNumber) {
     let normalized = this.phoneNumber.replace(/\D/g, '');
@@ -114,12 +117,6 @@ smsMessageSchema.pre('save', function(next) {
     }
     this.normalizedPhoneNumber = normalized;
   }
-  this.updatedAt = new Date();
-  next();
-});
-
-// Update the updatedAt field on save
-smsMessageSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();
 });

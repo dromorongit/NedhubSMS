@@ -142,8 +142,11 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      // For development, still allow - in production you might want to block
-      callback(null, true);
+      if (process.env.NODE_ENV === 'production') {
+        callback(null, false);
+      } else {
+        callback(null, true);
+      }
     }
   },
   credentials: true,
@@ -299,7 +302,7 @@ const limiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
   trustProxy: true,
   keyGenerator: (req) => {
-    return req.headers['x-forwarded-for'] || req.ip;
+    return req.ip;
   },
   handler: (req, res) => {
     const logger = require('./backend/utils/logger');

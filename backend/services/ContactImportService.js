@@ -1,5 +1,4 @@
 const xlsx = require('xlsx');
-const Contact = require('../models/Contact');
 const ContactImport = require('../models/ContactImport');
 const BlacklistedNumber = require('../models/BlacklistedNumber');
 const logger = require('../utils/logger');
@@ -386,13 +385,6 @@ class ContactImportService {
     const blacklistedSet = new Set(blacklistedNumbers.map(b => b.normalizedPhoneNumber));
     console.log('[Validation] Blacklisted numbers loaded', { count: blacklistedSet.size });
 
-    // Pre-load existing contacts for this user to detect duplicates (single query)
-    console.log('[Validation] Loading existing contacts for duplicate detection', { userId });
-    const existingContacts = await Contact.find({ userId }).select('recipientName phoneNumber normalizedPhoneNumber');
-    const existingPhones = new Map();
-    existingContacts.forEach(c => existingPhones.set(c.normalizedPhoneNumber, c));
-    console.log('[Validation] Existing contacts loaded', { count: existingPhones.size });
-
     // Track duplicates within the uploaded file
     const seenInFile = new Map();
 
@@ -405,7 +397,6 @@ class ContactImportService {
       importedRows: 0,
       skippedRows: 0,
       importedContacts: [],
-      existingContacts: [],
       errors: []
     };
 
@@ -473,29 +464,6 @@ class ContactImportService {
         }
         seenInFile.set(normalizedPhone, rowNumber);
 
-        // Check for duplicates against existing contacts
-        if (existingPhones.has(normalizedPhone)) {
-          const existingContact = existingPhones.get(normalizedPhone);
-          results.existingContacts.push({
-            id: existingContact._id,
-            recipientName: existingContact.recipientName,
-            phoneNumber: existingContact.phoneNumber,
-            normalizedPhoneNumber: existingContact.normalizedPhoneNumber
-          });
-          results.duplicateRows++;
-          results.errors.push({
-            row: rowNumber,
-            error: 'Phone number already exists in your contacts',
-            data: { recipientName, phoneNumber }
-          });
-          console.log('[Validation] Row MATCHED existing contact', {
-            row: rowNumber,
-            normalizedPhone,
-            recipientName: existingContact.recipientName
-          });
-          continue;
-        }
-
         // Check blacklist
         if (blacklistedSet.has(normalizedPhone)) {
           results.blacklistedRows++;
@@ -511,45 +479,20 @@ class ContactImportService {
           continue;
         }
 
-        // All validations passed - create contact with atomic operation
-        try {
-          const contactId = await Contact.create(userId, recipientName, phoneNumber, 'Imported');
-          
-          results.validRows++;
-          results.importedRows++;
-          results.importedContacts.push({
-            id: contactId,
-            recipientName,
-            phoneNumber: phoneNumber,
-            normalizedPhoneNumber: normalizedPhone
-          });
-          
-          // Update existing phones set to prevent duplicates in same batch
-          existingPhones.add(normalizedPhone);
-          
-          console.log('[Contacts] Row SUCCESS: Imported contact', {
-            row: rowNumber,
-            contactId,
-            recipientName,
-            normalizedPhone
-          });
-        } catch (dbError) {
-          // Handle potential race condition or duplicate key error
-          if (dbError.code === 11000) { // MongoDB duplicate key error
-            results.duplicateRows++;
-            results.errors.push({
-              row: rowNumber,
-              error: 'Duplicate phone number (race condition)',
-              data: { recipientName, phoneNumber }
-            });
-            console.log('[Contacts] Row SKIPPED: Duplicate key error (race condition)', { 
-              row: rowNumber, 
-              normalizedPhone 
-            });
-          } else {
-            throw dbError;
-          }
-        }
+        // All validations passed - add to imported contacts
+        results.validRows++;
+        results.importedRows++;
+        results.importedContacts.push({
+          recipientName,
+          phoneNumber: phoneNumber,
+          normalizedPhoneNumber: normalizedPhone
+        });
+
+        console.log('[Import] Row SUCCESS: Valid contact', {
+          row: rowNumber,
+          recipientName,
+          normalizedPhone
+        });
 
       } catch (error) {
         results.errors.push({
