@@ -537,7 +537,7 @@
                     const response = await window.apiClient.resendSms(messageId);
                     
                     if (response.error) {
-                        showToast('Failed to resend message: ' + response.error, 'error');
+                        showToast('Failed to resend message: ' + extractErrorMessage(response.error), 'error');
                         e.target.disabled = false;
                         e.target.textContent = 'Resend';
                     } else {
@@ -547,7 +547,7 @@
                     }
                 } catch (error) {
                     console.error('Resend error:', error);
-                    showToast('Failed to resend message: ' + error.message, 'error');
+                     showToast('Failed to resend message: ' + extractErrorMessage(error), 'error');
                     e.target.disabled = false;
                     e.target.textContent = 'Resend';
                 }

@@ -1255,9 +1255,9 @@
                 const result = await window.apiClient.createSenderId(senderId, documentType, documentFile);
                 
 if (result.error) {
-                     window.loggers?.senderId?.error('Sender ID creation failed', { error: result.error });
-                     showToast(result.error, 'error');
-                 } else {
+                      window.loggers?.senderId?.error('Sender ID creation failed', { error: result.error });
+                      showToast(extractErrorMessage(result.error), 'error');
+                  } else {
                      showToast('Sender ID submitted for approval', 'success');
                      senderIdInput.value = '';
                      document.getElementById('documentType').value = '';
@@ -3100,7 +3100,7 @@ if (result.error) {
                     } else if (response.error.includes('empty') || response.error.includes('Empty')) {
                         showToast('The file is empty. Please upload a file with contact data', 'error');
                     } else {
-                        showToast(response.error, 'error');
+                        showToast(extractErrorMessage(response.error), 'error');
                     }
                     return;
                 }
@@ -4365,7 +4365,7 @@ async function confirmImport() {
                         resetForm();
                     } else {
                         // Handle API-level failure (success: false)
-                        let errorMessage = responseData.error || 'Campaign failed to send';
+                        let errorMessage = extractErrorMessage(responseData.error) || 'Campaign failed to send';
                         if (responseData.summary) {
                             const details = responseData.summary;
                             const parts = [];

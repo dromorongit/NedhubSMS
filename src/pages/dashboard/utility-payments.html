@@ -1426,7 +1426,7 @@
                 }
 
                 if (response.error) {
-                    showError(response.error);
+                    showError(extractErrorMessage(response.error));
                 } else if (response.data) {
                     showSuccess(response.data.clientReference);
                     document.getElementById('utilityForm').reset();
@@ -1435,7 +1435,7 @@
                     loadWalletBalance();
                 }
             } catch (error) {
-                showError(error.message || 'Payment failed. Please try again.');
+                 showError(extractErrorMessage(error) || 'Payment failed. Please try again.');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<span>Pay Now</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';

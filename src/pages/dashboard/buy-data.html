@@ -1471,7 +1471,7 @@
                     );
 
                     if (response.error) {
-                        showError(response.error);
+                        showError(extractErrorMessage(response.error));
                     } else if (response.data) {
                         // Check if transaction is pending confirmation (awaiting provider callback)
                         if (response.data.status === 'pending_confirmation') {
@@ -1507,7 +1507,7 @@
                         loadWalletBalance();
                     }
                 } catch (error) {
-                    showError(error.message || 'Failed to purchase data. Please try again.');
+                    showError(extractErrorMessage(error) || 'Failed to purchase data. Please try again.');
                 } finally {
                     submitBtn.disabled = false;
                     if (selectedBundle) {

@@ -674,7 +674,7 @@
             try {
                 const result = await window.apiClient.deleteContact(deletingContactId);
                 if (result.error) {
-                    showToast(result.error, 'error');
+                    showToast(extractErrorMessage(result.error), 'error');
                 } else {
                     showToast('Contact deleted successfully!', 'success');
                     document.getElementById('deleteModal').style.display = 'none';

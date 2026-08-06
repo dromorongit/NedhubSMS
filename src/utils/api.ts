@@ -11,6 +11,27 @@ interface ApiResponse<T> {
   contentType?: string;
 }
 
+/**
+ * Extract a human-readable error message from any error response format.
+ * Never returns an object — always returns a string.
+ */
+function extractErrorMessage(error: any): string {
+  if (!error) return 'An unexpected error occurred. Please try again.';
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) {
+    const msg = error.message;
+    return (typeof msg === 'string' && msg) ? msg : 'An unexpected error occurred. Please try again.';
+  }
+  if (typeof error === 'object' && error !== null) {
+    const msg = error.message || error.error || error.msg || error.statusText;
+    if (typeof msg === 'string' && msg) return msg;
+    if (msg && typeof msg === 'object') return extractErrorMessage(msg);
+    return 'An unexpected error occurred. Please try again.';
+  }
+  const str = String(error);
+  return str && str !== '[object Object]' ? str : 'An unexpected error occurred. Please try again.';
+}
+
 class ApiClient {
   private token: string | null = null;
 
@@ -132,11 +153,11 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        // Extract error message from parsed JSON or use default
-        const errorMessage = result?.error || result?.message || 'Request failed';
-        return { 
-          error: errorMessage, 
-          status: response.status, 
+        // Extract error message safely — result.error may be an object from the backend
+        const errorMessage = extractErrorMessage(result?.error) || extractErrorMessage(result?.message) || 'Request failed';
+        return {
+          error: errorMessage,
+          status: response.status,
           data: result,
           contentType: 'application/json'
         };
@@ -150,7 +171,7 @@ class ApiClient {
       };
     } catch (error) {
       console.error('[API] Request error:', error instanceof Error ? error.message : String(error));
-      return { error: 'Network error: ' + (error instanceof Error ? error.message : String(error)) };
+      return { error: 'Network error: ' + extractErrorMessage(error) };
     }
   }
 

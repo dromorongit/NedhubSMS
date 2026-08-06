@@ -6,6 +6,42 @@ const API_BASE_URL = isLocalhost ? 'http://localhost:3000/api' : 'https://nedhub
 // Get storage function from authStorage
 const getStorageFunc = window.getStorage || (() => localStorage);
 
+/**
+ * Extract a human-readable error message from any error response format.
+ * Priority order: response.data.message, response.message, error.response.data.message,
+ * error.response.data.error, error.message, fallback generic message.
+ * Never returns an object — always returns a string.
+ * @param {*} error - Any error value (object, string, Error, AxiosError, etc.)
+ * @returns {string} Human-readable error message
+ */
+function extractErrorMessage(error) {
+  if (!error) return 'An unexpected error occurred. Please try again.';
+
+  // If it's already a string, return it
+  if (typeof error === 'string') return error;
+
+  // If it's an Error instance, use its message
+  if (error instanceof Error) {
+    const msg = error.message;
+    return (typeof msg === 'string' && msg) ? msg : 'An unexpected error occurred. Please try again.';
+  }
+
+  // If it's an object, try known properties in priority order
+  if (typeof error === 'object' && error !== null) {
+    const msg = error.message || error.error || error.msg || error.statusText;
+    if (typeof msg === 'string' && msg) return msg;
+    if (msg && typeof msg === 'object') return extractErrorMessage(msg);
+    return 'An unexpected error occurred. Please try again.';
+  }
+
+  // Fallback: convert to string, but guard against [object Object]
+  const str = String(error);
+  return str && str !== '[object Object]' ? str : 'An unexpected error occurred. Please try again.';
+}
+
+// Make available globally for frontend use
+window.extractErrorMessage = extractErrorMessage;
+
 class ApiClient {
   constructor() {
     const storage = getStorageFunc();
@@ -150,11 +186,11 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        // Extract error message from parsed JSON or use default
-        const errorMessage = result?.error || result?.message || 'Request failed';
-        return { 
-          error: errorMessage, 
-          status: response.status, 
+        // Extract error message safely — result.error may be an object from the backend
+        const errorMessage = extractErrorMessage(result?.error) || extractErrorMessage(result?.message) || 'Request failed';
+        return {
+          error: errorMessage,
+          status: response.status,
           data: result,
           contentType: 'application/json'
         };
@@ -170,9 +206,9 @@ class ApiClient {
       console.error('[API] Request error:', error);
       // Handle abort signals gracefully
       if (error.name === 'AbortError') {
-        return { error: error.message, isAbort: true };
+        return { error: extractErrorMessage(error), isAbort: true };
       }
-      return { error: 'Network error: ' + error.message };
+      return { error: 'Network error: ' + extractErrorMessage(error) };
     }
   }
 
@@ -253,13 +289,13 @@ class ApiClient {
       const result = await response.json();
 
       if (!response.ok) {
-        return { error: result.error || 'Upload failed' };
+        return { error: extractErrorMessage(result?.error) || 'Upload failed' };
       }
 
       return { data: result };
     } catch (error) {
       console.error('Upload contacts error:', error);
-      return { error: 'Network error: ' + error.message };
+      return { error: 'Network error: ' + extractErrorMessage(error) };
     }
   }
 
@@ -302,13 +338,13 @@ class ApiClient {
       const result = await response.json();
 
       if (!response.ok) {
-        return { error: result.error || 'Failed to parse file' };
+        return { error: extractErrorMessage(result?.error) || 'Failed to parse file' };
       }
 
       return { data: result };
     } catch (error) {
       console.error('Parse temp file error:', error);
-      return { error: 'Network error: ' + error.message };
+      return { error: 'Network error: ' + extractErrorMessage(error) };
     }
   }
 
@@ -392,7 +428,7 @@ class ApiClient {
       const result = await response.json();
 
       if (!response.ok) {
-        return { error: result.error || 'Request failed' };
+        return { error: extractErrorMessage(result?.error) || 'Request failed' };
       }
 
       return { data: result };

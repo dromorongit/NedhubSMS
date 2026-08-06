@@ -1,8 +1,9 @@
 // Toast notification utility
-export function showToast(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
+export function showToast(message: any, type: 'success' | 'error' | 'info' = 'info'): void {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.textContent = message;
+    const text = (message === null || message === undefined) ? '' : String(message);
+    toast.textContent = text && text !== '[object Object]' ? text : 'An unexpected error occurred. Please try again.';
     
     // Add toast to DOM
     document.body.appendChild(toast);

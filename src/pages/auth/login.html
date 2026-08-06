@@ -223,7 +223,7 @@
                  
                  if (result.error) {
                      console.log('[Login] Login failed:', result.error);
-                     showError(result.error);
+                     showError(extractErrorMessage(result.error));
                      submitBtn.disabled = false;
                      submitBtn.innerHTML = originalBtnContent;
                  } else {

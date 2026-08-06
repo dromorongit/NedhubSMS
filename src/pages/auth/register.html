@@ -252,7 +252,7 @@
                 const result = await window.apiClient.register(name, email, password);
                 
                 if (result.error) {
-                    showError(result.error);
+                    showError(extractErrorMessage(result.error));
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalBtnContent;
                 } else {

@@ -675,7 +675,7 @@
                 
             } catch (error) {
                 console.error('Error creating campaign:', error);
-                window.showToast('Failed to create campaign: ' + error.message, 'error');
+                window.showToast('Failed to create campaign: ' + extractErrorMessage(error), 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>Create Campaign';
@@ -876,7 +876,7 @@
 
             } catch (error) {
                 console.error('Error retrying failed recipients:', error);
-                window.showToast('Failed to retry failed recipients: ' + error.message, 'error');
+                window.showToast('Failed to retry failed recipients: ' + extractErrorMessage(error), 'error');
             }
         }
 
@@ -897,7 +897,7 @@
 
             } catch (error) {
                 console.error('Error duplicating campaign:', error);
-                window.showToast('Failed to duplicate campaign: ' + error.message, 'error');
+                window.showToast('Failed to duplicate campaign: ' + extractErrorMessage(error), 'error');
             }
         }
 
@@ -918,7 +918,7 @@
 
             } catch (error) {
                 console.error('Error cancelling scheduled campaign:', error);
-                window.showToast('Failed to cancel scheduled campaign: ' + error.message, 'error');
+                window.showToast('Failed to cancel scheduled campaign: ' + extractErrorMessage(error), 'error');
             }
         }
 
@@ -986,7 +986,7 @@
 
             } catch (error) {
                 console.error('Error rescheduling campaign:', error);
-                window.showToast('Failed to reschedule campaign: ' + error.message, 'error');
+                window.showToast('Failed to reschedule campaign: ' + extractErrorMessage(error), 'error');
             }
         }
 

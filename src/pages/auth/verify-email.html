@@ -277,7 +277,7 @@
                     const result = await window.apiClient.verifyEmail(email, otp);
                     
                     if (result.error) {
-                        showError(result.error);
+                        showError(extractErrorMessage(result.error));
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = originalBtnContent;
                     } else {

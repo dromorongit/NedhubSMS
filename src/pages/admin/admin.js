@@ -883,7 +883,7 @@ async function saveUserChanges() {
         });
         
         if (response.error) {
-            showToast(response.error || 'Failed to update user', 'error');
+            showToast(extractErrorMessage(response.error) || 'Failed to update user', 'error');
             return;
         }
         
@@ -904,7 +904,7 @@ async function deleteUser(userId) {
         const response = await window.apiClient.request('DELETE', `/admin/users/${userId}`);
         
         if (response.error) {
-            showToast(response.error || 'Failed to delete user', 'error');
+            showToast(extractErrorMessage(response.error) || 'Failed to delete user', 'error');
             return;
         }
         

@@ -729,7 +729,7 @@
                 showToast('Campaign data exported successfully', 'success');
             } catch (error) {
                 console.error('Export error:', error);
-                showToast('Failed to export campaign data: ' + error.message, 'error');
+                 showToast('Failed to export campaign data: ' + extractErrorMessage(error), 'error');
             }
         }
 

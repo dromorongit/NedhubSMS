@@ -453,7 +453,7 @@ async function loadUserProfile() {
             try {
                 const response = await window.apiClient.addToBlacklist(phoneNumber, reason);
                 if (response.error) {
-                    showToast(response.error, 'error');
+                    showToast(extractErrorMessage(response.error), 'error');
                 } else {
                     showToast('Number added to blacklist successfully', 'success');
                     this.reset();
@@ -523,7 +523,7 @@ async function loadUserProfile() {
             try {
                 const response = await window.apiClient.removeFromBlacklist(deleteItemId);
                 if (response.error) {
-                    showToast(response.error, 'error');
+                    showToast(extractErrorMessage(response.error), 'error');
                 } else {
                     showToast('Number removed from blacklist successfully', 'success');
                     closeDeleteModal();

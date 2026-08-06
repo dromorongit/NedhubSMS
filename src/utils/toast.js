@@ -2,7 +2,8 @@
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.textContent = message;
+    const text = (message === null || message === undefined) ? '' : String(message);
+    toast.textContent = text && text !== '[object Object]' ? text : 'An unexpected error occurred. Please try again.';
     toast.style.cssText = `
         position: fixed;
         bottom: 20px;
