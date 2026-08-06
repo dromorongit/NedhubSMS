@@ -3563,6 +3563,8 @@ async function confirmImport() {
             document.getElementById('contactFile').value = '';
             document.getElementById('filePreview').style.display = 'none';
             uploadedContacts = [];
+            // Remove recipients that came from upload (source === 'import') from allRecipients
+            allRecipients = allRecipients.filter(r => r.source !== 'import');
             // Clear persistent import session
             currentImportSession = { fileData: [], fileName: null, detectedColumns: null, preview: null };
             hideImportSummary();
