@@ -64,7 +64,11 @@ const sendSMS = async (senderId, recipients, message) => {
     
     // Parse response
     let naloResponse = response.data;
-    if (typeof response.data === 'string' && response.data.includes('|')) {
+
+    // Handle bare success code (number or string without pipe/JSON wrapper)
+    if (naloResponse === 1701 || naloResponse === '1701') {
+      naloResponse = { status: '1701', message_id: null, error_message: null };
+    } else if (typeof response.data === 'string' && response.data.includes('|')) {
       const parts = response.data.split('|');
       naloResponse = {
         status: parts[0],

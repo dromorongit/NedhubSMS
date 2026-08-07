@@ -79,6 +79,11 @@ class NaloSmsService {
     const { phoneNumber, formattedPhoneNumber, userId, campaignId, recipientId } = context;
     let parsed;
 
+    // Handle bare success code (number or string without pipe/JSON wrapper)
+    if (responseData === 1701 || responseData === '1701') {
+      return { status: '1701', message_id: null, error_message: null };
+    }
+
     // If it's already an object, use it directly
     if (typeof responseData === 'object' && responseData !== null) {
       parsed = responseData;
