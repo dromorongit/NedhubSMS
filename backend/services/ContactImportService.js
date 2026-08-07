@@ -98,6 +98,10 @@ class ContactImportService {
 
       const values = this.parseCSVLine(line);
       if (values.length === headers.length) {
+        // Skip rows where all values are empty
+        const allEmpty = values.every(v => !v || !v.trim());
+        if (allEmpty) continue;
+
         const row = {};
         headers.forEach((header, index) => {
           row[header] = values[index];
@@ -228,17 +232,6 @@ class ContactImportService {
     let nameColumn = bestName ? bestName.original : null;
     let phoneColumn = bestPhone ? bestPhone.original : null;
 
-    // Fallback: positional detection
-    if (!nameColumn && headers.length >= 1) {
-      nameColumn = headers[0];
-      console.log('[Preview] Name column fallback to first column', { nameColumn });
-    }
-
-    if (!phoneColumn && headers.length >= 2) {
-      phoneColumn = headers[1];
-      console.log('[Preview] Phone column fallback to second column', { phoneColumn });
-    }
-
     const result = {
       detectedNameColumn: nameColumn,
       detectedPhoneColumn: phoneColumn
@@ -265,14 +258,14 @@ class ContactImportService {
       const row = rows[i];
       const rowNumber = i + 1;
 
-      const recipientName = row[nameColumn]?.toString().trim() || '';
+      const recipientName = nameColumn ? (row[nameColumn]?.toString().trim() || '') : '';
       const rawPhone = row[phoneColumn]?.toString().trim() || '';
 
       // Validate and normalize
       const phoneValidation = this.validateAndNormalizePhone(rawPhone);
 
       const previewRow = {
-        recipientName: recipientName || '-',
+        recipientName: recipientName,
         phoneNumber: rawPhone || '-',
         normalizedPhoneNumber: phoneValidation.isValid ? phoneValidation.normalizedNumber : '-',
         validationStatus: phoneValidation.isValid ? 'valid' : 'invalid',

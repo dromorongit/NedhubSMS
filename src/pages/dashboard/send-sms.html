@@ -3244,7 +3244,7 @@ if (result.error) {
 
           for (let i = 0; i < maxPreviewRows; i++) {
             const row = rows[i];
-            const recipientName = row[nameColumn]?.toString().trim() || '';
+            const recipientName = nameColumn ? (row[nameColumn]?.toString().trim() || '') : '';
             const rawPhone = row[phoneColumn]?.toString().trim() || '';
 
             // Use the shared validatePhoneNumber function from recipientUtils
@@ -3253,7 +3253,7 @@ if (result.error) {
               : { isValid: false, normalizedNumber: null, error: 'Validator not available' };
 
             preview.push({
-              recipientName: recipientName || '-',
+              recipientName: recipientName,
               phoneNumber: rawPhone || '-',
               normalizedPhoneNumber: phoneValidation.isValid ? phoneValidation.normalizedNumber : '-',
               validationStatus: phoneValidation.isValid ? 'valid' : 'invalid',
@@ -3323,10 +3323,6 @@ if (result.error) {
                         <span class="stat-label">Invalid (preview)</span>
                         <span class="stat-value">${invalidPreview}</span>
                     </div>
-                    <div class="stat-item stat-duplicate">
-                        <span class="stat-label">Duplicates</span>
-                        <span class="stat-value">0</span>
-                    </div>
                 </div>
             `;
         }
@@ -3373,7 +3369,7 @@ if (result.error) {
             document.getElementById('importSummary').style.display = 'none';
         }
 
-async function confirmImport() {
+ async function confirmImport() {
             const modal = document.getElementById('importPreviewModal');
             const nameColumn = document.getElementById('nameColumnSelect').value;
             const phoneColumn = document.getElementById('phoneColumnSelect').value;
@@ -3388,8 +3384,8 @@ async function confirmImport() {
                 return;
             }
 
-            if (!nameColumn || !phoneColumn) {
-                showToast('Please select both name and phone columns', 'error');
+            if (!phoneColumn) {
+                showToast('Please select a phone column', 'error');
                 return;
             }
 
@@ -3409,8 +3405,7 @@ async function confirmImport() {
                 });
 
                 const errors = [];
-                const importedContacts = [];
-                const seenPhones = new Set();
+                const seenPhones = new Map();
                 let duplicateRows = 0;
                 let invalidRows = 0;
                 let validRows = 0;
@@ -3418,8 +3413,7 @@ async function confirmImport() {
                 for (let i = 0; i < fileData.length; i++) {
                     const row = fileData[i];
                     const rowNumber = i + 1;
-
-                    const recipientName = row[nameColumn]?.toString().trim() || '';
+                    const recipientName = nameColumn ? row[nameColumn]?.toString().trim() || '' : '';
                     const rawPhone = row[phoneColumn]?.toString().trim() || '';
 
                     const phoneValidation = validatePhoneNumber(rawPhone);
@@ -3437,24 +3431,24 @@ async function confirmImport() {
 
                     if (seenPhones.has(normalizedPhone)) {
                         duplicateRows++;
-                        errors.push({
-                            row: rowNumber,
-                            error: 'Duplicate phone number within uploaded file',
-                            data: { recipientName, phoneNumber: rawPhone }
-                        });
+                        const existing = seenPhones.get(normalizedPhone);
+                        if (!existing.recipientName && recipientName) {
+                            existing.recipientName = recipientName;
+                        }
                         continue;
                     }
 
-                    seenPhones.add(normalizedPhone);
-                    validRows++;
-                    importedContacts.push({
+                    seenPhones.set(normalizedPhone, {
                         id: `upload-${rowNumber}-${normalizedPhone}`,
                         recipientName: recipientName || '',
                         phoneNumber: rawPhone,
                         normalizedPhoneNumber: normalizedPhone,
                         source: 'upload'
                     });
+                    validRows++;
                 }
+
+                const importedContacts = Array.from(seenPhones.values());
 
                 const result = {
                     success: true,
@@ -3465,7 +3459,7 @@ async function confirmImport() {
                         duplicateRows: duplicateRows,
                         blacklistedRows: 0,
                         importedRows: validRows,
-                        skippedRows: duplicateRows
+                        skippedRows: duplicateRows + invalidRows
                     },
                     importedContacts: importedContacts,
                     existingContacts: [],
@@ -4188,41 +4182,35 @@ async function confirmImport() {
                  return;
              }
  
-             // For personalized mode, validate salutation and names
-             if (isPersonalizedMode) {
-                 if (salutation === 'Custom' && !customSalutation.trim()) {
-                     console.log('[Send Validation] FAIL: Custom salutation missing');
-                     showToast('Please enter a custom salutation', 'error');
-                     return;
-                 }
- 
-                 // Validate recipients
-                 if (recipients.length === 0) {
-                     console.log('[Send Validation] FAIL: No recipients in personalized mode');
-                     showToast('Please add at least one recipient', 'error');
-                     return;
-                 }
- 
-                 // Check for valid phone numbers
-                 const invalidRecipients = recipients.filter(r => {
-                     const phoneValidation = validatePhoneNumber(r.phoneNumber);
-                     return !phoneValidation.isValid;
-                 });
- 
-                 if (invalidRecipients.length > 0) {
-                     console.log('[Send Validation] FAIL: Invalid phone numbers:', invalidRecipients.map(r => r.phoneNumber));
-                     showToast(`Please fix invalid phone numbers: ${invalidRecipients.map(r => r.phoneNumber).join(', ')}`, 'error');
-                     return;
-                 }
- 
-                 // Check for missing names
-                 const missingNameRecipients = recipients.filter(r => !r.recipientName || !r.recipientName.trim());
-                 if (missingNameRecipients.length > 0) {
-                     console.log('[Send Validation] FAIL: Missing names for some recipients');
-                     showToast('Please enter names for all recipients', 'error');
-                     return;
-                 }
-             }
+              // For personalized mode, validate salutation
+              if (isPersonalizedMode) {
+                  if (salutation === 'Custom' && !customSalutation.trim()) {
+                      console.log('[Send Validation] FAIL: Custom salutation missing');
+                      showToast('Please enter a custom salutation', 'error');
+                      return;
+                  }
+  
+                  // Validate recipients
+                  if (recipients.length === 0) {
+                      console.log('[Send Validation] FAIL: No recipients in personalized mode');
+                      showToast('Please add at least one recipient', 'error');
+                      return;
+                  }
+  
+                  // Check for valid phone numbers
+                  const invalidRecipients = recipients.filter(r => {
+                      const phoneValidation = validatePhoneNumber(r.phoneNumber);
+                      return !phoneValidation.isValid;
+                  });
+  
+                  if (invalidRecipients.length > 0) {
+                      console.log('[Send Validation] FAIL: Invalid phone numbers:', invalidRecipients.map(r => r.phoneNumber));
+                      showToast(`Please fix invalid phone numbers: ${invalidRecipients.map(r => r.phoneNumber).join(', ')}`, 'error');
+                      return;
+                  }
+  
+                  // Note: Missing names are allowed. Backend will use 'Unknown Recipient' fallback.
+              }
  
              // All validation passed
              console.log('[Send Validation] PASS: All validation checks passed');
