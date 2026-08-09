@@ -13,7 +13,7 @@ const logger = require('../utils/logger');
 // Supports both string phone numbers and canonical recipient objects {recipientName, phoneNumber}
 router.post('/send', authenticate, async (req, res) => {
   try {
-    const { senderId, recipients, message } = req.body;
+    const { senderId, recipients, message, removeDuplicates = true } = req.body;
     const userId = req.user.userId;
 
     console.log('[SmsSend]', {
@@ -102,7 +102,7 @@ router.post('/send', authenticate, async (req, res) => {
     const processedRecipients = await SmsRecipientService.processRecipientsForCampaign(
       normalizedRecipients,
       userId,
-      true
+      removeDuplicates !== false
     );
 
     console.log('[SendSMS] Recipient processing complete', {

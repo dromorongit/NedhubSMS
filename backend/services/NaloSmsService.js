@@ -65,7 +65,7 @@ class NaloSmsService {
    * Validate sender ID
    */
   validateSenderId(senderId) {
-    return /^[a-zA-Z0-9]{1,11}$/.test(senderId);
+    return /^[a-zA-Z0-9\s\-_.]{1,11}$/.test(senderId);
   }
 
   /**

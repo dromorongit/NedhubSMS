@@ -503,7 +503,47 @@ router.post('/send', authenticate, async (req, res) => {
     res.json(responsePayload);
 
    } catch (error) {
-     console.error('Send campaign error:', error);
+     // Release reservation if it was made
+     if (reservation) {
+       try {
+         await WalletService.releaseReservation(reservation._id);
+         logger.info('[SendCampaign] Reservation released due to error', {
+           reservationId: reservation._id,
+           userId: req.user?.userId
+         });
+       } catch (releaseError) {
+         logger.error('[SendCampaign] Failed to release reservation', {
+           reservationId: reservation._id,
+           error: releaseError.message
+         });
+       }
+     }
+
+     // If campaign was already created, mark it as failed and clean up orphaned recipients
+     if (campaign && campaign._id) {
+       try {
+         await SmsRecipient.deleteMany({ campaignId: campaign._id });
+
+         const campaignToUpdate = await SmsCampaign.findById(campaign._id);
+         if (campaignToUpdate) {
+           campaignToUpdate.status = 'failed';
+           campaignToUpdate.scheduleStatus = 'failed';
+           campaignToUpdate.errorMessage = error.message;
+           await campaignToUpdate.save();
+           logger.info('[SendCampaign] Campaign marked as failed', {
+             campaignId: campaign._id,
+             error: error.message
+           });
+         }
+       } catch (updateError) {
+         logger.error('[SendCampaign] Failed to update campaign status', {
+           campaignId: campaign._id,
+           error: updateError.message
+         });
+       }
+     }
+
+     logger.error('Send campaign error:', error);
      res.status(500).json({
        success: false,
        message: 'Failed to send campaign',

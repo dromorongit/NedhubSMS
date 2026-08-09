@@ -23,7 +23,7 @@ function extractErrorMessage(error: any): string {
     return (typeof msg === 'string' && msg) ? msg : 'An unexpected error occurred. Please try again.';
   }
   if (typeof error === 'object' && error !== null) {
-    const msg = error.message || error.error || error.msg || error.statusText;
+    const msg = error.message || error.error || error.msg || error.statusText || error.code || error.details;
     if (typeof msg === 'string' && msg) return msg;
     if (msg && typeof msg === 'object') return extractErrorMessage(msg);
     return 'An unexpected error occurred. Please try again.';
@@ -153,8 +153,11 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        // Extract error message safely — result.error may be an object from the backend
-        const errorMessage = extractErrorMessage(result?.error) || extractErrorMessage(result?.message) || 'Request failed';
+        const rawMessage = result?.message;
+        const hasRawMessage = typeof rawMessage === 'string' && rawMessage.trim();
+        const errorMessage = hasRawMessage
+          ? rawMessage
+          : extractErrorMessage(result?.error) || 'Request failed';
         return {
           error: errorMessage,
           status: response.status,

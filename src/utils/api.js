@@ -17,24 +17,20 @@ const getStorageFunc = window.getStorage || (() => localStorage);
 function extractErrorMessage(error) {
   if (!error) return 'An unexpected error occurred. Please try again.';
 
-  // If it's already a string, return it
   if (typeof error === 'string') return error;
 
-  // If it's an Error instance, use its message
   if (error instanceof Error) {
     const msg = error.message;
     return (typeof msg === 'string' && msg) ? msg : 'An unexpected error occurred. Please try again.';
   }
 
-  // If it's an object, try known properties in priority order
   if (typeof error === 'object' && error !== null) {
-    const msg = error.message || error.error || error.msg || error.statusText;
+    const msg = error.message || error.error || error.msg || error.statusText || error.code || error.details;
     if (typeof msg === 'string' && msg) return msg;
     if (msg && typeof msg === 'object') return extractErrorMessage(msg);
     return 'An unexpected error occurred. Please try again.';
   }
 
-  // Fallback: convert to string, but guard against [object Object]
   const str = String(error);
   return str && str !== '[object Object]' ? str : 'An unexpected error occurred. Please try again.';
 }
@@ -186,8 +182,11 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        // Extract error message safely — result.error may be an object from the backend
-        const errorMessage = extractErrorMessage(result?.error) || extractErrorMessage(result?.message) || 'Request failed';
+        const rawMessage = result?.message;
+        const hasRawMessage = typeof rawMessage === 'string' && rawMessage.trim();
+        const errorMessage = hasRawMessage
+          ? rawMessage
+          : extractErrorMessage(result?.error) || 'Request failed';
         return {
           error: errorMessage,
           status: response.status,
@@ -289,7 +288,9 @@ class ApiClient {
       const result = await response.json();
 
       if (!response.ok) {
-        return { error: extractErrorMessage(result?.error) || 'Upload failed' };
+        const rawMessage = result?.message;
+        const hasRawMessage = typeof rawMessage === 'string' && rawMessage.trim();
+        return { error: hasRawMessage ? rawMessage : extractErrorMessage(result?.error) || 'Upload failed' };
       }
 
       return { data: result };
@@ -338,7 +339,9 @@ class ApiClient {
       const result = await response.json();
 
       if (!response.ok) {
-        return { error: extractErrorMessage(result?.error) || 'Failed to parse file' };
+        const rawMessage = result?.message;
+        const hasRawMessage = typeof rawMessage === 'string' && rawMessage.trim();
+        return { error: hasRawMessage ? rawMessage : extractErrorMessage(result?.error) || 'Failed to parse file' };
       }
 
       return { data: result };
@@ -428,7 +431,9 @@ class ApiClient {
       const result = await response.json();
 
       if (!response.ok) {
-        return { error: extractErrorMessage(result?.error) || 'Request failed' };
+        const rawMessage = result?.message;
+        const hasRawMessage = typeof rawMessage === 'string' && rawMessage.trim();
+        return { error: hasRawMessage ? rawMessage : extractErrorMessage(result?.error) || 'Request failed' };
       }
 
       return { data: result };
