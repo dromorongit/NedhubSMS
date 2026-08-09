@@ -12,7 +12,7 @@ const CostCalculatorService = require('../services/CostCalculatorService');
 const SmsRecipientService = require('../services/SmsRecipientService');
 const SmsSchedulerService = require('../services/SmsSchedulerService');
 const SmsCampaignRetryService = require('../services/SmsCampaignRetryService');
-const { MAX_SMS_RECIPIENTS } = require('../utils/constants');
+const { MAX_SMS_RECIPIENTS, MAX_SMS_SEGMENTS } = require('../utils/constants');
 const logger = require('../utils/logger');
 
 // Preview personalized messages
@@ -622,13 +622,14 @@ router.post('/schedule', authenticate, async (req, res) => {
       });
     }
 
-    // Validate message body length (max 160 characters)
-    if (messageBody.length > 160) {
-      logger.warn('[Schedule] Message too long', { userId, length: messageBody.length });
+    // Validate message segments (multipart SMS supported)
+    const campaignSegmentResult = CostCalculatorService.calculateSegments(messageBody);
+    if (campaignSegmentResult.segments > MAX_SMS_SEGMENTS) {
+      logger.warn('[Schedule] Message too long', { userId, length: messageBody.length, segments: campaignSegmentResult.segments });
       return res.status(400).json({
         success: false,
-        message: 'Message exceeds maximum length of 160 characters',
-        error: { code: 'VALIDATION_ERROR' }
+        message: `Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${campaignSegmentResult.segments} segments calculated for ${campaignSegmentResult.charCount} ${campaignSegmentResult.encoding} characters)`,
+        error: { code: 'VALIDATION_ERROR', segments: campaignSegmentResult.segments, maxSegments: MAX_SMS_SEGMENTS }
       });
     }
 

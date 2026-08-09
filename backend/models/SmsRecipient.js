@@ -79,8 +79,8 @@ const smsRecipientSchema = new mongoose.Schema({
   },
   personalizedMessage: {
     type: String,
-    required: true,
-    maxlength: 160
+    required: true
+    // Removed maxlength: 160 to allow multipart SMS messages
   },
   status: {
     type: String,

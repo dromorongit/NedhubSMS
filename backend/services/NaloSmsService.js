@@ -418,8 +418,8 @@ class NaloSmsService {
              errorMessage = 'Insufficient SMS credits at provider. Please top up your Nalo account.';
            } else if (naloResponse.status === '1706') {
              errorMessage = 'Invalid destination number. The phone number format may be incorrect.';
-           } else if (naloResponse.status === '1708') {
-             errorMessage = 'Message too long. Maximum 160 characters per SMS segment.';
+            } else if (naloResponse.status === '1708') {
+              errorMessage = 'Message too long for provider single-segment limit. The application should split long messages into multipart SMS before sending.';
            } else if (naloResponse.status === '1709') {
              errorMessage = 'Message contains invalid characters.';
            } else if (naloResponse.status === '1710') {

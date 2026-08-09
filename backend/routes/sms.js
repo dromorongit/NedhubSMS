@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { MAX_SMS_RECIPIENTS } = require('../utils/constants');
+const { MAX_SMS_RECIPIENTS, MAX_SMS_SEGMENTS } = require('../utils/constants');
 const { authenticate } = require('../middleware/auth');
 const { checkBalance } = require('../utils/nalo');
 const Message = require('../models/Message');
 const SmsMessage = require('../models/SmsMessage');
 const NaloSmsService = require('../services/NaloSmsService');
+const CostCalculatorService = require('../services/CostCalculatorService');
 const validator = require('validator');
 const logger = require('../utils/logger');
 
@@ -50,12 +51,13 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
-    // Message length validation
-    if (message.length > 160) {
+    // Message segment validation (multipart SMS supported)
+    const segmentResult = CostCalculatorService.calculateSegments(message);
+    if (segmentResult.segments > MAX_SMS_SEGMENTS) {
       return res.status(400).json({
         success: false,
-        message: 'Message exceeds maximum length of 160 characters',
-        error: { code: 'VALIDATION_ERROR' }
+        message: `Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${segmentResult.segments} segments calculated for ${segmentResult.charCount} ${segmentResult.encoding} characters)`,
+        error: { code: 'VALIDATION_ERROR', segments: segmentResult.segments, maxSegments: MAX_SMS_SEGMENTS }
       });
     }
 
@@ -413,13 +415,14 @@ router.post('/send', authenticate, async (req, res) => {
         });
       }
 
-      // Validate message length (max 160 characters)
-      if (message.length > 160) {
-        logger.warn('[Schedule] Message too long', { userId, length: message.length });
+      // Validate message segments (multipart SMS supported)
+      const scheduleSegmentResult = CostCalculatorService.calculateSegments(message);
+      if (scheduleSegmentResult.segments > MAX_SMS_SEGMENTS) {
+        logger.warn('[Schedule] Message too long', { userId, length: message.length, segments: scheduleSegmentResult.segments });
         return res.status(400).json({
           success: false,
-          message: 'Message exceeds maximum length of 160 characters',
-          error: { code: 'VALIDATION_ERROR' }
+          message: `Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${scheduleSegmentResult.segments} segments calculated for ${scheduleSegmentResult.charCount} ${scheduleSegmentResult.encoding} characters)`,
+          error: { code: 'VALIDATION_ERROR', segments: scheduleSegmentResult.segments, maxSegments: MAX_SMS_SEGMENTS }
         });
       }
 

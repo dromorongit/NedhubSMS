@@ -533,9 +533,9 @@
                     </div>
                     <ul class="tips-list">
                         <li>Use a recognized Sender ID for better delivery rates</li>
-                        <li>Keep messages under 160 characters for single SMS</li>
-                        <li>Longer messages are split into multiple SMS segments</li>
-                        <li>Cost is calculated per segment in GHS</li>
+                    <li>Keep messages under 160 characters for single SMS (70 for Unicode)</li>
+                    <li>Longer messages are automatically split into multiple SMS segments</li>
+                    <li>Cost is calculated per segment in GHS</li>
                     </ul>
                 </div>
             </div>
@@ -2910,6 +2910,7 @@ if (result.error) {
         
         // Maximum allowed contacts
         const MAX_RECIPIENTS = 200;
+        const MAX_SMS_SEGMENTS = 10;
 
         // Parse comma-separated phone numbers
         function parseCommaSeparatedRecipients(input) {
@@ -4060,9 +4061,20 @@ if (result.error) {
                  return;
              }
 
-             // Open confirmation modal instead of sending directly
-             await openConfirmationModal('immediate', recipients, null, this);
-         });
+             // Validate message segments (multipart SMS supported)
+             const messageBodyEl = document.getElementById('messageBody');
+             const messageForValidation = messageBodyEl ? messageBodyEl.value : '';
+             if (messageForValidation.trim()) {
+                 const segmentResult = calculateSmsSegments(messageForValidation);
+                 if (segmentResult.segments > MAX_SMS_SEGMENTS) {
+                     showToast(`Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${segmentResult.segments} segments for ${segmentResult.charCount} ${segmentResult.encoding} characters)`, 'error');
+                     return;
+                 }
+             }
+
+              // Open confirmation modal instead of sending directly
+              await openConfirmationModal('immediate', recipients, null, this);
+          });
 
          // Schedule button handler
           document.getElementById('scheduleBtn').addEventListener('click', async function() {
@@ -4109,13 +4121,24 @@ if (result.error) {
                   return;
               }
 
-              // Enforce maximum recipients limit for all sources
-              if (recipients.length > MAX_RECIPIENTS) {
-                  showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
-                  return;
-              }
+               // Enforce maximum recipients limit for all sources
+               if (recipients.length > MAX_RECIPIENTS) {
+                   showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
+                   return;
+               }
 
-              // Validate schedule time
+               // Validate message segments (multipart SMS supported)
+               const messageBodyEl = document.getElementById('messageBody');
+               const messageForValidation = messageBodyEl ? messageBodyEl.value : '';
+               if (messageForValidation.trim()) {
+                   const segmentResult = calculateSmsSegments(messageForValidation);
+                   if (segmentResult.segments > MAX_SMS_SEGMENTS) {
+                       showToast(`Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${segmentResult.segments} segments for ${segmentResult.charCount} ${segmentResult.encoding} characters)`, 'error');
+                       return;
+                   }
+               }
+
+               // Validate schedule time
               const date = document.getElementById('scheduledDate').value;
               const time = document.getElementById('scheduledTime').value;
 
@@ -4176,12 +4199,20 @@ if (result.error) {
                  return;
              }
  
-             if (!messageBody.trim()) {
-                 console.log('[Send Validation] FAIL: Message empty');
-                 showToast('Please enter a message', 'error');
-                 return;
-             }
- 
+              if (!messageBody.trim()) {
+                  console.log('[Send Validation] FAIL: Message empty');
+                  showToast('Please enter a message', 'error');
+                  return;
+              }
+
+              // Validate message segments (multipart SMS supported)
+              const segmentResult = calculateSmsSegments(messageBody);
+              if (segmentResult.segments > MAX_SMS_SEGMENTS) {
+                  console.log('[Send Validation] FAIL: Message too long', { segments: segmentResult.segments, maxSegments: MAX_SMS_SEGMENTS });
+                  showToast(`Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${segmentResult.segments} segments for ${segmentResult.charCount} ${segmentResult.encoding} characters)`, 'error');
+                  return;
+              }
+  
               // For personalized mode, validate salutation
               if (isPersonalizedMode) {
                   if (salutation === 'Custom' && !customSalutation.trim()) {

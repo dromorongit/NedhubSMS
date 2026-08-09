@@ -1,5 +1,7 @@
 const MAX_SMS_RECIPIENTS = 200;
+const MAX_SMS_SEGMENTS = 10;
 
 module.exports = {
-  MAX_SMS_RECIPIENTS
+  MAX_SMS_RECIPIENTS,
+  MAX_SMS_SEGMENTS
 };

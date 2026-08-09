@@ -1,29 +1,52 @@
 const Transaction = require('../models/Transaction');
 const Wallet = require('../models/Wallet');
+const CostCalculatorService = require('../services/CostCalculatorService');
 
-// SMS cost per segment (in GHS)
+// SMS cost per segment (in GHS) - authoritative source
 const COST_PER_SMS_SEGMENT = 0.07;
 
-// Calculate SMS segments based on encoding
-const calculateSMSSegments = (message) => {
-  // GSM encoding: 160 characters per segment (153 for multi-part)
-  // Unicode encoding: 70 characters per segment (67 for multi-part)
-  
-  const isGSM = /^[ -~]*$/.test(message);
-  const segmentSize = isGSM ? 160 : 70;
-  
-  if (message.length <= segmentSize) {
+// Calculate SMS segments based on encoding - delegates to authoritative CostCalculatorService
+const calculateSMSSegments = async (message) => {
+  const result = CostCalculatorService.calculateSegments(message);
+  return result.segments;
+};
+
+// Calculate SMS segments synchronously using the same logic as CostCalculatorService
+const calculateSMSSegmentsSync = (message) => {
+  if (!message || message.length === 0) {
     return 1;
   }
-  
-  // For multi-part messages, use reduced segment size
-  const multiSegmentSize = isGSM ? 153 : 67;
-  return Math.ceil(message.length / multiSegmentSize);
+
+  const encoding = CostCalculatorService.determineEncoding(message);
+  const charCount = message.length;
+
+  if (encoding === 'gsm7') {
+    const byteLength = CostCalculatorService.calculateByteLength(message);
+    const singleSegmentLimit = 160;
+    const multiSegmentLimit = 153;
+    if (byteLength <= singleSegmentLimit) {
+      return 1;
+    }
+    return Math.ceil(byteLength / multiSegmentLimit);
+  } else {
+    const singleSegmentLimit = 70;
+    const multiSegmentLimit = 67;
+    if (charCount <= singleSegmentLimit) {
+      return 1;
+    }
+    return Math.ceil(charCount / multiSegmentLimit);
+  }
 };
 
 // Calculate total cost for SMS send
-const calculateSMSCost = (message, recipientCount) => {
-  const segments = calculateSMSSegments(message);
+const calculateSMSCost = async (message, recipientCount) => {
+  const segments = await calculateSMSSegments(message);
+  return segments * recipientCount * COST_PER_SMS_SEGMENT;
+};
+
+// Calculate total cost for SMS send (synchronous)
+const calculateSMSCostSync = (message, recipientCount) => {
+  const segments = calculateSMSSegmentsSync(message);
   return segments * recipientCount * COST_PER_SMS_SEGMENT;
 };
 

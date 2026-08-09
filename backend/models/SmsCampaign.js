@@ -21,8 +21,8 @@ const smsCampaignSchema = new mongoose.Schema({
   },
   messageBody: {
     type: String,
-    required: [true, 'Message body is required'],
-    maxlength: 160
+    required: [true, 'Message body is required']
+    // Removed maxlength: 160 to allow multipart SMS messages
   },
   salutation: {
     type: String,

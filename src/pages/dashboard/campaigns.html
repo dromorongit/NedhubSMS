@@ -12,6 +12,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
+    <script src="../../utils/messageUtils.js" defer></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -567,11 +568,13 @@
             const chars = campaignMessage.value.length;
             charCount.textContent = chars;
             
-            // Calculate segments (GSM: 160 chars, Unicode: 70 chars)
-            const isGSM = /^[\x00-\x7F]*$/.test(campaignMessage.value);
-            const segmentSize = isGSM ? 160 : 70;
-            const segments = Math.ceil(chars / segmentSize);
-            segmentCount.textContent = segments;
+            // Calculate segments using same logic as messageUtils.js
+            if (chars > 0) {
+                const segmentResult = calculateSmsSegments(campaignMessage.value);
+                segmentCount.textContent = segmentResult.segments;
+            } else {
+                segmentCount.textContent = '1';
+            }
         });
 
         // Open create campaign modal
