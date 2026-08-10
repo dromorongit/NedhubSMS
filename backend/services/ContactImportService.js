@@ -73,6 +73,27 @@ class ContactImportService {
   }
 
   /**
+   * Detect delimiter from a line by counting common delimiters
+   * @param {string} line - The header line
+   * @returns {string} The detected delimiter
+   */
+  detectDelimiter(line) {
+    const delimiters = [',', '\t', ';', '|'];
+    let bestDelimiter = ',';
+    let bestCount = 0;
+
+    for (const delimiter of delimiters) {
+      const count = line.split(delimiter).length - 1;
+      if (count > bestCount) {
+        bestCount = count;
+        bestDelimiter = delimiter;
+      }
+    }
+
+    return bestDelimiter;
+  }
+
+  /**
    * Parse CSV content
    * @param {Buffer} fileBuffer - The file buffer
    * @returns {Array} - Array of parsed rows
@@ -85,9 +106,13 @@ class ContactImportService {
       throw new Error('File is empty');
     }
 
+    // Auto-detect delimiter from header line
+    const delimiter = this.detectDelimiter(lines[0]);
+    console.log('[Upload] Detected delimiter', { delimiter: JSON.stringify(delimiter), headers: lines[0] });
+
     // Parse header
     const headerLine = lines[0];
-    const headers = this.parseCSVLine(headerLine);
+    const headers = this.parseCSVLine(headerLine, delimiter);
     console.log('[Upload] CSV headers detected', { headers, count: headers.length });
 
     // Parse data rows
@@ -96,7 +121,7 @@ class ContactImportService {
       const line = lines[i].trim();
       if (!line) continue;
 
-      const values = this.parseCSVLine(line);
+      const values = this.parseCSVLine(line, delimiter);
       if (values.length === headers.length) {
         // Skip rows where all values are empty
         const allEmpty = values.every(v => !v || !v.trim());
@@ -115,11 +140,12 @@ class ContactImportService {
   }
 
   /**
-   * Parse a single CSV line handling quoted values
-   * @param {string} line - The CSV line
+   * Parse a single line handling quoted values
+   * @param {string} line - The line to parse
+   * @param {string} delimiter - The delimiter to split on
    * @returns {Array} - Array of parsed values
    */
-  parseCSVLine(line) {
+  parseCSVLine(line, delimiter = ',') {
     const values = [];
     let current = '';
     let inQuotes = false;
@@ -136,7 +162,7 @@ class ContactImportService {
           // Toggle quote state
           inQuotes = !inQuotes;
         }
-      } else if (char === ',' && !inQuotes) {
+      } else if (char === delimiter && !inQuotes) {
         // End of field
         values.push(current.trim());
         current = '';
