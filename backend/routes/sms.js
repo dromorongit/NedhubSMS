@@ -277,7 +277,7 @@ router.post('/send', authenticate, async (req, res) => {
     let campaign = null;
 
     try {
-      const { senderId, recipients, message, scheduledAt, timezone } = req.body;
+      const { senderId, recipients, message, scheduledAt, timezone, removeDuplicates = true } = req.body;
       const userId = req.user.userId;
 
       logger.info('[Schedule] Received default schedule request', {
@@ -375,12 +375,11 @@ router.post('/send', authenticate, async (req, res) => {
       };
     });
 
-    // Process recipients (deduplication, validation, blacklist check)
     const SmsRecipientService = require('../services/SmsRecipientService');
     const processedRecipients = await SmsRecipientService.processRecipientsForCampaign(
       normalizedRecipients,
       userId,
-      true
+      removeDuplicates !== false
     );
 
       logger.info('[Schedule] Recipient processing complete', {

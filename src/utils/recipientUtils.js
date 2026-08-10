@@ -91,7 +91,7 @@ function validatePhoneNumber(phoneNumber) {
     return result;
   }
 
-  const ghanaRegex = /^233[0-9]{9}$/;
+  const ghanaRegex = /^(?:\+233|233|0)(?:20|50|24|54|27|57|26|56|23|53|28|58|25|55|59)[0-9]{7}$/;
   if (ghanaRegex.test(cleaned)) {
     const result = { isValid: true, normalizedNumber: cleaned, error: null };
     console.log('[RecipientValidation] Result:', result);

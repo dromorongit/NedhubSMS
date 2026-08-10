@@ -4315,8 +4315,9 @@ if (result.error) {
                     // Handle error response
                     let errorMessage = result.error;
                     const responseData = result.data || result;
-                    if (responseData.details || responseData.summary) {
-                        const details = responseData.details || responseData.summary;
+                    const detailsSource = responseData.details || responseData.summary || responseData.error?.details;
+                    if (detailsSource) {
+                        const details = detailsSource;
                         const parts = [];
                         if (details.duplicateCount > 0) parts.push(`${details.duplicateCount} duplicates`);
                         if (details.invalidCount > 0) parts.push(`${details.invalidCount} invalid`);
@@ -4384,34 +4385,34 @@ if (result.error) {
                         
                         // Reset form
                         resetForm();
-                     } else {
-                         // Handle API-level failure (success: false)
-                         let errorMessage = responseData.message || extractErrorMessage(responseData.error) || 'Campaign failed to send';
-                         if (responseData.summary) {
-                             const details = responseData.summary;
-                             const parts = [];
-                             const dupCount = details.duplicatesRemoved || details.duplicateCount || 0;
-                             const invCount = details.invalidRemoved || details.invalidCount || 0;
-                             const blCount = details.blacklistedRemoved || details.blacklistedCount || 0;
-                             if (dupCount > 0) parts.push(`${dupCount} duplicates`);
-                             if (invCount > 0) parts.push(`${invCount} invalid`);
-                             if (blCount > 0) parts.push(`${blCount} blacklisted`);
-                             if (parts.length > 0) {
-                                 errorMessage += ` (${parts.join(', ')})`;
-                             }
-                             errorMessage += '. Please check your recipients and try again.';
-                         }
-                         
-                         // Log toast notification with [ToastNotification] tag
-                         console.log('[ToastNotification]', {
-                           type: 'error',
-                           message: errorMessage,
-                           successCount: 0,
-                           failedCount: responseData.failedRecipients ?? responseData.summary?.failed ?? 0
-                         });
-                         
-                         showToast(errorMessage, 'error');
-                     }
+                  } else {
+                      // Handle API-level failure (success: false)
+                      let errorMessage = result.message || responseData.message || extractErrorMessage(responseData.error) || 'Campaign failed to send';
+                      if (responseData.summary) {
+                          const details = responseData.summary;
+                          const parts = [];
+                          const dupCount = details.duplicatesRemoved || details.duplicateCount || 0;
+                          const invCount = details.invalidRemoved || details.invalidCount || 0;
+                          const blCount = details.blacklistedRemoved || details.blacklistedCount || 0;
+                          if (dupCount > 0) parts.push(`${dupCount} duplicates`);
+                          if (invCount > 0) parts.push(`${invCount} invalid`);
+                          if (blCount > 0) parts.push(`${blCount} blacklisted`);
+                          if (parts.length > 0) {
+                              errorMessage += ` (${parts.join(', ')})`;
+                          }
+                          errorMessage += '. Please check your recipients and try again.';
+                      }
+                      
+                      // Log toast notification with [ToastNotification] tag
+                      console.log('[ToastNotification]', {
+                        type: 'error',
+                        message: errorMessage,
+                        successCount: 0,
+                        failedCount: responseData.failedRecipients ?? responseData.summary?.failed ?? 0
+                      });
+                      
+                      showToast(errorMessage, 'error');
+                  }
                 }
             } catch (error) {
                 console.error('Campaign error:', error);

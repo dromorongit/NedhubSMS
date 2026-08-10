@@ -199,6 +199,7 @@ class ApiClient {
       const dataPayload = result.data !== undefined ? result.data : result;
       return { 
         data: dataPayload,
+        message: result.message,
         contentType: 'application/json'
       };
     } catch (error) {
@@ -445,18 +446,19 @@ class ApiClient {
 
   // SMS endpoints
   async sendSMS(data) {
-    const { senderId, recipients, message } = data;
-    return this.request('POST', '/sms/send', { senderId, recipients, message });
+    const { senderId, recipients, message, removeDuplicates } = data;
+    return this.request('POST', '/sms/send', { senderId, recipients, message, removeDuplicates });
   }
 
   async scheduleSMS(data) {
-    const { senderId, recipients, message, scheduledAt, timezone } = data;
+    const { senderId, recipients, message, scheduledAt, timezone, removeDuplicates } = data;
     return this.request('POST', '/sms/schedule', {
       senderId,
       recipients,
       message,
       scheduledAt,
-      timezone: timezone || 'UTC'
+      timezone: timezone || 'UTC',
+      removeDuplicates
     });
   }
 
