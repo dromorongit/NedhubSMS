@@ -3249,7 +3249,7 @@ if (result.error) {
 
           for (let i = 0; i < maxPreviewRows; i++) {
             const row = rows[i];
-            const recipientName = nameColumn ? (row[nameColumn]?.toString().trim() || '') : '';
+            const recipientName = (nameColumn && nameColumn !== phoneColumn) ? (row[nameColumn]?.toString().trim() || '') : '';
             const rawPhone = row[phoneColumn]?.toString().trim() || '';
 
             // Use the shared validatePhoneNumber function from recipientUtils
@@ -3418,7 +3418,7 @@ if (result.error) {
                 for (let i = 0; i < fileData.length; i++) {
                     const row = fileData[i];
                     const rowNumber = i + 1;
-                    const recipientName = nameColumn ? row[nameColumn]?.toString().trim() || '' : '';
+                    const recipientName = (nameColumn && nameColumn !== phoneColumn) ? row[nameColumn]?.toString().trim() || '' : '';
                     const rawPhone = row[phoneColumn]?.toString().trim() || '';
 
                     const phoneValidation = validatePhoneNumber(rawPhone);
@@ -4398,15 +4398,14 @@ if (result.error) {
                         
                         // Reset form
                         resetForm();
-                  } else {
+                   } else {
                       // Handle API-level failure (success: false)
                       let errorMessage = result.message || responseData.message || extractErrorMessage(responseData.error) || 'Campaign failed to send';
-                      if (responseData.summary) {
-                          const details = responseData.summary;
+                      if (responseData.summary || responseData.duplicatesRemoved !== undefined) {
                           const parts = [];
-                          const dupCount = details.duplicatesRemoved || details.duplicateCount || 0;
-                          const invCount = details.invalidRemoved || details.invalidCount || 0;
-                          const blCount = details.blacklistedRemoved || details.blacklistedCount || 0;
+                          const dupCount = responseData.duplicatesRemoved || responseData.summary?.duplicatesRemoved || 0;
+                          const invCount = responseData.invalidRecipients || responseData.summary?.invalidRecipients || 0;
+                          const blCount = responseData.blacklistedRecipients || responseData.summary?.blacklistedRecipients || 0;
                           if (dupCount > 0) parts.push(`${dupCount} duplicates`);
                           if (invCount > 0) parts.push(`${invCount} invalid`);
                           if (blCount > 0) parts.push(`${blCount} blacklisted`);
@@ -4415,17 +4414,24 @@ if (result.error) {
                           }
                           errorMessage += '. Please check your recipients and try again.';
                       }
-                      
+
+                      // Show provider error summary if all failures share a common cause
+                      if (responseData.providerErrorSummary && responseData.providerErrorSummary.isCommonCause) {
+                          const providerSummary = responseData.providerErrorSummary;
+                          errorMessage += ` Provider error: ${providerSummary.errorCode} - ${providerSummary.error}. ${providerSummary.affectedRecipients} recipient(s) affected.`;
+                      }
+
                       // Log toast notification with [ToastNotification] tag
                       console.log('[ToastNotification]', {
                         type: 'error',
                         message: errorMessage,
                         successCount: 0,
-                        failedCount: responseData.failedRecipients ?? responseData.summary?.failed ?? 0
+                        failedCount: responseData.failedRecipients ?? responseData.summary?.failed ?? 0,
+                        providerErrorSummary: responseData.providerErrorSummary
                       });
                       
                       showToast(errorMessage, 'error');
-                  }
+                   }
                 }
             } catch (error) {
                 console.error('Campaign error:', error);

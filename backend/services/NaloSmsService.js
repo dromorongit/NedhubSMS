@@ -372,11 +372,12 @@ class NaloSmsService {
             validateStatus: (status) => status === 200
           });
 
+          const rawResponseData = String(response.data);
           logger.smsSend.info('[NaloSmsService] Nalo API response received', {
             userId,
             phoneNumber: formattedPhoneNumber,
             responseType: typeof response.data,
-            responsePreview: String(response.data).substring(0, 200)
+            responsePreview: rawResponseData.substring(0, 200)
           });
 
           naloResponse = this.parseNaloResponse(response.data, {
@@ -385,6 +386,24 @@ class NaloSmsService {
             userId,
             campaignId,
             recipientId
+          });
+
+          console.log('[NaloForensic]', {
+            timestamp: new Date().toISOString(),
+            userId,
+            campaignId: campaignId || 'N/A',
+            recipientId: recipientId || 'N/A',
+            httpStatus: 200,
+            providerEndpoint: this.endpoint,
+            senderId: senderId || 'N/A',
+            recipientPhone: formattedPhoneNumber || 'N/A',
+            messageSegments: typeof financialBreakdown !== 'undefined' && financialBreakdown ? financialBreakdown.avgSegments : 'N/A',
+            rawResponse: rawResponseData.substring(0, 500),
+            parsedStatus: naloResponse.status,
+            providerMessageId: naloResponse.message_id || null,
+            providerErrorCode: naloResponse.status !== '1701' ? naloResponse.status : null,
+            providerErrorMessage: naloResponse.error_message || null,
+            isSuccess: naloResponse.status === '1701'
           });
           logger.smsSend.info('[NaloSmsService] Nalo response parsed', {
             userId,
@@ -469,35 +488,53 @@ class NaloSmsService {
             }
           }
 
-         } catch (apiError) {
-           logger.smsSend.error('[NaloSmsService] Nalo API error', {
-             userId,
-             phoneNumber: formattedPhoneNumber,
-             error: apiError.message,
-             status: apiError.response?.status,
-             responseData: apiError.response?.data
-           });
-           smsStatus = 'failed';
-           // Provide specific error messages for common HTTP status codes
-           if (apiError.response) {
-             const status = apiError.response.status;
-             const responseData = apiError.response.data;
-             if (status === 401) {
-               errorMessage = 'Authentication failed with Nalo provider. Please contact admin.';
-             } else if (status === 403) {
-               errorMessage = 'Access denied by Nalo provider. Please contact admin.';
-             } else if (status === 412) {
-               errorMessage = 'Sender ID not recognized by Nalo. Please ensure your sender ID is registered with the SMS provider.';
-             } else if (status === 429) {
-               errorMessage = 'Rate limited by Nalo provider. Please wait and try again.';
-             } else if (status >= 500) {
-               errorMessage = `Nalo provider error (HTTP ${status}). Please try again later.`;
-             } else {
-               errorMessage = responseData?.error_message || responseData?.message || apiError.message;
-             }
-           } else {
-             errorMessage = apiError.message;
-           }
+          } catch (apiError) {
+            logger.smsSend.error('[NaloSmsService] Nalo API error', {
+              userId,
+              phoneNumber: formattedPhoneNumber,
+              error: apiError.message,
+              status: apiError.response?.status,
+              responseData: apiError.response?.data
+            });
+            smsStatus = 'failed';
+            // Provide specific error messages for common HTTP status codes
+            if (apiError.response) {
+              const status = apiError.response.status;
+              const responseData = apiError.response.data;
+              if (status === 401) {
+                errorMessage = 'Authentication failed with Nalo provider. Please contact admin.';
+              } else if (status === 403) {
+                errorMessage = 'Access denied by Nalo provider. Please contact admin.';
+              } else if (status === 412) {
+                errorMessage = 'Sender ID not recognized by Nalo. Please ensure your sender ID is registered with the SMS provider.';
+              } else if (status === 429) {
+                errorMessage = 'Rate limited by Nalo provider. Please wait and try again.';
+              } else if (status >= 500) {
+                errorMessage = `Nalo provider error (HTTP ${status}). Please try again later.`;
+              } else {
+                errorMessage = responseData?.error_message || responseData?.message || apiError.message;
+              }
+            } else {
+              errorMessage = apiError.message;
+            }
+
+            console.log('[NaloForensic]', {
+              timestamp: new Date().toISOString(),
+              userId,
+              campaignId: campaignId || 'N/A',
+              recipientId: recipientId || 'N/A',
+              httpStatus: apiError.response?.status || 'NETWORK_ERROR',
+              providerEndpoint: this.endpoint,
+              senderId: senderId || 'N/A',
+              recipientPhone: formattedPhoneNumber || 'N/A',
+              messageSegments: typeof financialBreakdown !== 'undefined' && financialBreakdown ? financialBreakdown.avgSegments : 'N/A',
+              rawResponse: String(apiError.response?.data || apiError.message).substring(0, 500),
+              parsedStatus: 'HTTP_ERROR',
+              providerMessageId: null,
+              providerErrorCode: apiError.response?.status ? `HTTP_${apiError.response.status}` : 'NETWORK_ERROR',
+              providerErrorMessage: errorMessage,
+              isSuccess: false
+            });
 
           logger.error('[StatusMapping] SMS failed due to API error', {
             messageId: jobId,
@@ -620,19 +657,22 @@ class NaloSmsService {
       console.error('[NaloSmsService] Error:', error.message);
 
       let failedMessageId = null;
+      let errorCode = 'INTERNAL_ERROR';
+      let errorMessage = error.message;
+
       try {
         const failedMessage = await SmsMessage.create({
           userId,
           phoneNumber: phoneNumber,
           normalizedPhoneNumber: this.formatPhoneNumber(phoneNumber),
           networkType: 'unknown',
-          senderId: '',
-          message: '',
+          senderId: senderId || '',
+          message: message || '',
           provider: 'nalo',
           jobId: `failed-${Date.now()}`,
           status: 'failed',
-          errorCode: 'INTERNAL_ERROR',
-          errorMessage: error.message,
+          errorCode: errorCode,
+          errorMessage: errorMessage,
           sellPricePerSms: 0,
           providerCostPerSms: 0,
           segments: 0,
@@ -646,9 +686,9 @@ class NaloSmsService {
         console.error('[NaloSmsService] Failed to create error SmsMessage record:', dbError.message);
       }
 
-      if (!skipDeduction) {
+      if (!skipDeduction && typeof financialBreakdown !== 'undefined' && financialBreakdown) {
         try {
-          await this.refundWallet(userId, 0, 'SMS internal error - no deduction to refund');
+          await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS internal error - refund');
         } catch (refundErr) {
           console.error('[NaloSmsService] Refund failed in outer catch:', refundErr.message);
         }
@@ -658,15 +698,15 @@ class NaloSmsService {
         userId,
         phoneNumber: phoneNumber,
         success: false,
-        error: error.message,
-        code: 'INTERNAL_ERROR',
+        error: errorMessage,
+        code: errorCode,
         messageId: failedMessageId
       });
 
       return {
         success: false,
-        error: error.message,
-        code: 'INTERNAL_ERROR',
+        error: errorMessage,
+        code: errorCode,
         messageId: failedMessageId
       };
     }
@@ -766,6 +806,27 @@ class NaloSmsService {
     };
 
     return statusMap[providerStatus] || 'unknown';
+  }
+
+  /**
+   * Reset Nalo HTTP client circuit breaker
+   * Called before each send campaign to ensure previous failures don't block new sends
+   */
+  resetCircuitBreaker() {
+    if (this.httpClient && typeof this.httpClient.resetCircuitBreaker === 'function') {
+      this.httpClient.resetCircuitBreaker();
+      console.log('[NaloSmsService] Circuit breaker reset');
+    }
+  }
+
+  /**
+   * Get Nalo HTTP client circuit breaker status for diagnostics
+   */
+  getCircuitBreakerStatus() {
+    if (this.httpClient && typeof this.httpClient.getCircuitBreakerStatus === 'function') {
+      return this.httpClient.getCircuitBreakerStatus();
+    }
+    return { state: 'unknown', failures: 0 };
   }
 }
 

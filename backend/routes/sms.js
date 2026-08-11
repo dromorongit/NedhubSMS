@@ -166,6 +166,11 @@ router.post('/send', authenticate, async (req, res) => {
       chunks.push(recipientsToSend.slice(i, i + CHUNK_SIZE));
     }
 
+    // Reset circuit breaker before campaign to ensure previous failures don't block this send
+    NaloSmsService.resetCircuitBreaker();
+    const circuitBreakerStatus = NaloSmsService.getCircuitBreakerStatus();
+    console.log('[SendSMS] Circuit breaker status before send:', circuitBreakerStatus);
+
     for (const chunk of chunks) {
       const chunkResults = await Promise.allSettled(
         chunk.map(recipient =>
@@ -229,6 +234,19 @@ router.post('/send', authenticate, async (req, res) => {
       overallStatus = 'failed';
     }
 
+    // Aggregate provider errors for forensic diagnostics
+    const providerErrorCounts = {};
+    let primaryProviderError = null;
+    for (const r of results) {
+      if (!r.success && r.errorCode) {
+        const key = `${r.errorCode}:${r.error || 'Unknown error'}`;
+        providerErrorCounts[key] = (providerErrorCounts[key] || 0) + 1;
+        if (!primaryProviderError || providerErrorCounts[key] > (providerErrorCounts[`${primaryProviderError.errorCode}:${primaryProviderError.error}`] || 0)) {
+          primaryProviderError = { errorCode: r.errorCode, error: r.error, count: providerErrorCounts[key] };
+        }
+      }
+    }
+
     // Prepare canonical response data with standardized fields
     const responseData = {
       campaignId: null, // Quick send does not create a campaign
@@ -245,6 +263,12 @@ router.post('/send', authenticate, async (req, res) => {
         success: successCount,
         failed: failedCount
       },
+      providerErrorSummary: primaryProviderError ? {
+        errorCode: primaryProviderError.errorCode,
+        error: primaryProviderError.error,
+        affectedRecipients: primaryProviderError.count,
+        isCommonCause: primaryProviderError.count === failedCount && failedCount > 0
+      } : null,
       results
     };
 

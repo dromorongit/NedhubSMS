@@ -284,7 +284,7 @@ class ContactImportService {
       const row = rows[i];
       const rowNumber = i + 1;
 
-      const recipientName = nameColumn ? (row[nameColumn]?.toString().trim() || '') : '';
+      const recipientName = (nameColumn && nameColumn !== phoneColumn) ? (row[nameColumn]?.toString().trim() || '') : '';
       const rawPhone = row[phoneColumn]?.toString().trim() || '';
 
       // Validate and normalize
