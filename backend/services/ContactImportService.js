@@ -32,7 +32,10 @@ class ContactImportService {
       /^cell.?number$/i,
       /^whatsapp$/i,
       /^whatsapp.?number$/i,
-      /^0\d{9}$/i
+      /^0\d{9}$/i,
+      /^0\d{10}$/i,
+      /^233\d{9}$/i,
+      /^\+233\d{9}$/i
     ];
   }
 
@@ -50,8 +53,10 @@ class ContactImportService {
       let rows;
       switch (ext) {
         case 'csv':
-        case 'txt':
           rows = this.parseCSV(fileBuffer);
+          break;
+        case 'txt':
+          rows = this.parseTXT(fileBuffer);
           break;
         case 'xlsx':
         case 'xls':
@@ -92,6 +97,56 @@ class ContactImportService {
     }
 
     return bestDelimiter;
+  }
+
+  /**
+   * Parse TXT content - treats each non-empty line as a phone number,
+   * or as structured CSV-like text if delimiters/headers are detected.
+   * @param {Buffer} fileBuffer - The file buffer
+   * @returns {Array} - Array of parsed rows
+   */
+  parseTXT(fileBuffer) {
+    const content = fileBuffer.toString('utf-8');
+    const lines = content.split(/\r?\n/).filter(line => line.trim());
+
+    if (lines.length === 0) {
+      throw new Error('File is empty');
+    }
+
+    const firstLine = lines[0].trim();
+    const delimiter = this.detectDelimiter(firstLine);
+
+    // Only treat as structured data if the first line contains a delimiter
+    if (firstLine.includes(delimiter)) {
+      const headers = this.parseCSVLine(firstLine, delimiter);
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const values = this.parseCSVLine(line, delimiter);
+        if (values.length === headers.length) {
+          const allEmpty = values.every(v => !v || !v.trim());
+          if (allEmpty) continue;
+
+          const row = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index];
+          });
+          rows.push(row);
+        }
+      }
+
+      console.log('[Upload] TXT parsed with header', { rowsCount: rows.length, headers });
+      return rows;
+    } else {
+      const rows = lines.map(line => ({
+        phone: line.trim()
+      }));
+
+      console.log('[Upload] TXT parsed as plain phone list', { rowsCount: rows.length });
+      return rows;
+    }
   }
 
   /**
@@ -277,12 +332,12 @@ class ContactImportService {
   generatePreview(rows, columnMapping) {
     const { nameColumn, phoneColumn } = columnMapping;
 
-    // Fallback: if no phone column detected but file has only one column,
-    // assume it contains phone numbers (common for plain text exports)
+    // Fallback: if no phone column detected but file has columns,
+    // assume the first column contains phone numbers (common for plain text exports)
     let effectivePhoneColumn = phoneColumn;
     if (!effectivePhoneColumn && rows.length > 0) {
       const columns = Object.keys(rows[0]);
-      if (columns.length === 1) {
+      if (columns.length >= 1) {
         effectivePhoneColumn = columns[0];
       }
     }
