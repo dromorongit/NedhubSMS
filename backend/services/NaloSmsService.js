@@ -193,6 +193,33 @@ class NaloSmsService {
   }
 
   /**
+   * Split a message into multipart SMS segments
+   * @param {string} message - Message to split
+   * @param {string} encoding - 'gsm7' or 'unicode'
+   * @param {number} segments - Number of segments required
+   * @returns {Array<string>} Array of message parts
+   */
+  splitMessage(message, encoding, segments) {
+    if (segments <= 1) return [message];
+    
+    const trimmed = (message || '').trim();
+    if (!trimmed) return [''];
+    
+    let limit;
+    if (encoding === 'unicode') {
+      limit = 67;
+    } else {
+      limit = 153;
+    }
+    
+    const parts = [];
+    for (let i = 0; i < trimmed.length; i += limit) {
+      parts.push(trimmed.substring(i, i + limit));
+    }
+    return parts;
+  }
+
+  /**
    * Send SMS using Nalo API with full financial tracking
    */
   async sendSmsWithFinancialTracking(request) {
@@ -371,6 +398,10 @@ class NaloSmsService {
         };
       }
 
+      // Calculate segments for multipart SMS support
+      const segmentResult = CostCalculatorService.calculateSegments(message);
+      const messageParts = this.splitMessage(message, segmentResult.encoding, segmentResult.segments);
+
       if (this.isDummyMode) {
         // Simulate SMS sending in dummy mode
         logger.smsSend.info('[NaloSmsService] Dummy mode: Simulating SMS send', {
@@ -383,61 +414,118 @@ class NaloSmsService {
         this.reportNaloSuccessToBreaker();
       } else {
         try {
-          logger.smsSend.info('[NaloSmsService] Sending SMS via Nalo API', {
-            userId,
-            phoneNumber: formattedPhoneNumber,
-            senderId,
-            messageLength: message.length
-          });
-
-          const response = await this.httpClient.post(this.endpoint, payload, {
-            headers: { 'Content-Type': 'application/json' },
-            validateStatus: (status) => status === 200
-          });
-
-          const rawResponseData = String(response.data);
-          logger.smsSend.info('[NaloSmsService] Nalo API response received', {
-            userId,
-            phoneNumber: formattedPhoneNumber,
-            responseType: typeof response.data,
-            responsePreview: rawResponseData.substring(0, 200)
-          });
-
-          naloResponse = this.parseNaloResponse(response.data, {
-            phoneNumber,
-            formattedPhoneNumber,
-            userId,
-            campaignId,
-            recipientId
-          });
-
-          console.log('[NaloForensic]', {
-            timestamp: new Date().toISOString(),
-            userId,
-            campaignId: campaignId || 'N/A',
-            recipientId: recipientId || 'N/A',
-            httpStatus: 200,
-            providerEndpoint: this.endpoint,
-            senderId: senderId || 'N/A',
-            recipientPhone: formattedPhoneNumber || 'N/A',
-            messageSegments: typeof financialBreakdown !== 'undefined' && financialBreakdown ? financialBreakdown.avgSegments : 'N/A',
-            rawResponse: rawResponseData.substring(0, 500),
-            parsedStatus: naloResponse.status,
-            providerMessageId: naloResponse.message_id || null,
-            providerErrorCode: naloResponse.status !== '1701' ? naloResponse.status : null,
-            providerErrorMessage: naloResponse.error_message || null,
-            isSuccess: naloResponse.status === '1701'
-          });
-          logger.smsSend.info('[NaloSmsService] Nalo response parsed', {
-            userId,
-            providerStatus: naloResponse.status,
-            hasMessageId: !!naloResponse.message_id,
-            hasError: !!naloResponse.error_message
-          });
-
-          // Check for success (1701)
-          if (naloResponse.status === '1701') {
-            smsStatus = 'sent';  // Provider accepted - mark as sent
+          let lastNaloResponse = null;
+          let allPartsSucceeded = true;
+          
+          for (let i = 0; i < messageParts.length; i++) {
+            const partMessage = messageParts[i];
+            const partPayload = {
+              key: this.apiKey,
+              msisdn: formattedPhoneNumber,
+              sender_id: senderId,
+              message: partMessage.trim()
+            };
+            
+            logger.smsSend.info('[NaloSmsService] Sending SMS part via Nalo API', {
+              userId,
+              phoneNumber: formattedPhoneNumber,
+              senderId,
+              part: i + 1,
+              totalParts: messageParts.length,
+              messageLength: partMessage.length
+            });
+            
+            const partResponse = await this.httpClient.post(this.endpoint, partPayload, {
+              headers: { 'Content-Type': 'application/json' },
+              validateStatus: (status) => status === 200
+            });
+            
+            const rawResponseData = String(partResponse.data);
+            const partNaloResponse = this.parseNaloResponse(partResponse.data, {
+              phoneNumber,
+              formattedPhoneNumber,
+              userId,
+              campaignId,
+              recipientId
+            });
+            
+            lastNaloResponse = partNaloResponse;
+            
+            console.log('[NaloForensic]', {
+              timestamp: new Date().toISOString(),
+              userId,
+              campaignId: campaignId || 'N/A',
+              recipientId: recipientId || 'N/A',
+              httpStatus: 200,
+              providerEndpoint: this.endpoint,
+              senderId: senderId || 'N/A',
+              recipientPhone: formattedPhoneNumber || 'N/A',
+              messagePart: i + 1,
+              totalParts: messageParts.length,
+              messageSegments: segmentResult.segments,
+              rawResponse: rawResponseData.substring(0, 500),
+              parsedStatus: partNaloResponse.status,
+              providerMessageId: partNaloResponse.message_id || null,
+              providerErrorCode: partNaloResponse.status !== '1701' ? partNaloResponse.status : null,
+              providerErrorMessage: partNaloResponse.error_message || null,
+              isSuccess: partNaloResponse.status === '1701'
+            });
+            
+            if (partNaloResponse.status !== '1701') {
+              allPartsSucceeded = false;
+              errorCode = partNaloResponse.status;
+              // Classify Nalo error and report to circuit breaker
+              this.reportNaloFailureToBreaker(partNaloResponse.status);
+              if (partNaloResponse.status === '1707') {
+                errorMessage = 'Sender ID not registered with Nalo. Please contact admin to register your sender ID with the SMS provider.';
+              } else if (partNaloResponse.status === '1704') {
+                errorMessage = 'Invalid API key. Please contact admin to verify Nalo configuration.';
+              } else if (partNaloResponse.status === '1705') {
+                errorMessage = 'Account suspended. Please contact admin.';
+              } else if (partNaloResponse.status === '1025') {
+                errorMessage = 'Insufficient SMS credits at provider. Please top up your Nalo account.';
+              } else if (partNaloResponse.status === '1706') {
+                errorMessage = 'Invalid destination number. The phone number format may be incorrect.';
+              } else if (partNaloResponse.status === '1708') {
+                errorMessage = 'Message too long for provider single-segment limit. The application should split long messages into multipart SMS before sending.';
+              } else if (partNaloResponse.status === '1709') {
+                errorMessage = 'Message contains invalid characters.';
+              } else if (partNaloResponse.status === '1710') {
+                errorMessage = 'Internal provider error. Please try again later.';
+              } else if (partNaloResponse.status === '1711') {
+                errorMessage = 'Service temporarily unavailable. Please try again later.';
+              } else if (partNaloResponse.status === '1026') {
+                errorMessage = 'Message blocked by spam filter.';
+              } else if (partNaloResponse.status === '1027') {
+                errorMessage = 'Destination number is blacklisted.';
+              } else if (partNaloResponse.status === '1028') {
+                errorMessage = 'Invalid message format.';
+              } else if (partNaloResponse.status === '1703') {
+                errorMessage = 'Authentication failed. Please contact admin.';
+              } else {
+                errorMessage = partNaloResponse.error_message || this.mapErrorCode(partNaloResponse.status);
+              }
+              
+              console.log('[NaloSmsService] Part failed:', {
+                part: i + 1,
+                totalParts: messageParts.length,
+                status: partNaloResponse.status,
+                errorMessage
+              });
+            } else {
+              console.log('[NaloSmsService] Part succeeded:', {
+                part: i + 1,
+                totalParts: messageParts.length,
+                status: partNaloResponse.status,
+                messageId: partNaloResponse.message_id
+              });
+            }
+          }
+          
+          naloResponse = lastNaloResponse;
+          
+          if (allPartsSucceeded) {
+            smsStatus = 'sent';
             jobId = naloResponse.message_id || naloResponse.job_id || `nalo-${Date.now()}`;
             this.reportNaloSuccessToBreaker();
             
@@ -445,44 +533,12 @@ class NaloSmsService {
               messageId: jobId,
               userId,
               phoneNumber: formattedPhoneNumber,
-              status: smsStatus
+              status: smsStatus,
+              parts: messageParts.length
             });
           } else {
-            smsStatus = 'failed';  // Provider rejected - mark as failed
-            errorCode = naloResponse.status;
-            // Classify Nalo error and report to circuit breaker
-            this.reportNaloFailureToBreaker(naloResponse.status);
-           // Provide more user-friendly error messages for common Nalo errors
-           if (naloResponse.status === '1707') {
-             errorMessage = 'Sender ID not registered with Nalo. Please contact admin to register your sender ID with the SMS provider.';
-           } else if (naloResponse.status === '1704') {
-             errorMessage = 'Invalid API key. Please contact admin to verify Nalo configuration.';
-           } else if (naloResponse.status === '1705') {
-             errorMessage = 'Account suspended. Please contact admin.';
-           } else if (naloResponse.status === '1025') {
-             errorMessage = 'Insufficient SMS credits at provider. Please top up your Nalo account.';
-           } else if (naloResponse.status === '1706') {
-             errorMessage = 'Invalid destination number. The phone number format may be incorrect.';
-            } else if (naloResponse.status === '1708') {
-              errorMessage = 'Message too long for provider single-segment limit. The application should split long messages into multipart SMS before sending.';
-           } else if (naloResponse.status === '1709') {
-             errorMessage = 'Message contains invalid characters.';
-           } else if (naloResponse.status === '1710') {
-             errorMessage = 'Internal provider error. Please try again later.';
-           } else if (naloResponse.status === '1711') {
-             errorMessage = 'Service temporarily unavailable. Please try again later.';
-           } else if (naloResponse.status === '1026') {
-             errorMessage = 'Message blocked by spam filter.';
-           } else if (naloResponse.status === '1027') {
-             errorMessage = 'Destination number is blacklisted.';
-           } else if (naloResponse.status === '1028') {
-             errorMessage = 'Invalid message format.';
-           } else if (naloResponse.status === '1703') {
-             errorMessage = 'Authentication failed. Please contact admin.';
-           } else {
-             errorMessage = naloResponse.error_message || this.mapErrorCode(naloResponse.status);
-           }
-
+            smsStatus = 'failed';
+            
             logger.warn('[StatusMapping] SMS rejected by provider', {
               messageId: jobId,
               userId,
@@ -491,14 +547,14 @@ class NaloSmsService {
               errorCode: errorCode,
               errorMessage: errorMessage
             });
-
+            
             // Telecel-specific failure logging
             if (networkType === 'Telecel') {
               console.log('[TelecelAudit]', {
                 event: 'SMS_FAILED',
                 originalNumber: phoneNumber,
                 normalizedNumber: formattedPhoneNumber,
-                providerStatus: naloResponse.status,
+                providerStatus: naloResponse ? naloResponse.status : 'UNKNOWN',
                 errorCode: errorCode,
                 errorMessage: errorMessage,
                 userId,
@@ -507,14 +563,13 @@ class NaloSmsService {
                 timestamp: new Date().toISOString()
               });
             }
-
+            
             // Refund wallet on failure
             if (!skipDeduction) {
               await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
             }
           }
-
-          } catch (apiError) {
+        } catch (apiError) {
             // HTTP-level error - the ResilientHttpClient already recorded the failure
             logger.smsSend.error('[NaloSmsService] Nalo API error', {
               userId,

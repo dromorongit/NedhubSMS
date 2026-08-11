@@ -488,6 +488,19 @@ router.post('/send', authenticate, async (req, res) => {
       total: processedRecipients.finalCount
     });
 
+    // Compute provider error summary for targeted diagnostics
+    const providerErrorCounts = {};
+    let primaryProviderError = null;
+    for (const r of results) {
+      if (!r.success && r.errorCode) {
+        const key = `${r.errorCode}:${r.error || 'Unknown error'}`;
+        providerErrorCounts[key] = (providerErrorCounts[key] || 0) + 1;
+        if (!primaryProviderError || providerErrorCounts[key] > (providerErrorCounts[`${primaryProviderError.errorCode}:${primaryProviderError.error}`] || 0)) {
+          primaryProviderError = { errorCode: r.errorCode, error: r.error, count: providerErrorCounts[key] };
+        }
+      }
+    }
+
     // Prepare canonical response data with standardized fields
     const responseData = {
       campaignId: campaign._id,
@@ -504,6 +517,12 @@ router.post('/send', authenticate, async (req, res) => {
         blacklistedRemoved: processedRecipients.blacklistedRecipients.length
       },
       totalCost,
+      providerErrorSummary: primaryProviderError ? {
+        errorCode: primaryProviderError.errorCode,
+        error: primaryProviderError.error,
+        affectedRecipients: primaryProviderError.count,
+        isCommonCause: primaryProviderError.count === failedCount && failedCount > 0
+      } : null,
       results
     };
 

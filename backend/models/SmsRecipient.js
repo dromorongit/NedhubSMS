@@ -155,15 +155,13 @@ smsRecipientSchema.pre('save', function(next) {
  */
 smsRecipientSchema.statics.detectNetwork = function(normalizedPhone) {
   if (!normalizedPhone || typeof normalizedPhone !== 'string') return 'Unknown';
-  const cleaned = normalizedPhone.replace(/\D/g, '');
+  let cleaned = normalizedPhone.replace(/\D/g, '');
   if (cleaned.length < 6) return 'Unknown';
-  // Extract the prefix after 233 (positions 3-5 in the cleaned string)
+  if (cleaned.startsWith('0')) cleaned = '233' + cleaned.substring(1);
+  if (!cleaned.startsWith('233')) cleaned = '233' + cleaned;
   const prefix = cleaned.substring(3, 6);
-  // Telecel/Vodafone: 020, 050
   if (prefix === '020' || prefix === '050') return 'Telecel';
-  // MTN: 024, 054, 055, 059
   if (prefix === '024' || prefix === '054' || prefix === '055' || prefix === '059') return 'MTN';
-  // AirtelTigo: 026, 027, 028, 056, 057
   if (prefix === '026' || prefix === '027' || prefix === '028' || prefix === '056' || prefix === '057') return 'AirtelTigo';
   return 'Unknown';
 };
