@@ -31,7 +31,8 @@ class ContactImportService {
       /^cell$/i,
       /^cell.?number$/i,
       /^whatsapp$/i,
-      /^whatsapp.?number$/i
+      /^whatsapp.?number$/i,
+      /^0\d{9}$/i
     ];
   }
 
@@ -275,7 +276,18 @@ class ContactImportService {
    */
   generatePreview(rows, columnMapping) {
     const { nameColumn, phoneColumn } = columnMapping;
-    console.log('[Preview] Generating preview', { totalRows: rows.length, nameColumn, phoneColumn });
+
+    // Fallback: if no phone column detected but file has only one column,
+    // assume it contains phone numbers (common for plain text exports)
+    let effectivePhoneColumn = phoneColumn;
+    if (!effectivePhoneColumn && rows.length > 0) {
+      const columns = Object.keys(rows[0]);
+      if (columns.length === 1) {
+        effectivePhoneColumn = columns[0];
+      }
+    }
+
+    console.log('[Preview] Generating preview', { totalRows: rows.length, nameColumn, phoneColumn, effectivePhoneColumn });
 
     const preview = [];
     const maxPreviewRows = Math.min(rows.length, 500); // Limit preview to 500 rows for performance
@@ -284,8 +296,8 @@ class ContactImportService {
       const row = rows[i];
       const rowNumber = i + 1;
 
-      const recipientName = (nameColumn && nameColumn !== phoneColumn) ? (row[nameColumn]?.toString().trim() || '') : '';
-      const rawPhone = row[phoneColumn]?.toString().trim() || '';
+      const recipientName = (nameColumn && nameColumn !== effectivePhoneColumn) ? (row[nameColumn]?.toString().trim() || '') : '';
+      const rawPhone = row[effectivePhoneColumn]?.toString().trim() || '';
 
       // Validate and normalize
       const phoneValidation = this.validateAndNormalizePhone(rawPhone);

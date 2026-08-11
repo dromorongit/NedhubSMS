@@ -371,6 +371,11 @@ router.post('/send', authenticate, async (req, res) => {
       chunks.push(processedRecipients.validRecipients.slice(i, i + CHUNK_SIZE));
     }
 
+    // Reset circuit breaker before campaign to ensure previous failures don't block this send
+    NaloSmsService.resetCircuitBreaker();
+    const circuitBreakerStatus = NaloSmsService.getCircuitBreakerStatus();
+    console.log('[SendCampaign] Circuit breaker status before send:', circuitBreakerStatus);
+
     for (const chunk of chunks) {
       const chunkResults = await Promise.allSettled(
         chunk.map(async recipient => {

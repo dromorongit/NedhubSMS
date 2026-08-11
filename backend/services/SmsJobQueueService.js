@@ -481,6 +481,9 @@ class SmsJobQueueService {
       return;
     }
 
+    // Reset circuit breaker before batch processing to ensure previous failures don't block this send
+    NaloSmsService.resetCircuitBreaker();
+
     // Define the processor function for each recipient
     const processRecipient = async (recipient) => {
       try {
