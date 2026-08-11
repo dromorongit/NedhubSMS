@@ -136,14 +136,13 @@ router.post('/send', authenticate, async (req, res) => {
     }
 
     // Validate total wallet balance before sending to avoid partial sends
-    const WalletService = require('../services/WalletService');
     const totalCostEstimation = await CostCalculatorService.calculateLiveCost(
       userId,
       trimmedMessage,
       recipientsToSend.length,
       null
     );
-    const availableBalance = await WalletService.getAvailableBalance(userId);
+    availableBalance = await WalletService.getAvailableBalance(userId);
     if (availableBalance < totalCostEstimation.estimatedCost) {
       return res.status(402).json({
         success: false,
