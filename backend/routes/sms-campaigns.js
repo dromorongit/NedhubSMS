@@ -29,8 +29,10 @@ router.post('/preview-personalized', authenticate, async (req, res) => {
       recipients
     } = req.body;
 
-// Validate required fields
-    if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
+    const trimmedMessageBody = messageBody.trim();
+
+    // Validate required fields
+    if (!title || !trimmedMessageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
       return res.status(400).json({
         success: false,
         message: 'Title, message body, recipients, and sender ID are required',
@@ -48,7 +50,7 @@ router.post('/preview-personalized', authenticate, async (req, res) => {
     }
 
     // Validate message template
-    const validation = MessagePersonalizationService.validateMessageTemplate(messageBody);
+    const validation = MessagePersonalizationService.validateMessageTemplate(trimmedMessageBody);
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
@@ -62,7 +64,7 @@ router.post('/preview-personalized', authenticate, async (req, res) => {
 
     // Generate preview messages
     const previewMessages = MessagePersonalizationService.generatePreviewMessages(
-      messageBody,
+      trimmedMessageBody,
       salutation,
       customSalutation,
       sampleRecipients,
@@ -108,8 +110,10 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
       senderId
     });
 
+    const trimmedMessageBody = messageBody.trim();
+
     // Validate required fields
-    if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
+    if (!title || !trimmedMessageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
       return res.status(400).json({
         success: false,
         message: 'Title, message body, recipients, and sender ID are required',
@@ -118,7 +122,7 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
     }
 
     // Validate message template
-    const validation = MessagePersonalizationService.validateMessageTemplate(messageBody);
+    const validation = MessagePersonalizationService.validateMessageTemplate(trimmedMessageBody);
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
@@ -143,7 +147,7 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
     if (processedRecipients.finalCount > 0) {
       costEstimation = await CostCalculatorService.calculateLiveCost(
         userId,
-        messageBody,
+        trimmedMessageBody,
         processedRecipients.finalCount,
         { salutation, customSalutation }
       );
@@ -154,7 +158,7 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
     const sampleRecipients = processedRecipients.validRecipients.slice(0, 3);
     const previewMessages = sampleRecipients.length > 0 ?
       MessagePersonalizationService.generatePreviewMessages(
-        messageBody,
+        trimmedMessageBody,
         salutation,
         customSalutation,
         sampleRecipients,
@@ -174,7 +178,7 @@ router.post('/preview-campaign', authenticate, async (req, res) => {
       campaignPreview: {
         title,
         senderId,
-        messageBody,
+        messageBody: trimmedMessageBody,
         salutation,
         customSalutation,
         isPersonalized: true,
@@ -230,8 +234,10 @@ router.post('/send', authenticate, async (req, res) => {
       removeDuplicates
     });
 
+    const trimmedMessageBody = messageBody.trim();
+
     // Validate required fields
-    if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
+    if (!title || !trimmedMessageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId) {
       return res.status(400).json({
         success: false,
         message: 'Title, message body, recipients, and sender ID are required',
@@ -249,7 +255,7 @@ router.post('/send', authenticate, async (req, res) => {
     }
 
     // Validate message template
-    const validation = MessagePersonalizationService.validateMessageTemplate(messageBody);
+    const validation = MessagePersonalizationService.validateMessageTemplate(trimmedMessageBody);
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
@@ -305,7 +311,7 @@ router.post('/send', authenticate, async (req, res) => {
     // Calculate segments and cost based on final valid recipients
     const costEstimation = await CostCalculatorService.calculateLiveCost(
       userId,
-      messageBody,
+      trimmedMessageBody,
       processedRecipients.finalCount,
       { salutation, customSalutation }
     );
@@ -315,7 +321,7 @@ router.post('/send', authenticate, async (req, res) => {
       userId,
       title,
       senderId,
-      messageBody,
+      messageBody: trimmedMessageBody,
       salutation,
       customSalutation,
       isPersonalized: true,
@@ -337,6 +343,22 @@ router.post('/send', authenticate, async (req, res) => {
 
     await campaign.save();
 
+    // Release reservation since per-recipient deductions were handled by NaloSmsService
+    if (reservation) {
+      try {
+        await WalletService.releaseReservation(reservation._id);
+        console.log('[SendCampaign] Reservation released after per-recipient deduction', {
+          reservationId: reservation._id,
+          campaignId: campaign._id
+        });
+      } catch (releaseError) {
+        console.error('[SendCampaign] Failed to release reservation', {
+          reservationId: reservation._id,
+          error: releaseError.message
+        });
+      }
+    }
+
     // Process recipients and send messages with bounded parallelism (CHUNK_SIZE = 10)
     const results = [];
     let successCount = 0;
@@ -354,7 +376,7 @@ router.post('/send', authenticate, async (req, res) => {
         chunk.map(async recipient => {
           try {
             const personalizedMessage = MessagePersonalizationService.personalizeMessage(
-              messageBody,
+              trimmedMessageBody,
               salutation,
               customSalutation,
               recipient.recipientName
@@ -584,11 +606,11 @@ router.post('/schedule', authenticate, async (req, res) => {
     });
 
     // Validate required fields
-    if (!title || !messageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId || !scheduledAt) {
+    if (!title || !trimmedMessageBody || !Array.isArray(recipients) || recipients.length === 0 || !senderId || !scheduledAt) {
       logger.warn('[Schedule] Validation failed: missing required fields', {
         userId,
         hasTitle: !!title,
-        hasMessageBody: !!messageBody,
+        hasMessageBody: !!trimmedMessageBody,
         hasRecipients: Array.isArray(recipients) && recipients.length > 0,
         hasSenderId: !!senderId,
         hasScheduledAt: !!scheduledAt
@@ -599,6 +621,8 @@ router.post('/schedule', authenticate, async (req, res) => {
         error: { code: 'VALIDATION_ERROR' }
       });
     }
+
+    const trimmedMessageBody = messageBody.trim();
 
     // Enforce maximum recipient limit
     if (recipients.length > MAX_SMS_RECIPIENTS) {
@@ -623,9 +647,9 @@ router.post('/schedule', authenticate, async (req, res) => {
     }
 
     // Validate message segments (multipart SMS supported)
-    const campaignSegmentResult = CostCalculatorService.calculateSegments(messageBody);
+    const campaignSegmentResult = CostCalculatorService.calculateSegments(trimmedMessageBody);
     if (campaignSegmentResult.segments > MAX_SMS_SEGMENTS) {
-      logger.warn('[Schedule] Message too long', { userId, length: messageBody.length, segments: campaignSegmentResult.segments });
+      logger.warn('[Schedule] Message too long', { userId, length: trimmedMessageBody.length, segments: campaignSegmentResult.segments });
       return res.status(400).json({
         success: false,
         message: `Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${campaignSegmentResult.segments} segments calculated for ${campaignSegmentResult.charCount} ${campaignSegmentResult.encoding} characters)`,
@@ -657,7 +681,7 @@ router.post('/schedule', authenticate, async (req, res) => {
     }
 
     // Validate message template
-    const validation = MessagePersonalizationService.validateMessageTemplate(messageBody);
+    const validation = MessagePersonalizationService.validateMessageTemplate(trimmedMessageBody);
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
@@ -711,7 +735,7 @@ router.post('/schedule', authenticate, async (req, res) => {
     // Calculate segments and cost based on final valid recipients
     const costEstimation = await CostCalculatorService.calculateLiveCost(
       userId,
-      messageBody,
+      trimmedMessageBody,
       processedRecipients.finalCount,
       { salutation, customSalutation }
     );
@@ -734,7 +758,7 @@ router.post('/schedule', authenticate, async (req, res) => {
       userId,
       title,
       senderId,
-      messageBody,
+      messageBody: trimmedMessageBody,
       salutation,
       customSalutation,
       isPersonalized: true,
@@ -785,7 +809,7 @@ router.post('/schedule', authenticate, async (req, res) => {
     const recipientDocs = [];
     for (const recipient of processedRecipients.validRecipients) {
       const personalizedMessage = MessagePersonalizationService.personalizeMessage(
-        messageBody,
+        trimmedMessageBody,
         salutation,
         customSalutation,
         recipient.recipientName

@@ -33,6 +33,8 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
+    const trimmedMessage = message.trim();
+
     // Validate recipients format
     if (!Array.isArray(recipients) || recipients.length === 0) {
       return res.status(400).json({
@@ -52,7 +54,7 @@ router.post('/send', authenticate, async (req, res) => {
     }
 
     // Message segment validation (multipart SMS supported)
-    const segmentResult = CostCalculatorService.calculateSegments(message);
+    const segmentResult = CostCalculatorService.calculateSegments(trimmedMessage);
     if (segmentResult.segments > MAX_SMS_SEGMENTS) {
       return res.status(400).json({
         success: false,
@@ -133,6 +135,27 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
+    // Validate total wallet balance before sending to avoid partial sends
+    const WalletService = require('../services/WalletService');
+    const totalCostEstimation = await CostCalculatorService.calculateLiveCost(
+      userId,
+      trimmedMessage,
+      recipientsToSend.length,
+      null
+    );
+    const availableBalance = await WalletService.getAvailableBalance(userId);
+    if (availableBalance < totalCostEstimation.estimatedCost) {
+      return res.status(402).json({
+        success: false,
+        message: 'Insufficient available balance for this send',
+        error: {
+          code: 'INSUFFICIENT_BALANCE',
+          required: totalCostEstimation.estimatedCost,
+          available: availableBalance
+        }
+      });
+    }
+
     // Send SMS to ALL recipients with bounded parallelism (CHUNK_SIZE = 10)
     const results = [];
     let successCount = 0;
@@ -151,7 +174,7 @@ router.post('/send', authenticate, async (req, res) => {
             userId,
             phoneNumber: recipient.phoneNumber,
             senderId,
-            message,
+            message: trimmedMessage,
             recipientsCount: 1
           })
         )
@@ -277,8 +300,9 @@ router.post('/send', authenticate, async (req, res) => {
     let campaign = null;
 
     try {
-      const { senderId, recipients, message, scheduledAt, timezone, removeDuplicates = true } = req.body;
-      const userId = req.user.userId;
+    const { senderId, recipients, message, scheduledAt, timezone, removeDuplicates = true } = req.body;
+    const userId = req.user.userId;
+    const trimmedMessage = message.trim();
 
       logger.info('[Schedule] Received default schedule request', {
         userId,
@@ -415,9 +439,9 @@ router.post('/send', authenticate, async (req, res) => {
       }
 
       // Validate message segments (multipart SMS supported)
-      const scheduleSegmentResult = CostCalculatorService.calculateSegments(message);
+      const scheduleSegmentResult = CostCalculatorService.calculateSegments(trimmedMessage);
       if (scheduleSegmentResult.segments > MAX_SMS_SEGMENTS) {
-        logger.warn('[Schedule] Message too long', { userId, length: message.length, segments: scheduleSegmentResult.segments });
+        logger.warn('[Schedule] Message too long', { userId, length: trimmedMessage.length, segments: scheduleSegmentResult.segments });
         return res.status(400).json({
           success: false,
           message: `Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${scheduleSegmentResult.segments} segments calculated for ${scheduleSegmentResult.charCount} ${scheduleSegmentResult.encoding} characters)`,
@@ -441,7 +465,7 @@ router.post('/send', authenticate, async (req, res) => {
       const CostCalculatorService = require('../services/CostCalculatorService');
       const costEstimation = await CostCalculatorService.calculateLiveCost(
         userId,
-        message,
+        trimmedMessage,
         processedRecipients.finalCount,
         null
       );
@@ -486,7 +510,7 @@ router.post('/send', authenticate, async (req, res) => {
         userId,
         title: `Bulk SMS ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
         senderId,
-        messageBody: message,
+        messageBody: trimmedMessage,
         isPersonalized: false,
         sendMode: 'scheduled',
         scheduledAt: scheduledUtc,
@@ -520,7 +544,7 @@ router.post('/send', authenticate, async (req, res) => {
       // Create recipient records for valid recipients
       const SmsRecipient = require('../models/SmsRecipient');
       const sellPrice = await CostCalculatorService.getSellPricePerSms();
-      const segmentResult = CostCalculatorService.calculateSegments(message);
+      const segmentResult = CostCalculatorService.calculateSegments(trimmedMessage);
 
       await SmsRecipient.insertMany(
         processedRecipients.validRecipients.map(r => {

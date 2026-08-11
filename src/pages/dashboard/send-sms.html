@@ -428,8 +428,10 @@
                                 <span class="encoding-value" id="encodingType">GSM-7</span>
                             </div>
                             <div class="sms-counter">
-                                <span class="sms-count-label">Segments:</span>
+                                <span class="sms-count-label">Segments/msg:</span>
                                 <span class="sms-count-value" id="smsCount">1</span>
+                                <span class="sms-total-label">Total SMS units:</span>
+                                <span class="sms-total-value" id="totalSmsUnits">-</span>
                             </div>
                             <div class="cost-estimate">
                                 <span class="cost-label">Est. Cost:</span>
@@ -801,10 +803,10 @@
                             <span class="analysis-label">Encoding:</span>
                             <span class="analysis-value" id="reviewEncodingType">-</span>
                         </div>
-                        <div class="analysis-item">
-                            <span class="analysis-label">SMS Parts:</span>
-                            <span class="analysis-value" id="reviewSmsParts">-</span>
-                        </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Total SMS Units:</span>
+                                <span class="analysis-value" id="reviewSmsParts">-</span>
+                            </div>
                         <div class="analysis-item">
                             <span class="analysis-label">Estimated Cost:</span>
                             <span class="analysis-value cost-value" id="reviewEstimatedCost">-</span>
@@ -2588,28 +2590,28 @@ if (result.error) {
                     return;
                 }
 
-                const senderId = senderIdEl.value;
-                const messageBody = messageBodyEl.value;
-                const salutation = salutationEl.value;
-                const customSalutationEl = document.getElementById('customSalutation');
-                const customSalutation = customSalutationEl ? customSalutationEl.value : '';
-                const removeDuplicatesEl = document.querySelector('input[name="duplicateHandling"]:checked');
-                const removeDuplicates = removeDuplicatesEl ? removeDuplicatesEl.value === 'remove' : true;
+                 const senderId = senderIdEl.value;
+                 const messageBody = messageBodyEl.value.trim();
+                 const salutation = salutationEl.value;
+                 const customSalutationEl = document.getElementById('customSalutation');
+                 const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+                 const removeDuplicatesEl = document.querySelector('input[name="duplicateHandling"]:checked');
+                 const removeDuplicates = removeDuplicatesEl ? removeDuplicatesEl.value === 'remove' : true;
 
-                if (!senderId || !messageBody.trim()) {
-                    duplicateHandlingSection.style.display = 'none';
-                    return;
-                }
+                 if (!senderId || !messageBody) {
+                     duplicateHandlingSection.style.display = 'none';
+                     return;
+                 }
 
-                const response = await window.apiClient.previewCampaign({
-                    title,
-                    messageBody,
-                    salutation,
-                    customSalutation,
-                    recipients,
-                    senderId,
-                    removeDuplicates
-                }, { signal: currentPreviewAbortController.signal });
+                 const response = await window.apiClient.previewCampaign({
+                     title,
+                     messageBody,
+                     salutation,
+                     customSalutation,
+                     recipients,
+                     senderId,
+                     removeDuplicates
+                 }, { signal: currentPreviewAbortController.signal });
 
                 // Only process if this is the latest request
                 if (currentRequestId !== previewRequestId) {
@@ -2706,10 +2708,12 @@ if (result.error) {
 
                 // Update cost estimation with processed data
                 const smsCountEl = document.getElementById('smsCount');
+                const totalSmsUnitsEl = document.getElementById('totalSmsUnits');
                 const estimatedCostEl = document.getElementById('estimatedCost');
                 if (responseData.costEstimation || response.costEstimation) {
                     const costData = responseData.costEstimation || response.costEstimation;
-                    if (smsCountEl) smsCountEl.textContent = costData.totalSegments || 1;
+                    if (smsCountEl) smsCountEl.textContent = costData.segments?.segments || costData.avgSegments || 1;
+                    if (totalSmsUnitsEl) totalSmsUnitsEl.textContent = costData.totalSegments || 1;
                     if (estimatedCostEl) estimatedCostEl.textContent = `GHS ${(costData.estimatedCost || 0).toFixed(2)}`;
                 }
 
@@ -3856,48 +3860,54 @@ if (result.error) {
              schedulePreviewUpdate();
          }
         
-        // Update message counters (character count, encoding, segments)
-        function updateMessageCounters(message) {
-            const charCountEl = document.getElementById('charCount');
-            const encodingTypeEl = document.getElementById('encodingType');
-            const smsCountEl = document.getElementById('smsCount');
-            const costWarningsEl = document.getElementById('costWarnings');
-            const warningTextEl = document.getElementById('warningText');
-            
-            if (!charCountEl) return;
-            
-            const charCount = message.length;
-            charCountEl.textContent = charCount;
-            
-            if (charCount > 0) {
-                const segmentResult = calculateSmsSegments(message);
-                if (encodingTypeEl) {
-                    encodingTypeEl.textContent = segmentResult.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
-                    encodingTypeEl.className = 'encoding-value ' + (segmentResult.encoding === 'gsm7' ? '' : 'unicode-warning');
-                }
-                if (smsCountEl) {
-                    smsCountEl.textContent = segmentResult.segments;
-                }
-                
-                // Check for Unicode warning
-                if (costWarningsEl && warningTextEl) {
-                    const specialChars = detectUnicodeCharacters(message);
-                    if (specialChars.length > 0) {
-                        costWarningsEl.style.display = 'flex';
-                        warningTextEl.innerHTML = `Your message contains special characters (<strong>${specialChars.join(', ')}</strong>) which reduce SMS length from 160 to 70 characters per segment.`;
-                    } else {
-                        costWarningsEl.style.display = 'none';
-                    }
-                }
-            } else {
-                if (encodingTypeEl) {
-                    encodingTypeEl.textContent = 'GSM-7';
-                    encodingTypeEl.className = 'encoding-value';
-                }
-                if (smsCountEl) smsCountEl.textContent = '1';
-                if (costWarningsEl) costWarningsEl.style.display = 'none';
-            }
-        }
+         // Update message counters (character count, encoding, segments)
+         function updateMessageCounters(message) {
+             const charCountEl = document.getElementById('charCount');
+             const encodingTypeEl = document.getElementById('encodingType');
+             const smsCountEl = document.getElementById('smsCount');
+             const totalSmsUnitsEl = document.getElementById('totalSmsUnits');
+             const costWarningsEl = document.getElementById('costWarnings');
+             const warningTextEl = document.getElementById('warningText');
+             
+             if (!charCountEl) return;
+             
+             const trimmedMessage = message.trim();
+             const charCount = trimmedMessage.length;
+             charCountEl.textContent = charCount;
+             
+             if (charCount > 0) {
+                 const segmentResult = calculateSmsSegments(trimmedMessage);
+                 if (encodingTypeEl) {
+                     encodingTypeEl.textContent = segmentResult.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
+                     encodingTypeEl.className = 'encoding-value ' + (segmentResult.encoding === 'gsm7' ? '' : 'unicode-warning');
+                 }
+                 if (smsCountEl) {
+                     smsCountEl.textContent = segmentResult.segments;
+                 }
+                 if (totalSmsUnitsEl) {
+                     totalSmsUnitsEl.textContent = '-';
+                 }
+                 
+                 // Check for Unicode warning
+                 if (costWarningsEl && warningTextEl) {
+                     const specialChars = detectUnicodeCharacters(trimmedMessage);
+                     if (specialChars.length > 0) {
+                         costWarningsEl.style.display = 'flex';
+                         warningTextEl.innerHTML = `Your message contains special characters (<strong>${specialChars.join(', ')}</strong>) which reduce SMS length from 160 to 70 characters per segment.`;
+                     } else {
+                         costWarningsEl.style.display = 'none';
+                     }
+                 }
+             } else {
+                 if (encodingTypeEl) {
+                     encodingTypeEl.textContent = 'GSM-7';
+                     encodingTypeEl.className = 'encoding-value';
+                 }
+                 if (smsCountEl) smsCountEl.textContent = '1';
+                 if (totalSmsUnitsEl) totalSmsUnitsEl.textContent = '-';
+                 if (costWarningsEl) costWarningsEl.style.display = 'none';
+             }
+         }
         
         // Debounced cost update
         let costCalcTimeout;
@@ -3906,87 +3916,90 @@ if (result.error) {
             costCalcTimeout = setTimeout(updateCostEstimation, 300);
         }
         
-        // Update cost estimation (existing function - keep as is but ensure it works)
-        async function updateCostEstimation() {
-            // Cancel any pending cost estimation request
-            if (currentCostEstimationAbortController) {
-                currentCostEstimationAbortController.abort();
-            }
+         // Update cost estimation (existing function - keep as is but ensure it works)
+         async function updateCostEstimation() {
+             // Cancel any pending cost estimation request
+             if (currentCostEstimationAbortController) {
+                 currentCostEstimationAbortController.abort();
+             }
 
-            // Generate unique request ID
-            const currentRequestId = ++costEstimationRequestId;
-            currentCostEstimationAbortController = new AbortController();
+             // Generate unique request ID
+             const currentRequestId = ++costEstimationRequestId;
+             currentCostEstimationAbortController = new AbortController();
 
-            const messageBodyEl = document.getElementById('messageBody');
-            if (!messageBodyEl) return;
-            
-            const message = messageBodyEl.value;
-            const recipientCount = getRecipientCount();
-            
-            const salutationEl = document.getElementById('salutation');
-            const customSalutationEl = document.getElementById('customSalutation');
-            const salutation = salutationEl ? salutationEl.value : 'Dear';
-            const customSalutation = customSalutationEl ? customSalutationEl.value : '';
-            
-            const encodingTypeEl = document.getElementById('encodingType');
-            const smsCountEl = document.getElementById('smsCount');
-            const estimatedCostEl = document.getElementById('estimatedCost');
-            const costWarningsEl = document.getElementById('costWarnings');
-            const warningTextEl = document.getElementById('warningText');
-            
-            if (!message.trim()) {
-                if (encodingTypeEl) encodingTypeEl.textContent = 'GSM-7';
-                if (smsCountEl) smsCountEl.textContent = '1';
-                if (estimatedCostEl) estimatedCostEl.textContent = 'GHS 0.00';
-                if (costWarningsEl) costWarningsEl.style.display = 'none';
-                return;
-            }
-            
-            try {
-                const params = new URLSearchParams({
-                    message: message,
-                    recipients: recipientCount.toString()
-                });
-                
-                if (salutation) params.append('salutation', salutation);
-                if (customSalutation) params.append('customSalutation', customSalutation);
-                
-                const response = await window.apiClient.getSmsCost(params, {
-                    signal: currentCostEstimationAbortController.signal
-                });
-                
-                // Only process if this is the latest request
-                if (currentRequestId !== costEstimationRequestId) {
-                    return;
-                }
+             const messageBodyEl = document.getElementById('messageBody');
+             if (!messageBodyEl) return;
+             
+             const message = messageBodyEl.value.trim();
+             const recipientCount = getRecipientCount();
+             
+             const salutationEl = document.getElementById('salutation');
+             const customSalutationEl = document.getElementById('customSalutation');
+             const salutation = salutationEl ? salutationEl.value : 'Dear';
+             const customSalutation = customSalutationEl ? customSalutationEl.value : '';
+             
+             const encodingTypeEl = document.getElementById('encodingType');
+             const smsCountEl = document.getElementById('smsCount');
+             const totalSmsUnitsEl = document.getElementById('totalSmsUnits');
+             const estimatedCostEl = document.getElementById('estimatedCost');
+             const costWarningsEl = document.getElementById('costWarnings');
+             const warningTextEl = document.getElementById('warningText');
+             
+             if (!message) {
+                 if (encodingTypeEl) encodingTypeEl.textContent = 'GSM-7';
+                 if (smsCountEl) smsCountEl.textContent = '1';
+                 if (totalSmsUnitsEl) totalSmsUnitsEl.textContent = '-';
+                 if (estimatedCostEl) estimatedCostEl.textContent = 'GHS 0.00';
+                 if (costWarningsEl) costWarningsEl.style.display = 'none';
+                 return;
+             }
+             
+             try {
+                 const params = new URLSearchParams({
+                     message: message,
+                     recipients: recipientCount.toString()
+                 });
+                 
+                 if (salutation) params.append('salutation', salutation);
+                 if (customSalutation) params.append('customSalutation', customSalutation);
+                 
+                 const response = await window.apiClient.getSmsCost(params, {
+                     signal: currentCostEstimationAbortController.signal
+                 });
+                 
+                 // Only process if this is the latest request
+                 if (currentRequestId !== costEstimationRequestId) {
+                     return;
+                 }
 
-                if (response.error) {
-                    // Silently ignore abort errors
-                    if (!response.isAbort) {
-                        console.error('Cost calculation error:', response.error);
-                    }
-                    return;
-                }
-                
-                const data = response.data;
-                if (encodingTypeEl) encodingTypeEl.textContent = data.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
-                if (smsCountEl) smsCountEl.textContent = data.segments.minSegments && data.segments.maxSegments
-                    ? `${data.segments.minSegments}-${data.segments.maxSegments}`
-                    : data.avgSegments || 1;
-                if (estimatedCostEl) estimatedCostEl.textContent = `GHS ${data.estimatedCost.toFixed(2)}`;
-                
-                if (data.warnings && data.warnings.length > 0) {
-                    if (warningTextEl) warningTextEl.textContent = data.warnings.join('. ');
-                    if (costWarningsEl) costWarningsEl.style.display = 'flex';
-                } else {
-                    if (costWarningsEl) costWarningsEl.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Error updating cost estimation:', error);
-            }
-            
-            // Also analyze recipients for duplicates
-            await analyzeRecipients();
+                 if (response.error) {
+                     // Silently ignore abort errors
+                     if (!response.isAbort) {
+                         console.error('Cost calculation error:', response.error);
+                     }
+                     return;
+                 }
+                 
+                 const data = response.data;
+                 if (encodingTypeEl) encodingTypeEl.textContent = data.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
+                 if (smsCountEl) smsCountEl.textContent = data.segments.minSegments && data.segments.maxSegments
+                     ? `${data.segments.minSegments}-${data.segments.maxSegments}`
+                     : data.avgSegments || 1;
+                 if (totalSmsUnitsEl) totalSmsUnitsEl.textContent = data.totalSegments || 1;
+                 if (estimatedCostEl) estimatedCostEl.textContent = `GHS ${data.estimatedCost.toFixed(2)}`;
+                 
+                 if (data.warnings && data.warnings.length > 0) {
+                     if (warningTextEl) warningTextEl.textContent = data.warnings.join('. ');
+                     if (costWarningsEl) costWarningsEl.style.display = 'flex';
+                 } else {
+                     if (costWarningsEl) costWarningsEl.style.display = 'none';
+                 }
+             } catch (error) {
+                 console.error('Error updating cost estimation:', error);
+             }
+             
+             // Also analyze recipients for duplicates
+             await analyzeRecipients();
         }
         
         // ============================================
@@ -4487,6 +4500,8 @@ if (result.error) {
     document.getElementById('charCount').textContent = '0';
     document.getElementById('encodingType').textContent = 'GSM-7';
     document.getElementById('smsCount').textContent = '1';
+    const totalSmsUnitsReset = document.getElementById('totalSmsUnits');
+    if (totalSmsUnitsReset) totalSmsUnitsReset.textContent = '-';
     document.getElementById('estimatedCost').textContent = 'GHS 0.00';
     document.getElementById('costWarnings').style.display = 'none';
 
@@ -4599,7 +4614,6 @@ async function analyzeRecipientsForModal() {
 
     // Calculate duplicates removed based on setting
     analysis.duplicatesRemoved = removeDuplicates ? analysis.duplicates : 0;
-    analysis.toSend = recipients.length - analysis.invalid - analysis.duplicatesRemoved;
 
     // Check for blacklisted
     try {
@@ -4620,6 +4634,8 @@ async function analyzeRecipientsForModal() {
     } catch (e) {
         console.warn('[Blacklist] Could not fetch blacklist:', e);
     }
+
+    analysis.toSend = recipients.length - analysis.invalid - analysis.duplicatesRemoved - analysis.blacklisted;
 
     return analysis;
 }
@@ -4803,21 +4819,21 @@ sampleRecipients.forEach(r => {
     }
 
     // Populate SMS analysis - use values from main UI for consistency
-    const segmentResult = calculateSmsSegments(campaignData.messageBody);
-    const charCount = campaignData.messageBody ? campaignData.messageBody.length : 0;
+    const trimmedMessageBody = (campaignData.messageBody || '').trim();
+    const segmentResult = calculateSmsSegments(trimmedMessageBody);
+    const charCount = trimmedMessageBody.length;
     const mainSmsCountEl = document.getElementById('smsCount');
+    const totalSmsUnitsEl = document.getElementById('totalSmsUnits');
     const mainEstimatedCostEl = document.getElementById('estimatedCost');
 
     if (charCountEl) charCountEl.textContent = charCount;
     if (encodingTypeEl) encodingTypeEl.textContent = segmentResult.encoding === 'gsm7' ? 'GSM-7' : 'Unicode';
-    if (smsPartsEl) smsPartsEl.textContent = mainSmsCountEl ? mainSmsCountEl.textContent : segmentResult.segments;
+    if (smsPartsEl) smsPartsEl.textContent = segmentResult.segments * (campaignData.analysis.toSend || 0);
 
     // Get estimated cost from main UI (already calculated via backend API)
     if (estimatedCostEl) {
         // Use the value from the main estimated cost element for consistency
         const mainCostText = mainEstimatedCostEl ? mainEstimatedCostEl.textContent : 'GHS 0.00';
-        // Extract numeric value and format consistently
-        const costMatch = mainCostText.match(/GHS\s*([\d.]+)/);
         estimatedCostEl.textContent = mainCostText;
     }
 
@@ -5212,10 +5228,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .char-count-value,
         .encoding-value,
         .sms-count-value,
+        .sms-total-value,
         .cost-value {
             font-weight: 600;
             color: var(--primary-dark);
             font-size: 0.95rem;
+        }
+
+        .sms-total-label {
+            color: #999;
+            font-size: 0.85rem;
+            margin-left: 0.75rem;
         }
 
         .cost-warnings {

@@ -135,7 +135,8 @@ class CostCalculatorService {
    * @returns {Object} Segment calculation result
    */
   calculateSegments(message) {
-    if (!message || message.length === 0) {
+    const trimmedMessage = (message || '').trim();
+    if (!trimmedMessage || trimmedMessage.length === 0) {
       return {
         segments: 1,
         encoding: 'gsm7',
@@ -144,14 +145,14 @@ class CostCalculatorService {
       };
     }
 
-    const encoding = this.determineEncoding(message);
-    const charCount = message.length;
+    const encoding = this.determineEncoding(trimmedMessage);
+    const charCount = trimmedMessage.length;
 
     let segments;
     let byteLength;
 
     if (encoding === 'gsm7') {
-      byteLength = this.calculateByteLength(message);
+      byteLength = this.calculateByteLength(trimmedMessage);
       const singleSegmentLimit = 160; // 160 bytes for GSM-7
       const multiSegmentLimit = 153; // 153 bytes for multi-part GSM-7
 
@@ -293,7 +294,8 @@ class CostCalculatorService {
    * @returns {Object} Financial breakdown
    */
   async calculateFinancialBreakdown(userId, message, recipientsCount, personalizationData = null) {
-    logger.info('[Cost] Calculating financial breakdown', { userId, recipientsCount, hasPersonalization: !!personalizationData });
+    const trimmedMessage = (message || '').trim();
+    logger.info('[Cost] Calculating financial breakdown', { userId, recipientsCount, hasPersonalization: !!personalizationData, messageLength: trimmedMessage.length });
 
     // Get monthly volume for tier selection
     const monthlyVolume = await this.getMonthlyVolume(userId);
@@ -305,9 +307,9 @@ class CostCalculatorService {
     // Calculate segments (consider personalization if data provided)
     let segmentResult;
     if (personalizationData) {
-      segmentResult = this.calculateSegmentsForPersonalizedMessage(message, personalizationData);
+      segmentResult = this.calculateSegmentsForPersonalizedMessage(trimmedMessage, personalizationData);
     } else {
-      segmentResult = this.calculateSegments(message);
+      segmentResult = this.calculateSegments(trimmedMessage);
     }
 
     // For personalized messages, calculate average segments
@@ -495,6 +497,7 @@ class CostCalculatorService {
    * @returns {Object} Live cost estimation
    */
   async calculateLiveCost(userId, message, recipientCount, personalizationData = null) {
+    const trimmedMessage = (message || '').trim();
     // Get monthly volume for tier selection
     const monthlyVolume = await this.getMonthlyVolume(userId);
 
@@ -505,9 +508,9 @@ class CostCalculatorService {
     // Calculate segments
     let segmentResult;
     if (personalizationData) {
-      segmentResult = this.calculateSegmentsForPersonalizedMessage(message, personalizationData);
+      segmentResult = this.calculateSegmentsForPersonalizedMessage(trimmedMessage, personalizationData);
     } else {
-      segmentResult = this.calculateSegments(message);
+      segmentResult = this.calculateSegments(trimmedMessage);
     }
 
     // Calculate cost
