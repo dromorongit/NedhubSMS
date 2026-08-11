@@ -377,6 +377,43 @@ router.post('/send', authenticate, async (req, res) => {
     const circuitBreakerStatus = NaloSmsService.getCircuitBreakerStatus();
     console.log('[SendCampaign] Circuit breaker status before send:', circuitBreakerStatus);
 
+    // Provider preflight: validate Sender ID with Nalo before sending to any recipient
+    const firstRecipient = processedRecipients.validRecipients[0];
+    if (firstRecipient) {
+      const senderIdPreflight = await NaloSmsService.validateSenderIdWithProvider(senderId);
+      if (!senderIdPreflight.valid) {
+        await SmsRecipient.deleteMany({ campaignId: campaign._id });
+        campaign.status = 'failed';
+        campaign.failedCount = processedRecipients.finalCount;
+        campaign.sentCount = 0;
+        campaign.queuedCount = 0;
+        await campaign.save();
+
+        console.log('[SendCampaign] Sender ID provider preflight failed:', {
+          campaignId: campaign._id,
+          senderId,
+          errorCode: senderIdPreflight.errorCode,
+          errorMessage: senderIdPreflight.errorMessage
+        });
+
+        return res.status(400).json({
+          success: false,
+          message: senderIdPreflight.errorMessage || 'The selected Sender ID is not approved by the SMS provider. Please select an approved Sender ID.',
+          error: {
+            code: 'SENDER_ID_PROVIDER_REJECTED',
+            providerErrorCode: senderIdPreflight.errorCode
+          },
+          data: {
+            campaignId: campaign._id,
+            totalRecipients: processedRecipients.finalCount,
+            successfulRecipients: 0,
+            failedRecipients: processedRecipients.finalCount,
+            status: 'failed'
+          }
+        });
+      }
+    }
+
     for (const chunk of chunks) {
       const chunkResults = await Promise.allSettled(
         chunk.map(async recipient => {
@@ -671,6 +708,19 @@ router.post('/schedule', authenticate, async (req, res) => {
         success: false,
         message: 'Sender ID not found or not approved. Please use an approved Sender ID.',
         error: { code: 'VALIDATION_ERROR' }
+      });
+    }
+
+    // Provider preflight: validate Sender ID with Nalo before wallet reservation and scheduling
+    const senderIdPreflight = await NaloSmsService.validateSenderIdWithProvider(senderId);
+    if (!senderIdPreflight.valid) {
+      return res.status(400).json({
+        success: false,
+        message: senderIdPreflight.errorMessage || 'The selected Sender ID is not approved by the SMS provider. Please select an approved Sender ID.',
+        error: {
+          code: 'SENDER_ID_PROVIDER_REJECTED',
+          providerErrorCode: senderIdPreflight.errorCode
+        }
       });
     }
 

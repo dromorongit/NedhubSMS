@@ -220,6 +220,89 @@ class NaloSmsService {
   }
 
   /**
+   * Validate Sender ID with Nalo provider before campaign send.
+   * Sends a single test message to a dummy number. Does NOT deduct wallet.
+   * @param {string} senderId - Sender ID to validate
+   * @returns {Object} { valid: boolean, errorCode: string|null, errorMessage: string|null }
+   */
+  async validateSenderIdWithProvider(senderId) {
+    const TEST_PHONE = '233000000000';
+
+    try {
+      const formattedPhone = this.formatPhoneNumber(TEST_PHONE);
+      const payload = {
+        key: this.apiKey,
+        msisdn: formattedPhone,
+        sender_id: senderId,
+        message: 'Test'
+      };
+
+      console.log('[NaloSmsService] Sender ID preflight validation', {
+        senderId,
+        testPhone: formattedPhone
+      });
+
+      const response = await this.httpClient.post(this.endpoint, payload, {
+        headers: { 'Content-Type': 'application/json' },
+        validateStatus: (status) => status === 200
+      });
+
+      const parsed = this.parseNaloResponse(response.data, {
+        phoneNumber: TEST_PHONE,
+        formattedPhoneNumber: formattedPhone,
+        userId: 'preflight'
+      });
+
+      if (parsed.status === '1701') {
+        console.log('[NaloSmsService] Sender ID preflight: VALID', { senderId });
+        return { valid: true, errorCode: null, errorMessage: null };
+      }
+
+      if (parsed.status === '1707') {
+        console.log('[NaloSmsService] Sender ID preflight: INVALID (1707)', { senderId });
+        return {
+          valid: false,
+          errorCode: '1707',
+          errorMessage: 'Sender ID is not registered with the SMS provider. Please select an approved Sender ID.'
+        };
+      }
+
+      // Other provider errors during preflight - treat as inconclusive but surface the error
+      console.log('[NaloSmsService] Sender ID preflight: inconclusive', {
+        senderId,
+        status: parsed.status,
+        errorMessage: parsed.error_message
+      });
+      return {
+        valid: false,
+        errorCode: parsed.status,
+        errorMessage: parsed.error_message || 'Unable to validate Sender ID with provider. Please try again.'
+      };
+
+    } catch (apiError) {
+      console.log('[NaloSmsService] Sender ID preflight: HTTP error', {
+        senderId,
+        status: apiError.response?.status,
+        error: apiError.message
+      });
+
+      if (apiError.response?.status === 412) {
+        return {
+          valid: false,
+          errorCode: '1707',
+          errorMessage: 'Sender ID is not registered with the SMS provider. Please select an approved Sender ID.'
+        };
+      }
+
+      return {
+        valid: false,
+        errorCode: `HTTP_${apiError.response?.status || 'ERROR'}`,
+        errorMessage: 'Unable to validate Sender ID with provider. Please try again.'
+      };
+    }
+  }
+
+  /**
    * Send SMS using Nalo API with full financial tracking
    */
   async sendSmsWithFinancialTracking(request) {
