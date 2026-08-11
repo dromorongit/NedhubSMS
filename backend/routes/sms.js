@@ -76,7 +76,7 @@ router.post('/send', authenticate, async (req, res) => {
 
     // Wallet balance check
     const WalletService = require('../services/WalletService');
-    const availableBalance = await WalletService.getAvailableBalance(userId);
+    let availableBalance = await WalletService.getAvailableBalance(userId);
     if (availableBalance < 0.01) {
       return res.status(402).json({
         success: false,
