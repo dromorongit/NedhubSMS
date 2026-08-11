@@ -4398,40 +4398,46 @@ if (result.error) {
                         
                         // Reset form
                         resetForm();
-                   } else {
-                      // Handle API-level failure (success: false)
-                      let errorMessage = result.message || responseData.message || extractErrorMessage(responseData.error) || 'Campaign failed to send';
-                      if (responseData.summary || responseData.duplicatesRemoved !== undefined) {
-                          const parts = [];
-                          const dupCount = responseData.duplicatesRemoved || responseData.summary?.duplicatesRemoved || 0;
-                          const invCount = responseData.invalidRecipients || responseData.summary?.invalidRecipients || 0;
-                          const blCount = responseData.blacklistedRecipients || responseData.summary?.blacklistedRecipients || 0;
-                          if (dupCount > 0) parts.push(`${dupCount} duplicates`);
-                          if (invCount > 0) parts.push(`${invCount} invalid`);
-                          if (blCount > 0) parts.push(`${blCount} blacklisted`);
-                          if (parts.length > 0) {
-                              errorMessage += ` (${parts.join(', ')})`;
-                          }
-                          errorMessage += '. Please check your recipients and try again.';
-                      }
+                    } else {
+                       // Handle API-level failure (success: false)
+                       let errorMessage = result.message || responseData.message || extractErrorMessage(responseData.error) || 'Campaign failed to send';
+                       
+                       // Check for circuit breaker rejection first
+                       if (responseData.circuitBreakerStatus?.isCircuitBreakerRejection) {
+                           const waitSec = responseData.circuitBreakerStatus.circuitBreakerWaitSeconds || 30;
+                           errorMessage = `SMS provider is temporarily unavailable. Please wait ${waitSec} seconds and try again. If this persists, contact support.`;
+                       } else if (responseData.summary || responseData.duplicatesRemoved !== undefined) {
+                           const parts = [];
+                           const dupCount = responseData.duplicatesRemoved || responseData.summary?.duplicatesRemoved || 0;
+                           const invCount = responseData.invalidRecipients || responseData.summary?.invalidRecipients || 0;
+                           const blCount = responseData.blacklistedRecipients || responseData.summary?.blacklistedRecipients || 0;
+                           if (dupCount > 0) parts.push(`${dupCount} duplicates`);
+                           if (invCount > 0) parts.push(`${invCount} invalid`);
+                           if (blCount > 0) parts.push(`${blCount} blacklisted`);
+                           if (parts.length > 0) {
+                               errorMessage += ` (${parts.join(', ')})`;
+                           }
+                           errorMessage += '. Please check your recipients and try again.';
+                       }
 
-                      // Show provider error summary if all failures share a common cause
-                      if (responseData.providerErrorSummary && responseData.providerErrorSummary.isCommonCause) {
-                          const providerSummary = responseData.providerErrorSummary;
-                          errorMessage += ` Provider error: ${providerSummary.errorCode} - ${providerSummary.error}. ${providerSummary.affectedRecipients} recipient(s) affected.`;
-                      }
+                       // Show provider error summary if all failures share a common cause
+                       if (responseData.providerErrorSummary && responseData.providerErrorSummary.isCommonCause) {
+                           const providerSummary = responseData.providerErrorSummary;
+                           errorMessage += ` Provider error: ${providerSummary.errorCode} - ${providerSummary.error}. ${providerSummary.affectedRecipients} recipient(s) affected.`;
+                       }
 
-                      // Log toast notification with [ToastNotification] tag
-                      console.log('[ToastNotification]', {
-                        type: 'error',
-                        message: errorMessage,
-                        successCount: 0,
-                        failedCount: responseData.failedRecipients ?? responseData.summary?.failed ?? 0,
-                        providerErrorSummary: responseData.providerErrorSummary
-                      });
-                      
-                      showToast(errorMessage, 'error');
-                   }
+                       // Log toast notification with [ToastNotification] tag
+                       console.log('[ToastNotification]', {
+                         type: 'error',
+                         message: errorMessage,
+                         successCount: 0,
+                         failedCount: responseData.failedRecipients ?? responseData.summary?.failed ?? 0,
+                         providerErrorSummary: responseData.providerErrorSummary,
+                         circuitBreakerStatus: responseData.circuitBreakerStatus
+                       });
+                       
+                       showToast(errorMessage, 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Campaign error:', error);

@@ -348,6 +348,28 @@ class NaloSmsService {
       let errorCode = null;
       let errorMessage = null;
       let jobId = null;
+      let circuitBreakerRejected = false;
+
+      // Check circuit breaker before attempting provider send
+      const preCheckStatus = this.getCircuitBreakerStatus();
+      if (preCheckStatus.state === 'OPEN') {
+        const waitMs = preCheckStatus.nextAttemptTime ? Math.max(0, preCheckStatus.nextAttemptTime - Date.now()) : 0;
+        const waitSec = Math.ceil(waitMs / 1000);
+        console.log('[NaloSmsService] Circuit breaker is OPEN, rejecting send before provider call', {
+          userId,
+          phoneNumber: formattedPhoneNumber,
+          campaignId: campaignId || 'N/A',
+          recipientId: recipientId || 'N/A',
+          nextAttemptIn: waitSec
+        });
+        return {
+          success: false,
+          error: `Provider is temporarily unavailable. Please try again in ${waitSec} seconds.`,
+          code: 'CIRCUIT_BREAKER_OPEN',
+          circuitBreakerState: 'OPEN',
+          circuitBreakerWaitSeconds: waitSec
+        };
+      }
 
       if (this.isDummyMode) {
         // Simulate SMS sending in dummy mode
@@ -358,6 +380,7 @@ class NaloSmsService {
         });
         smsStatus = 'sent';  // In dummy mode, immediately mark as sent
         jobId = `dummy-${Date.now()}`;
+        this.reportNaloSuccessToBreaker();
       } else {
         try {
           logger.smsSend.info('[NaloSmsService] Sending SMS via Nalo API', {
@@ -416,6 +439,7 @@ class NaloSmsService {
           if (naloResponse.status === '1701') {
             smsStatus = 'sent';  // Provider accepted - mark as sent
             jobId = naloResponse.message_id || naloResponse.job_id || `nalo-${Date.now()}`;
+            this.reportNaloSuccessToBreaker();
             
             logger.info('[StatusMapping] SMS accepted by provider', {
               messageId: jobId,
@@ -426,6 +450,8 @@ class NaloSmsService {
           } else {
             smsStatus = 'failed';  // Provider rejected - mark as failed
             errorCode = naloResponse.status;
+            // Classify Nalo error and report to circuit breaker
+            this.reportNaloFailureToBreaker(naloResponse.status);
            // Provide more user-friendly error messages for common Nalo errors
            if (naloResponse.status === '1707') {
              errorMessage = 'Sender ID not registered with Nalo. Please contact admin to register your sender ID with the SMS provider.';
@@ -489,6 +515,7 @@ class NaloSmsService {
           }
 
           } catch (apiError) {
+            // HTTP-level error - the ResilientHttpClient already recorded the failure
             logger.smsSend.error('[NaloSmsService] Nalo API error', {
               userId,
               phoneNumber: formattedPhoneNumber,
@@ -649,7 +676,11 @@ class NaloSmsService {
           success: false,
           error: errorMessage,
           messageId: savedMessage._id.toString(),
-          code: errorCode || 'SMS_SEND_FAILED'
+          code: errorCode || 'SMS_SEND_FAILED',
+          circuitBreakerStatus: circuitBreakerRejected ? {
+            state: 'OPEN',
+            isCircuitBreakerRejection: true
+          } : undefined
         };
       }
 
@@ -659,6 +690,25 @@ class NaloSmsService {
       let failedMessageId = null;
       let errorCode = 'INTERNAL_ERROR';
       let errorMessage = error.message;
+      let isCircuitBreakerError = false;
+
+      // Check if this is a circuit breaker rejection
+      if (error.message && error.message.includes('Circuit breaker is')) {
+        isCircuitBreakerError = true;
+        errorCode = 'CIRCUIT_BREAKER_OPEN';
+        const waitMs = this.getCircuitBreakerStatus().nextAttemptTime 
+          ? Math.max(0, this.getCircuitBreakerStatus().nextAttemptTime - Date.now()) 
+          : 0;
+        const waitSec = Math.ceil(waitMs / 1000);
+        errorMessage = `Provider is temporarily unavailable. Please try again in ${waitSec} seconds.`;
+        console.log('[NaloSmsService] Circuit breaker rejection in outer catch', {
+          userId,
+          phoneNumber,
+          campaignId: campaignId || 'N/A',
+          recipientId: recipientId || 'N/A',
+          waitSeconds: waitSec
+        });
+      }
 
       try {
         const failedMessage = await SmsMessage.create({
@@ -686,6 +736,8 @@ class NaloSmsService {
         console.error('[NaloSmsService] Failed to create error SmsMessage record:', dbError.message);
       }
 
+      // Only refund if this was NOT a circuit breaker rejection (breaker means provider unreachable,
+      // but wallet was already deducted. Refund to prevent leak.)
       if (!skipDeduction && typeof financialBreakdown !== 'undefined' && financialBreakdown) {
         try {
           await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS internal error - refund');
@@ -700,14 +752,19 @@ class NaloSmsService {
         success: false,
         error: errorMessage,
         code: errorCode,
-        messageId: failedMessageId
+        messageId: failedMessageId,
+        isCircuitBreakerError
       });
 
       return {
         success: false,
         error: errorMessage,
         code: errorCode,
-        messageId: failedMessageId
+        messageId: failedMessageId,
+        circuitBreakerStatus: isCircuitBreakerError ? {
+          state: this.getCircuitBreakerStatus().state,
+          isCircuitBreakerRejection: true
+        } : undefined
       };
     }
   }
@@ -809,13 +866,92 @@ class NaloSmsService {
   }
 
   /**
+   * Classify a Nalo application-level error code into a breaker category.
+   * Only provider/account/system errors should trip the circuit breaker.
+   * Recipient-specific and sender-ID-specific errors must not.
+   * @param {string} statusCode - Nalo status code (e.g., '1706', '1711')
+   * @returns {string} Category: 'recipient_error', 'sender_id_error', 'account_error', 'provider_system', 'message_error', or 'unknown'
+   */
+  classifyNaloError(statusCode) {
+    const code = String(statusCode);
+    
+    // Recipient-specific errors - must not trip global breaker
+    if (['1706', '1027'].includes(code)) {
+      return 'recipient_error';
+    }
+    
+    // Sender-ID-specific errors - must not trip global breaker
+    if (['1707'].includes(code)) {
+      return 'sender_id_error';
+    }
+    
+    // Account/provider configuration errors - trip breaker because shared API key
+    if (['1703', '1704', '1705', '1025'].includes(code)) {
+      return 'account_error';
+    }
+    
+    // Provider system errors - trip breaker
+    if (['1710', '1711'].includes(code)) {
+      return 'provider_system';
+    }
+    
+    // Message/recipient-specific errors - must not trip breaker
+    if (['1708', '1709', '1026', '1028'].includes(code)) {
+      return 'message_error';
+    }
+    
+    return 'unknown';
+  }
+
+  /**
+   * Report a Nalo application-level failure to the HTTP client circuit breaker.
+   * Only reports if the error category should trip the breaker.
+   * @param {string} statusCode - Nalo status code
+   */
+  reportNaloFailureToBreaker(statusCode) {
+    if (!this.httpClient || typeof this.httpClient.reportExternalFailure !== 'function') {
+      return;
+    }
+    
+    const category = this.classifyNaloError(statusCode);
+    const shouldTrip = ['account_error', 'provider_system', 'transient', 'rate_limited'].includes(category);
+    
+    if (shouldTrip) {
+      this.httpClient.reportExternalFailure(category);
+      console.log(`[NaloSmsService] Reported Nalo error ${statusCode} (category=${category}) to circuit breaker`);
+    } else {
+      console.log(`[NaloSmsService] Nalo error ${statusCode} (category=${category}) does not trip circuit breaker`);
+    }
+  }
+
+  /**
+   * Report a Nalo success to the HTTP client circuit breaker (resets failure count in CLOSED state)
+   */
+  reportNaloSuccessToBreaker() {
+    if (!this.httpClient || typeof this.httpClient.recordSuccess !== 'function') {
+      return;
+    }
+    this.httpClient.recordSuccess();
+  }
+
+  /**
+   * Check if the circuit breaker is currently open
+   * @returns {boolean}
+   */
+  isCircuitBreakerOpen() {
+    const status = this.getCircuitBreakerStatus();
+    return status.state === 'OPEN';
+  }
+
+  /**
    * Reset Nalo HTTP client circuit breaker
-   * Called before each send campaign to ensure previous failures don't block new sends
+   * NOTE: This should only be called manually by admin or after confirmed provider recovery.
+   * It is NOT called automatically before campaigns (that would defeat the protection).
    */
   resetCircuitBreaker() {
     if (this.httpClient && typeof this.httpClient.resetCircuitBreaker === 'function') {
       this.httpClient.resetCircuitBreaker();
-      console.log('[NaloSmsService] Circuit breaker reset');
+      console.log('[NaloSmsService] Circuit breaker manually reset to CLOSED');
     }
   }
 
@@ -827,6 +963,23 @@ class NaloSmsService {
       return this.httpClient.getCircuitBreakerStatus();
     }
     return { state: 'unknown', failures: 0 };
+  }
+
+  /**
+   * Get a user-friendly circuit breaker message
+   * @returns {string|null}
+   */
+  getCircuitBreakerMessage() {
+    const status = this.getCircuitBreakerStatus();
+    if (status.state === 'OPEN') {
+      const waitMs = status.nextAttemptTime ? Math.max(0, status.nextAttemptTime - Date.now()) : 0;
+      const waitSec = Math.ceil(waitMs / 1000);
+      return `Provider is temporarily unavailable. Please try again in ${waitSec} seconds.`;
+    }
+    if (status.state === 'HALF_OPEN') {
+      return 'Provider is recovering. Please retry shortly.';
+    }
+    return null;
   }
 }
 

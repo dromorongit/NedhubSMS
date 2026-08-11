@@ -481,8 +481,11 @@ class SmsJobQueueService {
       return;
     }
 
-    // Reset circuit breaker before batch processing to ensure previous failures don't block this send
-    NaloSmsService.resetCircuitBreaker();
+    // Note: Circuit breaker is NOT reset before campaign. It persists across campaigns.
+    // NaloSmsService handles pre-send circuit breaker checks and returns clear errors
+    // when the provider is temporarily unavailable.
+    const circuitBreakerStatus = NaloSmsService.getCircuitBreakerStatus();
+    console.log('[SmsJobQueueService] Circuit breaker status before send:', circuitBreakerStatus);
 
     // Define the processor function for each recipient
     const processRecipient = async (recipient) => {

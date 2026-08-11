@@ -166,8 +166,6 @@ router.post('/send', authenticate, async (req, res) => {
       chunks.push(recipientsToSend.slice(i, i + CHUNK_SIZE));
     }
 
-    // Reset circuit breaker before campaign to ensure previous failures don't block this send
-    NaloSmsService.resetCircuitBreaker();
     const circuitBreakerStatus = NaloSmsService.getCircuitBreakerStatus();
     console.log('[SendSMS] Circuit breaker status before send:', circuitBreakerStatus);
 
@@ -275,7 +273,10 @@ router.post('/send', authenticate, async (req, res) => {
     const responsePayload = {
       success: successCount > 0, // Partial success counts as overall success
       message: successCount > 0 ? 'Campaign sent successfully' : 'Campaign failed to send',
-      data: responseData
+      data: {
+        ...responseData,
+        circuitBreakerStatus
+      }
     };
     
     // Structured logging with [SendResult] tag

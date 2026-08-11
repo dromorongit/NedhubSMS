@@ -139,7 +139,10 @@ group('TEST 5: Backend send response includes provider error summary', () => {
   test('sms.js includes providerErrorSummary in response', source.includes('providerErrorSummary'));
   test('sms.js aggregates provider error counts', source.includes('providerErrorCounts'));
   test('sms.js identifies common cause failures', source.includes('isCommonCause'));
-  test('sms.js resets circuit breaker before send', source.includes('NaloSmsService.resetCircuitBreaker()'));
+  // IMPORTANT: Circuit breaker is NOT reset before campaign. This is the corrected behavior.
+  // The breaker persists across campaigns to protect against sustained provider issues.
+  test('sms.js does NOT reset circuit breaker before send (corrected behavior)', 
+    !source.includes('NaloSmsService.resetCircuitBreaker()'));
 });
 
 // ============================================================
