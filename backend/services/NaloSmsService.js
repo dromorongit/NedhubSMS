@@ -220,10 +220,105 @@ class NaloSmsService {
   }
 
   /**
+   * Extract Nalo application-level status code from an HTTP error response.
+   * Nalo may return HTTP 400/412/500 with the actual status code in the response body.
+   * @param {Object} apiError - Axios error object
+   * @returns {string|null} Nalo status code (e.g., '1707', '1711') or null if not found
+   */
+  extractNaloStatusCodeFromError(apiError) {
+    if (!apiError?.response?.data) return null;
+    const data = apiError.response.data;
+    if (typeof data === 'object' && data !== null) {
+      return String(data.status || data.error_code || '');
+    }
+    if (typeof data === 'string') {
+      if (data.includes('|')) {
+        return data.split('|')[0];
+      }
+      try {
+        const parsed = JSON.parse(data);
+        return String(parsed.status || parsed.error_code || '');
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Classify a validation failure into a user-facing category.
+   * @param {string|null} naloStatusCode - Nalo application-level status code
+   * @param {number} httpStatus - HTTP status code
+   * @returns {Object} { category, errorCode, errorMessage }
+   */
+  classifyValidationError(naloStatusCode, httpStatus) {
+    const code = naloStatusCode ? String(naloStatusCode) : null;
+
+    // Permanent Sender ID rejection
+    if (code === '1707' || httpStatus === 412) {
+      return {
+        category: 'permanent_sender_id_error',
+        errorCode: '1707',
+        errorMessage: 'Sender ID is not registered with the SMS provider. Please select an approved Sender ID.'
+      };
+    }
+
+    // Authentication / configuration errors
+    if (['1703', '1704', '1705', '1025'].includes(code)) {
+      return {
+        category: 'auth_configuration_error',
+        errorCode: code,
+        errorMessage: this.mapErrorCode(code) || 'Nalo provider authentication/configuration error. Please contact admin.'
+      };
+    }
+
+    // Temporary provider/system errors
+    if (['1710', '1711'].includes(code)) {
+      return {
+        category: 'temporary_provider_error',
+        errorCode: code,
+        errorMessage: this.mapErrorCode(code) || 'SMS provider is temporarily unavailable. Please try again later.'
+      };
+    }
+
+    // Generic HTTP error without recognized Nalo code
+    if (httpStatus === 429) {
+      return {
+        category: 'temporary_provider_error',
+        errorCode: 'HTTP_429',
+        errorMessage: 'Rate limited by SMS provider. Please wait and try again.'
+      };
+    }
+
+    if (httpStatus >= 500) {
+      return {
+        category: 'temporary_provider_error',
+        errorCode: `HTTP_${httpStatus}`,
+        errorMessage: 'SMS provider is experiencing technical issues. Please try again later.'
+      };
+    }
+
+    if (httpStatus >= 400) {
+      return {
+        category: 'temporary_provider_error',
+        errorCode: `HTTP_${httpStatus}`,
+        errorMessage: 'Unable to validate Sender ID with provider. Please try again.'
+      };
+    }
+
+    // Network/timeout errors (no HTTP response)
+    return {
+      category: 'temporary_provider_error',
+      errorCode: 'NETWORK_ERROR',
+      errorMessage: 'Network error while validating Sender ID. Please check your connection and try again.'
+    };
+  }
+
+  /**
    * Validate Sender ID with Nalo provider before campaign send.
    * Sends a single test message to a dummy number. Does NOT deduct wallet.
    * @param {string} senderId - Sender ID to validate
-   * @returns {Object} { valid: boolean, errorCode: string|null, errorMessage: string|null }
+   * @returns {Object} { valid: boolean, errorCode: string|null, errorMessage: string|null, classification: string }
    */
   async validateSenderIdWithProvider(senderId) {
     const TEST_PHONE = '233000000000';
@@ -255,7 +350,7 @@ class NaloSmsService {
 
       if (parsed.status === '1701') {
         console.log('[NaloSmsService] Sender ID preflight: VALID', { senderId });
-        return { valid: true, errorCode: null, errorMessage: null };
+        return { valid: true, errorCode: null, errorMessage: null, classification: 'valid' };
       }
 
       if (parsed.status === '1707') {
@@ -263,7 +358,8 @@ class NaloSmsService {
         return {
           valid: false,
           errorCode: '1707',
-          errorMessage: 'Sender ID is not registered with the SMS provider. Please select an approved Sender ID.'
+          errorMessage: 'Sender ID is not registered with the SMS provider. Please select an approved Sender ID.',
+          classification: 'permanent_sender_id_error'
         };
       }
 
@@ -273,31 +369,38 @@ class NaloSmsService {
         status: parsed.status,
         errorMessage: parsed.error_message
       });
+      const classification = this.classifyValidationError(parsed.status, 200);
       return {
         valid: false,
-        errorCode: parsed.status,
-        errorMessage: parsed.error_message || 'Unable to validate Sender ID with provider. Please try again.'
+        errorCode: classification.errorCode,
+        errorMessage: classification.errorMessage,
+        classification: classification.category
       };
 
     } catch (apiError) {
       console.log('[NaloSmsService] Sender ID preflight: HTTP error', {
         senderId,
         status: apiError.response?.status,
-        error: apiError.message
+        error: apiError.message,
+        responseData: apiError.response?.data ? String(apiError.response.data).substring(0, 200) : null
       });
 
-      if (apiError.response?.status === 412) {
-        return {
-          valid: false,
-          errorCode: '1707',
-          errorMessage: 'Sender ID is not registered with the SMS provider. Please select an approved Sender ID.'
-        };
-      }
+      const naloStatusCode = this.extractNaloStatusCodeFromError(apiError);
+      const classification = this.classifyValidationError(naloStatusCode, apiError.response?.status);
+
+      console.log('[NaloSmsService] Sender ID preflight classification', {
+        senderId,
+        naloStatusCode,
+        httpStatus: apiError.response?.status,
+        classification: classification.category,
+        errorCode: classification.errorCode
+      });
 
       return {
-        valid: false,
-        errorCode: `HTTP_${apiError.response?.status || 'ERROR'}`,
-        errorMessage: 'Unable to validate Sender ID with provider. Please try again.'
+        valid: classification.category === 'permanent_sender_id_error',
+        errorCode: classification.errorCode,
+        errorMessage: classification.errorMessage,
+        classification: classification.category
       };
     }
   }

@@ -159,12 +159,26 @@ router.post('/send', authenticate, async (req, res) => {
     const naloService = require('../services/NaloSmsService');
     const senderIdPreflight = await naloService.validateSenderIdWithProvider(senderId);
     if (!senderIdPreflight.valid) {
+      const classification = senderIdPreflight.classification || 'temporary_provider_error';
+      let userMessage = senderIdPreflight.errorMessage || 'The selected Sender ID is not approved by the SMS provider. Please select an approved Sender ID.';
+      let errorCode = 'SENDER_ID_PROVIDER_REJECTED';
+
+      if (classification === 'temporary_provider_error') {
+        errorCode = 'PROVIDER_TEMPORARY_ERROR';
+        userMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
+      } else if (classification === 'auth_configuration_error') {
+        errorCode = 'PROVIDER_AUTH_ERROR';
+        userMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
+      }
+
       return res.status(400).json({
         success: false,
-        message: senderIdPreflight.errorMessage || 'The selected Sender ID is not approved by the SMS provider. Please select an approved Sender ID.',
+        message: userMessage,
         error: {
-          code: 'SENDER_ID_PROVIDER_REJECTED',
-          providerErrorCode: senderIdPreflight.errorCode
+          code: errorCode,
+          providerErrorCode: senderIdPreflight.errorCode,
+          classification: classification,
+          providerMessage: senderIdPreflight.errorMessage
         }
       });
     }
@@ -427,12 +441,26 @@ router.post('/send', authenticate, async (req, res) => {
       const naloService = require('../services/NaloSmsService');
       const senderIdPreflight = await naloService.validateSenderIdWithProvider(senderId);
       if (!senderIdPreflight.valid) {
+        const classification = senderIdPreflight.classification || 'temporary_provider_error';
+        let userMessage = senderIdPreflight.errorMessage || 'The selected Sender ID is not approved by the SMS provider. Please select an approved Sender ID.';
+        let errorCode = 'SENDER_ID_PROVIDER_REJECTED';
+
+        if (classification === 'temporary_provider_error') {
+          errorCode = 'PROVIDER_TEMPORARY_ERROR';
+          userMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
+        } else if (classification === 'auth_configuration_error') {
+          errorCode = 'PROVIDER_AUTH_ERROR';
+          userMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
+        }
+
         return res.status(400).json({
           success: false,
-          message: senderIdPreflight.errorMessage || 'The selected Sender ID is not approved by the SMS provider. Please select an approved Sender ID.',
+          message: userMessage,
           error: {
-            code: 'SENDER_ID_PROVIDER_REJECTED',
-            providerErrorCode: senderIdPreflight.errorCode
+            code: errorCode,
+            providerErrorCode: senderIdPreflight.errorCode,
+            classification: classification,
+            providerMessage: senderIdPreflight.errorMessage
           }
         });
       }

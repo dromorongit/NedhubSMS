@@ -4323,7 +4323,7 @@ if (result.error) {
                          await window.apiClient.scheduleSMS(campaignData);
                  }
 
-                console.log('[Send] API response:', result);
+                 console.log('[Send] API response:', result);
                 if (result.error) {
                     // Handle error response
                     let errorMessage = result.error;
@@ -4340,7 +4340,18 @@ if (result.error) {
                         }
                         errorMessage += '. Please check your recipients and try again.';
                     }
-                    
+
+                    // Classification-aware error messages
+                    const errorCode = responseData.error?.code || responseData.code;
+                    const classification = responseData.error?.classification || responseData.classification;
+                    if (classification === 'permanent_sender_id_error' || errorCode === 'SENDER_ID_PROVIDER_REJECTED') {
+                        errorMessage = responseData.error?.providerMessage || 'The selected Sender ID is not registered with the SMS provider. Please select an approved Sender ID.';
+                    } else if (classification === 'temporary_provider_error' || errorCode === 'PROVIDER_TEMPORARY_ERROR') {
+                        errorMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
+                    } else if (classification === 'auth_configuration_error' || errorCode === 'PROVIDER_AUTH_ERROR') {
+                        errorMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
+                    }
+
                     // Log toast notification with [ToastNotification] tag
                     console.log('[ToastNotification]', {
                       type: 'error',
@@ -4348,7 +4359,7 @@ if (result.error) {
                       errorDetails: result.error,
                       responseData: responseData
                     });
-                    
+
                     showToast(errorMessage, 'error');
                 } else {
                     // Check for both success: false (API-level failure) and result.data?.success
@@ -4401,29 +4412,40 @@ if (result.error) {
                     } else {
                        // Handle API-level failure (success: false)
                        let errorMessage = result.message || responseData.message || extractErrorMessage(responseData.error) || 'Campaign failed to send';
-                       
+
                        // Check for circuit breaker rejection first
                        if (responseData.circuitBreakerStatus?.isCircuitBreakerRejection) {
                            const waitSec = responseData.circuitBreakerStatus.circuitBreakerWaitSeconds || 30;
                            errorMessage = `SMS provider is temporarily unavailable. Please wait ${waitSec} seconds and try again. If this persists, contact support.`;
-                       } else if (responseData.summary || responseData.duplicatesRemoved !== undefined) {
-                           const parts = [];
-                           const dupCount = responseData.duplicatesRemoved || responseData.summary?.duplicatesRemoved || 0;
-                           const invCount = responseData.invalidRecipients || responseData.summary?.invalidRecipients || 0;
-                           const blCount = responseData.blacklistedRecipients || responseData.summary?.blacklistedRecipients || 0;
-                           if (dupCount > 0) parts.push(`${dupCount} duplicates`);
-                           if (invCount > 0) parts.push(`${invCount} invalid`);
-                           if (blCount > 0) parts.push(`${blCount} blacklisted`);
-                           if (parts.length > 0) {
-                               errorMessage += ` (${parts.join(', ')})`;
-                           }
-                           errorMessage += '. Please check your recipients and try again.';
-                       }
+                       } else {
+                           const errorCode = responseData.error?.code || responseData.code;
+                           const classification = responseData.error?.classification || responseData.classification;
 
-                       // Show provider error summary if all failures share a common cause
-                       if (responseData.providerErrorSummary && responseData.providerErrorSummary.isCommonCause) {
-                           const providerSummary = responseData.providerErrorSummary;
-                           errorMessage += ` Provider error: ${providerSummary.errorCode} - ${providerSummary.error}. ${providerSummary.affectedRecipients} recipient(s) affected.`;
+                           if (classification === 'permanent_sender_id_error' || errorCode === 'SENDER_ID_PROVIDER_REJECTED') {
+                               errorMessage = responseData.error?.providerMessage || 'The selected Sender ID is not registered with the SMS provider. Please select an approved Sender ID.';
+                           } else if (classification === 'temporary_provider_error' || errorCode === 'PROVIDER_TEMPORARY_ERROR') {
+                               errorMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
+                           } else if (classification === 'auth_configuration_error' || errorCode === 'PROVIDER_AUTH_ERROR') {
+                               errorMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
+                           } else if (responseData.summary || responseData.duplicatesRemoved !== undefined) {
+                               const parts = [];
+                               const dupCount = responseData.duplicatesRemoved || responseData.summary?.duplicatesRemoved || 0;
+                               const invCount = responseData.invalidRecipients || responseData.summary?.invalidRemoved || 0;
+                               const blCount = responseData.blacklistedRecipients || responseData.summary?.blacklistedRemoved || 0;
+                               if (dupCount > 0) parts.push(`${dupCount} duplicates`);
+                               if (invCount > 0) parts.push(`${invCount} invalid`);
+                               if (blCount > 0) parts.push(`${blCount} blacklisted`);
+                               if (parts.length > 0) {
+                                   errorMessage += ` (${parts.join(', ')})`;
+                               }
+                               errorMessage += '. Please check your recipients and try again.';
+                           }
+
+                           // Show provider error summary if all failures share a common cause
+                           if (responseData.providerErrorSummary && responseData.providerErrorSummary.isCommonCause) {
+                               const providerSummary = responseData.providerErrorSummary;
+                               errorMessage += ` Provider error: ${providerSummary.errorCode} - ${providerSummary.error}. ${providerSummary.affectedRecipients} recipient(s) affected.`;
+                           }
                        }
 
                        // Log toast notification with [ToastNotification] tag
@@ -4435,7 +4457,7 @@ if (result.error) {
                          providerErrorSummary: responseData.providerErrorSummary,
                          circuitBreakerStatus: responseData.circuitBreakerStatus
                        });
-                       
+
                        showToast(errorMessage, 'error');
                     }
                 }
