@@ -246,13 +246,41 @@ class NaloSmsService {
   }
 
   /**
+   * Extract Nalo application-level error message from an HTTP error response.
+   * @param {Object} apiError - Axios error object
+   * @returns {string|null} Nalo error message or null if not found
+   */
+  extractNaloErrorMessageFromError(apiError) {
+    if (!apiError?.response?.data) return null;
+    const data = apiError.response.data;
+    if (typeof data === 'object' && data !== null) {
+      return data.error_message || data.message || null;
+    }
+    if (typeof data === 'string') {
+      if (data.includes('|')) {
+        const parts = data.split('|');
+        return parts[2] || null;
+      }
+      try {
+        const parsed = JSON.parse(data);
+        return parsed.error_message || parsed.message || null;
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Classify a validation failure into a user-facing category.
    * @param {string|null} naloStatusCode - Nalo application-level status code
    * @param {number} httpStatus - HTTP status code
+   * @param {string|null} naloErrorMessage - Nalo application-level error message
    * @returns {Object} { category, errorCode, errorMessage }
    */
-  classifyValidationError(naloStatusCode, httpStatus) {
+  classifyValidationError(naloStatusCode, httpStatus, naloErrorMessage) {
     const code = naloStatusCode ? String(naloStatusCode) : null;
+    const naloMsg = naloErrorMessage && typeof naloErrorMessage === 'string' ? naloErrorMessage.trim() : null;
 
     // Permanent Sender ID rejection
     if (code === '1707' || httpStatus === 412) {
@@ -281,6 +309,24 @@ class NaloSmsService {
       };
     }
 
+    // Missing parameters
+    if (code === '1702') {
+      return {
+        category: 'malformed_request',
+        errorCode: code,
+        errorMessage: naloMsg || 'Missing required parameters in validation request.'
+      };
+    }
+
+    // Recipient / message validation errors
+    if (['1706', '1708', '1709', '1026', '1027', '1028'].includes(code)) {
+      return {
+        category: 'malformed_request',
+        errorCode: code,
+        errorMessage: naloMsg || this.mapErrorCode(code) || 'Validation request was rejected by the SMS provider.'
+      };
+    }
+
     // Generic HTTP error without recognized Nalo code
     if (httpStatus === 429) {
       return {
@@ -295,6 +341,14 @@ class NaloSmsService {
         category: 'temporary_provider_error',
         errorCode: `HTTP_${httpStatus}`,
         errorMessage: 'SMS provider is experiencing technical issues. Please try again later.'
+      };
+    }
+
+    if (httpStatus >= 400 && code) {
+      return {
+        category: 'unknown_provider_error',
+        errorCode: code,
+        errorMessage: naloMsg || this.mapErrorCode(code) || `Provider returned an unhandled error (${code}). Please contact support.`
       };
     }
 
@@ -369,7 +423,7 @@ class NaloSmsService {
         status: parsed.status,
         errorMessage: parsed.error_message
       });
-      const classification = this.classifyValidationError(parsed.status, 200);
+      const classification = this.classifyValidationError(parsed.status, 200, parsed.error_message);
       return {
         valid: false,
         errorCode: classification.errorCode,
@@ -386,7 +440,8 @@ class NaloSmsService {
       });
 
       const naloStatusCode = this.extractNaloStatusCodeFromError(apiError);
-      const classification = this.classifyValidationError(naloStatusCode, apiError.response?.status);
+      const naloErrorMessage = this.extractNaloErrorMessageFromError(apiError);
+      const classification = this.classifyValidationError(naloStatusCode, apiError.response?.status, naloErrorMessage);
 
       console.log('[NaloSmsService] Sender ID preflight classification', {
         senderId,

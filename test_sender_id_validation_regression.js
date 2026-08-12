@@ -46,9 +46,9 @@ function assertIncludes(obj, key, expected) {
 }
 
 // ============================================================
-// TEST 1: extractNaloStatusCodeFromError helper
+// TEST 1: extractNaloStatusCodeFromError and extractNaloErrorMessageFromError
 // ============================================================
-group('TEST 1: extractNaloStatusCodeFromError', () => {
+group('TEST 1: extractNaloStatusCodeFromError and extractNaloErrorMessageFromError', () => {
   const svc = NaloSmsService;
 
   test('extracts status from object response', () => {
@@ -75,6 +75,32 @@ group('TEST 1: extractNaloStatusCodeFromError', () => {
     assertEqual(svc.extractNaloStatusCodeFromError({}), null);
     assertEqual(svc.extractNaloStatusCodeFromError({ response: {} }), null);
     assertEqual(svc.extractNaloStatusCodeFromError({ response: { data: null } }), null);
+  });
+
+  test('extracts error_message from object response', () => {
+    const err = { response: { data: { status: '1706', error_message: 'Invalid destination number' } } };
+    assertEqual(svc.extractNaloErrorMessageFromError(err), 'Invalid destination number');
+  });
+
+  test('extracts message from object response', () => {
+    const err = { response: { data: { status: '9999', message: 'Some provider error' } } };
+    assertEqual(svc.extractNaloErrorMessageFromError(err), 'Some provider error');
+  });
+
+  test('extracts error_message from pipe-delimited string', () => {
+    const err = { response: { data: '1706|12345|Invalid destination number' } };
+    assertEqual(svc.extractNaloErrorMessageFromError(err), 'Invalid destination number');
+  });
+
+  test('extracts error_message from JSON string', () => {
+    const err = { response: { data: '{"status":"1706","error_message":"Invalid destination number"}' } };
+    assertEqual(svc.extractNaloErrorMessageFromError(err), 'Invalid destination number');
+  });
+
+  test('returns null for missing error message', () => {
+    assertEqual(svc.extractNaloErrorMessageFromError({}), null);
+    assertEqual(svc.extractNaloErrorMessageFromError({ response: {} }), null);
+    assertEqual(svc.extractNaloErrorMessageFromError({ response: { data: null } }), null);
   });
 });
 
@@ -160,6 +186,61 @@ group('TEST 2: classifyValidationError', () => {
     const result = svc.classifyValidationError(null, null);
     assertEqual(result.category, 'temporary_provider_error');
     assertEqual(result.errorCode, 'NETWORK_ERROR');
+  });
+
+  test('1702 is malformed_request', () => {
+    const result = svc.classifyValidationError('1702', 400);
+    assertEqual(result.category, 'malformed_request');
+    assertEqual(result.errorCode, '1702');
+  });
+
+  test('1706 is malformed_request', () => {
+    const result = svc.classifyValidationError('1706', 400);
+    assertEqual(result.category, 'malformed_request');
+    assertEqual(result.errorCode, '1706');
+  });
+
+  test('1708 is malformed_request', () => {
+    const result = svc.classifyValidationError('1708', 400);
+    assertEqual(result.category, 'malformed_request');
+    assertEqual(result.errorCode, '1708');
+  });
+
+  test('1709 is malformed_request', () => {
+    const result = svc.classifyValidationError('1709', 400);
+    assertEqual(result.category, 'malformed_request');
+    assertEqual(result.errorCode, '1709');
+  });
+
+  test('1026 is malformed_request', () => {
+    const result = svc.classifyValidationError('1026', 400);
+    assertEqual(result.category, 'malformed_request');
+    assertEqual(result.errorCode, '1026');
+  });
+
+  test('1027 is malformed_request', () => {
+    const result = svc.classifyValidationError('1027', 400);
+    assertEqual(result.category, 'malformed_request');
+    assertEqual(result.errorCode, '1027');
+  });
+
+  test('1028 is malformed_request', () => {
+    const result = svc.classifyValidationError('1028', 400);
+    assertEqual(result.category, 'malformed_request');
+    assertEqual(result.errorCode, '1028');
+  });
+
+  test('unrecognized HTTP 400 with Nalo code is unknown_provider_error', () => {
+    const result = svc.classifyValidationError('9999', 400);
+    assertEqual(result.category, 'unknown_provider_error');
+    assertEqual(result.errorCode, '9999');
+  });
+
+  test('Nalo error message is preserved when provided', () => {
+    const result = svc.classifyValidationError('1706', 400, 'Invalid destination number');
+    assertEqual(result.category, 'malformed_request');
+    assertEqual(result.errorCode, '1706');
+    assertEqual(result.errorMessage, 'Invalid destination number');
   });
 });
 
@@ -294,6 +375,72 @@ group('TEST 3: validateSenderIdWithProvider integration (mocked)', () => {
     assertEqual(result.valid, false);
     assertEqual(result.classification, 'auth_configuration_error');
     assertEqual(result.errorCode, '1703');
+  });
+
+  test('HTTP 400 with 1706 in body is malformed_request', async () => {
+    setupMock({
+      thrownError: {
+        response: {
+          status: 400,
+          data: { status: '1706', error_message: 'Invalid destination number' }
+        }
+      }
+    });
+    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
+    restoreMock();
+    assertEqual(result.valid, false);
+    assertEqual(result.classification, 'malformed_request');
+    assertEqual(result.errorCode, '1706');
+    assertEqual(result.errorMessage, 'Invalid destination number');
+  });
+
+  test('HTTP 400 with 1702 in body is malformed_request', async () => {
+    setupMock({
+      thrownError: {
+        response: {
+          status: 400,
+          data: { status: '1702', error_message: 'Missing parameters' }
+        }
+      }
+    });
+    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
+    restoreMock();
+    assertEqual(result.valid, false);
+    assertEqual(result.classification, 'malformed_request');
+    assertEqual(result.errorCode, '1702');
+  });
+
+  test('HTTP 400 with unrecognized Nalo code is unknown_provider_error', async () => {
+    setupMock({
+      thrownError: {
+        response: {
+          status: 400,
+          data: { status: '9999', error_message: 'Some new error' }
+        }
+      }
+    });
+    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
+    restoreMock();
+    assertEqual(result.valid, false);
+    assertEqual(result.classification, 'unknown_provider_error');
+    assertEqual(result.errorCode, '9999');
+    assertEqual(result.errorMessage, 'Some new error');
+  });
+
+  test('HTTP 400 with empty body is temporary_provider_error', async () => {
+    setupMock({
+      thrownError: {
+        response: {
+          status: 400,
+          data: ''
+        }
+      }
+    });
+    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
+    restoreMock();
+    assertEqual(result.valid, false);
+    assertEqual(result.classification, 'temporary_provider_error');
+    assertEqual(result.errorCode, 'HTTP_400');
   });
 
   test('HTTP 429 is temporary_provider_error', async () => {
@@ -468,6 +615,10 @@ group('TEST 6: Frontend error handling', () => {
     assert(frontendSource.includes('auth_configuration_error'), 'Frontend should handle auth error');
   });
 
+  test('frontend handles malformed_request via providerMessage fallback', () => {
+    assert(frontendSource.includes('providerMessage'), 'Frontend should display provider message for malformed_request');
+  });
+
   test('frontend shows providerMessage when available', () => {
     assert(frontendSource.includes('providerMessage'), 'Frontend should display provider message');
   });
@@ -490,12 +641,15 @@ group('TEST 7: Circuit breaker behavior', () => {
 
   test('validation errors do not trip global circuit breaker', () => {
     // The validation uses httpClient.post which goes through categorizeError.
-    // HTTP 400 without recognized body code returns 'permanent' which does not trip breaker.
+    // HTTP 400 with recognized recipient/sender/account codes returns categories
+    // that do not trip breaker. Unrecognized 4xx returns 'permanent'.
     assert(resilientSource.includes("return 'permanent'"), 'Unknown 4xx should be permanent (no breaker trip)');
+    assert(resilientSource.includes("return 'recipient_error'"), '1706 should be recipient_error (no breaker trip)');
   });
 
-  test('NaloSmsService classifies 1707 as sender_id_error', () => {
-    assert(naloSource.includes("return 'sender_id_error'"), 'NaloSmsService should classify 1707 as sender_id_error');
+  test('NaloSmsService does not classify 1706 as temporary_provider_error', () => {
+    assert(naloSource.includes("['1706', '1708', '1709', '1026', '1027', '1028'].includes(code)"),
+      '1706 and similar should be malformed_request, not temporary_provider_error');
   });
 });
 
