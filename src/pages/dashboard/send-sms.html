@@ -4352,6 +4352,15 @@ if (result.error) {
                         errorMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
                     }
 
+                    if (responseData.providerErrorSummary) {
+                        const providerSummary = responseData.providerErrorSummary;
+                        if (providerSummary.isCommonCause) {
+                            errorMessage += ` Provider error: ${providerSummary.errorCode} - ${providerSummary.error}. ${providerSummary.affectedRecipients} recipient(s) affected.`;
+                        } else {
+                            errorMessage += ` ${providerSummary.affectedRecipients} of ${responseData.failedRecipients ?? responseData.summary?.failed ?? 'some'} failures caused by: ${providerSummary.errorCode} - ${providerSummary.error}. Other recipients may have failed for different reasons.`;
+                        }
+                    }
+
                     // Log toast notification with [ToastNotification] tag
                     console.log('[ToastNotification]', {
                       type: 'error',
@@ -4441,11 +4450,15 @@ if (result.error) {
                                errorMessage += '. Please check your recipients and try again.';
                            }
 
-                           // Show provider error summary if all failures share a common cause
-                           if (responseData.providerErrorSummary && responseData.providerErrorSummary.isCommonCause) {
-                               const providerSummary = responseData.providerErrorSummary;
-                               errorMessage += ` Provider error: ${providerSummary.errorCode} - ${providerSummary.error}. ${providerSummary.affectedRecipients} recipient(s) affected.`;
-                           }
+                            // Show provider error summary if available
+                            if (responseData.providerErrorSummary) {
+                                const providerSummary = responseData.providerErrorSummary;
+                                if (providerSummary.isCommonCause) {
+                                    errorMessage += ` Provider error: ${providerSummary.errorCode} - ${providerSummary.error}. ${providerSummary.affectedRecipients} recipient(s) affected.`;
+                                } else {
+                                    errorMessage += ` ${providerSummary.affectedRecipients} of ${responseData.failedRecipients ?? responseData.summary?.failed ?? 'some'} failures caused by: ${providerSummary.errorCode} - ${providerSummary.error}. Other recipients may have failed for different reasons.`;
+                                }
+                            }
                        }
 
                        // Log toast notification with [ToastNotification] tag

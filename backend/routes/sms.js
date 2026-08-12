@@ -238,9 +238,10 @@ router.post('/send', authenticate, async (req, res) => {
     let primaryProviderError = null;
     for (const r of results) {
       if (!r.success && r.errorCode) {
-        const key = `${r.errorCode}:${r.error || 'Unknown error'}`;
+        const normalizedError = (r.error || 'Unknown error').replace(/\d+ seconds/g, 'N seconds');
+        const key = `${r.errorCode}:${normalizedError}`;
         providerErrorCounts[key] = (providerErrorCounts[key] || 0) + 1;
-        if (!primaryProviderError || providerErrorCounts[key] > (providerErrorCounts[`${primaryProviderError.errorCode}:${primaryProviderError.error}`] || 0)) {
+        if (!primaryProviderError || providerErrorCounts[key] > (providerErrorCounts[`${primaryProviderError.errorCode}:${(primaryProviderError.error || 'Unknown error').replace(/\d+ seconds/g, 'N seconds')}`] || 0)) {
           primaryProviderError = { errorCode: r.errorCode, error: r.error, count: providerErrorCounts[key] };
         }
       }
