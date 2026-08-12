@@ -14,7 +14,7 @@ const logger = require('../utils/logger');
 class CostCalculatorService {
   constructor() {
     // Default pricing configuration (can be overridden by admin)
-    this.defaultSellPricePerSms = 0.07; // GHS
+    this.defaultSellPricePerSms = 0.086; // GHS
     
     // Tiered provider costs based on monthly volume
     this.providerCostTiers = [
@@ -322,6 +322,15 @@ class CostCalculatorService {
     const totalChargedToUser = sellPricePerSms * totalSegments;
     const totalCostToProvider = providerCostPerSms * totalSegments;
     const profitAmount = totalChargedToUser - totalCostToProvider;
+
+    if (profitAmount < 0) {
+      logger.warn('[Cost] Negative profit margin detected', {
+        userId,
+        sellPricePerSms,
+        providerCostPerSms,
+        profitAmount
+      });
+    }
 
     return {
       // Pricing
