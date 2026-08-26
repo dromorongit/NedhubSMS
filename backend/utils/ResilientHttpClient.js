@@ -1,4 +1,5 @@
 const axios = require('axios');
+const logger = require('./logger');
 
 /**
  * ResilientHttpClient - Enhanced HTTP client with resilience patterns
@@ -47,22 +48,17 @@ class ResilientHttpClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
-        const timestamp = new Date().toISOString();
-        console.log(JSON.stringify({
-          label: `${this.serviceName.toUpperCase()}_REQUEST`,
-          timestamp,
+        logger.debug(`${this.serviceName.toUpperCase()}_REQUEST`, {
           method: config.method?.toUpperCase(),
           url: config.url,
           timeout: config.timeout
-        }, null, 2));
+        });
         return config;
       },
       (error) => {
-        console.error(JSON.stringify({
-          label: `${this.serviceName.toUpperCase()}_REQUEST_ERROR`,
-          timestamp: new Date().toISOString(),
+        logger.error(`${this.serviceName.toUpperCase()}_REQUEST_ERROR`, {
           error: error.message
-        }, null, 2));
+        });
         return Promise.reject(error);
       }
     );
@@ -70,26 +66,20 @@ class ResilientHttpClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        const timestamp = new Date().toISOString();
-        console.log(JSON.stringify({
-          label: `${this.serviceName.toUpperCase()}_RESPONSE`,
-          timestamp,
+        logger.debug(`${this.serviceName.toUpperCase()}_RESPONSE`, {
           status: response.status,
           duration: response.config.metadata?.startTime ?
             Date.now() - response.config.metadata.startTime : null
-        }, null, 2));
+        });
         return response;
       },
       (error) => {
-        const timestamp = new Date().toISOString();
-        console.error(JSON.stringify({
-          label: `${this.serviceName.toUpperCase()}_RESPONSE_ERROR`,
-          timestamp,
+        logger.error(`${this.serviceName.toUpperCase()}_RESPONSE_ERROR`, {
           status: error.response?.status,
           error: error.message,
           duration: error.config?.metadata?.startTime ?
             Date.now() - error.config.metadata.startTime : null
-        }, null, 2));
+        });
         return Promise.reject(error);
       }
     );
@@ -102,14 +92,12 @@ class ResilientHttpClient {
   categorizeError(error) {
     const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
     if (isTimeout) {
-      console.error(JSON.stringify({
-        label: 'HubtelTimeout',
-        timestamp: new Date().toISOString(),
+      logger.debug('HubtelTimeout', {
         service: this.serviceName,
         error: error.message,
         code: error.code,
         url: error.config?.url
-      }, null, 2));
+      });
     }
 
     if (!error.response) {
@@ -197,7 +185,7 @@ class ResilientHttpClient {
         (now - this.circuitBreaker.lastFailureTime > this.circuitBreaker.monitoringPeriod)) {
       this.circuitBreaker.failures = 0;
       this.circuitBreaker.lastFailureTime = null;
-      console.log(`[CircuitBreaker:${this.serviceName}] Stale failures cleared`);
+      logger.debug(`[CircuitBreaker:${this.serviceName}] Stale failures cleared`);
     }
 
     switch (this.circuitBreaker.state) {
@@ -205,10 +193,10 @@ class ResilientHttpClient {
         if (now >= this.circuitBreaker.nextAttemptTime) {
           this.circuitBreaker.state = 'HALF_OPEN';
           this.circuitBreaker.inFlight = false;
-          console.log(`[CircuitBreaker:${this.serviceName}] State: OPEN -> HALF_OPEN`);
+          logger.debug(`[CircuitBreaker:${this.serviceName}] State: OPEN -> HALF_OPEN`);
         } else {
           const waitMs = this.circuitBreaker.nextAttemptTime - now;
-          console.log(`[CircuitBreaker:${this.serviceName}] Request rejected - state=OPEN, nextAttemptIn=${waitMs}ms`);
+          logger.debug(`[CircuitBreaker:${this.serviceName}] Request rejected - state=OPEN, nextAttemptIn=${waitMs}ms`);
           throw new Error('Circuit breaker is OPEN');
         }
         break;
@@ -216,11 +204,11 @@ class ResilientHttpClient {
       case 'HALF_OPEN':
         // Allow only one request through at a time for probe
         if (this.circuitBreaker.inFlight) {
-          console.log(`[CircuitBreaker:${this.serviceName}] Request rejected - state=HALF_OPEN, probe in progress`);
+          logger.debug(`[CircuitBreaker:${this.serviceName}] Request rejected - state=HALF_OPEN, probe in progress`);
           throw new Error('Circuit breaker is HALF_OPEN (probe in progress)');
         }
         this.circuitBreaker.inFlight = true;
-        console.log(`[CircuitBreaker:${this.serviceName}] State: HALF_OPEN - probe request allowed`);
+        logger.debug(`[CircuitBreaker:${this.serviceName}] State: HALF_OPEN - probe request allowed`);
         break;
 
       case 'CLOSED':
@@ -236,7 +224,7 @@ class ResilientHttpClient {
    */
   reportExternalFailure(category = 'default') {
     if (!this.shouldCountForBreaker(category)) {
-      console.log(`[CircuitBreaker:${this.serviceName}] External failure not counted for breaker (category=${category})`);
+      logger.debug(`[CircuitBreaker:${this.serviceName}] External failure not counted for breaker (category=${category})`);
       return;
     }
 
@@ -244,13 +232,13 @@ class ResilientHttpClient {
     this.circuitBreaker.failures++;
     this.circuitBreaker.lastFailureTime = now;
 
-    console.log(`[CircuitBreaker:${this.serviceName}] External failure recorded (category=${category}, count=${this.circuitBreaker.failures}/${this.circuitBreaker.failureThreshold})`);
+    logger.debug(`[CircuitBreaker:${this.serviceName}] External failure recorded (category=${category}, count=${this.circuitBreaker.failures}/${this.circuitBreaker.failureThreshold})`);
 
     if (this.circuitBreaker.failures >= this.circuitBreaker.failureThreshold) {
       this.circuitBreaker.state = 'OPEN';
       this.circuitBreaker.nextAttemptTime = now + this.circuitBreaker.recoveryTimeout;
       this.circuitBreaker.inFlight = false;
-      console.log(`[CircuitBreaker:${this.serviceName}] State: CLOSED -> OPEN (${this.circuitBreaker.failures} failures)`);
+      logger.debug(`[CircuitBreaker:${this.serviceName}] State: CLOSED -> OPEN (${this.circuitBreaker.failures} failures)`);
     }
   }
 
@@ -262,21 +250,21 @@ class ResilientHttpClient {
     
     // Only count failures that should trip the breaker
     if (!this.shouldCountForBreaker(category)) {
-      console.log(`[CircuitBreaker:${this.serviceName}] Failure not counted for breaker (category=${category})`);
+      logger.debug(`[CircuitBreaker:${this.serviceName}] Failure not counted for breaker (category=${category})`);
       return;
     }
 
     this.circuitBreaker.failures++;
     this.circuitBreaker.lastFailureTime = now;
 
-    console.log(`[CircuitBreaker:${this.serviceName}] Failure recorded (category=${category}, count=${this.circuitBreaker.failures}/${this.circuitBreaker.failureThreshold})`);
+    logger.debug(`[CircuitBreaker:${this.serviceName}] Failure recorded (category=${category}, count=${this.circuitBreaker.failures}/${this.circuitBreaker.failureThreshold})`);
 
     // Check if we should open the circuit
     if (this.circuitBreaker.failures >= this.circuitBreaker.failureThreshold) {
       this.circuitBreaker.state = 'OPEN';
       this.circuitBreaker.nextAttemptTime = now + this.circuitBreaker.recoveryTimeout;
       this.circuitBreaker.inFlight = false;
-      console.log(`[CircuitBreaker:${this.serviceName}] State: CLOSED -> OPEN (${this.circuitBreaker.failures} failures)`);
+      logger.debug(`[CircuitBreaker:${this.serviceName}] State: CLOSED -> OPEN (${this.circuitBreaker.failures} failures)`);
     }
   }
 
@@ -289,7 +277,7 @@ class ResilientHttpClient {
       this.circuitBreaker.failures = 0;
       this.circuitBreaker.lastFailureTime = null;
       this.circuitBreaker.inFlight = false;
-      console.log(`[CircuitBreaker:${this.serviceName}] State: HALF_OPEN -> CLOSED`);
+      logger.debug(`[CircuitBreaker:${this.serviceName}] State: HALF_OPEN -> CLOSED`);
     } else if (this.circuitBreaker.state === 'CLOSED') {
       // Reset failure count on success in closed state
       this.circuitBreaker.failures = 0;
@@ -328,14 +316,12 @@ class ResilientHttpClient {
       const category = failureCategory !== 'default' ? failureCategory : this.categorizeError(error);
 
       // Log error details
-      console.error(JSON.stringify({
-        label: `${this.serviceName.toUpperCase()}_ERROR`,
-        timestamp: new Date().toISOString(),
+      logger.error(`${this.serviceName.toUpperCase()}_ERROR`, {
         attempt,
         errorCategory: category,
         status: error.response?.status,
         message: error.message
-      }, null, 2));
+      });
 
       // Record failure for circuit breaker (category-aware)
       this.recordFailure(category);
@@ -343,7 +329,7 @@ class ResilientHttpClient {
       // Check if we should retry
       if (attempt < this.retryConfig.maxRetries && this.isRetryable(error)) {
         const delay = this.calculateDelay(attempt);
-        console.log(`[${this.serviceName}] Retrying in ${delay}ms (attempt ${attempt + 1}/${this.retryConfig.maxRetries})`);
+        logger.debug(`[${this.serviceName}] Retrying in ${delay}ms (attempt ${attempt + 1}/${this.retryConfig.maxRetries})`);
 
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.executeRequest(config, attempt + 1, category);
@@ -405,7 +391,7 @@ class ResilientHttpClient {
     this.circuitBreaker.lastFailureTime = null;
     this.circuitBreaker.nextAttemptTime = null;
     this.circuitBreaker.inFlight = false;
-    console.log(`[CircuitBreaker:${this.serviceName}] Manually reset to CLOSED`);
+    logger.debug(`[CircuitBreaker:${this.serviceName}] Manually reset to CLOSED`);
   }
 }
 

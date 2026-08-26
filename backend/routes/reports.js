@@ -168,15 +168,7 @@ router.get('/sms-campaigns/:id/export', authenticate, exportLimiter, async (req,
     if (status) filters.status = status;
     if (deliveryStatus) filters.deliveryStatus = deliveryStatus;
 
-    // Generate export
-    const fileBuffer = await SmsExportService.exportCampaignRecipients(
-      campaignId,
-      userId,
-      format,
-      filters
-    );
-
-    // Set headers
+    // Set headers before streaming
     const filename = SmsExportService.generateFilename(campaignId, format);
     const contentType = SmsExportService.getContentType(format);
 
@@ -186,8 +178,14 @@ router.get('/sms-campaigns/:id/export', authenticate, exportLimiter, async (req,
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    // Send file
-    res.send(fileBuffer);
+    if (format === 'csv') {
+      await SmsExportService.exportCampaignRecipients(campaignId, userId, format, filters, res);
+    } else {
+      const fileBuffer = await SmsExportService.exportCampaignRecipients(
+        campaignId, userId, format, filters
+      );
+      res.send(fileBuffer);
+    }
   } catch (error) {
     console.error('Export campaign recipients error:', error);
     res.status(500).json({ error: 'Failed to export campaign recipients: ' + error.message });

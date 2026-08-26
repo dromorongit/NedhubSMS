@@ -1,6 +1,7 @@
 const XLSX = require('xlsx');
 const SmsRecipient = require('../models/SmsRecipient');
 const ContactGroup = require('../models/ContactGroup');
+const logger = require('../utils/logger');
 
 class SmsExportService {
   /**
@@ -11,7 +12,7 @@ class SmsExportService {
    * @param {Object} filters - Additional filters
    * @returns {Buffer} File buffer
    */
-  static async exportCampaignRecipients(campaignId, userId, format = 'csv', filters = {}) {
+  static async exportCampaignRecipients(campaignId, userId, format = 'csv', filters = {}, res) {
     try {
       // Build query with authorization
       const query = {
@@ -28,13 +29,103 @@ class SmsExportService {
         query.providerStatus = filters.deliveryStatus;
       }
 
-      // Get recipients with pagination for large datasets
+      if (format === 'excel') {
+        const recipients = await SmsRecipient.find(query)
+          .populate('groupIds', 'name')
+          .sort({ createdAt: 1 })
+          .lean();
+
+        const exportData = recipients.map(recipient => ({
+          'Recipient Name': recipient.recipientName || '',
+          'Phone Number': recipient.phoneNumber || '',
+          'Status': recipient.status || '',
+          'Sent At': recipient.sentAt ? new Date(recipient.sentAt).toISOString() : '',
+          'Delivered At': recipient.deliveredAt ? new Date(recipient.deliveredAt).toISOString() : '',
+          'Error Message': recipient.errorMessage || '',
+          'Personalized Message': recipient.personalizedMessage || '',
+          'Segments': recipient.segments || 1,
+          'Cost': recipient.actualCost || recipient.estimatedCost || 0,
+          'Groups': recipient.groupIds ? recipient.groupIds.map(g => g.name).join(', ') : '',
+          'Provider Status': recipient.providerStatus || '',
+          'Retry Count': recipient.retryCount || 0
+        }));
+
+        return this.generateExcel(exportData);
+      }
+
+      const headers = [
+        'Recipient Name', 'Phone Number', 'Status', 'Sent At', 'Delivered At',
+        'Error Message', 'Personalized Message', 'Segments', 'Cost', 'Groups',
+        'Provider Status', 'Retry Count'
+      ];
+
+      if (res) {
+        res.write(headers.join(',') + '\n');
+        const BATCH_SIZE = 500;
+        let offset = 0;
+        let hasMore = true;
+
+        while (hasMore) {
+          try {
+            const batch = await SmsRecipient.find(query)
+              .populate('groupIds', 'name')
+              .sort({ createdAt: 1 })
+              .skip(offset)
+              .limit(BATCH_SIZE)
+              .lean();
+
+            if (batch.length === 0) {
+              hasMore = false;
+              break;
+            }
+
+            for (const recipient of batch) {
+              const row = [
+                recipient.recipientName || '',
+                recipient.phoneNumber || '',
+                recipient.status || '',
+                recipient.sentAt ? new Date(recipient.sentAt).toISOString() : '',
+                recipient.deliveredAt ? new Date(recipient.deliveredAt).toISOString() : '',
+                recipient.errorMessage || '',
+                recipient.personalizedMessage || '',
+                recipient.segments || 1,
+                recipient.actualCost || recipient.estimatedCost || 0,
+                recipient.groupIds ? recipient.groupIds.map(g => g.name).join(', ') : '',
+                recipient.providerStatus || '',
+                recipient.retryCount || 0
+              ];
+              const csvRow = row.map(value => {
+                const stringValue = String(value);
+                if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                  return '"' + stringValue.replace(/"/g, '""') + '"';
+                }
+                return stringValue;
+              }).join(',');
+              res.write(csvRow + '\n');
+            }
+
+            offset += BATCH_SIZE;
+            if (batch.length < BATCH_SIZE) hasMore = false;
+          } catch (streamError) {
+            logger.error('[ExportStream] Error during CSV streaming', {
+              campaignId,
+              userId,
+              error: streamError.message
+            });
+            res.destroy(streamError);
+            return;
+          }
+        }
+
+        res.end();
+        return;
+      }
+
       const recipients = await SmsRecipient.find(query)
         .populate('groupIds', 'name')
         .sort({ createdAt: 1 })
         .lean();
 
-      // Prepare data for export
       const exportData = recipients.map(recipient => ({
         'Recipient Name': recipient.recipientName || '',
         'Phone Number': recipient.phoneNumber || '',
@@ -50,11 +141,7 @@ class SmsExportService {
         'Retry Count': recipient.retryCount || 0
       }));
 
-      if (format === 'excel') {
-        return this.generateExcel(exportData);
-      } else {
-        return this.generateCSV(exportData);
-      }
+      return this.generateCSV(exportData);
     } catch (error) {
       console.error('Export error:', error);
       throw new Error('Failed to export campaign recipients: ' + error.message);

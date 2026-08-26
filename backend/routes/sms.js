@@ -722,13 +722,20 @@ router.get('/logs', authenticate, async (req, res) => {
     const mongoose = require('mongoose');
     const userIdObj = new mongoose.Types.ObjectId(userId);
     
-    logger.info('[MessageHistory] Fetching message history', { userId });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
     
-    // Fetch from all three models
-    const [legacyMessages, newMessages, recipients] = await Promise.all([
-      Message.findByUserId(userId),
-      SmsMessage.find({ userId: userIdObj }).sort({ createdAt: -1 }),
-      require('../models/SmsRecipient').find({ userId: userIdObj }).sort({ createdAt: -1 })
+    logger.info('[MessageHistory] Fetching message history', { userId, page, limit });
+    
+    // Fetch from all three models with per-source limit/skip (interim approximation:
+    // exact combined pagination across three collections is not feasible with simple skip/limit)
+    const [legacyMessages, newMessages, recipients, totalLegacy, totalNew, totalRecipients] = await Promise.all([
+      Message.findByUserId(userId).skip((page - 1) * limit).limit(limit),
+      SmsMessage.find({ userId: userIdObj }).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+      require('../models/SmsRecipient').find({ userId: userIdObj }).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+      Message.countDocuments({ userId: userIdObj }),
+      SmsMessage.countDocuments({ userId: userIdObj }),
+      require('../models/SmsRecipient').countDocuments({ userId: userIdObj })
     ]);
     
     logger.info('[MessageHistory] Data fetched', {
@@ -790,14 +797,18 @@ router.get('/logs', authenticate, async (req, res) => {
       ...recipients.map(msg => transformMessage(msg, 'recipient'))
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
-    // Calculate summary using canonical statuses
+    // Slice to requested page after combine-sort (interim approximation)
+    const startIdx = (page - 1) * limit;
+    const paginatedMessages = allMessages.slice(startIdx, startIdx + limit);
+    
+    // Calculate summary over the current page (approximation behavior)
     const summary = {
-      total: allMessages.length,
-      sent: allMessages.filter(m => m.status === 'sent').length,
-      delivered: allMessages.filter(m => m.status === 'delivered').length,
-      failed: allMessages.filter(m => m.status === 'failed').length,
-      scheduled: allMessages.filter(m => m.status === 'scheduled').length,
-      queued: allMessages.filter(m => m.status === 'queued').length
+      total: totalLegacy + totalNew + totalRecipients,
+      sent: paginatedMessages.filter(m => m.status === 'sent').length,
+      delivered: paginatedMessages.filter(m => m.status === 'delivered').length,
+      failed: paginatedMessages.filter(m => m.status === 'failed').length,
+      scheduled: paginatedMessages.filter(m => m.status === 'scheduled').length,
+      queued: paginatedMessages.filter(m => m.status === 'queued').length
     };
     
     logger.info('[MessageHistory] History retrieved', {
@@ -814,8 +825,13 @@ router.get('/logs', authenticate, async (req, res) => {
       success: true,
       message: 'Messages fetched successfully',
       data: {
-        messages: allMessages,
-        summary
+        messages: paginatedMessages,
+        summary,
+        pagination: {
+          page,
+          limit,
+          hasMore: paginatedMessages.length === limit
+        }
       }
     });
   } catch (error) {
