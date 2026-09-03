@@ -92,16 +92,16 @@ group('TEST 3: Wallet deduction timing', () => {
       return deductIdx !== -1 && postIdx !== -1 && deductIdx < postIdx;
     })());
 
-  test('Preflight validation is called before deduction (in routes)',
+  test('Sender ID approval check is called before send loop (in routes)',
     (() => {
       const smsSource = fs.readFileSync(path.join(__dirname, 'backend/routes/sms.js'), 'utf8');
       const campaignSource = fs.readFileSync(path.join(__dirname, 'backend/routes/sms-campaigns.js'), 'utf8');
-      const smsPreflightIdx = smsSource.indexOf('validateSenderIdWithProvider');
+      const smsApprovalIdx = smsSource.indexOf("status: 'approved'");
       const smsSendIdx = smsSource.indexOf('sendSmsWithFinancialTracking');
-      const campaignPreflightIdx = campaignSource.indexOf('validateSenderIdWithProvider');
+      const campaignApprovalIdx = campaignSource.indexOf("status: 'approved'");
       const campaignSendIdx = campaignSource.indexOf('sendSmsWithFinancialTracking');
-      return (smsPreflightIdx !== -1 && smsSendIdx !== -1 && smsPreflightIdx < smsSendIdx) ||
-             (campaignPreflightIdx !== -1 && campaignSendIdx !== -1 && campaignPreflightIdx < campaignSendIdx);
+      return (smsApprovalIdx !== -1 && smsSendIdx !== -1 && smsApprovalIdx < smsSendIdx) ||
+             (campaignApprovalIdx !== -1 && campaignSendIdx !== -1 && campaignApprovalIdx < campaignSendIdx);
     })());
 });
 
@@ -121,8 +121,19 @@ group('TEST 4: No duplicate refund', () => {
     (() => {
       const source = fs.readFileSync(path.join(__dirname, 'backend/services/NaloSmsService.js'), 'utf8');
       const successBlockStart = source.indexOf("smsStatus === 'sent'");
-      const successBlockEnd = source.indexOf('console.log(', successBlockStart);
-      const successBlock = source.substring(successBlockStart, successBlockEnd);
+      const consoleLogIdx = source.indexOf('console.log(', successBlockStart);
+      const loggerDebugIdx = source.indexOf('logger.debug(', successBlockStart);
+      let successBlockEnd;
+      if (consoleLogIdx === -1 && loggerDebugIdx === -1) {
+        successBlockEnd = -1;
+      } else if (consoleLogIdx === -1) {
+        successBlockEnd = loggerDebugIdx;
+      } else if (loggerDebugIdx === -1) {
+        successBlockEnd = consoleLogIdx;
+      } else {
+        successBlockEnd = Math.min(consoleLogIdx, loggerDebugIdx);
+      }
+      const successBlock = successBlockEnd === -1 ? source.substring(successBlockStart) : source.substring(successBlockStart, successBlockEnd);
       return !successBlock.includes('refundWallet');
     })());
 });
@@ -193,21 +204,20 @@ group('TEST 8: Recipient status on provider rejection', () => {
 });
 
 // ============================================================
-// TEST 9: Preflight prevents sending to all recipients on invalid Sender ID
+// TEST 9: Sender ID approval gate prevents mass submission of invalid Sender ID
 // ============================================================
-group('TEST 9: Fail-fast prevents mass submission of invalid Sender ID', () => {
+group('TEST 9: Sender ID approval gate prevents mass send on invalid Sender ID', () => {
   const smsSource = fs.readFileSync(path.join(__dirname, 'backend/routes/sms.js'), 'utf8');
   const campaignSource = fs.readFileSync(path.join(__dirname, 'backend/routes/sms-campaigns.js'), 'utf8');
 
-  test('sms.js preflight is BEFORE the chunk/recipient loop',
-    smsSource.indexOf('validateSenderIdWithProvider') < smsSource.indexOf('for (const chunk of chunks)'));
+  test('sms.js checks approved Sender ID before the send loop',
+    smsSource.indexOf("status: 'approved'") < smsSource.indexOf('for (const chunk of chunks)'));
 
-  test('sms-campaigns.js preflight is BEFORE the chunk/recipient loop',
-    campaignSource.indexOf('validateSenderIdWithProvider') < campaignSource.indexOf('for (const chunk of chunks)'));
+  test('sms-campaigns.js checks approved Sender ID before the send loop',
+    campaignSource.indexOf("status: 'approved'") < campaignSource.indexOf('for (const chunk of chunks)'));
 
-  test('sms-campaigns.js returns early on preflight failure',
-    campaignSource.includes('SENDER_ID_PROVIDER_REJECTED') &&
-    campaignSource.includes('senderIdPreflight.errorMessage'));
+  test('sms-campaigns.js returns early and marks campaign failed when Sender ID is not approved',
+    campaignSource.includes('status = \'failed\'') && campaignSource.includes('Sender ID not found or not approved'));
 });
 
 // ============================================================

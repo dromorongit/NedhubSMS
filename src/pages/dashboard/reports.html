@@ -525,7 +525,7 @@
                     return;
                 }
 
-                allCampaigns = result.data.campaigns || [];
+                allCampaigns = result.campaigns || [];
                 filteredCampaigns = [...allCampaigns];
                 renderCampaignTable();
             } catch (error) {

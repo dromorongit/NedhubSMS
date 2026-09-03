@@ -156,6 +156,18 @@ router.post('/send', authenticate, async (req, res) => {
     }
 
 
+    // Validate sender ID exists and is approved
+    const SenderId = require('../models/SenderId');
+    const sender = await SenderId.findOne({ senderId, userId, status: 'approved' });
+    if (!sender) {
+      logger.warn('[Send] Sender ID validation failed', { userId, senderId });
+      return res.status(400).json({
+        success: false,
+        message: 'Sender ID not found or not approved. Please use an approved Sender ID.',
+        error: { code: 'VALIDATION_ERROR' }
+      });
+    }
+
     // Send SMS to ALL recipients with bounded parallelism (CHUNK_SIZE = 10)
     const results = [];
     let successCount = 0;

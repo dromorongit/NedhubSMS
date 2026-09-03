@@ -12,7 +12,10 @@ const CostCalculatorService = require('../services/CostCalculatorService');
 const WalletService = require('../services/WalletService');
 const { logAction } = require('../utils/audit');
 const HubtelAuthAuditService = require('../services/HubtelAuthAuditService');
+const { checkBalance } = require('../utils/nalo');
 const logger = require('../utils/logger');
+
+const NALO_LOW_BALANCE_THRESHOLD = parseFloat(process.env.NALO_LOW_BALANCE_THRESHOLD) || 100;
 
 const router = express.Router();
 
@@ -837,6 +840,43 @@ router.get('/hubtel/auth-audit', authorize(['admin', 'super_admin']), async (req
       message: 'Failed to run Hubtel authorization audit',
       error: {
         code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
+  }
+});
+
+router.get('/nalo/balance', authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const balance = await checkBalance();
+    const numericBalance = Number(balance);
+    const isLow = Number.isFinite(numericBalance) && numericBalance <= NALO_LOW_BALANCE_THRESHOLD;
+
+    logger.info('[NaloBalance] Admin balance check', {
+      balance: numericBalance,
+      threshold: NALO_LOW_BALANCE_THRESHOLD,
+      isLow,
+      userId: req.user?.userId
+    });
+
+    res.json({
+      success: true,
+      provider: 'nalo',
+      balance: numericBalance,
+      currency: 'SMS credits',
+      threshold: NALO_LOW_BALANCE_THRESHOLD,
+      isLow,
+      status: isLow ? 'low' : 'ok',
+      fetchedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('[NaloBalance] Failed to fetch balance', { error: error.message });
+    res.status(502).json({
+      success: false,
+      message: 'Failed to fetch Nalo provider balance',
+      provider: 'nalo',
+      error: {
+        code: 'NALO_BALANCE_UNAVAILABLE',
         details: error.message
       }
     });

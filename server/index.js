@@ -24,7 +24,7 @@ earlyLog('========== SERVER STARTING ==========');
 
 // Load environment variables - make it optional for Docker/Railway
 try {
-  require('dotenv').config({ path: '../backend/.env' });
+  require('dotenv').config({ path: './backend/.env' });
   earlyLog('Environment variables loaded');
 } catch (e) {
   earlyLog('dotenv load failed (expected in Docker): ' + e.message);

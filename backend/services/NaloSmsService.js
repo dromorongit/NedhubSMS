@@ -5,6 +5,7 @@ const CostCalculatorService = require('./CostCalculatorService');
 const FinancialSummary = require('../models/FinancialSummary');
 const SenderId = require('../models/SenderId');
 const Wallet = require('../models/Wallet');
+const logger = require('../utils/logger');
 
 class NaloSmsService {
   constructor() {
@@ -204,7 +205,7 @@ class NaloSmsService {
     if (!apiError?.response?.data) return null;
     const data = apiError.response.data;
     if (typeof data === 'object' && data !== null) {
-      return String(data.status || data.error_code || '');
+      return String(data.status || data.error_code || data.code || '');
     }
     if (typeof data === 'string') {
       if (data.includes('|')) {
@@ -559,7 +560,7 @@ class NaloSmsService {
             validateStatus: (status) => status === 200
           });
           
-          const rawResponseData = String(response.data);
+      const rawResponseData = response.data && typeof response.data === 'object' ? JSON.stringify(response.data) : String(response.data);
           naloResponse = this.parseNaloResponse(response.data, {
             phoneNumber,
             formattedPhoneNumber,
@@ -955,6 +956,16 @@ class NaloSmsService {
       }
 
       await SmsMessage.findByIdAndUpdate(smsMessage._id, updateData);
+
+      const SmsRecipient = require('../models/SmsRecipient');
+      await SmsRecipient.findOneAndUpdate(
+        { jobId: job_id },
+        {
+          status: updateData.status,
+          ...(updateData.deliveredAt && { deliveredAt: updateData.deliveredAt }),
+          updatedAt: new Date()
+        }
+      );
 
       return { success: true };
 

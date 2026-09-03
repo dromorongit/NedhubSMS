@@ -517,7 +517,7 @@ class SmsJobQueueService {
         });
 
         if (smsResult.success) {
-          await recipient.markAsSent(smsResult.jobId);
+          await recipient.markAsSent(smsResult.jobId, smsResult.jobId);
           logger.info('SMS sent successfully', { recipientName: recipient.recipientName, phoneNumber: recipient.phoneNumber });
           return { success: true };
         } else {

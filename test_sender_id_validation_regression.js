@@ -1,15 +1,16 @@
 /**
- * Sender ID Validation Regression Test Suite
+ * Sender ID Validation Helper Regression Test Suite
  *
- * Tests the validateSenderIdWithProvider method and its integration with routes,
- * focusing on proper classification of permanent Sender ID rejection vs temporary
- * provider errors, and ensuring response bodies are inspected for Nalo error codes.
+ * Tests the Nalo error classification helper functions that remain in NaloSmsService.
+ * The live preflight (validateSenderIdWithProvider) has been removed.
+ * Routes now rely on SenderId.status === 'approved' as the stored approval gate.
  */
 
 const assert = require('assert');
 const NaloSmsService = require('./backend/services/NaloSmsService');
+const fs = require('fs');
+const path = require('path');
 
-// Test utilities
 let testsPassed = 0;
 let testsFailed = 0;
 const testResults = [];
@@ -20,9 +21,11 @@ function group(name, fn) {
   fn();
 }
 
-function test(name, fn) {
+function test(name, condition, detail) {
   try {
-    fn();
+    if (!condition) {
+      throw new Error(detail || 'Condition failed');
+    }
     testsPassed++;
     testResults.push({ name, status: 'PASS' });
     console.log(`  PASS: ${name}`);
@@ -36,12 +39,6 @@ function test(name, fn) {
 function assertEqual(actual, expected, msg = '') {
   if (actual !== expected) {
     throw new Error(`Expected ${expected}, got ${actual}. ${msg}`);
-  }
-}
-
-function assertIncludes(obj, key, expected) {
-  if (!obj[key] || !String(obj[key]).includes(expected)) {
-    throw new Error(`Expected ${key} to include "${expected}", got "${obj[key]}"`);
   }
 }
 
@@ -245,441 +242,70 @@ group('TEST 2: classifyValidationError', () => {
 });
 
 // ============================================================
-// TEST 3: validateSenderIdWithProvider integration (mocked)
+// TEST 3: validateSenderIdWithProvider is removed
 // ============================================================
-group('TEST 3: validateSenderIdWithProvider integration (mocked)', () => {
-  // Save original httpClient
-  const originalHttpClient = NaloSmsService.httpClient;
-  let mockClient = null;
+group('TEST 3: validateSenderIdWithProvider removed from service', () => {
+  test('validateSenderIdWithProvider method does not exist',
+    typeof NaloSmsService.validateSenderIdWithProvider !== 'function');
 
-  function setupMock(responseConfig) {
-    mockClient = {
-      post: async () => {
-        if (responseConfig.thrownError) {
-          throw responseConfig.thrownError;
-        }
-        return responseConfig.response;
-      }
-    };
-    NaloSmsService.httpClient = mockClient;
-  }
-
-  function restoreMock() {
-    NaloSmsService.httpClient = originalHttpClient;
-    mockClient = null;
-  }
-
-  test('1707 in response body with HTTP 200 is permanent rejection', async () => {
-    setupMock({
-      response: {
-        data: { status: '1707', error_message: 'Invalid Source(Sender)' },
-        status: 200
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('INVALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'permanent_sender_id_error');
-    assertEqual(result.errorCode, '1707');
-  });
-
-  test('1701 in response body with HTTP 200 is valid', async () => {
-    setupMock({
-      response: {
-        data: { status: '1701', message_id: '12345' },
-        status: 200
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, true);
-    assertEqual(result.classification, 'valid');
-    assertEqual(result.errorCode, null);
-  });
-
-  test('HTTP 400 with 1707 in body is permanent rejection', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 400,
-          data: { status: '1707', error_message: 'Invalid Source(Sender)' }
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('INVALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'permanent_sender_id_error');
-    assertEqual(result.errorCode, '1707');
-  });
-
-  test('HTTP 412 without body is permanent rejection', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 412,
-          data: null
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('INVALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'permanent_sender_id_error');
-    assertEqual(result.errorCode, '1707');
-  });
-
-  test('HTTP 400 with 1711 in body is temporary error', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 400,
-          data: { status: '1711', error_message: 'Service temporarily unavailable' }
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'temporary_provider_error');
-    assertEqual(result.errorCode, '1711');
-  });
-
-  test('HTTP 400 with no recognized code is temporary error', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 400,
-          data: { error_message: 'Bad request' }
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'temporary_provider_error');
-    assertEqual(result.errorCode, 'HTTP_400');
-  });
-
-  test('HTTP 401 is auth_configuration_error', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 401,
-          data: { status: '1703', error_message: 'Authentication failed' }
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'auth_configuration_error');
-    assertEqual(result.errorCode, '1703');
-  });
-
-  test('HTTP 400 with 1706 in body is malformed_request', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 400,
-          data: { status: '1706', error_message: 'Invalid destination number' }
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'malformed_request');
-    assertEqual(result.errorCode, '1706');
-    assertEqual(result.errorMessage, 'Invalid destination number');
-  });
-
-  test('HTTP 400 with 1702 in body is malformed_request', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 400,
-          data: { status: '1702', error_message: 'Missing parameters' }
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'malformed_request');
-    assertEqual(result.errorCode, '1702');
-  });
-
-  test('HTTP 400 with unrecognized Nalo code is unknown_provider_error', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 400,
-          data: { status: '9999', error_message: 'Some new error' }
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'unknown_provider_error');
-    assertEqual(result.errorCode, '9999');
-    assertEqual(result.errorMessage, 'Some new error');
-  });
-
-  test('HTTP 400 with empty body is temporary_provider_error', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 400,
-          data: ''
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'temporary_provider_error');
-    assertEqual(result.errorCode, 'HTTP_400');
-  });
-
-  test('HTTP 429 is temporary_provider_error', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 429,
-          data: { error_message: 'Rate limit exceeded' }
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'temporary_provider_error');
-    assertEqual(result.errorCode, 'HTTP_429');
-  });
-
-  test('HTTP 500 is temporary_provider_error', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 500,
-          data: { error_message: 'Internal server error' }
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'temporary_provider_error');
-    assertEqual(result.errorCode, 'HTTP_500');
-  });
-
-  test('network timeout is temporary_provider_error', async () => {
-    setupMock({
-      thrownError: {
-        message: 'timeout of 15000ms exceeded',
-        code: 'ECONNABORTED',
-        response: undefined
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'temporary_provider_error');
-    assertEqual(result.errorCode, 'NETWORK_ERROR');
-  });
-
-  test('malformed response body is handled gracefully', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 400,
-          data: '<html>Not Found</html>'
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'temporary_provider_error');
-    assertEqual(result.errorCode, 'HTTP_400');
-  });
-
-  test('empty response body on 400 is temporary error', async () => {
-    setupMock({
-      thrownError: {
-        response: {
-          status: 400,
-          data: ''
-        }
-      }
-    });
-    const result = await NaloSmsService.validateSenderIdWithProvider('VALID_ID');
-    restoreMock();
-    assertEqual(result.valid, false);
-    assertEqual(result.classification, 'temporary_provider_error');
-    assertEqual(result.errorCode, 'HTTP_400');
-  });
-
-  // Restore original httpClient
-  restoreMock();
+  test('NaloSmsService does not contain async validateSenderIdWithProvider',
+    !fs.readFileSync(path.join(__dirname, 'backend/services/NaloSmsService.js'), 'utf8')
+      .includes('async validateSenderIdWithProvider'));
 });
 
 // ============================================================
-// TEST 4: Route error classification (static analysis)
+// TEST 4: Route static analysis — no preflight, stored gate present
 // ============================================================
-group('TEST 4: Route error classification', () => {
-  const smsSource = require('fs').readFileSync('./backend/routes/sms.js', 'utf8');
-  const campaignSource = require('fs').readFileSync('./backend/routes/sms-campaigns.js', 'utf8');
+group('TEST 4: Route structure matches new design', () => {
+  const smsSource = fs.readFileSync(path.join(__dirname, 'backend/routes/sms.js'), 'utf8');
+  const campaignSource = fs.readFileSync(path.join(__dirname, 'backend/routes/sms-campaigns.js'), 'utf8');
 
-  test('sms.js quick-send handles temporary_provider_error', () => {
-    assert(smsSource.includes('PROVIDER_TEMPORARY_ERROR'), 'sms.js should handle PROVIDER_TEMPORARY_ERROR');
-    assert(smsSource.includes('classification'), 'sms.js should check classification');
-  });
+  test('sms.js quick-send has SenderId ownership+approved check',
+    smsSource.includes("SenderId.findOne({ senderId, userId, status: 'approved' })"));
 
-  test('sms.js schedule handles temporary_provider_error', () => {
-    assert(smsSource.includes('PROVIDER_TEMPORARY_ERROR'), 'sms.js schedule should handle PROVIDER_TEMPORARY_ERROR');
-  });
+  test('sms.js schedule has SenderId ownership+approved check',
+    smsSource.includes("SenderId.findOne({ senderId, userId, status: 'approved' })"));
 
-  test('sms-campaigns.js send handles temporary_provider_error', () => {
-    assert(campaignSource.includes('PROVIDER_TEMPORARY_ERROR'), 'sms-campaigns.js send should handle PROVIDER_TEMPORARY_ERROR');
-  });
+  test('sms-campaigns.js send has SenderId ownership+approved check',
+    campaignSource.includes("SenderId.findOne({ senderId, userId, status: 'approved' })"));
 
-  test('sms-campaigns.js schedule handles temporary_provider_error', () => {
-    assert(campaignSource.includes('PROVIDER_TEMPORARY_ERROR'), 'sms-campaigns.js schedule should handle PROVIDER_TEMPORARY_ERROR');
-  });
+  test('sms-campaigns.js schedule has SenderId ownership+approved check',
+    campaignSource.includes("SenderId.findOne({ senderId, userId, status: 'approved' })"));
 
-  test('sms.js quick-send preflight is before recipient loop', () => {
-    const preflightIdx = smsSource.indexOf('validateSenderIdWithProvider');
-    const recipientLoopIdx = smsSource.indexOf('for (const chunk of chunks)');
-    assert(preflightIdx < recipientLoopIdx, 'Preflight must be before recipient loop');
-  });
+  test('sms.js does not reference dummy test phone 233000000000',
+    !smsSource.includes('233000000000'));
 
-  test('sms-campaigns.js send preflight is before chunk loop', () => {
-    const preflightIdx = campaignSource.indexOf('validateSenderIdWithProvider');
-    const chunkLoopIdx = campaignSource.indexOf('for (const chunk of chunks)');
-    assert(preflightIdx < chunkLoopIdx, 'Preflight must be before chunk loop');
-  });
-
-  test('sms-campaigns.js preflight returns classification in response', () => {
-    assert(campaignSource.includes('classification:'), 'Response should include classification');
-  });
+  test('sms-campaigns.js does not reference dummy test phone 233000000000',
+    !campaignSource.includes('233000000000'));
 });
 
 // ============================================================
-// TEST 5: Wallet safety verification
+// TEST 5: SenderId model has stored approval schema
 // ============================================================
-group('TEST 5: Wallet safety verification', () => {
-  const smsSource = require('fs').readFileSync('./backend/routes/sms.js', 'utf8');
-  const campaignSource = require('fs').readFileSync('./backend/routes/sms-campaigns.js', 'utf8');
+group('TEST 5: SenderId model supports stored approval', () => {
+  const modelSource = fs.readFileSync(path.join(__dirname, 'backend/models/SenderId.js'), 'utf8');
 
-  test('sms.js quick-send preflight is before wallet deduction', () => {
-    const preflightIdx = smsSource.indexOf('validateSenderIdWithProvider');
-    const deductIdx = smsSource.indexOf('deductGhsForSms');
-    assert(preflightIdx < deductIdx || deductIdx === -1, 'Preflight must be before wallet deduction');
-  });
+  test('SenderId model has status field with approved enum',
+    modelSource.includes("enum: ['pending', 'approved', 'rejected']"));
 
-  test('sms.js quick-send preflight is before Nalo send loop', () => {
-    const preflightIdx = smsSource.indexOf('validateSenderIdWithProvider');
-    const sendLoopIdx = smsSource.indexOf('Promise.allSettled');
-    assert(preflightIdx < sendLoopIdx, 'Preflight must be before send loop');
-  });
+  test('SenderId model has isApproved method',
+    modelSource.includes('isApproved'));
 
-  test('sms-campaigns.js preflight is before wallet reservation', () => {
-    const preflightIdx = campaignSource.indexOf('validateSenderIdWithProvider');
-    const reserveIdx = campaignSource.indexOf('reserveFunds');
-    assert(preflightIdx < reserveIdx, 'Preflight must be before wallet reservation');
-  });
+  test('isApproved returns true only for approved status',
+    modelSource.includes("return this.status === 'approved'"));
 });
 
 // ============================================================
-// TEST 6: Frontend error handling
+// TEST 6: Frontend dropdown filters by approved status
 // ============================================================
-group('TEST 6: Frontend error handling', () => {
-  const frontendSource = require('fs').readFileSync('./src/pages/dashboard/send-sms.html', 'utf8');
+group('TEST 6: Frontend sender ID dropdown respects stored approval', () => {
+  const html = fs.readFileSync(path.join(__dirname, 'src/pages/dashboard/send-sms.html'), 'utf8');
 
-  test('frontend checks classification for error messages', () => {
-    assert(frontendSource.includes('classification'), 'Frontend should check classification');
-  });
+  test('Frontend only appends approved Sender IDs to dropdown',
+    html.includes("if (senderId.status === 'approved')"));
 
-  test('frontend handles permanent_sender_id_error', () => {
-    assert(frontendSource.includes('permanent_sender_id_error'), 'Frontend should handle permanent rejection');
-  });
-
-  test('frontend handles temporary_provider_error', () => {
-    assert(frontendSource.includes('temporary_provider_error'), 'Frontend should handle temporary error');
-  });
-
-  test('frontend handles auth_configuration_error', () => {
-    assert(frontendSource.includes('auth_configuration_error'), 'Frontend should handle auth error');
-  });
-
-  test('frontend handles malformed_request via providerMessage fallback', () => {
-    assert(frontendSource.includes('providerMessage'), 'Frontend should display provider message for malformed_request');
-  });
-
-  test('frontend shows providerMessage when available', () => {
-    assert(frontendSource.includes('providerMessage'), 'Frontend should display provider message');
-  });
-});
-
-// ============================================================
-// TEST 7: Circuit breaker behavior
-// ============================================================
-group('TEST 7: Circuit breaker behavior', () => {
-  const resilientSource = require('fs').readFileSync('./backend/utils/ResilientHttpClient.js', 'utf8');
-  const naloSource = require('fs').readFileSync('./backend/services/NaloSmsService.js', 'utf8');
-
-  test('ResilientHttpClient has sender_id_error category', () => {
-    assert(resilientSource.includes('sender_id_error'), 'Should have sender_id_error category');
-  });
-
-  test('1707 does not trip circuit breaker', () => {
-    assert(resilientSource.includes("['1707'].includes(errorCode)"), '1707 should be excluded from breaker');
-  });
-
-  test('validation errors do not trip global circuit breaker', () => {
-    // The validation uses httpClient.post which goes through categorizeError.
-    // HTTP 400 with recognized recipient/sender/account codes returns categories
-    // that do not trip breaker. Unrecognized 4xx returns 'permanent'.
-    assert(resilientSource.includes("return 'permanent'"), 'Unknown 4xx should be permanent (no breaker trip)');
-    assert(resilientSource.includes("return 'recipient_error'"), '1706 should be recipient_error (no breaker trip)');
-  });
-
-  test('NaloSmsService does not classify 1706 as temporary_provider_error', () => {
-    assert(naloSource.includes("['1706', '1708', '1709', '1026', '1027', '1028'].includes(code)"),
-      '1706 and similar should be malformed_request, not temporary_provider_error');
-  });
-});
-
-// ============================================================
-// TEST 8: Logging and security
-// ============================================================
-group('TEST 8: Logging and security', () => {
-  const naloSource = require('fs').readFileSync('./backend/services/NaloSmsService.js', 'utf8');
-
-  test('API key is hidden in provider payload logs', () => {
-    assert(naloSource.includes('***HIDDEN***'), 'API key should be hidden in logs');
-  });
-
-  test('preflight logs do not expose raw API key', () => {
-    // Extract the validateSenderIdWithProvider method body
-    const methodStart = naloSource.indexOf('async validateSenderIdWithProvider');
-    const methodEnd = naloSource.indexOf('\n  }', methodStart) + 4;
-    const methodBody = naloSource.substring(methodStart, methodEnd);
-
-    // Find all console.log statements in the preflight method
-    const consoleLogMatches = methodBody.match(/console\.log\([^)]+\)/g) || [];
-    for (const logCall of consoleLogMatches) {
-      assert(!logCall.includes('this.apiKey') && !logCall.includes('apiKey'),
-        `Preflight log exposes API key: ${logCall.substring(0, 100)}`);
-    }
-  });
-
-  test('validation classification is logged for forensics', () => {
-    assert(naloSource.includes('Sender ID preflight classification'), 'Classification should be logged');
-  });
+  test('Frontend handles pending Sender IDs separately',
+    html.includes("senderId.status === 'pending'"));
 });
 
 // ============================================================

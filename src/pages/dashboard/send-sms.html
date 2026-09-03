@@ -4343,11 +4343,14 @@ if (result.error) {
 
                     // Classification-aware error messages
                     const errorCode = responseData.error?.code || responseData.code;
+                    const providerSummaryCode = responseData.providerErrorSummary?.errorCode;
                     const classification = responseData.error?.classification || responseData.classification;
                     if (classification === 'permanent_sender_id_error' || errorCode === 'SENDER_ID_PROVIDER_REJECTED') {
                         errorMessage = responseData.error?.providerMessage || 'The selected Sender ID is not registered with the SMS provider. Please select an approved Sender ID.';
                     } else if (classification === 'temporary_provider_error' || errorCode === 'PROVIDER_TEMPORARY_ERROR') {
                         errorMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
+                    } else if (errorCode === '1025' || providerSummaryCode === '1025') {
+                        errorMessage = 'SMS provider account balance is low — please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
                     } else if (classification === 'auth_configuration_error' || errorCode === 'PROVIDER_AUTH_ERROR') {
                         errorMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
                     }
@@ -4428,12 +4431,15 @@ if (result.error) {
                            errorMessage = `SMS provider is temporarily unavailable. Please wait ${waitSec} seconds and try again. If this persists, contact support.`;
                        } else {
                            const errorCode = responseData.error?.code || responseData.code;
+                           const providerSummaryCode = responseData.providerErrorSummary?.errorCode;
                            const classification = responseData.error?.classification || responseData.classification;
 
                            if (classification === 'permanent_sender_id_error' || errorCode === 'SENDER_ID_PROVIDER_REJECTED') {
                                errorMessage = responseData.error?.providerMessage || 'The selected Sender ID is not registered with the SMS provider. Please select an approved Sender ID.';
                            } else if (classification === 'temporary_provider_error' || errorCode === 'PROVIDER_TEMPORARY_ERROR') {
                                errorMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
+                           } else if (errorCode === '1025' || providerSummaryCode === '1025') {
+                               errorMessage = 'SMS provider account balance is low — please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
                            } else if (classification === 'auth_configuration_error' || errorCode === 'PROVIDER_AUTH_ERROR') {
                                errorMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
                            } else if (responseData.summary || responseData.duplicatesRemoved !== undefined) {

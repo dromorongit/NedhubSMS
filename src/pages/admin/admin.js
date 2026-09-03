@@ -677,8 +677,62 @@ async function loadSystemContent() {
                 </div>
                 <button class="btn-secondary" onclick="checkSystemStatus()">Refresh Status</button>
             </div>
+            <div class="control-card">
+                <h3>Nalo Provider Balance</h3>
+                <p class="control-help">Distinct from user wallet balances. This is the SMS provider's prepaid balance used to deliver messages.</p>
+                <div class="status-indicator" id="nalo-balance-indicator">
+                    <span class="status-dot status-unknown"></span>
+                    <span id="nalo-balance-text">Loading...</span>
+                </div>
+                <div id="nalo-balance-warning" style="display:none; margin-top:12px; padding:12px; border-radius:6px; background:#fff4e5; color:#7a3e00; font-size:14px;">
+                    <strong>SMS provider account balance is low.</strong>
+                    Top up the Nalo account to resume SMS delivery. This is a separate pool from the in-app user wallet balances shown elsewhere.
+                </div>
+                <div id="nalo-balance-error" style="display:none; margin-top:12px; padding:12px; border-radius:6px; background:#fdecea; color:#7a1f1a; font-size:14px;"></div>
+                <div style="margin-top:8px; font-size:12px; color:#666;" id="nalo-balance-meta"></div>
+                <button class="btn-secondary" onclick="refreshNaloBalance()" style="margin-top:12px;">Refresh Balance</button>
+            </div>
         </div>
     `;
+    refreshNaloBalance();
+}
+
+async function refreshNaloBalance() {
+    const indicator = document.getElementById('nalo-balance-indicator');
+    const text = document.getElementById('nalo-balance-text');
+    const warning = document.getElementById('nalo-balance-warning');
+    const errorEl = document.getElementById('nalo-balance-error');
+    const meta = document.getElementById('nalo-balance-meta');
+    if (!indicator || !text) return;
+
+    warning.style.display = 'none';
+    errorEl.style.display = 'none';
+    indicator.innerHTML = '<span class="status-dot status-unknown"></span><span>Loading...</span>';
+
+    try {
+        const response = await window.apiClient.request('GET', '/admin/nalo/balance');
+        if (response.error) {
+            throw new Error(response.error.message || 'Failed to fetch balance');
+        }
+        const data = response.data || {};
+        const balance = Number(data.balance);
+        const isLow = !!data.isLow;
+        const threshold = data.threshold;
+
+        const dotClass = isLow ? 'status-warning' : 'status-active';
+        const statusLabel = isLow ? 'Low' : 'OK';
+        indicator.innerHTML = `<span class="status-dot ${dotClass}"></span><span>Nalo Provider Balance: ${Number.isFinite(balance) ? balance : 'N/A'} credits — ${statusLabel}</span>`;
+        meta.textContent = `Last checked: ${new Date().toLocaleString()} (threshold: ${threshold} credits)`;
+
+        if (isLow) {
+            warning.style.display = 'block';
+        }
+    } catch (error) {
+        indicator.innerHTML = '<span class="status-dot status-error"></span><span>Nalo Provider Balance: Unavailable</span>';
+        errorEl.textContent = `Could not reach Nalo balance-check endpoint. The provider status is unknown. Error: ${error.message}`;
+        errorEl.style.display = 'block';
+        meta.textContent = `Last attempt: ${new Date().toLocaleString()}`;
+    }
 }
 
 function renderPagination(data, containerId, loadFunction) {

@@ -74,7 +74,7 @@ class SmsCampaignRetryService {
           });
 
            if (smsResult.success) {
-             await recipient.markAsSent(smsResult.jobId);
+              await recipient.markAsSent(smsResult.jobId, smsResult.jobId);
              return { success: true, messageId: smsResult.messageId, retryCount: recipient.retryCount };
            } else {
              await recipient.markAsFailed(smsResult.error, smsResult.code || 'SMS_SEND_FAILED');
@@ -254,7 +254,7 @@ class SmsCampaignRetryService {
           });
 
            if (smsResult.success) {
-             await recipient.markAsSent(smsResult.jobId);
+              await recipient.markAsSent(smsResult.jobId, smsResult.jobId);
              return { success: true, messageId: smsResult.messageId };
            } else {
              await recipient.markAsFailed(smsResult.error, smsResult.code || 'SMS_SEND_FAILED');
