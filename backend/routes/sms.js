@@ -64,16 +64,16 @@ router.post('/send', authenticate, async (req, res) => {
     }
 
     // NaloSmsService handles wallet deduction internally, so we don't need to deduct here
-    // Check Nalo SMS balance
+    // Check Nalo SMS balance (soft check — don't block the send if the check itself fails,
+    // only if it succeeds and confirms zero balance. The actual send via NaloSmsService
+    // will surface any real provider-side balance error per recipient.)
     const naloResult = await checkBalance();
     if (!naloResult.ok) {
-      return res.status(502).json({
-        success: false,
-        message: 'Unable to verify provider balance, please try again',
-        error: { code: 'PROVIDER_BALANCE_CHECK_FAILED', details: naloResult.error }
+      logger.warn('[Send] Provider balance check failed, proceeding with send anyway', {
+        userId,
+        reason: naloResult.error
       });
-    }
-    if (naloResult.balance <= 0) {
+    } else if (naloResult.balance <= 0) {
       return res.status(402).json({
         success: false,
         message: 'Insufficient SMS balance with provider',

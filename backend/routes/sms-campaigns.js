@@ -268,16 +268,14 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
-    // Check Nalo SMS balance
+    // Check Nalo SMS balance (soft check — see routes/sms.js for rationale)
     const naloResult = await checkBalance();
     if (!naloResult.ok) {
-      return res.status(502).json({
-        success: false,
-        message: 'Unable to verify provider balance, please try again',
-        error: { code: 'PROVIDER_BALANCE_CHECK_FAILED', details: naloResult.error }
+      logger.warn('[Campaign] Provider balance check failed, proceeding with send anyway', {
+        userId,
+        reason: naloResult.error
       });
-    }
-    if (naloResult.balance <= 0) {
+    } else if (naloResult.balance <= 0) {
       return res.status(402).json({
         success: false,
         message: 'Insufficient SMS balance with provider',
@@ -757,17 +755,14 @@ router.post('/schedule', authenticate, async (req, res) => {
       });
     }
 
-    // Check Nalo SMS balance
+    // Check Nalo SMS balance (soft check — see routes/sms.js for rationale)
     const naloResult = await checkBalance();
     if (!naloResult.ok) {
-      logger.warn('[Schedule] Unable to verify Nalo SMS balance', { userId });
-      return res.status(502).json({
-        success: false,
-        message: 'Unable to verify provider balance, please try again',
-        error: { code: 'PROVIDER_BALANCE_CHECK_FAILED', details: naloResult.error }
+      logger.warn('[Schedule] Provider balance check failed, proceeding with schedule anyway', {
+        userId,
+        reason: naloResult.error
       });
-    }
-    if (naloResult.balance <= 0) {
+    } else if (naloResult.balance <= 0) {
       logger.warn('[Schedule] Insufficient Nalo SMS balance', { userId });
       return res.status(402).json({
         success: false,

@@ -95,6 +95,7 @@ const checkBalance = async () => {
       `${NALO_BASE_URL}/smsbackend/Resl_Nalo/balance/`,
       {
         headers: { 'Content-Type': 'application/json' },
+        params: { key: NALO_API_KEY },
         timeout: 10000
       }
     );
