@@ -223,12 +223,11 @@
                                        
                                        <!-- Default Mode: Comma-separated input (shown only in default mode) -->
                                        <div id="defaultModeRecipients" class="mode-recipients-container">
-                                           <textarea id="commaSeparatedRecipients"
-                                                     placeholder="Enter phone numbers separated by comma (max 200 contacts)&#10;Example: 0241234567, 0201234567, 0251234567"
-                                                     rows="4"
-                                                     maxlength="500"></textarea>
+                                            <textarea id="commaSeparatedRecipients"
+                                                      placeholder="Enter phone numbers separated by comma&#10;Example: 0241234567, 0201234567, 0251234567"
+                                                      rows="4"></textarea>
                                            <div class="recipient-counter">
-                                               <span id="recipientCount">0</span>/200 contacts entered
+                                                <span id="recipientCount">0</span> contacts entered
                                            </div>
                                            <div class="validation-message" id="recipientValidationMessage" style="display: none;"></div>
                                        </div>
@@ -2913,7 +2912,7 @@ if (result.error) {
         const validationMessageEl = document.getElementById('recipientValidationMessage');
         
         // Maximum allowed contacts
-        const MAX_RECIPIENTS = 200;
+        const MAX_RECIPIENTS = Infinity;
         const MAX_SMS_SEGMENTS = 10;
 
         // Parse comma-separated phone numbers
@@ -2930,16 +2929,6 @@ if (result.error) {
             }
 
             const originalCount = rawNumbers.length;
-
-            // Check max limit
-            if (rawNumbers.length > MAX_RECIPIENTS) {
-                return {
-                    recipients: [],
-                    count: 0,
-                    originalCount,
-                    error: `Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${rawNumbers.length}.`
-                };
-            }
 
             // Validate each phone number
             const recipients = [];
@@ -3003,11 +2992,6 @@ if (result.error) {
             // Update counter styling based on total entries
             const counterContainer = recipientCountEl.parentElement;
             counterContainer.classList.remove('warning', 'error');
-            if (result.originalCount >= MAX_RECIPIENTS) {
-                counterContainer.classList.add('error');
-            } else if (result.originalCount >= MAX_RECIPIENTS * 0.8) {
-                counterContainer.classList.add('warning');
-            }
 
             // Update validation message
             // Remove success class first to reset state
@@ -4068,22 +4052,16 @@ if (result.error) {
                   return;
               }
 
-              // Enforce maximum recipients limit for all sources
-             if (recipients.length > MAX_RECIPIENTS) {
-                 showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
-                 return;
-             }
-
-             // Validate message segments (multipart SMS supported)
-             const messageBodyEl = document.getElementById('messageBody');
-             const messageForValidation = messageBodyEl ? messageBodyEl.value : '';
-             if (messageForValidation.trim()) {
-                 const segmentResult = calculateSmsSegments(messageForValidation);
-                 if (segmentResult.segments > MAX_SMS_SEGMENTS) {
-                     showToast(`Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${segmentResult.segments} segments for ${segmentResult.charCount} ${segmentResult.encoding} characters)`, 'error');
-                     return;
-                 }
-             }
+              // Validate message segments (multipart SMS supported)
+              const messageBodyEl = document.getElementById('messageBody');
+              const messageForValidation = messageBodyEl ? messageBodyEl.value : '';
+              if (messageForValidation.trim()) {
+                  const segmentResult = calculateSmsSegments(messageForValidation);
+                  if (segmentResult.segments > MAX_SMS_SEGMENTS) {
+                      showToast(`Message exceeds maximum of ${MAX_SMS_SEGMENTS} SMS segments (${segmentResult.segments} segments for ${segmentResult.charCount} ${segmentResult.encoding} characters)`, 'error');
+                      return;
+                  }
+              }
 
               // Open confirmation modal instead of sending directly
               await openConfirmationModal('immediate', recipients, null, this);
@@ -4133,12 +4111,6 @@ if (result.error) {
                   showToast('Please add at least one recipient', 'error');
                   return;
               }
-
-               // Enforce maximum recipients limit for all sources
-               if (recipients.length > MAX_RECIPIENTS) {
-                   showToast(`Maximum ${MAX_RECIPIENTS} contacts allowed. You entered ${recipients.length}.`, 'error');
-                   return;
-               }
 
                // Validate message segments (multipart SMS supported)
                const messageBodyEl = document.getElementById('messageBody');
