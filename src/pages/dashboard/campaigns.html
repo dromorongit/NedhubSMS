@@ -446,7 +446,7 @@
 
         // Reschedule modal elements
         const rescheduleModal = document.getElementById('rescheduleModal');
-        const closeRescheduleModal = document.getElementById('closeRescheduleModal');
+        const closeRescheduleModalBtn = document.getElementById('closeRescheduleModal');
         const rescheduleForm = document.getElementById('rescheduleForm');
         const rescheduleCampaignIdInput = document.getElementById('rescheduleCampaignId');
         const rescheduleDateInput = document.getElementById('rescheduleDate');
@@ -623,7 +623,7 @@
         });
 
         // Close reschedule modal
-        closeRescheduleModal.addEventListener('click', () => {
+        closeRescheduleModalBtn.addEventListener('click', () => {
             rescheduleModal.style.display = 'none';
         });
 
