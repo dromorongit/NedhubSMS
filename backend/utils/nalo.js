@@ -98,12 +98,18 @@ const checkBalance = async () => {
         timeout: 10000
       }
     );
-    const balance = response.data?.balance || response.data?.credits || 0;
-    console.log('[Nalo] Balance check', { balance });
-    return balance;
+    const raw = response.data;
+    const balance = typeof raw?.balance === 'number' ? raw.balance :
+                    typeof raw?.credits === 'number' ? raw.credits :
+                    0;
+    console.log('[Nalo] Balance check', { raw, balance });
+    return { ok: true, balance, error: null };
   } catch (error) {
-    console.warn('[Nalo] Balance check failed, assuming sufficient credit:', error.message);
-    return 1000;
+    const reason = error.code === 'ECONNABORTED' ? 'timeout' :
+                   error.response ? `provider_error_${error.response.status}` :
+                   'network';
+    console.warn('[Nalo] Balance check failed:', { reason, message: error.message });
+    return { ok: false, balance: null, error: reason };
   }
 };
 

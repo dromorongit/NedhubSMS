@@ -13,6 +13,7 @@ const SmsRecipientService = require('../services/SmsRecipientService');
 const SmsSchedulerService = require('../services/SmsSchedulerService');
 const SmsCampaignRetryService = require('../services/SmsCampaignRetryService');
 const { MAX_SMS_RECIPIENTS, MAX_SMS_SEGMENTS } = require('../utils/constants');
+const { checkBalance } = require('../utils/nalo');
 const logger = require('../utils/logger');
 
 // Preview personalized messages
@@ -264,6 +265,23 @@ router.post('/send', authenticate, async (req, res) => {
           code: 'VALIDATION_ERROR',
           details: validation.errors
         }
+      });
+    }
+
+    // Check Nalo SMS balance
+    const naloResult = await checkBalance();
+    if (!naloResult.ok) {
+      return res.status(502).json({
+        success: false,
+        message: 'Unable to verify provider balance, please try again',
+        error: { code: 'PROVIDER_BALANCE_CHECK_FAILED', details: naloResult.error }
+      });
+    }
+    if (naloResult.balance <= 0) {
+      return res.status(402).json({
+        success: false,
+        message: 'Insufficient SMS balance with provider',
+        error: { code: 'INSUFFICIENT_PROVIDER_BALANCE' }
       });
     }
 
@@ -736,6 +754,25 @@ router.post('/schedule', authenticate, async (req, res) => {
           code: 'VALIDATION_ERROR',
           details: validation.errors
         }
+      });
+    }
+
+    // Check Nalo SMS balance
+    const naloResult = await checkBalance();
+    if (!naloResult.ok) {
+      logger.warn('[Schedule] Unable to verify Nalo SMS balance', { userId });
+      return res.status(502).json({
+        success: false,
+        message: 'Unable to verify provider balance, please try again',
+        error: { code: 'PROVIDER_BALANCE_CHECK_FAILED', details: naloResult.error }
+      });
+    }
+    if (naloResult.balance <= 0) {
+      logger.warn('[Schedule] Insufficient Nalo SMS balance', { userId });
+      return res.status(402).json({
+        success: false,
+        message: 'Insufficient SMS balance with provider',
+        error: { code: 'INSUFFICIENT_PROVIDER_BALANCE' }
       });
     }
 

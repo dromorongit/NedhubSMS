@@ -848,8 +848,21 @@ router.get('/hubtel/auth-audit', authorize(['admin', 'super_admin']), async (req
 
 router.get('/nalo/balance', authorize(['admin', 'super_admin']), async (req, res) => {
   try {
-    const balance = await checkBalance();
-    const numericBalance = Number(balance);
+    const result = await checkBalance();
+    if (!result.ok) {
+      logger.error('[NaloBalance] Balance check failed', { error: result.error });
+      return res.status(502).json({
+        success: false,
+        message: 'Unable to verify Nalo provider balance',
+        provider: 'nalo',
+        error: {
+          code: 'NALO_BALANCE_CHECK_FAILED',
+          details: result.error
+        }
+      });
+    }
+
+    const numericBalance = Number(result.balance);
     const isLow = Number.isFinite(numericBalance) && numericBalance <= NALO_LOW_BALANCE_THRESHOLD;
 
     logger.info('[NaloBalance] Admin balance check', {
@@ -870,8 +883,8 @@ router.get('/nalo/balance', authorize(['admin', 'super_admin']), async (req, res
       fetchedAt: new Date().toISOString()
     });
   } catch (error) {
-    logger.error('[NaloBalance] Failed to fetch balance', { error: error.message });
-    res.status(502).json({
+    logger.error('[NaloBalance] Route handler error', { error: error.message });
+    res.status(500).json({
       success: false,
       message: 'Failed to fetch Nalo provider balance',
       provider: 'nalo',

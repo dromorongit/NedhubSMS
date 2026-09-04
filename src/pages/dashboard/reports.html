@@ -508,7 +508,18 @@
                     return;
                 }
 
-                allMessages = result.data || [];
+                // Handle multiple possible response shapes from getMessageHistory()
+                const payload = result.data ?? result;
+                if (Array.isArray(payload)) {
+                    allMessages = payload;
+                } else if (Array.isArray(payload?.messages)) {
+                    allMessages = payload.messages;
+                } else if (Array.isArray(payload?.data)) {
+                    allMessages = payload.data;
+                } else {
+                    console.warn('Unexpected message history response shape:', result);
+                    allMessages = [];
+                }
                 filteredMessages = [...allMessages];
                 updateStats();
                 renderTable();
