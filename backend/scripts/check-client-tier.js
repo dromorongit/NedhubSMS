@@ -41,9 +41,9 @@ async function main() {
         tierMax: tierInfo.max,
         providerCost,
         sellPriceCurrent: calculator.defaultSellPricePerSms,
-        sellPriceProposed: 0.072,
-        profitableAtCurrent: calculator.defaultSellPricePerSms > providerCost,
-        profitableAtProposed: 0.072 > providerCost
+      sellPriceProposed: 0.078,
+      profitableAtCurrent: calculator.defaultSellPricePerSms > providerCost,
+      profitableAtProposed: 0.078 > providerCost
       });
     }
 
@@ -52,7 +52,7 @@ async function main() {
     console.log('='.repeat(120));
     console.log('CLIENT TIER VERIFICATION REPORT');
     console.log('='.repeat(120));
-    console.log('Proposed sell price: GHS 0.072');
+    console.log('Proposed sell price: GHS 0.078');
     console.log('Current sell price: GHS ' + calculator.defaultSellPricePerSms);
     console.log('');
 
@@ -91,14 +91,14 @@ async function main() {
 
     const unprofitable = results.filter(r => !r.profitableAtProposed);
     if (unprofitable.length === 0) {
-      console.log('PASS: GHS 0.072 is profitable for all checked clients.');
+      console.log('PASS: GHS 0.078 is profitable for all checked clients.');
     } else {
-      console.log(`FAIL: GHS 0.072 would be UNPROFITABLE for ${unprofitable.length} client(s):`);
+        console.log(`FAIL: GHS 0.078 would be UNPROFITABLE for ${unprofitable.length} client(s):`);
       for (const r of unprofitable) {
         console.log(`  - ${r.name} (${r.email}): Tier ${r.tier}, volume ${r.monthlyVolume}, provider cost GHS ${r.providerCost}`);
       }
       console.log('');
-      console.log('RECOMMENDATION: Do NOT change defaultSellPricePerSms to 0.072 GHS.');
+        console.log('RECOMMENDATION: Do NOT change defaultSellPricePerSms to 0.078 GHS.');
     }
 
     await mongoose.disconnect();

@@ -14,7 +14,7 @@ const logger = require('../utils/logger');
 class CostCalculatorService {
   constructor() {
     // Default pricing configuration (can be overridden by admin)
-    this.defaultSellPricePerSms = 0.086; // GHS
+    this.defaultSellPricePerSms = 0.078; // GHS
     
     // Tiered provider costs based on monthly volume
     this.providerCostTiers = [
