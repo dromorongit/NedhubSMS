@@ -14,7 +14,10 @@ const logger = require('../utils/logger');
 class CostCalculatorService {
   constructor() {
     // Default pricing configuration (can be overridden by admin)
-    this.defaultSellPricePerSms = 0.078; // GHS
+    // NOTE: 0.05 GHS is below provider cost at every tier (Tier 1: 0.082, Tier 2: 0.072,
+    // Tier 3: 0.062). This is a deliberate client-requested price, not a break-even or
+    // profitable rate. Every SMS segment sold at this price runs at a loss.
+    this.defaultSellPricePerSms = 0.05; // GHS
     
     // Tiered provider costs based on monthly volume
     this.providerCostTiers = [
