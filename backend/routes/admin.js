@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { authenticate, authorize } = require('../middleware/auth');
 const User = require('../models/User');
 const Wallet = require('../models/Wallet');
@@ -230,6 +231,69 @@ router.put('/users/:id', authorize(['admin', 'super_admin']), async (req, res) =
        }
      });
    }
+});
+
+// Admin-initiated password reset for a user
+// If newPassword is omitted, a secure random password is generated and returned
+// in the response so the admin can relay it to the user (e.g. by phone).
+router.post('/users/:id/reset-password', authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    let passwordToSet = newPassword;
+
+    if (passwordToSet) {
+      if (passwordToSet.length < 8) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters',
+          error: { code: 'VALIDATION_ERROR' }
+        });
+      }
+    } else {
+      // Generate a random 12-character alphanumeric password
+      passwordToSet = crypto.randomBytes(9).toString('base64')
+        .replace(/[+/=]/g, '')
+        .slice(0, 12);
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        error: { code: 'NOT_FOUND' }
+      });
+    }
+
+    user.password = passwordToSet; // hashed automatically by the User model's pre-save hook
+    await user.save();
+
+    // Audit log the action - do NOT store the plaintext password in the log
+    await logAction(req.user.userId, 'admin_reset_password', 'user', user._id, {
+      targetEmail: user.email
+    });
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully',
+      data: {
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        newPassword: passwordToSet
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset password',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        details: error.message
+      }
+    });
+  }
 });
 
 // Delete user

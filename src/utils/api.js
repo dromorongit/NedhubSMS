@@ -213,8 +213,8 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async register(name, email, password) {
-    return this.request('POST', '/auth/register', { name, email, password });
+  async register(name, email, phone, password) {
+    return this.request('POST', '/auth/register', { name, email, phone, password });
   }
 
   async login(email, password) {
@@ -243,6 +243,12 @@ class ApiClient {
 
   async getUserProfile() {
     return this.request('GET', '/auth/me');
+  }
+
+  // Admin: reset a user's password. Omit newPassword to auto-generate one.
+  async adminResetUserPassword(userId, newPassword) {
+    const body = newPassword ? { newPassword } : {};
+    return this.request('POST', `/admin/users/${userId}/reset-password`, body);
   }
 
   // Contact endpoints

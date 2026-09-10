@@ -179,8 +179,8 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async register(name: string, email: string, password: string) {
-    return this.request<{ token: string; userId: string }>('POST', '/auth/register', { name, email, password });
+  async register(name: string, email: string, phone: string, password: string) {
+    return this.request<{ token: string; userId: string }>('POST', '/auth/register', { name, email, phone, password });
   }
 
   async login(email: string, password: string) {

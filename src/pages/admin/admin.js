@@ -317,6 +317,7 @@ function renderUsersTable(users) {
             <td>${new Date(user.createdAt).toLocaleDateString()}</td>
             <td class="actions">
                 <button class="btn-sm btn-secondary" onclick="editUser('${user._id}')">Edit</button>
+                <button class="btn-sm btn-secondary" onclick="openResetPasswordModal('${user._id}', '${(user.name || '').replace(/'/g, "\\'")}', '${user.email}')">Reset Password</button>
                 ${user.status === 'active' ?
                     `<button class="btn-sm btn-danger" onclick="suspendUser('${user._id}')">Suspend</button>` :
                     `<button class="btn-sm btn-success" onclick="activateUser('${user._id}')">Activate</button>`
@@ -969,6 +970,114 @@ async function deleteUser(userId) {
         loadUsers(); // Refresh the table
     } catch (error) {
         showToast('Failed to delete user', 'error');
+    }
+}
+
+// --- Admin Reset Password ---
+
+window.openResetPasswordModal = function(userId, name, email) {
+    let modal = document.getElementById('reset-password-modal');
+    if (!modal) {
+        createResetPasswordModal();
+        modal = document.getElementById('reset-password-modal');
+    }
+
+    // Reset to the input step each time it's opened
+    document.getElementById('reset-password-user-id').value = userId;
+    document.getElementById('reset-password-user-label').textContent = `${name} (${email})`;
+    document.getElementById('reset-password-custom-input').value = '';
+    document.getElementById('reset-password-step-input').style.display = 'block';
+    document.getElementById('reset-password-step-result').style.display = 'none';
+
+    modal.style.display = 'flex';
+};
+
+window.closeResetPasswordModal = function() {
+    const modal = document.getElementById('reset-password-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
+function createResetPasswordModal() {
+    const modalHTML = `
+        <div id="reset-password-modal" class="modal">
+            <div class="modal-content">
+                <h3>Reset Password</h3>
+                <input type="hidden" id="reset-password-user-id">
+
+                <div id="reset-password-step-input">
+                    <p>Resetting password for <strong id="reset-password-user-label"></strong></p>
+                    <div class="form-group">
+                        <label for="reset-password-custom-input">New password (optional)</label>
+                        <input type="text" id="reset-password-custom-input" placeholder="Leave blank to auto-generate">
+                        <small>If left blank, a secure random password will be generated for you to share with the user.</small>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeResetPasswordModal()">Cancel</button>
+                        <button type="button" class="btn-primary" id="reset-password-submit-btn">Reset Password</button>
+                    </div>
+                </div>
+
+                <div id="reset-password-step-result" style="display:none;">
+                    <p>Password reset successfully. Share this with the user &mdash; it will not be shown again:</p>
+                    <div class="form-group">
+                        <input type="text" id="reset-password-result-value" readonly>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="reset-password-copy-btn">Copy</button>
+                        <button type="button" class="btn-primary" onclick="closeResetPasswordModal()">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    document.getElementById('reset-password-submit-btn').addEventListener('click', submitPasswordReset);
+    document.getElementById('reset-password-copy-btn').addEventListener('click', () => {
+        const input = document.getElementById('reset-password-result-value');
+        input.select();
+        navigator.clipboard?.writeText(input.value).then(
+            () => showToast('Password copied to clipboard', 'success'),
+            () => document.execCommand('copy')
+        );
+    });
+}
+
+async function submitPasswordReset() {
+    const userId = document.getElementById('reset-password-user-id').value;
+    const customPassword = document.getElementById('reset-password-custom-input').value.trim();
+    const submitBtn = document.getElementById('reset-password-submit-btn');
+
+    if (customPassword && customPassword.length < 8) {
+        showToast('Password must be at least 8 characters', 'error');
+        return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Resetting...';
+
+    try {
+        const response = await window.apiClient.adminResetUserPassword(userId, customPassword || undefined);
+
+        if (response.error) {
+            showToast(extractErrorMessage(response.error) || 'Failed to reset password', 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Reset Password';
+            return;
+        }
+
+        document.getElementById('reset-password-result-value').value = response.data.newPassword;
+        document.getElementById('reset-password-step-input').style.display = 'none';
+        document.getElementById('reset-password-step-result').style.display = 'block';
+        showToast('Password reset successfully', 'success');
+    } catch (error) {
+        showToast('Failed to reset password', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Reset Password';
     }
 }
 
