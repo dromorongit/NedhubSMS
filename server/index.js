@@ -162,8 +162,10 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, '../backend/uploads')));
+// NOTE: Uploaded KYC documents (Ghana Card, passport, business registration) used
+// to be served publicly here at /uploads with no authentication. They now go
+// through the authenticated GET /api/admin/sender-ids/:id/document route instead,
+// so admin/super_admin login is required to view or download them.
 
 // Serve static files from root assets directory
 app.use('/assets', express.static(path.join(__dirname, '../assets')));

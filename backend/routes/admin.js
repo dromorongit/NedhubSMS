@@ -1,5 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { authenticate, authorize } = require('../middleware/auth');
 const User = require('../models/User');
 const Wallet = require('../models/Wallet');
@@ -429,6 +431,49 @@ router.get('/sender-ids', authorize(['admin', 'super_admin']), async (req, res) 
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch sender IDs' });
+  }
+});
+
+// Admin: view or download the KYC document attached to a Sender ID request.
+// ?download=1 forces a file download instead of opening inline in the browser.
+router.get('/sender-ids/:id/document', authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const senderId = await SenderId.findById(req.params.id);
+    if (!senderId || !senderId.documentUrl) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // documentUrl is stored as e.g. "/uploads/sender-id-docs/171234-5678.pdf"
+    const relativePath = senderId.documentUrl.replace(/^\/?uploads\//, '');
+    const uploadsRoot = path.resolve(__dirname, '../uploads');
+    const filePath = path.resolve(uploadsRoot, relativePath);
+
+    // Guard against path traversal - resolved path must stay inside the uploads directory
+    if (filePath !== uploadsRoot && !filePath.startsWith(uploadsRoot + path.sep)) {
+      return res.status(400).json({ error: 'Invalid document path' });
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Document file not found on server' });
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeTypes = {
+      '.pdf': 'application/pdf',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png'
+    };
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+    const downloadName = (senderId.documentName || `sender-id-document${ext}`).replace(/"/g, '');
+    const disposition = req.query.download === '1' ? 'attachment' : 'inline';
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `${disposition}; filename="${downloadName}"`);
+
+    fs.createReadStream(filePath).pipe(res);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve document' });
   }
 });
 

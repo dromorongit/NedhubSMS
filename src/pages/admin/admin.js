@@ -487,6 +487,7 @@ async function loadSenderIdsContent() {
                     <tr>
                         <th>Sender ID</th>
                         <th>User</th>
+                        <th>Document</th>
                         <th>Status</th>
                         <th>Remarks</th>
                         <th>Created</th>
@@ -530,6 +531,10 @@ function renderSenderIdsTable(senderIds) {
         <tr>
             <td>${senderId.senderId}</td>
             <td>${senderId.userId.name} (${senderId.userId.email})</td>
+            <td>
+                <button class="btn-sm btn-secondary" onclick="viewSenderIdDocument('${senderId._id}')">View</button>
+                <button class="btn-sm btn-secondary" onclick="downloadSenderIdDocument('${senderId._id}', '${(senderId.documentName || 'document').replace(/'/g, "\\'")}')">Download</button>
+            </td>
             <td><span class="status-badge status-${senderId.status}">${senderId.status}</span></td>
             <td>${senderId.remarks || '-'}</td>
             <td>${new Date(senderId.createdAt).toLocaleDateString()}</td>
@@ -542,6 +547,34 @@ function renderSenderIdsTable(senderIds) {
         </tr>
     `).join('');
 }
+
+window.viewSenderIdDocument = async function(id) {
+    try {
+        const blob = await window.apiClient.fetchProtectedFile(`/admin/sender-ids/${id}/document`);
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        // Revoke after a delay to give the new tab time to load the blob
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+        showToast('Failed to load document', 'error');
+    }
+};
+
+window.downloadSenderIdDocument = async function(id, filename) {
+    try {
+        const blob = await window.apiClient.fetchProtectedFile(`/admin/sender-ids/${id}/document?download=1`);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'sender-id-document';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+        showToast('Failed to download document', 'error');
+    }
+};
 
 async function approveSenderId(senderId) {
     if (await confirmAction('Are you sure you want to approve this Sender ID?')) {

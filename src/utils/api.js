@@ -251,6 +251,20 @@ class ApiClient {
     return this.request('POST', `/admin/users/${userId}/reset-password`, body);
   }
 
+  // Fetch a protected file (e.g. a sender ID's uploaded document) as a Blob,
+  // attaching the auth header since plain <a> links can't send one.
+  async fetchProtectedFile(endpoint) {
+    const token = this.getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, { headers });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file (${response.status})`);
+    }
+    return await response.blob();
+  }
+
   // Contact endpoints
   async createContact(recipientName, phoneNumber, groupName) {
     return this.request('POST', '/contacts', { recipientName, phoneNumber, groupName });
