@@ -258,6 +258,7 @@ async function loadUsersContent() {
                     <tr>
                         <th>Name</th>
                         <th>Email</th>
+                        <th>Phone</th>
                         <th>Role</th>
                         <th>Status</th>
                         <th>Created</th>
@@ -310,6 +311,7 @@ function renderUsersTable(users) {
         <tr>
             <td>${user.name}</td>
             <td>${user.email}</td>
+            <td>${user.phone || '-'}</td>
             <td><span class="role-badge role-${user.role}">${user.role}</span></td>
             <td><span class="status-badge status-${user.status}">${user.status}</span></td>
             <td>${new Date(user.createdAt).toLocaleDateString()}</td>

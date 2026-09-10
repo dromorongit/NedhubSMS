@@ -57,10 +57,10 @@ const hashToken = (token) => {
 // User registration
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, phone, password } = req.body;
 
     // Validate input
-    if (!name || !email || !password) {
+    if (!name || !email || !phone || !password) {
       return res.status(400).json({
         success: false,
         message: 'All fields are required',
@@ -94,31 +94,23 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Create user as 'pending' - user cannot login until they verify email
-    const user = await User.create({ 
-      name, 
-      email, 
-      password,
-      status: 'pending',
-      isEmailVerified: false
-    });
-
-    // Generate OTP for email verification
-    const otp = OTP.generateOTP();
-    await OTP.create({
+    // Create user as 'active' - no approval/verification step required before login
+    const user = await User.create({
+      name,
       email,
-      otp,
-      purpose: 'email_verification'
+      phone,
+      password,
+      status: 'active'
     });
 
-    // Send verification email in background
-    EmailService.sendVerificationOTP(email, name, otp)
-      .then(() => console.log('[AUTH] Verification email sent successfully'))
-      .catch(err => console.error('[AUTH] Failed to send verification email:', err.message));
+    // Notify admin of the new signup in the background (non-blocking)
+    EmailService.sendAdminUserVerifiedNotification(user)
+      .then(() => console.log('[AUTH] Admin new-user notification sent successfully'))
+      .catch(err => console.error('[AUTH] Failed to send admin new-user notification:', err.message));
 
     res.status(201).json({
       success: true,
-      message: 'Verification code sent to your email. Please verify to activate your account.',
+      message: 'Account created successfully. You can now sign in.',
       data: { email }
     });
   } catch (error) {
@@ -161,18 +153,6 @@ router.post('/login', async (req, res) => {
         success: false,
         message: 'Invalid credentials',
         error: { code: 'INVALID_CREDENTIALS' }
-      });
-    }
-
-    // Check if user account is pending (not verified yet)
-    if (user.status === 'pending') {
-      authLogger.warn('Login failed - email not verified', { email, userId: user._id });
-      return res.status(403).json({
-        success: false,
-        message: 'Please verify your email first. Check your inbox for the verification code.',
-        error: { code: 'EMAIL_NOT_VERIFIED' },
-        requiresVerification: true,
-        email: user.email
       });
     }
 

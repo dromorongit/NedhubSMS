@@ -15,6 +15,11 @@ const userSchema = new mongoose.Schema({
       'Please add a valid email'
     ]
   },
+  phone: {
+    type: String,
+    required: [true, 'Please add a mobile number'],
+    trim: true
+  },
   password: {
     type: String,
     required: [true, 'Please add a password'],
@@ -28,7 +33,7 @@ const userSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['active', 'suspended', 'pending'],
-    default: 'pending'
+    default: 'active'
   },
   isEmailVerified: {
     type: Boolean,
