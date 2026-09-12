@@ -72,10 +72,16 @@ const logger = winston.createLogger({
     }),
     new winston.transports.File({
       filename: path.join(logsDir, 'error.log'),
-      level: 'error'
+      level: 'error',
+      maxsize: 10 * 1024 * 1024, // 10MB per file
+      maxFiles: 5, // keep last 5 rotated files, then discard oldest
+      tailable: true
     }),
     new winston.transports.File({
-      filename: path.join(logsDir, 'combined.log')
+      filename: path.join(logsDir, 'combined.log'),
+      maxsize: 10 * 1024 * 1024, // 10MB per file
+      maxFiles: 5,
+      tailable: true
     })
   ]
 });

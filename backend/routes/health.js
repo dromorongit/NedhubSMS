@@ -95,18 +95,28 @@ router.get('/health/detailed', async (req, res) => {
   }
 
   // Redis/Queue - try to connect but don't fail the health check
+  let queue;
   try {
-    const queue = new Queue('sms-queue', { connection: redisConfig });
+    queue = new Queue('sms-queue', { connection: redisConfig });
     // Add timeout to prevent hanging if Redis is unavailable
     await Promise.race([
       queue.waitUntilReady(),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Redis connection timeout')), 3000))
     ]);
     health.services.redis = { status: 'up' };
-    await queue.close(); // Clean up
   } catch (error) {
     health.services.redis = { status: 'down', error: error.message };
     health.status = 'degraded';
+  } finally {
+    // Always clean up the queue/Redis connection, even on failure/timeout,
+    // otherwise every failed check leaks an ioredis connection.
+    if (queue) {
+      try {
+        await queue.close();
+      } catch (closeError) {
+        logger.warn('[HealthCheck] Failed to close temporary queue connection', { error: closeError.message });
+      }
+    }
   }
 
   // External services - these are assumed up for now

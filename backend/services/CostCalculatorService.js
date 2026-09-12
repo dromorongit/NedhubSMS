@@ -14,16 +14,18 @@ const logger = require('../utils/logger');
 class CostCalculatorService {
   constructor() {
     // Default pricing configuration (can be overridden by admin)
-    // NOTE: 0.05 GHS is below provider cost at every tier (Tier 1: 0.082, Tier 2: 0.072,
-    // Tier 3: 0.062). This is a deliberate client-requested price, not a break-even or
-    // profitable rate. Every SMS segment sold at this price runs at a loss.
-    this.defaultSellPricePerSms = 0.078; // GHS
-    
-    // Tiered provider costs based on monthly volume
+    // Client-requested sell price. Nalo now charges a flat GHS 0.03/SMS at every
+    // volume tier, so this yields a GHS 0.02/segment margin regardless of volume.
+    this.defaultSellPricePerSms = 0.05; // GHS
+
+    // Provider (Nalo) cost per SMS. Nalo previously tiered pricing by monthly
+    // volume (0.082 / 0.072 / 0.062); they now charge a flat 0.03 regardless of
+    // volume. Kept as a single-entry array (rather than removed) so the existing
+    // tier-based API surface (getProviderCostTiers, getCurrentTierInfo,
+    // updateProviderCostTier, and the /api/admin/pricing/tiers route) keeps working
+    // unchanged - it just reports one tier now instead of three.
     this.providerCostTiers = [
-      { min: 1, max: 99999, cost: 0.082 },      // Tier 1: 1-99,999 SMS
-      { min: 100000, max: 199999, cost: 0.072 }, // Tier 2: 100,000-199,999 SMS
-      { min: 200000, max: Infinity, cost: 0.062 } // Tier 3: 200,000+ SMS
+      { min: 1, max: Infinity, cost: 0.03 } // Flat rate: all volumes
     ];
     
     // Currency

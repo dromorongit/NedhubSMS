@@ -41,9 +41,9 @@ async function main() {
         tierMax: tierInfo.max,
         providerCost,
         sellPriceCurrent: calculator.defaultSellPricePerSms,
-      sellPriceProposed: 0.078,
+      sellPriceProposed: 0.05,
       profitableAtCurrent: calculator.defaultSellPricePerSms > providerCost,
-      profitableAtProposed: 0.078 > providerCost
+      profitableAtProposed: 0.05 > providerCost
       });
     }
 
@@ -52,19 +52,23 @@ async function main() {
     console.log('='.repeat(120));
     console.log('CLIENT TIER VERIFICATION REPORT');
     console.log('='.repeat(120));
-    console.log('Proposed sell price: GHS 0.078');
+    console.log('Proposed sell price: GHS 0.05');
     console.log('Current sell price: GHS ' + calculator.defaultSellPricePerSms);
     console.log('');
 
-    const tier1 = results.filter(r => r.tier === 1);
-    const tier2 = results.filter(r => r.tier === 2);
-    const tier3 = results.filter(r => r.tier >= 3);
+    // Nalo now charges a flat rate at every volume tier, so this is informational only -
+    // everyone lands in "tier 1" (the single remaining tier entry).
+    const tierCounts = {};
+    for (const r of results) {
+      tierCounts[r.tier] = (tierCounts[r.tier] || 0) + 1;
+    }
 
     console.log('SUMMARY');
     console.log('-'.repeat(120));
-    console.log(`Tier 1 clients (cost GHS 0.082): ${tier1.length}`);
-    console.log(`Tier 2 clients (cost GHS 0.072): ${tier2.length}`);
-    console.log(`Tier 3+ clients (cost GHS 0.062): ${tier3.length}`);
+    for (const [tierNumber, count] of Object.entries(tierCounts)) {
+      const sample = results.find(r => r.tier === Number(tierNumber));
+      console.log(`Tier ${tierNumber} clients (cost GHS ${sample.providerCost}): ${count}`);
+    }
     console.log('');
 
     console.log('DETAILED CLIENT BREAKDOWN');
@@ -91,14 +95,14 @@ async function main() {
 
     const unprofitable = results.filter(r => !r.profitableAtProposed);
     if (unprofitable.length === 0) {
-      console.log('PASS: GHS 0.078 is profitable for all checked clients.');
+      console.log('PASS: GHS 0.05 is profitable for all checked clients.');
     } else {
-        console.log(`FAIL: GHS 0.078 would be UNPROFITABLE for ${unprofitable.length} client(s):`);
+        console.log(`FAIL: GHS 0.05 would be UNPROFITABLE for ${unprofitable.length} client(s):`);
       for (const r of unprofitable) {
         console.log(`  - ${r.name} (${r.email}): Tier ${r.tier}, volume ${r.monthlyVolume}, provider cost GHS ${r.providerCost}`);
       }
       console.log('');
-        console.log('RECOMMENDATION: Do NOT change defaultSellPricePerSms to 0.078 GHS.');
+        console.log('RECOMMENDATION: Do NOT change defaultSellPricePerSms to 0.05 GHS.');
     }
 
     await mongoose.disconnect();
