@@ -644,6 +644,19 @@ class ApiClient {
   async checkBlacklist(phoneNumber) {
     return this.request('GET', `/blacklist/check/${encodeURIComponent(phoneNumber)}`);
   }
+
+  // API Key endpoints
+  async listApiKeys() {
+    return this.request('GET', '/settings/api-keys');
+  }
+
+  async createApiKey(name) {
+    return this.request('POST', '/settings/api-keys', { name });
+  }
+
+  async revokeApiKey(keyId) {
+    return this.request('DELETE', `/settings/api-keys/${keyId}`);
+  }
 }
 
 // Singleton instance

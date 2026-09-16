@@ -426,41 +426,40 @@
                                 <p>Manage your API keys for programmatic access</p>
                             </div>
                         </div>
-                        <div class="api-key-section">
-                            <div class="api-key-display">
-                                <label>Your API Key</label>
-                                <div class="api-key-input">
-                                    <input type="password" id="apiKeyValue" value="••••••••••••••••" readonly>
-                                    <button class="btn-icon" id="toggleApiKey" title="Show/Hide">
+                        <div class="api-key-create">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="newApiKeyName">Key Name</label>
+                                    <input type="text" id="newApiKeyName" placeholder="e.g., Production Integration">
+                                </div>
+                                <div class="form-group" style="display:flex;align-items:flex-end;">
+                                    <button class="btn-primary" id="createApiKeyBtn">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
                                         </svg>
-                                    </button>
-                                    <button class="btn-icon" id="copyApiKey" title="Copy">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                        </svg>
+                                        Generate Key
                                     </button>
                                 </div>
                             </div>
-                            <button class="btn-secondary" id="regenerateApiBtn">
+                        </div>
+                        <div class="api-key-full-display" id="apiKeyFullDisplay" style="display:none;">
+                            <div class="api-key-full-warning">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
                                 </svg>
-                                Regenerate API Key
-                            </button>
+                                <p>Copy this key now. You won't be able to see it again after dismissing.</p>
+                            </div>
+                            <div class="api-key-full-value">
+                                <input type="text" id="fullApiKeyValue" readonly>
+                                <button class="btn-primary" id="copyFullApiKeyBtn">Copy</button>
+                            </div>
+                            <button class="btn-secondary" id="dismissFullApiKeyBtn">Dismiss</button>
                         </div>
-                        <div class="api-info">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="16" x2="12" y2="12"></line>
-                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                            </svg>
-                            <p>Keep your API key secure. Do not share it publicly. You can use this key to programmatically send SMS and manage your account.</p>
-                        </div>
+                        <div class="api-keys-loading" id="apiKeysLoading" style="display:none;">Loading API keys...</div>
+                        <div class="api-keys-list" id="apiKeysList"></div>
                     </div>
 
                     <div class="settings-section">
@@ -657,23 +656,165 @@
             showToast('Notification preferences saved!', 'success');
         });
 
-        // API Key toggles
-        document.getElementById('toggleApiKey').addEventListener('click', function() {
-            const input = document.getElementById('apiKeyValue');
-            input.type = input.type === 'password' ? 'text' : 'password';
-            input.value = input.type === 'password' ? '••••••••••••••••' : 'demo_api_key_12345';
-        });
+        // API Key management
+        async function loadApiKeys() {
+            const loadingEl = document.getElementById('apiKeysLoading');
+            const listEl = document.getElementById('apiKeysList');
+            
+            loadingEl.style.display = 'block';
+            listEl.innerHTML = '';
+            
+            const response = await window.apiClient.listApiKeys();
+            loadingEl.style.display = 'none';
+            
+            if (response.error) {
+                showToast(response.error, 'error');
+                return;
+            }
+            
+            const keys = (response.data && response.data.apiKeys) ? response.data.apiKeys : [];
+            renderApiKeys(keys);
+        }
 
-        document.getElementById('copyApiKey').addEventListener('click', function() {
-            const input = document.getElementById('apiKeyValue');
-            navigator.clipboard.writeText(input.value).then(() => {
+        function renderApiKeys(keys) {
+            const listEl = document.getElementById('apiKeysList');
+            
+            if (!keys || keys.length === 0) {
+                listEl.innerHTML = '<div class="api-keys-empty">No API keys yet. Generate your first key above.</div>';
+                return;
+            }
+            
+            listEl.innerHTML = keys.map(key => `
+                <div class="api-key-row ${key.revoked ? 'revoked' : ''}" data-key-id="${key.keyId}">
+                    <div class="api-key-info">
+                        <div class="api-key-name">${escapeHtml(key.name)}</div>
+                        <div class="api-key-meta">
+                            <span class="api-key-prefix">${escapeHtml(key.prefix)}...</span>
+                            <span class="api-key-date">Created ${formatDate(key.createdAt)}</span>
+                            <span class="api-key-date">Last used ${key.lastUsedAt ? formatDate(key.lastUsedAt) : 'Never'}</span>
+                        </div>
+                    </div>
+                    <div class="api-key-actions">
+                        <span class="api-key-badge ${key.revoked ? 'revoked' : 'active'}">${key.revoked ? 'Revoked' : 'Active'}</span>
+                        ${!key.revoked ? `<button class="btn-danger-outline btn-sm revoke-key-btn" data-key-id="${key.keyId}">Revoke</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            listEl.querySelectorAll('.revoke-key-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const keyId = this.dataset.keyId;
+                    revokeApiKey(keyId);
+                });
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Never';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        async function createApiKey() {
+            const nameInput = document.getElementById('newApiKeyName');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                showToast('Please enter a key name', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('createApiKeyBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span>Generating...</span>';
+            
+            const response = await window.apiClient.createApiKey(name);
+            
+            btn.disabled = false;
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Generate Key`;
+            
+            if (response.error) {
+                showToast(response.error, 'error');
+                return;
+            }
+            
+            const apiKey = response.data && response.data.apiKey ? response.data.apiKey : response.data;
+            if (!apiKey || !apiKey.fullKey) {
+                showToast('Failed to create API key', 'error');
+                return;
+            }
+            
+            nameInput.value = '';
+            showFullApiKey(apiKey);
+            loadApiKeys();
+        }
+
+        function showFullApiKey(apiKey) {
+            const display = document.getElementById('apiKeyFullDisplay');
+            const input = document.getElementById('fullApiKeyValue');
+            input.value = apiKey.fullKey || '';
+            display.style.display = 'block';
+        }
+
+        function copyFullApiKey() {
+            const input = document.getElementById('fullApiKeyValue');
+            const value = input.value;
+            if (!value) return;
+            
+            navigator.clipboard.writeText(value).then(() => {
+                showToast('API key copied to clipboard!', 'success');
+            }).catch(() => {
+                input.select();
+                document.execCommand('copy');
                 showToast('API key copied to clipboard!', 'success');
             });
-        });
+        }
 
-        document.getElementById('regenerateApiBtn').addEventListener('click', function() {
-            if (confirm('Are you sure you want to regenerate your API key? This action cannot be undone.')) {
-                showToast('API key regenerated successfully!', 'success');
+        function dismissFullApiKey() {
+            document.getElementById('apiKeyFullDisplay').style.display = 'none';
+            document.getElementById('fullApiKeyValue').value = '';
+        }
+
+        async function revokeApiKey(keyId) {
+            if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
+                return;
+            }
+            
+            const response = await window.apiClient.revokeApiKey(keyId);
+            
+            if (response.error) {
+                showToast(response.error, 'error');
+                return;
+            }
+            
+            const keys = (response.data && response.data.apiKeys) ? response.data.apiKeys : [];
+            renderApiKeys(keys);
+            showToast('API key revoked successfully', 'success');
+        }
+
+        document.getElementById('createApiKeyBtn').addEventListener('click', createApiKey);
+        document.getElementById('copyFullApiKeyBtn').addEventListener('click', copyFullApiKey);
+        document.getElementById('dismissFullApiKeyBtn').addEventListener('click', dismissFullApiKey);
+        
+        // Load API keys when the API tab is first opened
+        let apiKeysLoaded = false;
+        document.querySelector('[data-tab="api"]').addEventListener('click', function() {
+            if (!apiKeysLoaded) {
+                apiKeysLoaded = true;
+                loadApiKeys();
             }
         });
 
@@ -1224,6 +1365,183 @@
             color: #856404;
             font-size: 0.9rem;
             line-height: 1.5;
+        }
+
+        /* API Key Create Form */
+        .api-key-create {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Full Key Display (shown once) */
+        .api-key-full-display {
+            margin-bottom: 1.5rem;
+            padding: 1.25rem;
+            background-color: #e8f5e9;
+            border-radius: 10px;
+            border: 1px solid #c8e6c9;
+        }
+
+        .api-key-full-warning {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .api-key-full-warning svg {
+            width: 20px;
+            height: 20px;
+            color: #2e7d32;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .api-key-full-warning p {
+            color: #2e7d32;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .api-key-full-value {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .api-key-full-value input {
+            flex: 1;
+            padding: 0.875rem 1rem;
+            border: 2px solid #c8e6c9;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.95rem;
+            background-color: white;
+            color: #2e7d32;
+        }
+
+        /* API Keys List */
+        .api-keys-loading {
+            padding: 1rem;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .api-keys-empty {
+            padding: 1.5rem;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+            background-color: #fafafa;
+            border-radius: 10px;
+        }
+
+        .api-keys-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .api-key-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem;
+            background-color: #fafafa;
+            border-radius: 10px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .api-key-row.revoked {
+            opacity: 0.7;
+            background-color: #f5f5f5;
+            border-color: #e0e0e0;
+        }
+
+        .api-key-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .api-key-name {
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .api-key-row.revoked .api-key-name {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .api-key-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .api-key-prefix {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #666;
+            background-color: #f0f0f0;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .api-key-date {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .api-key-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .api-key-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .api-key-badge.active {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .api-key-badge.revoked {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .api-key-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .api-key-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .api-key-full-value {
+                flex-direction: column;
+            }
         }
 
         .api-docs-links {

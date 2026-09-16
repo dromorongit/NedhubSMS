@@ -64,8 +64,44 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  apiKeys: [{
+    keyId: {
+      type: String,
+      required: true
+    },
+    prefix: {
+      type: String,
+      required: true
+    },
+    keyHash: {
+      type: String,
+      required: true
+    },
+    name: {
+      type: String,
+      required: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    lastUsedAt: {
+      type: Date,
+      default: null
+    },
+    revoked: {
+      type: Boolean,
+      default: false
+    },
+    revokedAt: {
+      type: Date,
+      default: null
+    }
+  }]
 });
+
+userSchema.index({ 'apiKeys.keyHash': 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {

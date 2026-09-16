@@ -62,7 +62,7 @@ try {
 let authRoutes, contactRoutes, smsRoutes, naloSmsRoutes, walletRoutes, transferRoutes;
 let senderIdRoutes, templateRoutes, campaignRoutes, smsCampaignRoutes, analyticsRoutes;
 let reportsRoutes, adminRoutes, paymentRoutes, utilityRoutes, blacklistRoutes;
-let seedRoutes, healthRoutes, metricsRoutes, hubtelCallbackController, smsUploadRoutes;
+let seedRoutes, healthRoutes, metricsRoutes, hubtelCallbackController, smsUploadRoutes, apiKeysRoutes;
 try {
   authRoutes = require('../backend/routes/auth');
   contactRoutes = require('../backend/routes/contacts');
@@ -85,6 +85,7 @@ try {
   metricsRoutes = require('../backend/routes/metrics');
   hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
   smsUploadRoutes = require('../backend/routes/sms-uploads');
+  apiKeysRoutes = require('../backend/routes/apiKeys');
   earlyLog('Routes loaded');
 } catch (e) {
   earlyLog('Route loading failed: ' + e.message + '\n' + e.stack);
@@ -373,6 +374,7 @@ app.use('/api/sender-ids', senderIdRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
+app.use('/api/settings/api-keys', apiKeysRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/blacklist', blacklistRoutes);
 app.use('/api/seed', seedRoutes);
