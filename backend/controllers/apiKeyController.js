@@ -63,15 +63,25 @@ const createApiKey = async (req, res) => {
     const { fullKey, prefix, hash } = generateApiKey();
     const keyId = require('crypto').randomBytes(8).toString('hex');
 
-    user.apiKeys = user.apiKeys || [];
-    user.apiKeys.push({
+    const newKeyDoc = {
       keyId,
       prefix,
       keyHash: hash,
       name: name.trim()
-    });
+    };
 
-    await user.save();
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $push: { apiKeys: newKeyDoc } },
+      { new: true, runValidators: false }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
 
     logger.api.info('API key created', {
       userId,
@@ -132,7 +142,12 @@ const revokeApiKey = async (req, res) => {
 
     apiKey.revoked = true;
     apiKey.revokedAt = new Date();
-    await user.save();
+
+    await User.findOneAndUpdate(
+      { _id: userId, 'apiKeys.keyId': keyId },
+      { $set: { 'apiKeys.$.revoked': true, 'apiKeys.$.revokedAt': apiKey.revokedAt } },
+      { new: true, runValidators: false }
+    );
 
     logger.api.info('API key revoked', {
       userId,

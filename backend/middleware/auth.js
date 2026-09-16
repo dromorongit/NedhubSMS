@@ -113,8 +113,11 @@ const authenticate = (req, res, next) => {
 
         next();
 
-        matchedKey.lastUsedAt = new Date();
-        user.save().catch(err => {
+        User.findOneAndUpdate(
+          { _id: user._id.toString(), 'apiKeys.keyId': matchedKey.keyId },
+          { $set: { 'apiKeys.$.lastUsedAt': new Date() } },
+          { runValidators: false }
+        ).catch(err => {
           authLogger.warn('Failed to update API key lastUsedAt', {
             error: err.message,
             keyId: matchedKey.keyId,
