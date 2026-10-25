@@ -6,17 +6,22 @@ const RateLimiterService = require('../services/RateLimiterService');
 
 let rateLimiterReady = null;
 
-const authenticate = (req, res, next) => {
+function isAccountActive(user) {
+  if (!user) return false;
+  if (user.deletedAt || user.isDeleted || user.deleted) return false;
+  if (user.active === false || user.isActive === false) return false;
+  if (user.status && user.status !== 'active') return false;
+  return true;
+}
+
+const authenticate = async (req, res, next) => {
   const apiKeyHeader = req.header('X-API-Key');
   const authHeader = req.header('Authorization');
   const bearerToken = authHeader?.replace('Bearer ', '');
   const token = apiKeyHeader || bearerToken;
 
   if (!token) {
-    authLogger.warn('Authentication failed - no token provided', { 
-      hasAuthHeader: !!authHeader,
-      authHeaderPreview: authHeader ? authHeader.substring(0, 30) + '...' : 'none'
-    });
+    authLogger.warn('Authentication failed - no token provided');
     return res.status(401).json({
       success: false,
       message: 'No token provided, authorization denied',
@@ -28,20 +33,12 @@ const authenticate = (req, res, next) => {
     (async () => {
       try {
         const hash = hashApiKey(token);
-        const user = await User.findOne({
-          'apiKeys': {
-            $elemMatch: {
-              keyHash: hash,
-              revoked: false
-            }
-          }
-        });
+        const user = await User.findOne({ 'apiKeys.keyHash': hash });
 
-        if (!user) {
-          authLogger.warn('Authentication failed - invalid or revoked API key', {
-            tokenPreview: token.substring(0, 20) + '...',
-            tokenLength: token.length
-          });
+        const matchedKey = user ? user.apiKeys.find(k => k.keyHash === hash) : null;
+
+        if (!user || !matchedKey || matchedKey.revoked) {
+          authLogger.warn('Authentication failed - invalid or revoked API key');
           return res.status(401).json({
             success: false,
             message: 'Invalid or revoked API key',
@@ -49,16 +46,21 @@ const authenticate = (req, res, next) => {
           });
         }
 
-        const matchedKey = user.apiKeys.find(k => k.keyHash === hash && !k.revoked);
-        if (!matchedKey) {
-          authLogger.warn('Authentication failed - invalid or revoked API key', {
-            tokenPreview: token.substring(0, 20) + '...',
-            tokenLength: token.length
-          });
+        if (matchedKey.expiresAt && new Date(matchedKey.expiresAt) < new Date()) {
+          authLogger.warn('Authentication failed - expired API key');
           return res.status(401).json({
             success: false,
             message: 'Invalid or revoked API key',
             error: { code: 'INVALID_API_KEY' }
+          });
+        }
+
+        if (!isAccountActive(user)) {
+          authLogger.warn('Authentication failed - account not active');
+          return res.status(401).json({
+            success: false,
+            message: 'Token is not valid',
+            error: { code: 'INVALID_TOKEN' }
           });
         }
 
@@ -72,7 +74,6 @@ const authenticate = (req, res, next) => {
         req.authMethod = 'apiKey';
         req.apiKeyId = matchedKey.keyId;
 
-        // Ensure RateLimiterService is initialized (lazy, guarded against concurrent calls)
         if (!rateLimiterReady) {
           rateLimiterReady = RateLimiterService.initialize().catch(err => {
             authLogger.warn('RateLimiterService initialization failed, allowing request through', {
@@ -85,7 +86,6 @@ const authenticate = (req, res, next) => {
 
         const initResult = await rateLimiterReady;
 
-        // Only enforce rate limit if the service initialized successfully
         if (initResult !== null) {
           const windowMs = Number(process.env.API_KEY_RATE_LIMIT_WINDOW_MS) || 60000;
           const maxRequests = Number(process.env.API_KEY_RATE_LIMIT_MAX) || 60;
@@ -126,10 +126,10 @@ const authenticate = (req, res, next) => {
         });
       } catch (error) {
         authLogger.warn('Authentication failed - API key lookup error', { error: error.message });
-        return res.status(500).json({
+        return res.status(401).json({
           success: false,
-          message: 'Something went wrong!',
-          error: { code: 'INTERNAL_SERVER_ERROR' }
+          message: 'Invalid or revoked API key',
+          error: { code: 'INVALID_API_KEY' }
         });
       }
     })();
@@ -139,22 +139,42 @@ const authenticate = (req, res, next) => {
   try {
     const decoded = verifyToken(token);
     if (!decoded) {
-      authLogger.warn('Authentication failed - invalid token', { 
-        tokenPreview: token.substring(0, 20) + '...',
-        tokenLength: token.length
-      });
+      authLogger.warn('Authentication failed - invalid token');
       return res.status(401).json({
         success: false,
         message: 'Token is not valid',
         error: { code: 'INVALID_TOKEN' }
       });
     }
-    
-    authLogger.info('Authentication successful', { userId: decoded.userId, role: decoded.role });
-    req.user = decoded;
+
+    const user = await User.findById(decoded.userId).select('_id role status active isActive isDeleted deleted deletedAt passwordChangedAt');
+
+    if (!user || !isAccountActive(user)) {
+      authLogger.warn('Authentication failed - user not found or inactive');
+      return res.status(401).json({
+        success: false,
+        message: 'Token is not valid',
+        error: { code: 'INVALID_TOKEN' }
+      });
+    }
+
+    if (user.passwordChangedAt && decoded.iat) {
+      const changedAt = Math.floor(new Date(user.passwordChangedAt).getTime() / 1000);
+      if (decoded.iat < changedAt) {
+        authLogger.warn('Authentication failed - token issued before password change');
+        return res.status(401).json({
+          success: false,
+          message: 'Token is not valid',
+          error: { code: 'INVALID_TOKEN' }
+        });
+      }
+    }
+
+    req.user = { userId: user._id.toString(), role: user.role };
+    req.authMethod = 'jwt';
     next();
   } catch (error) {
-    authLogger.warn('Authentication failed - token verification error', { error: error.message });
+    authLogger.warn('Authentication failed - token verification error');
     return res.status(401).json({
       success: false,
       message: 'Token is not valid',

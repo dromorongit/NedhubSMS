@@ -65,6 +65,10 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  passwordChangedAt: {
+    type: Date,
+    default: null
+  },
   apiKeys: [{
     keyId: {
       type: String,
@@ -97,6 +101,10 @@ const userSchema = new mongoose.Schema({
     revokedAt: {
       type: Date,
       default: null
+    },
+    expiresAt: {
+      type: Date,
+      default: null
     }
   }]
 });
@@ -109,6 +117,7 @@ userSchema.pre('save', async function(next) {
     return next();
   }
 
+  this.passwordChangedAt = new Date();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
