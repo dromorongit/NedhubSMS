@@ -117,7 +117,10 @@ userSchema.pre('save', async function(next) {
     return next();
   }
 
-  this.passwordChangedAt = new Date();
+  if (!this.isNew) {
+    this.passwordChangedAt = new Date();
+  }
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();

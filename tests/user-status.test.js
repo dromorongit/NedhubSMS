@@ -96,3 +96,44 @@ test('newly registered unverified user is accepted', async () => {
   await authenticate(req, res, () => { nextCalled = true; });
   assert.equal(nextCalled, true);
 });
+
+test('register then immediate protected call accepted', async () => {
+  User.findById = () => ({ select: async () => ({ _id: 'u1', role: 'user', status: 'active', passwordChangedAt: null }) });
+  const token = generateToken('u1', 'user');
+  const req = { headers: { authorization: `Bearer ${token}` }, header: (n) => req.headers[n.toLowerCase()] };
+  const res = makeRes();
+  let nextCalled = false;
+  await authenticate(req, res, () => { nextCalled = true; });
+  assert.equal(nextCalled, true);
+});
+
+test('password reset then immediate protected call accepted', async () => {
+  User.findById = () => ({ select: async () => ({ _id: 'u1', role: 'user', status: 'active', passwordChangedAt: new Date(Date.now() - 1000) }) });
+  const token = generateToken('u1', 'user');
+  const req = { headers: { authorization: `Bearer ${token}` }, header: (n) => req.headers[n.toLowerCase()] };
+  const res = makeRes();
+  let nextCalled = false;
+  await authenticate(req, res, () => { nextCalled = true; });
+  assert.equal(nextCalled, true);
+});
+
+test('token issued 5 seconds before password change rejected', async () => {
+  const token = generateToken('u1', 'user');
+  User.findById = () => ({ select: async () => ({ _id: 'u1', role: 'user', status: 'active', passwordChangedAt: new Date(Date.now() + 5000) }) });
+  const req = { headers: { authorization: `Bearer ${token}` }, header: (n) => req.headers[n.toLowerCase()] };
+  const res = makeRes();
+  let nextCalled = false;
+  await authenticate(req, res, () => { nextCalled = true; });
+  assert.equal(nextCalled, false);
+  assert.equal(res.statusCode, 401);
+});
+
+test('token issued after password change accepted', async () => {
+  User.findById = () => ({ select: async () => ({ _id: 'u1', role: 'user', status: 'active', passwordChangedAt: new Date(Date.now() - 5000) }) });
+  const token = generateToken('u1', 'user');
+  const req = { headers: { authorization: `Bearer ${token}` }, header: (n) => req.headers[n.toLowerCase()] };
+  const res = makeRes();
+  let nextCalled = false;
+  await authenticate(req, res, () => { nextCalled = true; });
+  assert.equal(nextCalled, true);
+});

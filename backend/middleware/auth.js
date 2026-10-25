@@ -10,7 +10,7 @@ function isAccountActive(user) {
   if (!user) return false;
   if (user.deletedAt || user.isDeleted || user.deleted) return false;
   if (user.active === false || user.isActive === false) return false;
-  if (user.status && user.status !== 'active') return false;
+  if (user.status && user.status !== 'active' && user.status !== 'pending') return false;
   return true;
 }
 
