@@ -62,7 +62,7 @@ try {
 let authRoutes, contactRoutes, smsRoutes, naloSmsRoutes, walletRoutes, transferRoutes;
 let senderIdRoutes, templateRoutes, campaignRoutes, smsCampaignRoutes, analyticsRoutes;
 let reportsRoutes, adminRoutes, paymentRoutes, utilityRoutes, blacklistRoutes;
-let seedRoutes, healthRoutes, metricsRoutes, hubtelCallbackController, smsUploadRoutes, apiKeysRoutes;
+let healthRoutes, metricsRoutes, hubtelCallbackController, smsUploadRoutes, apiKeysRoutes;
 try {
   authRoutes = require('../backend/routes/auth');
   contactRoutes = require('../backend/routes/contacts');
@@ -80,7 +80,6 @@ try {
   paymentRoutes = require('../backend/routes/payments');
   utilityRoutes = require('../backend/routes/utility');
   blacklistRoutes = require('../backend/routes/blacklist');
-  seedRoutes = require('../backend/routes/seed');
   healthRoutes = require('../backend/routes/health');
   metricsRoutes = require('../backend/routes/metrics');
   hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
@@ -377,7 +376,6 @@ app.use('/api/admin', adminLimiter, adminRoutes);
 app.use('/api/settings/api-keys', apiKeysRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/blacklist', blacklistRoutes);
-app.use('/api/seed', seedRoutes);
 app.use('/api', healthRoutes); // Health routes (no auth required)
 app.use('/api', metricsRoutes); // Metrics routes (no auth required)
 
