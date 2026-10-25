@@ -75,3 +75,24 @@ test('demoted admin token no longer passes admin authorize', async () => {
 
 
 
+
+test('user with all new fields undefined is accepted', async () => {
+  User.findById = () => ({ select: async () => ({ _id: 'u1', role: 'user' }) });
+  const token = generateToken('u1', 'user');
+  const req = { headers: { authorization: `Bearer ${token}` }, header: (n) => req.headers[n.toLowerCase()] };
+  const res = makeRes();
+  let nextCalled = false;
+  await authenticate(req, res, () => { nextCalled = true; });
+  assert.equal(nextCalled, true);
+  assert.equal(res.statusCode, 200);
+});
+
+test('newly registered unverified user is accepted', async () => {
+  User.findById = () => ({ select: async () => ({ _id: 'u1', role: 'user', status: 'active', isEmailVerified: false }) });
+  const token = generateToken('u1', 'user');
+  const req = { headers: { authorization: `Bearer ${token}` }, header: (n) => req.headers[n.toLowerCase()] };
+  const res = makeRes();
+  let nextCalled = false;
+  await authenticate(req, res, () => { nextCalled = true; });
+  assert.equal(nextCalled, true);
+});

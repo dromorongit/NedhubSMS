@@ -54,58 +54,42 @@ function promptHidden(question) {
   });
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const email = args.positional[0];
-
-  if (process.env.NODE_ENV === 'production' && !args.forceProduction) {
-    console.error('Refusing to run in production without --force-production');
-    process.exit(1);
+async function createAdmin({ email, password, reset = false, forceProduction = false, env = process.env, UserModel = User }) {
+  if (env.NODE_ENV === 'production' && !forceProduction) {
+    throw new Error('Refusing to run in production without --force-production');
   }
 
   if (!email) {
-    console.error('Usage: node scripts/create-admin.js <email> [--reset] [--force-production]');
-    process.exit(1);
-  }
-
-  let password = process.env.ADMIN_PASSWORD;
-  if (!password) {
-    password = await promptHidden('Password: ');
+    throw new Error('Usage: node scripts/create-admin.js <email> [--reset] [--force-production]');
   }
 
   if (typeof password !== 'string' || password.length < 14) {
-    console.error('Password must be at least 14 characters');
-    process.exit(1);
+    throw new Error('Password must be at least 14 characters');
   }
 
-  await connectDB();
+  const existing = await UserModel.findOne({ email });
 
-  const existing = await User.findOne({ email });
-
-  if (existing && ADMIN_ROLES.has(existing.role) && !args.reset) {
-    console.error('Admin already exists for this email. Use --reset to overwrite.');
-    process.exit(1);
+  if (existing && ADMIN_ROLES.has(existing.role) && !reset) {
+    throw new Error('Admin already exists for this email. Use --reset to overwrite.');
   }
 
-  if (existing && !args.reset) {
+  if (existing && !reset) {
     existing.role = 'super_admin';
     existing.status = 'active';
     existing.password = password;
     await existing.save();
-    console.log('Promoted existing user to admin:', email);
-    process.exit(0);
+    return { action: 'promoted', email };
   }
 
-  if (existing && args.reset) {
+  if (existing && reset) {
     existing.role = 'super_admin';
     existing.status = 'active';
     existing.password = password;
     await existing.save();
-    console.log('Admin reset:', email);
-    process.exit(0);
+    return { action: 'reset', email };
   }
 
-  const admin = new User({
+  const admin = new UserModel({
     name: 'Admin',
     email,
     password,
@@ -114,11 +98,42 @@ async function main() {
     status: 'active'
   });
   await admin.save();
-  console.log('Admin created:', email);
-  process.exit(0);
+  return { action: 'created', email };
 }
 
-main().catch((err) => {
-  console.error('Failed to create admin:', err.message);
-  process.exit(1);
-});
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const email = args.positional[0];
+
+  let password = process.env.ADMIN_PASSWORD;
+  if (!password) {
+    password = await promptHidden('Password: ');
+  }
+
+  try {
+    const result = await createAdmin({
+      email,
+      password,
+      reset: args.reset,
+      forceProduction: args.forceProduction,
+      env: process.env,
+      UserModel: User
+    });
+    if (result.action === 'promoted') console.log('Promoted existing user to admin:', result.email);
+    else if (result.action === 'reset') console.log('Admin reset:', result.email);
+    else console.log('Admin created:', result.email);
+    process.exit(0);
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+}
+
+if (require.main === module) {
+  main().catch((err) => {
+    console.error('Failed to create admin:', err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { createAdmin, parseArgs };

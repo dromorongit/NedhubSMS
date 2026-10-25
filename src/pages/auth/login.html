@@ -275,6 +275,12 @@
                 setTimeout(() => errorDiv.remove(), 300);
             }, 5000);
         }
+
+        // Show message when redirected after session expiry
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('session') === 'expired') {
+            showError('Your session has expired. Please sign in again.');
+        }
     </script>
 </body>
 </html>
