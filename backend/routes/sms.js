@@ -3,6 +3,7 @@ const router = express.Router();
 const { MAX_SMS_RECIPIENTS, MAX_SMS_SEGMENTS } = require('../utils/constants');
 const { authenticate } = require('../middleware/auth');
 const { checkBalance } = require('../utils/nalo');
+const { naloWebhookSecret } = require('../utils/callbackAuth');
 const Message = require('../models/Message');
 const SmsMessage = require('../models/SmsMessage');
 const NaloSmsService = require('../services/NaloSmsService');
@@ -935,13 +936,11 @@ router.get('/calculate-cost', authenticate, async (req, res) => {
   }
 });
 
-// Nalo callback endpoint for delivery reports
-router.post('/callback', async (req, res) => {
+// Nalo callback endpoint for delivery reports.
+// Secret verification is enforced by naloWebhookSecret when
+// NALO_WEBHOOK_SECRET is configured (missing/wrong secret -> 200, not processed).
+router.post('/callback', naloWebhookSecret, async (req, res) => {
   try {
-    if (req.headers['x-webhook-secret'] !== process.env.NALO_WEBHOOK_SECRET) {
-      return res.status(403).json({ success: false, message: 'Unauthorized', error: { code: 'FORBIDDEN' } });
-    }
-
     const { messageId, status, recipient } = req.body;
 
     // Update message status in database (legacy)
@@ -958,7 +957,9 @@ router.post('/callback', async (req, res) => {
     res.json({ message: 'Callback processed successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    // Always answer 200 so the provider does not retry; the reconcile script
+    // picks up any affected transaction later.
+    res.status(200).json({ received: true });
   }
 });
 

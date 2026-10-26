@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
+const { hubtelCallbackSecret } = require('../utils/callbackAuth');
 const {
   initiatePayment,
   handleHubtelCallback,
@@ -28,8 +29,10 @@ router.get('/history', authenticate, getPaymentHistory);
 // Check payment status (authenticated)
 router.get('/status/:clientReference', authenticate, checkPaymentStatus);
 
-// Hubtel callback webhook (NO authentication - called by Hubtel)
-router.post('/hubtel/callback', handleHubtelCallback);
+// Hubtel callback webhook (NO authentication - called by Hubtel).
+// Secret verification is enforced by hubtelCallbackSecret when
+// HUBTEL_CALLBACK_SECRET is configured.
+router.post('/hubtel/callback', hubtelCallbackSecret, handleHubtelCallback);
 
 // Payment return URL (user redirected back after payment)
 router.get('/return', handlePaymentReturn);

@@ -62,7 +62,7 @@ try {
 let authRoutes, contactRoutes, smsRoutes, naloSmsRoutes, walletRoutes, transferRoutes;
 let senderIdRoutes, templateRoutes, campaignRoutes, smsCampaignRoutes, analyticsRoutes;
 let reportsRoutes, adminRoutes, paymentRoutes, utilityRoutes, blacklistRoutes;
-let healthRoutes, metricsRoutes, hubtelCallbackController, smsUploadRoutes, apiKeysRoutes;
+let healthRoutes, metricsRoutes, hubtelCallbackController, smsUploadRoutes, apiKeysRoutes, callbackAuth;
 try {
   authRoutes = require('../backend/routes/auth');
   contactRoutes = require('../backend/routes/contacts');
@@ -85,6 +85,7 @@ try {
   hubtelCallbackController = require('../backend/controllers/hubtelCallbackController');
   smsUploadRoutes = require('../backend/routes/sms-uploads');
   apiKeysRoutes = require('../backend/routes/apiKeys');
+  callbackAuth = require('../backend/utils/callbackAuth');
   earlyLog('Routes loaded');
 } catch (e) {
   earlyLog('Route loading failed: ' + e.message + '\n' + e.stack);
@@ -379,21 +380,30 @@ app.use('/api/blacklist', blacklistRoutes);
 app.use('/api', healthRoutes); // Health routes (no auth required)
 app.use('/api', metricsRoutes); // Metrics routes (no auth required)
 
-// Hubtel callback endpoints (no authentication - called by Hubtel)
-app.post('/api/hubtel/momo-callback', express.json(), async (req, res) => {
+// Hubtel callback endpoints (no authentication - called by Hubtel).
+// Callback secret verification is enforced when HUBTEL_CALLBACK_SECRET is set.
+app.post('/api/hubtel/momo-callback', express.json(), callbackAuth.hubtelCallbackSecret, async (req, res) => {
   await hubtelCallbackController.handleMomoCallback(req, res);
 });
 
-app.post('/api/hubtel/bank-callback', express.json(), async (req, res) => {
+app.post('/api/hubtel/bank-callback', express.json(), callbackAuth.hubtelCallbackSecret, async (req, res) => {
   await hubtelCallbackController.handleBankCallback(req, res);
 });
 
-app.post('/api/hubtel/airtime-callback', express.json(), async (req, res) => {
+app.post('/api/hubtel/airtime-callback', express.json(), callbackAuth.hubtelCallbackSecret, async (req, res) => {
   await hubtelCallbackController.handleAirtimeCallback(req, res);
 });
 
-app.post('/api/hubtel/data-callback', express.json(), async (req, res) => {
+app.post('/api/hubtel/data-callback', express.json(), callbackAuth.hubtelCallbackSecret, async (req, res) => {
   await hubtelCallbackController.handleDataCallback(req, res);
+});
+
+app.post('/api/hubtel/tv-callback', express.json(), callbackAuth.hubtelCallbackSecret, async (req, res) => {
+  await hubtelCallbackController.handleTvCallback(req, res);
+});
+
+app.post('/api/hubtel/utility-callback', express.json(), callbackAuth.hubtelCallbackSecret, async (req, res) => {
+  await hubtelCallbackController.handleUtilityCallback(req, res);
 });
 
 // Error handling middleware
