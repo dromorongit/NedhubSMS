@@ -1,454 +1,349 @@
-const Wallet = require('../models/Wallet');
 const Transaction = require('../models/Transaction');
+const Wallet = require('../models/Wallet');
+const CallbackVerificationService = require('../services/callbackVerificationService');
 const logger = require('../utils/logger');
+
+const verificationService = new CallbackVerificationService();
 
 /**
  * HubtelCallbackController
- * Handles callbacks from Hubtel for Mobile Money, Bank Transfers, Airtime and Data
+ *
+ * Handles callbacks from Hubtel for Mobile Money, Bank Transfers, Airtime and
+ * Data. The callback body is never trusted for state changes: OUR transaction
+ * record is looked up by reference and Hubtel is queried server-to-server for
+ * the final status. Completion, failure and refunds use amounts from OUR
+ * transaction record, never from the callback body. Every state change is a
+ * single conditional update so a repeated callback can never apply twice.
  */
 class HubtelCallbackController {
-  /**
-   * Handle Mobile Money callback
-   */
   async handleMomoCallback(req, res) {
     try {
       logger.info('[HubtelCallback] [Momo] Callback received', {
-        body: req.body,
         headers: {
           'user-agent': req.get('user-agent'),
           'x-forwarded-for': req.get('x-forwarded-for')
         }
       });
 
-      const {
-        clientReference,
-        status,
-        responseCode,
-        responseMessage,
-        transactionId,
-        amount,
-        phoneNumber,
-        network
-      } = req.body;
+      const { clientReference } = req.body || {};
 
-      // Validate callback has required fields
       if (!clientReference) {
-        logger.error('[HubtelCallback] [Momo] Missing clientReference');
-        return res.status(400).json({ error: 'Missing clientReference' });
+        logger.warn('[HubtelCallback] [Momo] Missing clientReference');
+        return res.status(200).json({ received: true });
       }
 
-      // Find the transaction
-      const transaction = await Transaction.findOne({ reference: clientReference });
+      const result = await verificationService.processTransferCallback(clientReference, 'momo');
 
-      if (!transaction) {
-        logger.error('[HubtelCallback] [Momo] Transaction not found', { clientReference });
-        return res.status(404).json({ error: 'Transaction not found' });
-      }
-
-      // Check if already processed
-      if (transaction.status === 'completed' || transaction.status === 'failed') {
-        logger.info('[HubtelCallback] [Momo] Already processed (idempotent)', {
-          clientReference, status: transaction.status
-        });
-        return res.json({ status: 'already_processed' });
-      }
-
-      // Hubtel response codes: 0000 = success
-      const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
-
-      logger.info('[HubtelCallback] [Momo] Processing callback', {
-        clientReference, responseCode, status, isSuccess
-      });
-
-      if (isSuccess) {
-        // Deduct from wallet (transfer was initiated but wallet wasn't debited yet)
-        const wallet = await Wallet.findOne({ userId: transaction.userId });
-
-        if (wallet && wallet.balance >= transaction.amount) {
-          // Deduct the amount from wallet
-          await Wallet.findOneAndUpdate(
-            { userId: transaction.userId, balance: { $gte: transaction.amount } },
-            {
-              $inc: { balance: -transaction.amount },
-              $set: { updatedAt: new Date() }
-            }
-          );
-
-          // Update transaction status
-          transaction.status = 'completed';
-          transaction.balanceAfter = wallet.balance - transaction.amount;
-          transaction.metadata = {
-            ...transaction.metadata,
-            hubtelTransactionId: transactionId,
-            completedAt: new Date(),
-            callbackResponse: { responseCode, responseMessage }
-          };
-          await transaction.save();
-
-          logger.info('[HubtelCallback] [Momo] Transfer completed', {
-            clientReference, amount: transaction.amount, transactionId
+      switch (result.action) {
+        case 'complete':
+          logger.info('[HubtelCallback] [Momo] Transfer completed via provider confirmation', {
+            clientReference, amount: result.transaction.amount
           });
-        } else {
-          // Wallet might have insufficient balance now, mark as failed
-          transaction.status = 'failed';
-          transaction.description += ' - FAILED: Insufficient balance';
-          transaction.metadata = {
-            ...transaction.metadata,
-            failedAt: new Date(),
-            failureReason: 'Insufficient wallet balance at callback time'
-          };
-          await transaction.save();
-
-          logger.error('[HubtelCallback] [Momo] Failed - insufficient balance', {
-            clientReference, balance: wallet?.balance, amount: transaction.amount
+          return res.status(200).json({ status: 'completed' });
+        case 'mark_failed':
+          logger.info('[HubtelCallback] [Momo] Transfer failed via provider confirmation', {
+            clientReference, reason: result.reason
           });
-        }
-      } else {
-        // Transfer failed
-        transaction.status = 'failed';
-        transaction.description += ` - FAILED: ${responseMessage || 'Transfer failed'}`;
-        transaction.metadata = {
-          ...transaction.metadata,
-          failedAt: new Date(),
-          failureReason: responseMessage || 'Transfer failed'
-        };
-        await transaction.save();
-
-        logger.warn('[HubtelCallback] [Momo] Transfer failed', {
-          clientReference, responseCode, responseMessage
-        });
+          return res.status(200).json({ status: 'failed' });
+        case 'already_terminal':
+          logger.info('[HubtelCallback] [Momo] Already processed (idempotent)', {
+            clientReference, status: result.status
+          });
+          return res.status(200).json({ status: 'already_processed' });
+        case 'not_found':
+          logger.warn('[HubtelCallback] [Momo] Transaction not found', { clientReference });
+          return res.status(200).json({ received: true });
+        case 'provider_unavailable':
+          logger.warn('[HubtelCallback] [Momo] Provider unavailable, transaction left waiting', {
+            clientReference, error: result.error
+          });
+          return res.status(200).json({ status: 'left_pending' });
+        default:
+          logger.info('[HubtelCallback] [Momo] Transaction left waiting', {
+            clientReference, providerStatus: result.providerStatus
+          });
+          return res.status(200).json({ status: 'left_pending' });
       }
-
-      res.json({ status: 'processed' });
-
     } catch (error) {
       logger.error('[HubtelCallback] [Momo] Unhandled error', {
         error: error.message, stack: error.stack
       });
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(200).json({ received: true });
     }
   }
 
-  /**
-   * Handle Bank Transfer callback
-   */
   async handleBankCallback(req, res) {
     try {
-      logger.info('[HubtelCallback] [Bank] Callback received', { body: req.body });
+      logger.info('[HubtelCallback] [Bank] Callback received', { body: { hasBody: !!req.body } });
 
-      const {
-        clientReference,
-        status,
-        responseCode,
-        responseMessage,
-        transactionId,
-        amount,
-        bankCode,
-        accountNumber
-      } = req.body;
+      const { clientReference } = req.body || {};
 
       if (!clientReference) {
-        logger.error('[HubtelCallback] [Bank] Missing clientReference');
-        return res.status(400).json({ error: 'Missing clientReference' });
+        logger.warn('[HubtelCallback] [Bank] Missing clientReference');
+        return res.status(200).json({ received: true });
       }
 
-      const transaction = await Transaction.findOne({ reference: clientReference });
+      const result = await verificationService.processTransferCallback(clientReference, 'bank');
 
-      if (!transaction) {
-        logger.error('[HubtelCallback] [Bank] Transaction not found', { clientReference });
-        return res.status(404).json({ error: 'Transaction not found' });
-      }
-
-      if (transaction.status === 'completed' || transaction.status === 'failed') {
-        logger.info('[HubtelCallback] [Bank] Already processed (idempotent)', {
-          clientReference, status: transaction.status
-        });
-        return res.json({ status: 'already_processed' });
-      }
-
-      const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
-
-      logger.info('[HubtelCallback] [Bank] Processing callback', {
-        clientReference, responseCode, isSuccess
-      });
-
-      if (isSuccess) {
-        const wallet = await Wallet.findOne({ userId: transaction.userId });
-
-        if (wallet && wallet.balance >= transaction.amount) {
-          await Wallet.findOneAndUpdate(
-            { userId: transaction.userId, balance: { $gte: transaction.amount } },
-            {
-              $inc: { balance: -transaction.amount },
-              $set: { updatedAt: new Date() }
-            }
-          );
-
-          transaction.status = 'completed';
-          transaction.balanceAfter = wallet.balance - transaction.amount;
-          transaction.metadata = {
-            ...transaction.metadata,
-            hubtelTransactionId: transactionId,
-            completedAt: new Date(),
-            callbackResponse: { responseCode, responseMessage }
-          };
-          await transaction.save();
-
-          logger.info('[HubtelCallback] [Bank] Transfer completed', {
-            clientReference, amount: transaction.amount, transactionId
+      switch (result.action) {
+        case 'complete':
+          logger.info('[HubtelCallback] [Bank] Transfer completed via provider confirmation', {
+            clientReference, amount: result.transaction.amount
           });
-        } else {
-          transaction.status = 'failed';
-          transaction.description += ' - FAILED: Insufficient balance';
-          transaction.metadata = {
-            ...transaction.metadata,
-            failedAt: new Date(),
-            failureReason: 'Insufficient wallet balance'
-          };
-          await transaction.save();
-
-          logger.error('[HubtelCallback] [Bank] Failed - insufficient balance', {
-            clientReference, balance: wallet?.balance
+          return res.status(200).json({ status: 'completed' });
+        case 'mark_failed':
+          logger.info('[HubtelCallback] [Bank] Transfer failed via provider confirmation', {
+            clientReference, reason: result.reason
           });
-        }
-      } else {
-        transaction.status = 'failed';
-        transaction.description += ` - FAILED: ${responseMessage || 'Transfer failed'}`;
-        transaction.metadata = {
-          ...transaction.metadata,
-          failedAt: new Date(),
-          failureReason: responseMessage || 'Transfer failed'
-        };
-        await transaction.save();
-
-        logger.warn('[HubtelCallback] [Bank] Transfer failed', {
-          clientReference, responseCode, responseMessage
-        });
+          return res.status(200).json({ status: 'failed' });
+        case 'already_terminal':
+          logger.info('[HubtelCallback] [Bank] Already processed (idempotent)', {
+            clientReference, status: result.status
+          });
+          return res.status(200).json({ status: 'already_processed' });
+        case 'not_found':
+          logger.warn('[HubtelCallback] [Bank] Transaction not found', { clientReference });
+          return res.status(200).json({ received: true });
+        case 'provider_unavailable':
+          logger.warn('[HubtelCallback] [Bank] Provider unavailable, transaction left waiting', {
+            clientReference, error: result.error
+          });
+          return res.status(200).json({ status: 'left_pending' });
+        default:
+          logger.info('[HubtelCallback] [Bank] Transaction left waiting', {
+            clientReference, providerStatus: result.providerStatus
+          });
+          return res.status(200).json({ status: 'left_pending' });
       }
-
-      res.json({ status: 'processed' });
-
     } catch (error) {
       logger.error('[HubtelCallback] [Bank] Unhandled error', {
         error: error.message, stack: error.stack
       });
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(200).json({ received: true });
     }
   }
 
-  /**
-   * Handle Airtime callback
-   * CRITICAL: This is the authoritative source for final fulfillment status.
-   * The transaction is created as 'pending_confirmation' and only marked
-   * 'completed' here when Hubtel confirms successful delivery.
-   */
   async handleAirtimeCallback(req, res) {
     try {
       logger.info('[HubtelCallback] [Airtime] Callback received', {
-        body: req.body,
         headers: {
           'user-agent': req.get('user-agent'),
           'x-forwarded-for': req.get('x-forwarded-for')
         }
       });
 
-      const { clientReference, status, responseCode, responseMessage, transactionId, amount, phoneNumber, network } = req.body;
+      const { clientReference } = req.body || {};
 
       if (!clientReference) {
-        logger.error('[HubtelCallback] [Airtime] Missing clientReference');
-        return res.status(400).json({ error: 'Missing clientReference' });
+        logger.warn('[HubtelCallback] [Airtime] Missing clientReference');
+        return res.status(200).json({ received: true });
       }
 
-      const transaction = await Transaction.findOne({ reference: clientReference });
+      const result = await verificationService.processAirtimeCallback(clientReference);
 
-      if (!transaction) {
-        logger.error('[HubtelCallback] [Airtime] Transaction not found', { clientReference });
-        return res.status(404).json({ error: 'Transaction not found' });
-      }
-
-      // Idempotency: if already in a terminal state, skip
-      if (transaction.status === 'completed' || transaction.status === 'failed') {
-        logger.info('[HubtelCallback] [Airtime] Already processed (idempotent)', {
-          clientReference, status: transaction.status
-        });
-        return res.json({ status: 'already_processed' });
-      }
-
-      // Hubtel response codes: 0000 = success
-      const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
-
-      logger.info('[HubtelCallback] [Airtime] Processing callback', {
-        clientReference, responseCode, isSuccess
-      });
-
-      if (isSuccess) {
-        // Wallet was already deducted at purchase time (balanceAfter set in route)
-        // Just confirm the transaction as completed
-        transaction.status = 'completed';
-        transaction.metadata = {
-          ...transaction.metadata,
-          hubtelTransactionId: transactionId,
-          completedAt: new Date(),
-          callbackResponse: { responseCode, responseMessage },
-          providerStatus: 'delivered'
-        };
-        await transaction.save();
-
-        logger.info('[HubtelCallback] [Airtime] COMPLETED', {
-          clientReference, amount: transaction.amount, hubtelTransactionId: transactionId
-        });
-      } else {
-        // Provider failed — refund the wallet
-        transaction.status = 'failed';
-        transaction.description += ` - FAILED: ${responseMessage || 'Airtime delivery failed'}`;
-        transaction.metadata = {
-          ...transaction.metadata,
-          hubtelTransactionId: transactionId,
-          failedAt: new Date(),
-          failureReason: responseMessage || 'Airtime delivery failed',
-          callbackResponse: { responseCode, responseMessage },
-          providerStatus: 'failed'
-        };
-        await transaction.save();
-
-        // Refund wallet
-        try {
-          await Wallet.findOneAndUpdate(
-            { userId: transaction.userId },
-            {
-              $inc: { balance: transaction.amount },
-              $set: { updatedAt: new Date() }
-            }
-          );
-          logger.info('[HubtelCallback] [Airtime] Wallet refunded', {
-            clientReference, amount: transaction.amount
+      switch (result.action) {
+        case 'complete':
+          logger.info('[HubtelCallback] [Airtime] COMPLETED via provider confirmation', {
+            clientReference, amount: result.transaction.amount
           });
-        } catch (refundError) {
-          logger.error('[HubtelCallback] [Airtime] CRITICAL: Wallet refund failed', {
-            clientReference, error: refundError.message
+          return res.status(200).json({ status: 'completed' });
+        case 'refund':
+          logger.info('[HubtelCallback] [Airtime] Wallet refunded via provider confirmation', {
+            clientReference, amount: result.transaction.amount
           });
-        }
-
-        logger.warn('[HubtelCallback] [Airtime] FAILED', {
-          clientReference, responseCode, responseMessage
-        });
+          return res.status(200).json({ status: 'refunded' });
+        case 'already_terminal':
+          logger.info('[HubtelCallback] [Airtime] Already processed (idempotent)', {
+            clientReference, status: result.status
+          });
+          return res.status(200).json({ status: 'already_processed' });
+        case 'not_found':
+          logger.warn('[HubtelCallback] [Airtime] Transaction not found', { clientReference });
+          return res.status(200).json({ received: true });
+        case 'provider_unavailable':
+          logger.warn('[HubtelCallback] [Airtime] Provider unavailable, transaction left waiting', {
+            clientReference, error: result.error
+          });
+          return res.status(200).json({ status: 'left_pending' });
+        default:
+          logger.info('[HubtelCallback] [Airtime] Transaction left waiting', {
+            clientReference, providerStatus: result.providerStatus
+          });
+          return res.status(200).json({ status: 'left_pending' });
       }
-
-      res.json({ status: 'processed' });
-
     } catch (error) {
       logger.error('[HubtelCallback] [Airtime] Unhandled error', {
         error: error.message, stack: error.stack
       });
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(200).json({ received: true });
     }
   }
 
-  /**
-   * Handle Data callback
-   * CRITICAL: This is the authoritative source for final fulfillment status.
-   * The transaction is created as 'pending_confirmation' and only marked
-   * 'completed' here when Hubtel confirms successful delivery.
-   */
   async handleDataCallback(req, res) {
     try {
       logger.info('[HubtelCallback] [Data] Callback received', {
-        body: req.body,
         headers: {
           'user-agent': req.get('user-agent'),
           'x-forwarded-for': req.get('x-forwarded-for')
         }
       });
 
-      const { clientReference, status, responseCode, responseMessage, transactionId, amount, phoneNumber, network } = req.body;
+      const { clientReference } = req.body || {};
 
       if (!clientReference) {
-        logger.error('[HubtelCallback] [Data] Missing clientReference');
-        return res.status(400).json({ error: 'Missing clientReference' });
+        logger.warn('[HubtelCallback] [Data] Missing clientReference');
+        return res.status(200).json({ received: true });
       }
 
-      const transaction = await Transaction.findOne({ reference: clientReference });
+      const result = await verificationService.processDataCallback(clientReference);
 
-      if (!transaction) {
-        logger.error('[HubtelCallback] [Data] Transaction not found', { clientReference });
-        return res.status(404).json({ error: 'Transaction not found' });
-      }
-
-      // Idempotency: if already in a terminal state, skip
-      if (transaction.status === 'completed' || transaction.status === 'failed') {
-        logger.info('[HubtelCallback] [Data] Already processed (idempotent)', {
-          clientReference, status: transaction.status
-        });
-        return res.json({ status: 'already_processed' });
-      }
-
-      // Hubtel response codes: 0000 = success
-      const isSuccess = responseCode === '0000' || status === 'SUCCESS' || status === 'SUCCESSFUL';
-
-      logger.info('[HubtelCallback] [Data] Processing callback', {
-        clientReference, responseCode, isSuccess
-      });
-
-      if (isSuccess) {
-        // Wallet was already deducted at purchase time (balanceAfter set in route)
-        // Just confirm the transaction as completed
-        transaction.status = 'completed';
-        transaction.metadata = {
-          ...transaction.metadata,
-          hubtelTransactionId: transactionId,
-          completedAt: new Date(),
-          callbackResponse: { responseCode, responseMessage },
-          providerStatus: 'delivered'
-        };
-        await transaction.save();
-
-        logger.info('[HubtelCallback] [Data] COMPLETED', {
-          clientReference, amount: transaction.amount, hubtelTransactionId: transactionId
-        });
-      } else {
-        // Provider failed — refund the wallet
-        transaction.status = 'failed';
-        transaction.description += ` - FAILED: ${responseMessage || 'Data delivery failed'}`;
-        transaction.metadata = {
-          ...transaction.metadata,
-          hubtelTransactionId: transactionId,
-          failedAt: new Date(),
-          failureReason: responseMessage || 'Data delivery failed',
-          callbackResponse: { responseCode, responseMessage },
-          providerStatus: 'failed'
-        };
-        await transaction.save();
-
-        // Refund wallet
-        try {
-          await Wallet.findOneAndUpdate(
-            { userId: transaction.userId },
-            {
-              $inc: { balance: transaction.amount },
-              $set: { updatedAt: new Date() }
-            }
-          );
-          logger.info('[HubtelCallback] [Data] Wallet refunded', {
-            clientReference, amount: transaction.amount
+      switch (result.action) {
+        case 'complete':
+          logger.info('[HubtelCallback] [Data] COMPLETED via provider confirmation', {
+            clientReference, amount: result.transaction.amount
           });
-        } catch (refundError) {
-          logger.error('[HubtelCallback] [Data] CRITICAL: Wallet refund failed', {
-            clientReference, error: refundError.message
+          return res.status(200).json({ status: 'completed' });
+        case 'refund':
+          logger.info('[HubtelCallback] [Data] Wallet refunded via provider confirmation', {
+            clientReference, amount: result.transaction.amount
           });
-        }
-
-        logger.warn('[HubtelCallback] [Data] FAILED', {
-          clientReference, responseCode, responseMessage
-        });
+          return res.status(200).json({ status: 'refunded' });
+        case 'already_terminal':
+          logger.info('[HubtelCallback] [Data] Already processed (idempotent)', {
+            clientReference, status: result.status
+          });
+          return res.status(200).json({ status: 'already_processed' });
+        case 'not_found':
+          logger.warn('[HubtelCallback] [Data] Transaction not found', { clientReference });
+          return res.status(200).json({ received: true });
+        case 'provider_unavailable':
+          logger.warn('[HubtelCallback] [Data] Provider unavailable, transaction left waiting', {
+            clientReference, error: result.error
+          });
+          return res.status(200).json({ status: 'left_pending' });
+        default:
+          logger.info('[HubtelCallback] [Data] Transaction left waiting', {
+            clientReference, providerStatus: result.providerStatus
+          });
+          return res.status(200).json({ status: 'left_pending' });
       }
-
-      res.json({ status: 'processed' });
-
     } catch (error) {
       logger.error('[HubtelCallback] [Data] Unhandled error', {
         error: error.message, stack: error.stack
       });
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(200).json({ received: true });
+    }
+  }
+
+  async handleTvCallback(req, res) {
+    try {
+      logger.info('[HubtelCallback] [TV] Callback received', {
+        headers: {
+          'user-agent': req.get('user-agent'),
+          'x-forwarded-for': req.get('x-forwarded-for')
+        }
+      });
+
+      const { clientReference } = req.body || {};
+
+      if (!clientReference) {
+        logger.warn('[HubtelCallback] [TV] Missing clientReference');
+        return res.status(200).json({ received: true });
+      }
+
+      const result = await verificationService.processTvCallback(clientReference);
+
+      switch (result.action) {
+        case 'complete':
+          logger.info('[HubtelCallback] [TV] COMPLETED via provider confirmation', {
+            clientReference, amount: result.transaction.amount
+          });
+          return res.status(200).json({ status: 'completed' });
+        case 'refund':
+          logger.info('[HubtelCallback] [TV] Wallet refunded via provider confirmation', {
+            clientReference, amount: result.transaction.amount
+          });
+          return res.status(200).json({ status: 'refunded' });
+        case 'already_terminal':
+          logger.info('[HubtelCallback] [TV] Already processed (idempotent)', {
+            clientReference, status: result.status
+          });
+          return res.status(200).json({ status: 'already_processed' });
+        case 'not_found':
+          logger.warn('[HubtelCallback] [TV] Transaction not found', { clientReference });
+          return res.status(200).json({ received: true });
+        case 'provider_unavailable':
+          logger.warn('[HubtelCallback] [TV] Provider unavailable, transaction left waiting', {
+            clientReference, error: result.error
+          });
+          return res.status(200).json({ status: 'left_pending' });
+        default:
+          logger.info('[HubtelCallback] [TV] Transaction left waiting', {
+            clientReference, providerStatus: result.providerStatus
+          });
+          return res.status(200).json({ status: 'left_pending' });
+      }
+    } catch (error) {
+      logger.error('[HubtelCallback] [TV] Unhandled error', {
+        error: error.message, stack: error.stack
+      });
+      return res.status(200).json({ received: true });
+    }
+  }
+
+  async handleUtilityCallback(req, res) {
+    try {
+      logger.info('[HubtelCallback] [Utility] Callback received', {
+        headers: {
+          'user-agent': req.get('user-agent'),
+          'x-forwarded-for': req.get('x-forwarded-for')
+        }
+      });
+
+      const { clientReference } = req.body || {};
+
+      if (!clientReference) {
+        logger.warn('[HubtelCallback] [Utility] Missing clientReference');
+        return res.status(200).json({ received: true });
+      }
+
+      const result = await verificationService.processUtilityCallback(clientReference);
+
+      switch (result.action) {
+        case 'complete':
+          logger.info('[HubtelCallback] [Utility] COMPLETED via provider confirmation', {
+            clientReference, amount: result.transaction.amount
+          });
+          return res.status(200).json({ status: 'completed' });
+        case 'refund':
+          logger.info('[HubtelCallback] [Utility] Wallet refunded via provider confirmation', {
+            clientReference, amount: result.transaction.amount
+          });
+          return res.status(200).json({ status: 'refunded' });
+        case 'already_terminal':
+          logger.info('[HubtelCallback] [Utility] Already processed (idempotent)', {
+            clientReference, status: result.status
+          });
+          return res.status(200).json({ status: 'already_processed' });
+        case 'not_found':
+          logger.warn('[HubtelCallback] [Utility] Transaction not found', { clientReference });
+          return res.status(200).json({ received: true });
+        case 'provider_unavailable':
+          logger.warn('[HubtelCallback] [Utility] Provider unavailable, transaction left waiting', {
+            clientReference, error: result.error
+          });
+          return res.status(200).json({ status: 'left_pending' });
+        default:
+          logger.info('[HubtelCallback] [Utility] Transaction left waiting', {
+            clientReference, providerStatus: result.providerStatus
+          });
+          return res.status(200).json({ status: 'left_pending' });
+      }
+    } catch (error) {
+      logger.error('[HubtelCallback] [Utility] Unhandled error', {
+        error: error.message, stack: error.stack
+      });
+      return res.status(200).json({ received: true });
     }
   }
 }
