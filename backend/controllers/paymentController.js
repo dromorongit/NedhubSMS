@@ -1,30 +1,11 @@
 const mongoose = require('mongoose');
-const HubtelPaymentService = require('../services/HubtelPaymentService');
-const WalletService = require('../services/WalletService');
+const CallbackVerificationService = require('../services/callbackVerificationService');
 const Payment = require('../models/Payment');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
+const logger = require('../utils/logger');
 
-const hubtelService = new HubtelPaymentService();
-const walletService = WalletService;
-
-// Gateway fee configuration (percentage)
-// Hubtel typically charges 1.5% for mobile money, 2.5% for cards
-const GATEWAY_FEE_RATES = {
-  mobile_money: 0.015,  // 1.5%
-  bank_card: 0.025,     // 2.5%
-  hubtel_wallet: 0.01,  // 1%
-  ghqr: 0.015,         // 1.5%
-  unknown: 0.02        // 2% default
-};
-
-// Calculate gateway fee based on payment method and amount
-function calculateGatewayFee(paymentMethod, amount) {
-  const rate = GATEWAY_FEE_RATES[paymentMethod] || GATEWAY_FEE_RATES.unknown;
-  const fee = amount * rate;
-  // Hubtel has minimum fees, ensure we don't go below
-  return Math.max(fee, 0.50); // Minimum 0.50 GHS fee
-}
+const verificationService = new CallbackVerificationService();
 
 /**
  * Initiate a payment for wallet top-up
@@ -37,30 +18,30 @@ const initiatePayment = async (req, res) => {
 
     // Validate input
     if (!amount || amount <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid amount: must be a positive number' 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid amount: must be a positive number'
       });
     }
 
     if (amount < 1) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Minimum payment amount is 1 GHS' 
+      return res.status(400).json({
+        success: false,
+        error: 'Minimum payment amount is 1 GHS'
       });
     }
 
     // Get user details
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
       });
     }
 
     // Generate unique client reference
-    const clientReference = hubtelService.generateClientReference();
+    const clientReference = verificationService.paymentService.generateClientReference();
 
     // Create pending payment record in database
     const payment = new Payment({
@@ -75,19 +56,19 @@ const initiatePayment = async (req, res) => {
     });
 
     await payment.save();
-    console.log(`[Payment] Created pending payment: ${clientReference}`);
+    logger.info('[Payment] Created pending payment', { clientReference, userId, amount: payment.amount });
 
     // Build return URL pointing to Railway backend
     const backendUrl = process.env.BACKEND_URL || 'https://nedhubsms-production.up.railway.app';
     let returnUrl = `${backendUrl}/payment/return`;
-    
+
     // Add frontend origin as parameter so we can redirect back to correct frontend
     if (frontendOrigin) {
       returnUrl += `?frontend=${encodeURIComponent(frontendOrigin)}`;
     }
 
     // Initiate payment with Hubtel
-    const hubtelResult = await hubtelService.initiatePayment({
+    const hubtelResult = await verificationService.paymentService.initiatePayment({
       amount: payment.amount,
       description: payment.description,
       clientReference: payment.clientReference,
@@ -101,7 +82,7 @@ const initiatePayment = async (req, res) => {
     payment.status = 'processing';
     await payment.save();
 
-    console.log('[Payment] Hubtel result:', JSON.stringify(hubtelResult, null, 2));
+    logger.info('[Payment] Hubtel result', { clientReference, checkoutId: hubtelResult.checkoutId });
 
     // Prepare response
     const responseData = {
@@ -111,257 +92,145 @@ const initiatePayment = async (req, res) => {
       message: 'Payment initiated successfully. Redirecting to checkout...'
     };
 
-    console.log('[Payment] Sending response to frontend:', JSON.stringify(responseData, null, 2));
-
     // Return checkout URL to frontend for redirect
     res.status(200).json(responseData);
 
   } catch (error) {
-    console.error('[Payment] Initiate error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Failed to initiate payment' 
+    logger.error('[Payment] Initiate error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to initiate payment'
     });
   }
 };
-
-/**
- * Helper function to credit wallet if not already credited
- * @param {Object} payment - Payment document
- * @returns {boolean} - True if wallet was credited, false if already credited
- */
-async function creditWalletIfNeeded(payment) {
-  try {
-    // Check if wallet was already credited for this payment
-    const existingTransaction = await Transaction.findOne({
-      reference: `PAYMENT-${payment.clientReference}`
-    });
-
-    if (existingTransaction) {
-      console.log(`[Payment] Wallet already credited for: ${payment.clientReference}`);
-      return false;
-    }
-
-    // Calculate gateway fee (estimate based on amount)
-    // In production, this would come from actual Hubtel response
-    const estimatedGatewayFee = calculateGatewayFee(payment.paymentMethod || 'unknown', payment.amount);
-    const netAmount = payment.amount - estimatedGatewayFee;
-
-    // Update payment with gateway fee information
-    payment.gatewayFeeEstimated = estimatedGatewayFee;
-    payment.netAmountReceived = netAmount;
-    payment.grossAmountPaid = payment.amount;
-    await payment.save();
-
-    // Credit the wallet with the GHS amount directly (gateway fees absorbed by platform)
-    // Note: Not using session since WalletService works without MongoDB transactions
-    await walletService.creditWalletWithReference(
-      payment.userId,
-      payment.amount, // Credit directly in GHS
-      `Wallet top-up via Hubtel (${payment.amount} GHS)`,
-      `PAYMENT-${payment.clientReference}`
-    );
-
-    console.log(`[Payment] Wallet credited: ${payment.userId}, amount: ${payment.amount} GHS, gatewayFee: ${estimatedGatewayFee.toFixed(2)} GHS`);
-    return true;
-  } catch (error) {
-    console.error('[Payment] Failed to credit wallet:', error);
-    throw error;
-  }
-}
 
 /**
  * Handle Hubtel payment callback
  * POST /api/payments/hubtel/callback
- * This endpoint receives payment results from Hubtel
+ *
+ * The callback body is never trusted for the credit decision: the payment is
+ * looked up in OUR database and Hubtel is queried server-to-server for the
+ * final status and amount. Wallet credit uses the amount stored on our own
+ * payment record, never an amount from the callback body.
  */
 const handleHubtelCallback = async (req, res) => {
   try {
-    const callbackData = req.body;
+    const callbackData = req.body || {};
 
-    // Structured logging for HUBTEL_CALLBACK_RECEIVED
-    console.log(JSON.stringify({
-      label: 'HUBTEL_CALLBACK_RECEIVED',
-      timestamp: new Date().toISOString(),
-      fullRequestBody: callbackData,
-      // Extract key fields for structured logging
-      ResponseCode: callbackData.responseCode || callbackData.ResponseCode,
-      Status: callbackData.status || callbackData.Status,
-      ClientReference: callbackData.clientReference || callbackData.ClientReference || callbackData.Data?.ClientReference || callbackData.data?.clientReference,
-      Amount: callbackData.amount || callbackData.Amount || callbackData.Data?.Amount,
-      PaymentDetails: callbackData.PaymentDetails || callbackData.paymentDetails
-    }, null, 2));
+    logger.info('[Payment] Hubtel callback received', {
+      clientReference: extractClientReference(callbackData) || '<missing>'
+    });
 
-    // Extract key fields from callback - Hubtel sends data in different formats
-    const clientReference = callbackData.clientReference 
-      || callbackData.ClientReference 
-      || callbackData.Data?.ClientReference
-      || callbackData.data?.clientReference
-      || callbackData.PaymentDetails?.Data?.ClientReference
-      || callbackData.paymentDetails?.data?.clientReference;
-    const responseCode = callbackData.responseCode || callbackData.ResponseCode;
-    const status = callbackData.status || callbackData.Status;
-    const transactionId = callbackData.transactionId || callbackData.POS_SALES_ID;
-    const paymentMethod = callbackData.paymentMethod || callbackData.Type;
+    const clientReference = extractClientReference(callbackData);
 
-    // Validate required fields
     if (!clientReference) {
-      console.error('[Payment] Callback missing clientReference, looking for it in nested structures');
-      console.error('[Payment] Available fields:', Object.keys(callbackData));
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Missing clientReference' 
-      });
+      logger.warn('[Payment] Callback missing clientReference');
+      return res.status(200).json({ received: true });
     }
 
-    console.log('[Payment] Extracted clientReference:', clientReference);
-
-    // Find the payment record
     const payment = await Payment.findOne({ clientReference });
 
     if (!payment) {
-      console.error(`[Payment] Payment not found for clientReference: ${clientReference}`);
-      // Still return 200 to Hubtel to prevent retries
-      return res.status(200).json({ 
-        success: false, 
-        error: 'Payment not found' 
-      });
+      logger.warn('[Payment] Payment not found for callback', { clientReference });
+      // Answer 200 so Hubtel stops retrying; nothing to process
+      return res.status(200).json({ success: false, message: 'Payment not found' });
     }
 
-    // Check for duplicate callback (already processed)
-    if (payment.callbackVerified) {
-      console.log(`[Payment] Duplicate callback for: ${clientReference} - already processed`);
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Already processed' 
-      });
+    // Already in a terminal state: nothing to do (idempotent)
+    if (payment.status === 'paid' || payment.status === 'failed' || payment.status === 'cancelled') {
+      logger.info('[Payment] Duplicate callback for already-terminal payment', { clientReference, status: payment.status });
+      return res.status(200).json({ success: true, message: 'Already processed', status: payment.status });
     }
 
-    // Update callback received
-    payment.callbackReceivedAt = new Date();
+    const result = await verificationService.processPaymentCallback(clientReference);
 
-    // Verify payment success
-    // Hubtel success criteria: responseCode === '0000' or status === 'Success'
-    const isSuccess = responseCode === '0000' || status === 'Success' || status === 'SUCCESS' || status === 'success';
-
-    if (isSuccess) {
-      // Payment successful
-      console.log(JSON.stringify({
-        label: 'HUBTEL_CALLBACK_SUCCESS',
-        timestamp: new Date().toISOString(),
-        clientReference: clientReference,
-        responseCode: responseCode,
-        status: status,
-        transactionId: transactionId,
-        paymentMethod: paymentMethod,
-        message: 'Payment processed successfully'
-      }, null, 2));
-
-      // Mark payment as paid
-      payment.status = 'paid';
-      payment.callbackVerified = true;
-      payment.hubtelTransactionId = transactionId;
-      payment.paymentMethod = mapPaymentMethod(paymentMethod);
-      payment.paidAt = new Date();
-      await payment.save();
-
-      // Credit user's wallet
-      try {
-        await creditWalletIfNeeded(payment);
-      } catch (walletError) {
-        console.error('[Payment] Failed to credit wallet:', walletError);
-        // Payment is still recorded as paid, but wallet credit failed
-        // The checkPaymentStatus endpoint will retry on next call
-      }
-
-      // Return success to Hubtel
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Payment processed successfully' 
-      });
-
-    } else {
-      // Payment failed
-      console.log(JSON.stringify({
-        label: 'HUBTEL_CALLBACK_FAILED',
-        timestamp: new Date().toISOString(),
-        clientReference: clientReference,
-        responseCode: responseCode,
-        status: status,
-        failureReason: callbackData.responseDescription || callbackData.statusDescription || 'Payment failed',
-        message: 'Payment failed'
-      }, null, 2));
-
-      payment.status = 'failed';
-      payment.callbackVerified = true;
-      payment.failureReason = callbackData.responseDescription || callbackData.statusDescription || 'Payment failed';
-      await payment.save();
-
-      // Return failure to Hubtel
-      return res.status(200).json({ 
-        success: false, 
-        message: 'Payment failed' 
-      });
+    switch (result.action) {
+      case 'credit':
+        logger.info('[Payment] Callback credited wallet via server-to-server confirmation', {
+          clientReference, amount: assessmentAmount(result), providerAmount: result.providerAmount
+        });
+        return res.status(200).json({ success: true, message: 'Payment processed successfully', clientReference });
+      case 'mark_failed':
+        logger.info('[Payment] Callback marked payment failed via provider confirmation', { clientReference });
+        return res.status(200).json({ success: true, message: 'Payment failed', clientReference });
+      case 'already_terminal':
+        return res.status(200).json({ success: true, message: 'Already processed', clientReference, status: result.status });
+      case 'not_found':
+        return res.status(200).json({ success: false, message: 'Payment not found', clientReference });
+      case 'provider_unavailable':
+        logger.warn('[Payment] Provider unavailable for callback, payment left pending', {
+          clientReference, error: result.error
+        });
+        return res.status(200).json({ success: true, message: 'Payment left pending', clientReference });
+      default:
+        logger.info('[Payment] Callback left payment pending', { clientReference, providerStatus: result.providerStatus });
+        return res.status(200).json({ success: true, message: 'Payment left pending', clientReference, providerStatus: result.providerStatus });
     }
 
   } catch (error) {
-    // Structured error logging
-    console.error(JSON.stringify({
-      label: 'HUBTEL_CALLBACK_ERROR',
-      timestamp: new Date().toISOString(),
-      error: error.message,
-      errorStack: error.stack
-    }, null, 2));
-    
-    // Return 200 to prevent Hubtel from retrying
-    res.status(200).json({ 
-      success: false, 
-      error: 'Internal server error' 
-    });
+    logger.error('[Payment] Callback error', { error: error.message, stack: error.stack });
+    // Always answer 200 so the provider does not retry; the reconcile script
+    // picks up any pending payment later.
+    return res.status(200).json({ success: false, message: 'Internal server error' });
   }
 };
+
+function assessmentAmount(result) {
+  return result.payment ? result.payment.amount : null;
+}
+
+/**
+ * Extract client reference from the various Hubtel callback body shapes.
+ * Never trusts nested body fields for amounts or status - only the reference
+ * used to look up OUR record.
+ */
+function extractClientReference(callbackData) {
+  return callbackData.clientReference
+    || callbackData.ClientReference
+    || callbackData.Data?.ClientReference
+    || callbackData.data?.clientReference
+    || callbackData.PaymentDetails?.Data?.ClientReference
+    || callbackData.paymentDetails?.data?.clientReference;
+}
 
 /**
  * Check payment status
  * GET /api/payments/status/:clientReference
+ *
+ * Authenticated user may refresh THEIR OWN pending payment: Hubtel is queried
+ * server-to-server and the same callback rules are applied. A reference that
+ * belongs to another user is rejected with 403.
  */
 const checkPaymentStatus = async (req, res) => {
   try {
     const { clientReference } = req.params;
 
     if (!clientReference) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Client reference is required' 
-      });
+      return res.status(400).json({ success: false, error: 'Client reference is required' });
     }
 
-    // Find payment in database
     const payment = await Payment.findOne({ clientReference });
 
     if (!payment) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Payment not found' 
-      });
+      return res.status(404).json({ success: false, error: 'Payment not found' });
     }
 
-    // If payment is already confirmed as paid, ensure wallet is credited
+    // Only the owner may refresh a payment
+    if (payment.userId.toString() !== req.user.userId) {
+      logger.warn('[Payment] User attempted to refresh another user payment', {
+        clientReference, requestingUser: req.user.userId, owner: payment.userId.toString()
+      });
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // Already paid: make sure the wallet was credited (idempotent safety net)
     if (payment.status === 'paid') {
-      console.log(JSON.stringify({
-        label: 'HUBTEL_PAYMENT_STATUS_VERIFIED',
-        timestamp: new Date().toISOString(),
-        clientReference: payment.clientReference,
-        status: payment.status,
-        message: 'Payment already confirmed via callback, skipping status check'
-      }, null, 2));
-      
-      try {
-        await creditWalletIfNeeded(payment);
-      } catch (walletError) {
-        console.error('[Payment] Wallet credit failed for paid payment:', walletError);
-      }
-      
+      await verificationService.creditWalletOnce(
+        payment.userId,
+        payment.amount,
+        `Wallet top-up via Hubtel (${payment.amount} GHS)`,
+        `PAYMENT-${payment.clientReference}`
+      );
       return res.status(200).json({
         success: true,
         clientReference: payment.clientReference,
@@ -373,78 +242,45 @@ const checkPaymentStatus = async (req, res) => {
       });
     }
 
-    // If payment is already confirmed as failed
-    if (payment.status === 'failed') {
+    // Already failed or cancelled: nothing to do
+    if (payment.status === 'failed' || payment.status === 'cancelled') {
       return res.status(200).json({
         success: true,
         clientReference: payment.clientReference,
         status: payment.status,
         amount: payment.amount,
         currency: payment.currency,
-        message: 'Payment failed'
+        message: `Payment ${payment.status}`
       });
     }
 
-    // If not verified, check with Hubtel as fallback
-    console.log(JSON.stringify({
-      label: 'HUBTEL_STATUS_CHECK_INITIATED',
-      timestamp: new Date().toISOString(),
-      clientReference: clientReference,
-      currentPaymentStatus: payment.status,
-      reason: 'Payment not confirmed, checking with Hubtel'
-    }, null, 2));
-    
-    try {
-      const hubtelStatus = await hubtelService.checkTransactionStatus(clientReference);
+    // Pending or processing: re-check Hubtel server-to-server and apply callback rules
+    const result = await verificationService.refreshUserPayment(req.user.userId, clientReference);
 
-      // Update payment based on Hubtel status
-      if (hubtelStatus.status === 'paid') {
-        payment.status = 'paid';
-        payment.hubtelTransactionId = hubtelStatus.transactionId;
-        payment.paymentMethod = hubtelStatus.paymentMethod;
-        payment.paidAt = new Date();
-        payment.callbackVerified = true;
-        await payment.save();
-        
-        // Credit wallet
-        await creditWalletIfNeeded(payment);
+    const current = await Payment.findOne({ clientReference });
 
-      } else if (hubtelStatus.status === 'failed') {
-        payment.status = 'failed';
-        payment.failureReason = hubtelStatus.message;
-        payment.callbackVerified = true;
-        await payment.save();
-      }
-
-      return res.status(200).json({
-        success: true,
-        clientReference: payment.clientReference,
-        status: payment.status,
-        amount: payment.amount,
-        currency: payment.currency,
-        message: hubtelStatus.message
-      });
-
-    } catch (hubtelError) {
-      console.error('[Payment] Hubtel status check error:', hubtelError);
-      
-      // Return current payment status even if Hubtel check failed
-      return res.status(200).json({
-        success: true,
-        clientReference: payment.clientReference,
-        status: payment.status,
-        amount: payment.amount,
-        currency: payment.currency,
-        message: 'Status check with provider failed, using cached status'
-      });
+    let message;
+    switch (result.action) {
+      case 'credit': message = 'Payment confirmed and wallet credited'; break;
+      case 'mark_failed': message = 'Payment failed'; break;
+      case 'already_terminal': message = 'Payment already confirmed via callback'; break;
+      case 'provider_unavailable': message = 'Provider unavailable, payment left pending'; break;
+      case 'not_found': message = 'Payment not found'; break;
+      default: message = 'Payment left pending';
     }
+
+    return res.status(200).json({
+      success: true,
+      clientReference: current.clientReference,
+      status: current.status,
+      amount: current.amount,
+      currency: current.currency,
+      message
+    });
 
   } catch (error) {
-    console.error('[Payment] Status check error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to check payment status' 
-    });
+    logger.error('[Payment] Status check error', { error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, error: 'Failed to check payment status' });
   }
 };
 
@@ -486,11 +322,8 @@ const getPaymentHistory = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Payment] History error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to get payment history' 
-    });
+    logger.error('[Payment] History error', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get payment history' });
   }
 };
 
@@ -510,7 +343,7 @@ const handlePaymentReturn = async (req, res) => {
     }
 
     // Find payment by clientReference or checkoutId
-    const payment = await Payment.findOne({ 
+    const payment = await Payment.findOne({
       $or: [
         { clientReference: reference },
         { hubtelCheckoutId: reference }
@@ -518,19 +351,17 @@ const handlePaymentReturn = async (req, res) => {
     });
 
     if (!payment) {
-      console.log(`[Payment] Payment not found for reference: ${reference}`);
+      logger.info('[Payment] Payment not found for return', { reference });
       return res.redirect(`/src/pages/dashboard/payment-error.html?message=payment_not_found`);
     }
 
     // Redirect based on payment status
     if (payment.status === 'paid') {
-      // Use frontend parameter if provided to redirect back to GitHub Pages
       if (frontend) {
         try {
           const frontendUrl = new URL(frontend);
           return res.redirect(`${frontendUrl.origin}/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
         } catch (e) {
-          // Invalid frontend URL, use relative path
           return res.redirect(`/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
         }
       }
@@ -538,58 +369,67 @@ const handlePaymentReturn = async (req, res) => {
     } else if (payment.status === 'failed') {
       return res.redirect(`/src/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
     } else {
-      // Payment still pending - check with Hubtel as fallback
-      console.log(JSON.stringify({
-        label: 'HUBTEL_STATUS_CHECK_INITIATED',
-        timestamp: new Date().toISOString(),
-        clientReference: payment.clientReference,
-        currentPaymentStatus: payment.status,
-        reason: 'Payment still pending after return, checking with Hubtel'
-      }, null, 2));
-      
+      // Payment still pending - server-to-server check with Hubtel as fallback
+      logger.info('[Payment] Return handler checking Hubtel for pending payment', { clientReference: payment.clientReference });
+
       try {
-        const hubtelStatus = await hubtelService.checkTransactionStatus(payment.clientReference);
-        if (hubtelStatus.status === 'paid') {
-          // Update payment status
-          payment.status = 'paid';
-          payment.callbackVerified = true;
-          payment.hubtelTransactionId = hubtelStatus.transactionId;
-          payment.paymentMethod = mapPaymentMethod(hubtelStatus.paymentMethod);
-          payment.paidAt = new Date();
-          await payment.save();
-          
-          // Credit wallet using helper function
-          await creditWalletIfNeeded(payment);
-          
-          if (frontend) {
-            try {
-              const frontendUrl = new URL(frontend);
-              return res.redirect(`${frontendUrl.origin}/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
-            } catch (e) {
-              return res.redirect(`/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
+        const provider = await verificationService.checkProviderStatus('payment', payment.clientReference);
+
+        if (provider.ok && provider.status === 'paid' && Number(provider.amount || 0) >= payment.amount) {
+          const updated = await Payment.findOneAndUpdate(
+            { clientReference: payment.clientReference, status: { $in: ['pending', 'processing'] } },
+            {
+              $set: {
+                status: 'paid',
+                callbackVerified: true,
+                hubtelTransactionId: provider.transactionId,
+                paymentMethod: provider.paymentMethod,
+                paidAt: new Date()
+              }
             }
+          );
+          if (updated) {
+            await verificationService.creditWalletOnce(
+              payment.userId,
+              payment.amount,
+              `Wallet top-up via Hubtel (${payment.amount} GHS)`,
+              `PAYMENT-${payment.clientReference}`
+            );
           }
-          return res.redirect(`/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
-        } else if (hubtelStatus.status === 'failed') {
-          payment.status = 'failed';
-          payment.callbackVerified = true;
-          payment.failureReason = hubtelStatus.message;
-          await payment.save();
+          return res.redirect(redirectTo(frontend, payment.clientReference, 'success'));
+        } else if (provider.ok && provider.status === 'failed') {
+          await Payment.findOneAndUpdate(
+            { clientReference: payment.clientReference, status: { $in: ['pending', 'processing'] } },
+            { $set: { status: 'failed', callbackVerified: true, failureReason: provider.message } }
+          );
           return res.redirect(`/src/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
         }
       } catch (hubtelError) {
-        console.error('[Payment] Hubtel status check error in return handler:', hubtelError);
+        logger.error('[Payment] Hubtel status check error in return handler', { error: hubtelError.message });
       }
-      
+
       // Payment still pending, redirect to pending page
       return res.redirect(`/src/pages/dashboard/payment-pending.html?reference=${payment.clientReference}`);
     }
 
   } catch (error) {
-    console.error('[Payment] Return handler error:', error);
+    logger.error('[Payment] Return handler error', { error: error.message });
     res.redirect(`/src/pages/dashboard/payment-error.html?message=internal_error`);
   }
 };
+
+function redirectTo(frontend, reference, kind) {
+  const page = kind === 'success' ? 'payment-success.html' : 'payment-error.html';
+  if (frontend) {
+    try {
+      const frontendUrl = new URL(frontend);
+      return `${frontendUrl.origin}/src/pages/dashboard/${page}?reference=${reference}`;
+    } catch (e) {
+      return `/src/pages/dashboard/${page}?reference=${reference}`;
+    }
+  }
+  return `/src/pages/dashboard/${page}?reference=${reference}`;
+}
 
 /**
  * Handle payment cancellation
