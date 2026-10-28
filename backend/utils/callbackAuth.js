@@ -7,7 +7,16 @@ const logger = require('./logger');
  */
 const lastWarningAt = {};
 
+/**
+ * Last time a "callback rejected by secret check" warning was logged per route
+ * path, so we log at most one warning per route per minute when a callback
+ * fails the secret check (missing or wrong secret). The path only (no query,
+ * no body) is recorded.
+ */
+const lastRejectionWarningAt = {};
+
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_MINUTE_MS = 60 * 1000;
 
 /**
  * Constant-time string comparison to avoid timing side-channels.
@@ -35,6 +44,20 @@ function logSecretMissingOnce(envVarName) {
       envVar: envVarName,
       message: `Accepting callbacks without secret verification. Set ${envVarName} to require a secret in the callback URL or header.`
     });
+  }
+}
+
+/**
+ * Log a "callback rejected by secret check" warning at most once per route per
+ * minute. Only the route path is logged (no query string, no body) so a
+ * mistyped secret is visible without leaking callback parameters.
+ */
+function logRejectionWarningOnce(routePath) {
+  const now = Date.now();
+  const last = lastRejectionWarningAt[routePath] || 0;
+  if (now - last >= ONE_MINUTE_MS) {
+    lastRejectionWarningAt[routePath] = now;
+    logger.warn('callback rejected by secret check', { route: routePath });
   }
 }
 
@@ -112,10 +135,7 @@ function hubtelCallbackSecret(req, res, next) {
   const candidate = getHubtelCallbackCandidate(req);
 
   if (!candidate || !secretMatches(candidate, secret)) {
-    logger.warn('[CallbackSecret] Rejected Hubtel callback - invalid secret', {
-      route: callbackPath(req),
-      envVar: 'HUBTEL_CALLBACK_SECRET'
-    });
+    logRejectionWarningOnce(callbackPath(req));
     return res.status(200).json({ received: true });
   }
 
@@ -141,10 +161,7 @@ function naloWebhookSecret(req, res, next) {
   const candidate = getNaloWebhookCandidate(req);
 
   if (!candidate || !secretMatches(candidate, secret)) {
-    logger.warn('[CallbackSecret] Rejected Nalo callback/webhook - invalid secret', {
-      route: callbackPath(req),
-      envVar: 'NALO_WEBHOOK_SECRET'
-    });
+    logRejectionWarningOnce(callbackPath(req));
     return res.status(200).json({ received: true });
   }
 
