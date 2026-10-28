@@ -15,7 +15,16 @@ const connectDB = async (retries = 3, delay = 1000) => {
       });
 
       logger.info('MongoDB connected', { host: conn.connection.host });
-      
+
+      // Ensure model indexes (e.g. the sparse unique Transaction.reference index)
+      // without crashing the server if a build fails (for example existing
+      // duplicate references). One clear error is logged and startup continues.
+      try {
+        await ensureModelIndexes();
+      } catch (indexErr) {
+        logger.error('Failed to ensure model indexes (continuing without them): ' + indexErr.message);
+      }
+
       return conn;
     } catch (error) {
       logger.error(`MongoDB connection attempt ${attempt}/${retries} failed`, { 
@@ -45,7 +54,18 @@ const disconnectDB = async () => {
   }
 };
 
+/**
+ * Build application model indexes. Wrapped by the caller in try/catch so a
+ * failed index build (for example duplicate references blocking a unique index)
+ * logs one clear error and lets the server keep running.
+ */
+const ensureModelIndexes = async () => {
+  const Transaction = require('../models/Transaction');
+  await Transaction.init();
+};
+
 module.exports = {
   connectDB,
-  disconnectDB
+  disconnectDB,
+  ensureModelIndexes
 };
