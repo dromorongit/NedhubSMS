@@ -62,8 +62,7 @@ try {
 let authRoutes, contactRoutes, smsRoutes, naloSmsRoutes, walletRoutes, transferRoutes;
 let senderIdRoutes, templateRoutes, campaignRoutes, smsCampaignRoutes, analyticsRoutes;
 let reportsRoutes, adminRoutes, paymentRoutes, utilityRoutes, blacklistRoutes;
-let healthRoutes, metricsRoutes, hubtelCallbackController, smsUploadRoutes, apiKeysRoutes, callbackAuth;
-try {
+let healthRoutes, metricsRoutes, hubtelCallbackController, smsUploadRoutes, apiKeysRoutes, callbackAuth;try {
   authRoutes = require('../backend/routes/auth');
   contactRoutes = require('../backend/routes/contacts');
   smsRoutes = require('../backend/routes/sms');
@@ -423,9 +422,10 @@ app.use((err, req, res, next) => {
   logger.error('Unhandled error', {
     error: err.message,
     stack: err.stack,
-    url: req.url,
+    url: req.path,
     method: req.method,
-    userId: req.user?.id
+    userId: req.user?.id,
+    query: callbackAuth.isCallbackRoute(req) ? '[redacted]' : req.query
   });
 
   res.status(500).json({

@@ -49,10 +49,45 @@ function getHubtelCallbackCandidate(req) {
 
 /**
  * Extract the caller-provided secret from a Nalo request.
- * Supported location: header `x-webhook-secret`.
+ * Supported locations: header `x-webhook-secret`, query `secret`, query `token`.
  */
 function getNaloWebhookCandidate(req) {
   return req.header('x-webhook-secret') || req.query.secret || req.query.token;
+}
+
+/**
+ * Callback and webhook routes whose query string (e.g. ?secret=) must never be
+ * written to logs or error payloads.
+ */
+const CALLBACK_ROUTES = [
+  '/api/payments/hubtel/callback',
+  '/api/hubtel/momo-callback',
+  '/api/hubtel/bank-callback',
+  '/api/hubtel/airtime-callback',
+  '/api/hubtel/data-callback',
+  '/api/hubtel/tv-callback',
+  '/api/hubtel/utility-callback',
+  '/api/sms/callback',
+  '/api/sms/callback/nalo',
+  '/api/sms/webhooks/delivery-status'
+];
+
+/**
+ * True when the request targets a callback/webhook route.
+ */
+function isCallbackRoute(req) {
+  const base = req.baseUrl || '';
+  const path = req.path || '';
+  const full = (base + path).replace(/\/+$/, '');
+  return CALLBACK_ROUTES.includes(full);
+}
+
+/**
+ * Return the request path without the query string, safe to log for any route
+ * (never leaks ?secret=).
+ */
+function callbackPath(req) {
+  return req.path || '';
 }
 
 /**
@@ -78,7 +113,7 @@ function hubtelCallbackSecret(req, res, next) {
 
   if (!candidate || !secretMatches(candidate, secret)) {
     logger.warn('[CallbackSecret] Rejected Hubtel callback - invalid secret', {
-      route: req.originalUrl,
+      route: callbackPath(req),
       envVar: 'HUBTEL_CALLBACK_SECRET'
     });
     return res.status(200).json({ received: true });
@@ -107,7 +142,7 @@ function naloWebhookSecret(req, res, next) {
 
   if (!candidate || !secretMatches(candidate, secret)) {
     logger.warn('[CallbackSecret] Rejected Nalo callback/webhook - invalid secret', {
-      route: req.originalUrl,
+      route: callbackPath(req),
       envVar: 'NALO_WEBHOOK_SECRET'
     });
     return res.status(200).json({ received: true });
@@ -119,5 +154,8 @@ function naloWebhookSecret(req, res, next) {
 module.exports = {
   hubtelCallbackSecret,
   naloWebhookSecret,
-  secretMatches
+  secretMatches,
+  isCallbackRoute,
+  callbackPath,
+  CALLBACK_ROUTES
 };
