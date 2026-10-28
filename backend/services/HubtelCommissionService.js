@@ -731,23 +731,25 @@ class HubtelCommissionService {
     // responseCode must never by itself mark a transaction paid or failed.
     // Anything unrecognised, missing or malformed stays pending.
     //
-    // NOTE: 'Paid', 'PAID', 'Unpaid' and 'Refunded' below are ASSUMED Hubtel
-    // inner-status words. The owner must verify them against Hubtel's
-    // documentation before relying on them in production.
-    const statusMap = {
-      'SUCCESS': 'success',
-      'SUCCESSFUL': 'success',
-      'Paid': 'success',
-      'PAID': 'success',
-      'PENDING': 'pending',
-      'pending': 'pending',
-      'FAILED': 'failed',
-      'Unpaid': 'failed',
-      'Refunded': 'failed',
-      'CANCELLED': 'cancelled',
-      'cancelled': 'cancelled'
-    };
-    return statusMap[status] || 'pending';
+    // CONSERVATIVE MAPPING: only explicit success words map to success and
+    // only explicit failure words map to failed. 'Unpaid', 'Refunded' and
+    // every other value not explicitly listed below map to pending.
+    //
+    // Success words: SUCCESS, SUCCESSFUL, Paid, PAID
+    // Failed words: FAILED
+    // Pending words: pending, PENDING, Unpaid, Refunded, CANCELLED,
+    // cancelled, and anything else not explicitly listed above.
+    //
+    // NOTE: the status words above are ASSUMED Hubtel inner-status words. The
+    // owner must verify them against Hubtel's documentation (capture a real
+    // response with scripts/inspect-hubtel-status.js) before relying on them
+    // in production.
+    const successWords = ['SUCCESS', 'SUCCESSFUL', 'Paid', 'PAID'];
+    const failedWords = ['FAILED'];
+
+    return successWords.includes(status) ? 'success'
+      : failedWords.includes(status) ? 'failed'
+      : 'pending';
   }
 }
 

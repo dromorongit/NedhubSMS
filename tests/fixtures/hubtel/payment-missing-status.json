@@ -1,0 +1,5 @@
+{
+  "name": "missing inner data stays pending",
+  "body": { "responseCode": "0000" },
+  "label": "assumed response shape, replace with a real captured response (redacted) from inspect-hubtel-status.js"
+}

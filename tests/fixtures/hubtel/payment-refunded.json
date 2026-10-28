@@ -1,0 +1,5 @@
+{
+  "name": "inner status Refunded does not credit",
+  "body": { "responseCode": "0000", "status": "Refunded", "amount": 10 },
+  "label": "assumed response shape, replace with a real captured response (redacted) from inspect-hubtel-status.js"
+}

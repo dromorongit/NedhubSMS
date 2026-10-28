@@ -254,11 +254,37 @@ class HubtelPaymentService {
         fullResponseBody: fullResponseBody
       }, null, 2));
       
+      // Amount the provider reports for this transaction. HUBTEL_AMOUNT_MODE
+      // selects which provider field is read:
+      //   gross (default, current behaviour): statusData.amount, falling back
+      //     to statusData.totalAmount
+      //   net: statusData.netAmount, falling back to statusData.net_amount,
+      //     then statusData.amountAfterFee, then the gross fields above
+      // The exact comparison used by the callback verifier is
+      //   providerAmount >= payment.amount   (assessPayment in
+      //   callbackVerificationService.js)
+      // The owner can switch modes after capturing a real Hubtel response with
+      // scripts/inspect-hubtel-status.js, without a code change. Default is
+      // the current (gross) behaviour.
+      const amountMode = String(process.env.HUBTEL_AMOUNT_MODE || 'gross').toLowerCase();
+      let providerAmount;
+      if (amountMode === 'net') {
+        providerAmount =
+          statusData.netAmount ||
+          statusData.net_amount ||
+          statusData.amountAfterFee ||
+          statusData.amount ||
+          statusData.totalAmount;
+      } else {
+        // gross - current behaviour
+        providerAmount = statusData.amount || statusData.totalAmount;
+      }
+
       return {
         success: true,
         clientReference: clientReference,
         status: this._mapHubtelStatus(statusData.status),
-        amount: statusData.amount || statusData.totalAmount,
+        amount: providerAmount,
         currency: statusData.currency || 'GHS',
         transactionId: statusData.transactionId || statusData.POS_SALES_ID,
         paymentMethod: statusData.paymentMethod || this._mapPaymentMethod(statusData.type),
@@ -328,25 +354,27 @@ class HubtelPaymentService {
     // never by itself mark a transaction paid or failed. Anything
     // unrecognised, missing or malformed stays pending.
     //
-    // NOTE: 'Paid', 'PAID', 'Unpaid' and 'Refunded' below are ASSUMED Hubtel
-    // inner-status words. The owner must verify them against Hubtel's
-    // documentation before relying on them in production.
-    const statusMap = {
-      'SUCCESS': 'paid',
-      'SUCCESSFUL': 'paid',
-      'Paid': 'paid',
-      'PAID': 'paid',
-      'pending': 'pending',
-      'PENDING': 'pending',
-      'FAILED': 'failed',
-      '1002': 'failed', // Common Hubtel failure code
-      'Unpaid': 'failed',
-      'Refunded': 'failed',
-      'CANCELLED': 'cancelled',
-      'cancelled': 'cancelled'
-    };
+    // CONSERVATIVE MAPPING: only explicit success words map to paid and only
+    // explicit failure words map to failed. 'Unpaid', 'Refunded', '1002' and
+    // every other value not explicitly listed below map to pending - a
+    // refunded payment never credits and is not marked failed; it stays
+    // pending for manual review (see reconcile-pending.js).
+    //
+    // Paid words: SUCCESS, SUCCESSFUL, Paid, PAID
+    // Failed words: FAILED
+    // Pending words: pending, PENDING, Unpaid, Refunded, 1002, CANCELLED,
+    // cancelled, and anything else not explicitly listed above.
+    //
+    // NOTE: the status words above are ASSUMED Hubtel inner-status words. The
+    // owner must verify them against Hubtel's documentation (capture a real
+    // response with scripts/inspect-hubtel-status.js) before relying on them
+    // in production.
+    const paidWords = ['SUCCESS', 'SUCCESSFUL', 'Paid', 'PAID'];
+    const failedWords = ['FAILED'];
 
-    return statusMap[hubtelStatus] || 'pending';
+    if (paidWords.includes(hubtelStatus)) return 'paid';
+    if (failedWords.includes(hubtelStatus)) return 'failed';
+    return 'pending';
   }
 
   /**

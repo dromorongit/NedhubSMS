@@ -1,0 +1,5 @@
+{
+  "name": "inner status Paid with a lower amount does not credit",
+  "body": { "responseCode": "0000", "status": "Paid", "amount": 5 },
+  "label": "assumed response shape, replace with a real captured response (redacted) from inspect-hubtel-status.js"
+}

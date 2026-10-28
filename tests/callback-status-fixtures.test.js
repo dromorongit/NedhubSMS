@@ -9,41 +9,20 @@ const hubtelCommissionService = require('../backend/services/HubtelCommissionSer
 const CallbackVerificationService = require('../backend/services/callbackVerificationService');
 
 // ---------------------------------------------------------------------------
-// Fixtures. Each fixture is an ASSUMED Hubtel response shape. The owner must
-// verify the actual status words and field names against Hubtel's documentation
-// before relying on them in production.
+// Fixtures. Each fixture is an ASSUMED Hubtel response shape loaded from
+// tests/fixtures/hubtel/*.json. The owner can drop real captured responses
+// (redacted, from scripts/inspect-hubtel-status.js) into that directory and
+// re-run. Every fixture is labelled:
+//   'assumed response shape, replace with a real captured response (redacted)
+//    from inspect-hubtel-status.js'
 // ---------------------------------------------------------------------------
 const FIXTURES = [
-  {
-    name: 'top-level responseCode 0000 with inner status Unpaid is not paid',
-    body: { responseCode: '0000', status: 'Unpaid', amount: 10 },
-    label: 'assumed response shape, owner to verify against Hubtel\'s documentation'
-  },
-  {
-    name: 'inner status Paid with matching amount is paid',
-    body: { responseCode: '0000', status: 'Paid', amount: 10 },
-    label: 'assumed response shape, owner to verify against Hubtel\'s documentation'
-  },
-  {
-    name: 'inner status Paid with a lower amount does not credit',
-    body: { responseCode: '0000', status: 'Paid', amount: 5 },
-    label: 'assumed response shape, owner to verify against Hubtel\'s documentation'
-  },
-  {
-    name: 'inner status Refunded does not credit',
-    body: { responseCode: '0000', status: 'Refunded', amount: 10 },
-    label: 'assumed response shape, owner to verify against Hubtel\'s documentation'
-  },
-  {
-    name: 'missing inner data stays pending',
-    body: { responseCode: '0000' },
-    label: 'assumed response shape, owner to verify against Hubtel\'s documentation'
-  },
-  {
-    name: 'unknown status string stays pending',
-    body: { responseCode: '0000', status: 'UnknownStatus' },
-    label: 'assumed response shape, owner to verify against Hubtel\'s documentation'
-  }
+  require('./fixtures/hubtel/payment-unpaid.json'),
+  require('./fixtures/hubtel/payment-paid-matching.json'),
+  require('./fixtures/hubtel/payment-paid-low-amount.json'),
+  require('./fixtures/hubtel/payment-refunded.json'),
+  require('./fixtures/hubtel/payment-missing-status.json'),
+  require('./fixtures/hubtel/payment-unknown-status.json')
 ];
 
 const ERROR_CASES = [
@@ -228,13 +207,13 @@ function makeSvc(store, providerResult) {
 }
 
 function mapStatus(kind, body) {
-  if (kind === 'payment') {
-    if (body.status === 'Paid' || body.status === 'PAID' || body.status === 'SUCCESS' || body.status === 'SUCCESSFUL') return 'paid';
-    if (body.status === 'Unpaid' || body.status === 'Refunded' || body.status === 'FAILED' || body.status === '1002') return 'failed';
-    return 'pending';
-  }
-  if (body.status === 'Paid' || body.status === 'PAID' || body.status === 'SUCCESS' || body.status === 'SUCCESSFUL') return 'success';
-  if (body.status === 'Unpaid' || body.status === 'Refunded' || body.status === 'FAILED' || body.status === '1002') return 'failed';
+  // Mirrors the conservative mapper in the services: only explicit success
+  // words map to paid/success, only explicit failure words map to failed,
+  // everything else (Unpaid, Refunded, 1002, unknown) maps to pending.
+  const paidWords = ['Paid', 'PAID', 'SUCCESS', 'SUCCESSFUL'];
+  const failedWords = ['FAILED'];
+  if (paidWords.includes(body.status)) return kind === 'payment' ? 'paid' : 'success';
+  if (failedWords.includes(body.status)) return 'failed';
   return 'pending';
 }
 
@@ -258,17 +237,17 @@ const ASSESS_CASES = [
   },
   {
     fx: FIXTURES[0], // Unpaid
-    desc: 'Unpaid -> not paid (failed)',
-    payment: 'mark_failed',
-    transfer: 'mark_failed',
-    purchase: 'refund'
+    desc: 'Unpaid -> stays pending (not failed, not paid)',
+    payment: 'leave_pending',
+    transfer: 'leave_pending',
+    purchase: 'leave_pending'
   },
   {
     fx: FIXTURES[3], // Refunded
-    desc: 'Refunded -> no credit as success',
-    payment: 'mark_failed',
-    transfer: 'mark_failed',
-    purchase: 'refund'
+    desc: 'Refunded -> no credit, stays pending for manual review',
+    payment: 'leave_pending',
+    transfer: 'leave_pending',
+    purchase: 'leave_pending'
   },
   {
     fx: FIXTURES[4], // missing inner data

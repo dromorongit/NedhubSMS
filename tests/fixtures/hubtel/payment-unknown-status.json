@@ -1,0 +1,5 @@
+{
+  "name": "unknown status string stays pending",
+  "body": { "responseCode": "0000", "status": "UnknownStatus" },
+  "label": "assumed response shape, replace with a real captured response (redacted) from inspect-hubtel-status.js"
+}

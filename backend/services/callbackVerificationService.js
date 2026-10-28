@@ -290,7 +290,7 @@ class CallbackVerificationService {
     if (provider.status === 'success' || provider.status === 'paid') {
       return { action: 'complete', clientReference, transaction };
     }
-    if (provider.status === 'failed' || provider.status === 'cancelled') {
+    if (provider.status === 'failed') {
       return { action: 'mark_failed', clientReference, transaction, reason: provider.message };
     }
     return { action: 'leave_pending', clientReference, providerStatus: provider.status };
@@ -381,7 +381,7 @@ class CallbackVerificationService {
     if (provider.status === 'success' || provider.status === 'paid') {
       return { action: 'complete', clientReference, transaction };
     }
-    if (provider.status === 'failed' || provider.status === 'cancelled') {
+    if (provider.status === 'failed') {
       return { action: 'refund', clientReference, transaction, reason: provider.message };
     }
     return { action: 'leave_pending', clientReference, providerStatus: provider.status };
