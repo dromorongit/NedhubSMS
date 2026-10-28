@@ -24,6 +24,14 @@ function calculateGatewayFee(paymentMethod, amount) {
   return Math.max(amount * rate, 0.50);
 }
 
+/**
+ * Normalise a provider status word: trimmed and compared case-insensitively so
+ * 'paid', 'Paid', ' PAID ', 'failed', 'Failed', 'FAILED' all map the same.
+ */
+function normalizeStatus(status) {
+  return String(status || '').trim().toLowerCase();
+}
+
 const hubtelPaymentService = new HubtelPaymentService();
 const hubtelTransferService = HubtelTransferService;
 const hubtelCommissionService = HubtelCommissionService;
@@ -76,6 +84,7 @@ class CallbackVerificationService {
     return {
       ok: true,
       status: result.status,
+      rawStatus: result.rawStatus,
       amount: result.amount,
       transactionId: result.transactionId,
       paymentMethod: result.paymentMethod,
@@ -189,7 +198,8 @@ class CallbackVerificationService {
     }
 
     const providerAmount = Number(provider.amount) || 0;
-    if (provider.status === 'paid' && providerAmount >= payment.amount) {
+    const status = normalizeStatus(provider.status);
+    if (status === 'paid' && providerAmount != null && Math.round(providerAmount * 100) >= Math.round(payment.amount * 100)) {
       return {
         action: 'credit',
         clientReference,
@@ -199,7 +209,7 @@ class CallbackVerificationService {
         paymentMethod: provider.paymentMethod
       };
     }
-    if (provider.status === 'failed') {
+    if (status === 'failed') {
       return { action: 'mark_failed', clientReference, payment, reason: provider.message };
     }
     return { action: 'leave_pending', clientReference, providerStatus: provider.status };
@@ -287,10 +297,11 @@ class CallbackVerificationService {
       return { action: 'provider_unavailable', clientReference, error: provider.error };
     }
 
-    if (provider.status === 'success' || provider.status === 'paid') {
+    const status = normalizeStatus(provider.status);
+    if (status === 'success' || status === 'paid') {
       return { action: 'complete', clientReference, transaction };
     }
-    if (provider.status === 'failed') {
+    if (status === 'failed') {
       return { action: 'mark_failed', clientReference, transaction, reason: provider.message };
     }
     return { action: 'leave_pending', clientReference, providerStatus: provider.status };
@@ -378,10 +389,14 @@ class CallbackVerificationService {
       return { action: 'provider_unavailable', clientReference, error: provider.error };
     }
 
-    if (provider.status === 'success' || provider.status === 'paid') {
+    const status = normalizeStatus(provider.status);
+    const rawStatus = normalizeStatus(provider.rawStatus);
+    // An explicit Cancelled / Canceled on a purchase (wallet already debited) is
+    // treated as a failure that triggers the single idempotent refund.
+    if (status === 'success' || status === 'paid') {
       return { action: 'complete', clientReference, transaction };
     }
-    if (provider.status === 'failed') {
+    if (status === 'failed' || rawStatus === 'cancelled' || rawStatus === 'canceled') {
       return { action: 'refund', clientReference, transaction, reason: provider.message };
     }
     return { action: 'leave_pending', clientReference, providerStatus: provider.status };

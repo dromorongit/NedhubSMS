@@ -4,6 +4,9 @@ const assert = require('node:assert/strict');
 process.env.JWT_SECRET = 'a'.repeat(64);
 
 const CallbackVerificationService = require('../backend/services/callbackVerificationService');
+const HubtelPaymentService = require('../backend/services/HubtelPaymentService');
+const hubtelTransferService = require('../backend/services/HubtelTransferService');
+const hubtelCommissionService = require('../backend/services/HubtelCommissionService');
 
 // ---------------------------------------------------------------------------
 // Minimal in-memory store mirroring the real models just enough for the assess
@@ -206,4 +209,113 @@ test('purchase: explicit Failed refunds exactly once and is idempotent', async (
   const second = await svc.processAirtimeCallback('REF');
   assert.equal(second.action, 'already_terminal', 'repeat callback is already terminal');
   assert.equal(refunds.length, 1, 'still exactly one refund after repeat callback');
+});
+
+// ---------------------------------------------------------------------------
+// Normalisation: status comparisons are trimmed and case-insensitive across all
+// three mappers. 'paid', 'Paid', ' PAID ', 'failed', 'Failed', 'FAILED' map as
+// expected; 'cancelled'/'canceled' are not in the paid/failed lists so they map
+// to pending in the mappers (assess functions add service-specific logic on top).
+// ---------------------------------------------------------------------------
+test('mapper normalisation: paid / Paid / " PAID " / failed / Failed / FAILED', () => {
+  const payment = new HubtelPaymentService();
+  const transfer = hubtelTransferService;
+  const commission = hubtelCommissionService;
+
+  for (const raw of ['paid', 'Paid', ' PAID ', 'PAID', 'success', 'SUCCESSFUL', 'Successful']) {
+    assert.equal(payment._mapHubtelStatus(raw), 'paid', `payment maps '${raw}' to paid`);
+    assert.equal(transfer._mapTransactionStatus(raw), 'success', `transfer maps '${raw}' to success`);
+    assert.equal(commission._mapTransactionStatus(raw), 'success', `commission maps '${raw}' to success`);
+  }
+  for (const raw of ['failed', 'Failed', ' FAILED ', 'FAILED']) {
+    assert.equal(payment._mapHubtelStatus(raw), 'failed', `payment maps '${raw}' to failed`);
+    assert.equal(transfer._mapTransactionStatus(raw), 'failed', `transfer maps '${raw}' to failed`);
+    assert.equal(commission._mapTransactionStatus(raw), 'failed', `commission maps '${raw}' to failed`);
+  }
+  // Not in paid/failed lists -> pending (conservative)
+  for (const raw of ['Unpaid', 'Refunded', 'CANCELLED', 'canceled', 'pending', 'Unknown', '']) {
+    assert.equal(payment._mapHubtelStatus(raw), 'pending', `payment maps '${raw}' to pending`);
+    assert.equal(transfer._mapTransactionStatus(raw), 'pending', `transfer maps '${raw}' to pending`);
+    assert.equal(commission._mapTransactionStatus(raw), 'pending', `commission maps '${raw}' to pending`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Purchase: explicit Cancelled / Canceled triggers the single idempotent refund
+// (wallet already debited). Top-up payment Cancelled stays pending (no money moved).
+// ---------------------------------------------------------------------------
+test('purchase: explicit Cancelled refunds exactly once and is idempotent', async () => {
+  const store = makeStore();
+  const svc = makeSvc(store);
+  setupPurchase(store);
+  const refunds = [];
+  svc.refundWalletOnce = async (...args) => { refunds.push(args); return { refunded: true }; };
+
+  // Raw provider status 'Cancelled' maps to pending in the mapper, but assessPurchase
+  // reads rawStatus and treats explicit Cancelled as a refund trigger.
+  const providerResult = { ok: true, status: 'pending', rawStatus: 'Cancelled', amount: 0, transactionId: 'HTX-7', paymentMethod: 'momo', message: 'Cancelled' };
+  svc.checkProviderStatus = async () => providerResult;
+
+  const first = await svc.processAirtimeCallback('REF');
+  assert.equal(first.action, 'refund', 'explicit Cancelled triggers a refund on a purchase');
+  assert.equal(store.transactions[0].status, 'failed', 'transaction marked failed');
+  assert.equal(refunds.length, 1, 'exactly one refund');
+
+  const second = await svc.processAirtimeCallback('REF');
+  assert.equal(second.action, 'already_terminal', 'repeat callback is already terminal');
+  assert.equal(refunds.length, 1, 'still exactly one refund after repeat callback');
+});
+
+test('purchase: explicit Canceled refunds exactly once and is idempotent', async () => {
+  const store = makeStore();
+  const svc = makeSvc(store);
+  setupPurchase(store);
+  const refunds = [];
+  svc.refundWalletOnce = async (...args) => { refunds.push(args); return { refunded: true }; };
+
+  const providerResult = { ok: true, status: 'pending', rawStatus: 'Canceled', amount: 0, transactionId: 'HTX-8', paymentMethod: 'momo', message: 'Canceled' };
+  svc.checkProviderStatus = async () => providerResult;
+
+  const first = await svc.processDataCallback('REF');
+  assert.equal(first.action, 'refund', 'explicit Canceled triggers a refund on a purchase');
+  assert.equal(refunds.length, 1, 'exactly one refund');
+
+  const second = await svc.processDataCallback('REF');
+  assert.equal(second.action, 'already_terminal', 'repeat callback is already terminal');
+  assert.equal(refunds.length, 1, 'still exactly one refund after repeat callback');
+});
+
+test('payment top-up: Cancelled stays pending with no credit (no money moved)', async () => {
+  const store = makeStore();
+  const svc = makeSvc(store);
+  setupPayment(store);
+  const credits = [];
+  svc.creditWalletOnce = async (...args) => { credits.push(args); return { credited: true }; };
+
+  const providerResult = { ok: true, status: 'pending', rawStatus: 'Cancelled', amount: STORED_AMOUNT, transactionId: 'HTX-9', paymentMethod: 'momo', message: 'Cancelled' };
+  svc.checkProviderStatus = async () => providerResult;
+
+  const res = await svc.processPaymentCallback('REF');
+  assert.equal(res.action, 'leave_pending', 'top-up Cancelled stays pending');
+  assert.equal(store.payments[0].status, 'pending', 'top-up payment stays pending');
+  assert.equal(credits.length, 0, 'top-up Cancelled never credits');
+});
+
+// ---------------------------------------------------------------------------
+// HUBTEL_AMOUNT_MODE=net: no net field present -> amount unknown (null), payment
+// stays pending, one warning logged. No gross fallback.
+// ---------------------------------------------------------------------------
+test('payment net mode with no net field: amount unknown, payment stays pending', async () => {
+  const origEnv = process.env.HUBTEL_AMOUNT_MODE;
+  process.env.HUBTEL_AMOUNT_MODE = 'net';
+  try {
+    const payment = new HubtelPaymentService();
+    payment.basicAuthHeader = 'Basic dummy';
+    payment.httpClient = { get: async () => ({ data: { status: 'Paid', amount: 10 } }) }; // gross only, no net field
+    const result = await payment.checkTransactionStatus('REF-NET');
+    assert.equal(result.amount, null, 'net mode with no net field yields unknown (null) amount');
+    assert.equal(result.status, 'paid', 'status still mapped from provider status');
+  } finally {
+    process.env.HUBTEL_AMOUNT_MODE = origEnv;
+  }
 });

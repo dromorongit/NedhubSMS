@@ -703,10 +703,14 @@ class HubtelCommissionService {
       });
 
       const responseData = response.data;
-      
+      // Raw provider status: checked at the top level and one level down under
+      // 'data', under the field names 'status' and 'transactionStatus'
+      const rawStatus = this._extractStatus(responseData);
+
       return {
         success: true,
-        status: this._mapTransactionStatus(responseData.status),
+        status: this._mapTransactionStatus(rawStatus),
+        rawStatus,
         responseCode: responseData.responseCode,
         data: responseData.data
       };
@@ -740,16 +744,39 @@ class HubtelCommissionService {
     // Pending words: pending, PENDING, Unpaid, Refunded, CANCELLED,
     // cancelled, and anything else not explicitly listed above.
     //
+    // Comparison is trimmed and case-insensitive so 'paid', 'Paid', ' PAID ',
+    // 'failed', 'Failed', 'FAILED' all map as expected.
+    //
     // NOTE: the status words above are ASSUMED Hubtel inner-status words. The
     // owner must verify them against Hubtel's documentation (capture a real
     // response with scripts/inspect-hubtel-status.js) before relying on them
     // in production.
-    const successWords = ['SUCCESS', 'SUCCESSFUL', 'Paid', 'PAID'];
-    const failedWords = ['FAILED'];
+    const raw = String(status || '').trim().toLowerCase();
+    const successWords = ['success', 'successful', 'paid'];
+    const failedWords = ['failed'];
 
-    return successWords.includes(status) ? 'success'
-      : failedWords.includes(status) ? 'failed'
+    return successWords.includes(raw) ? 'success'
+      : failedWords.includes(raw) ? 'failed'
       : 'pending';
+  }
+
+  /**
+   * Extract the raw transaction status from a Hubtel provider response body.
+   * Looks at the top level and one level down (under a 'data' object), under
+   * the field names 'status' and 'transactionStatus'. Returns the first
+   * non-empty value found, or undefined when none is present.
+   */
+  _extractStatus(body) {
+    const candidates = [];
+    const collect = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+      if (typeof obj.status !== 'undefined' && String(obj.status).trim() !== '') candidates.push(String(obj.status).trim());
+      if (typeof obj.transactionStatus !== 'undefined' && String(obj.transactionStatus).trim() !== '') candidates.push(String(obj.transactionStatus).trim());
+    };
+    collect(body);
+    const data = body && body.data;
+    if (data && data !== body) collect(data);
+    return candidates[0];
   }
 }
 

@@ -104,6 +104,25 @@ async function reconcilePending(options = {}) {
     }
   }
 
+  // NEEDS MANUAL REVIEW: every waiting purchase older than 24 hours
+  const manualReviewCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const manualReview = waitingTxns.filter((tx) => {
+    if (!['AIRTIME_PURCHASE', 'DATA_PURCHASE', 'TV_PAYMENT', 'UTILITY_PAYMENT'].includes(tx.metadata && tx.metadata.transactionType)) return false;
+    return new Date(tx.createdAt || 0) < manualReviewCutoff;
+  });
+  const providerStatusByRef = {};
+  results.transactions.forEach((r) => { providerStatusByRef[r.reference] = r.providerStatus; });
+
+  if (manualReview.length > 0) {
+    console.log('\nNEEDS MANUAL REVIEW');
+    console.log('===================');
+    console.log('Waiting purchases older than 24 hours (reference, our amount, provider status):');
+    for (const tx of manualReview) {
+      const line = `  reference=${tx.reference} ourAmount=${tx.amount} providerStatus=${providerStatusByRef[tx.reference] || 'not checked'}`;
+      console.log(line);
+    }
+  }
+
   return results;
 }
 

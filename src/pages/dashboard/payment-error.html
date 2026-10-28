@@ -92,6 +92,16 @@
                         </div>
                     </div>
 
+                    <!-- Shown while the payment is still pending confirmation from Hubtel -->
+                    <div class="info-box" id="pendingMessage" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span>Payment pending, we are confirming it...</span>
+                    </div>
+
                     <div class="result-actions">
                         <a href="#" class="btn-primary" id="dashboardBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -150,14 +160,19 @@
             if (reference) {
                 document.getElementById('ref').textContent = reference;
                 document.getElementById('paymentDetails').style.display = 'block';
-                
+                document.getElementById('pendingMessage').style.display = 'block';
+
                 try {
-                    const response = await window.apiClient.checkPaymentStatus(reference);
-                    if (response.data) {
-                        document.getElementById('amount').textContent = `GHS ${response.data.amount || 0}`;
+                    const result = await window.apiClient.checkPaymentStatusWithRetries(reference);
+                    document.getElementById('pendingMessage').style.display = 'none';
+                    if (result.error) {
+                        console.error('Error fetching payment status:', result.error);
+                    } else if (result.data && result.data.status !== 'pending') {
+                        document.getElementById('amount').textContent = `GHS ${result.data.amount || 0}`;
                     }
                 } catch (error) {
-                    console.error('Error fetching payment details:', error);
+                    console.error('Error fetching payment status:', error);
+                    document.getElementById('pendingMessage').style.display = 'none';
                 }
             }
 

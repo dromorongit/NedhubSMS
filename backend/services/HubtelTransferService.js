@@ -849,11 +849,14 @@ class HubtelTransferService {
       });
 
       const responseData = response.data;
-      const mappedStatus = this._mapTransactionStatus(responseData.status);
+      // Raw provider status: checked at the top level and one level down under
+      // 'data', under the field names 'status' and 'transactionStatus'
+      const rawStatus = this._extractStatus(responseData);
+      const mappedStatus = this._mapTransactionStatus(rawStatus);
 
       logger.info('[HubtelResponse] [StatusCheck] Status response received', {
         clientReference,
-        rawStatus: responseData.status || responseData.responseCode,
+        rawStatus: rawStatus || responseData.status || responseData.responseCode,
         mappedStatus,
         responseCode: responseData.responseCode,
         httpStatus: response.status
@@ -862,6 +865,7 @@ class HubtelTransferService {
       return {
         success: true,
         status: mappedStatus,
+        rawStatus,
         responseCode: responseData.responseCode,
         data: responseData.data
       };
@@ -894,18 +898,41 @@ class HubtelTransferService {
     // Pending words: pending, PENDING, Unpaid, Refunded, CANCELLED,
     // cancelled, and anything else not explicitly listed above.
     //
+    // Comparison is trimmed and case-insensitive so 'paid', 'Paid', ' PAID ',
+    // 'failed', 'Failed', 'FAILED' all map as expected.
+    //
     // NOTE: the status words above are ASSUMED Hubtel inner-status words. The
     // owner must verify them against Hubtel's documentation (capture a real
     // response with scripts/inspect-hubtel-status.js) before relying on them
     // in production.
-    const successWords = ['SUCCESS', 'SUCCESSFUL', 'Paid', 'PAID'];
-    const failedWords = ['FAILED'];
+    const raw = String(status || '').trim().toLowerCase();
+    const successWords = ['success', 'successful', 'paid'];
+    const failedWords = ['failed'];
 
-    const mapped = successWords.includes(status) ? 'success'
-      : failedWords.includes(status) ? 'failed'
+    const mapped = successWords.includes(raw) ? 'success'
+      : failedWords.includes(raw) ? 'failed'
       : 'pending';
     logger.debug('[HubtelTransferService] Status mapped', { rawStatus: status, mappedStatus: mapped });
     return mapped;
+  }
+
+  /**
+   * Extract the raw transaction status from a Hubtel provider response body.
+   * Looks at the top level and one level down (under a 'data' object), under
+   * the field names 'status' and 'transactionStatus'. Returns the first
+   * non-empty value found, or undefined when none is present.
+   */
+  _extractStatus(body) {
+    const candidates = [];
+    const collect = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+      if (typeof obj.status !== 'undefined' && String(obj.status).trim() !== '') candidates.push(String(obj.status).trim());
+      if (typeof obj.transactionStatus !== 'undefined' && String(obj.transactionStatus).trim() !== '') candidates.push(String(obj.transactionStatus).trim());
+    };
+    collect(body);
+    const data = body && body.data;
+    if (data && data !== body) collect(data);
+    return candidates[0];
   }
 
   /**

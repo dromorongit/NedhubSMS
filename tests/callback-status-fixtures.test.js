@@ -22,7 +22,10 @@ const FIXTURES = [
   require('./fixtures/hubtel/payment-paid-low-amount.json'),
   require('./fixtures/hubtel/payment-refunded.json'),
   require('./fixtures/hubtel/payment-missing-status.json'),
-  require('./fixtures/hubtel/payment-unknown-status.json')
+  require('./fixtures/hubtel/payment-unknown-status.json'),
+  require('./fixtures/hubtel/payment-data-status.json'),
+  require('./fixtures/hubtel/payment-data-transactionStatus.json'),
+  require('./fixtures/hubtel/payment-top-level-transactionStatus.json')
 ];
 
 const ERROR_CASES = [
@@ -101,6 +104,12 @@ for (const svc of SERVICES) {
           assert.equal(result.status, 'pending', 'missing inner status stays pending');
         } else if (fx.name.startsWith('unknown status string')) {
           assert.equal(result.status, 'pending', 'unknown status stays pending');
+        } else if (fx.name.startsWith('inner status under data.status')) {
+          assert.equal(result.status, 'paid', 'data.status maps to paid');
+        } else if (fx.name.startsWith('inner status under data.transactionStatus')) {
+          assert.equal(result.status, 'paid', 'data.transactionStatus maps to paid');
+        } else if (fx.name.startsWith('top-level transactionStatus')) {
+          assert.equal(result.status, 'paid', 'top-level transactionStatus maps to paid');
         }
       } else {
         // _mapTransactionStatus -> 'success' | 'failed' | 'pending' | 'cancelled'
@@ -116,6 +125,12 @@ for (const svc of SERVICES) {
           assert.equal(result.status, 'pending', 'missing inner status stays pending');
         } else if (fx.name.startsWith('unknown status string')) {
           assert.equal(result.status, 'pending', 'unknown status stays pending');
+        } else if (fx.name.startsWith('inner status under data.status')) {
+          assert.equal(result.status, 'success', 'data.status maps to success');
+        } else if (fx.name.startsWith('inner status under data.transactionStatus')) {
+          assert.equal(result.status, 'success', 'data.transactionStatus maps to success');
+        } else if (fx.name.startsWith('top-level transactionStatus')) {
+          assert.equal(result.status, 'success', 'top-level transactionStatus maps to success');
         }
       }
     });

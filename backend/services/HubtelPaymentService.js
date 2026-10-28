@@ -205,6 +205,25 @@ class HubtelPaymentService {
   }
 
   /**
+   * Extract the raw transaction status from a Hubtel provider response body.
+   * Looks at the top level and one level down (under a 'data' object), under
+   * the field names 'status' and 'transactionStatus'. Returns the first
+   * non-empty value found, or undefined when none is present.
+   */
+  _extractStatus(body) {
+    const candidates = [];
+    const collect = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+      if (typeof obj.status !== 'undefined' && String(obj.status).trim() !== '') candidates.push(String(obj.status).trim());
+      if (typeof obj.transactionStatus !== 'undefined' && String(obj.transactionStatus).trim() !== '') candidates.push(String(obj.transactionStatus).trim());
+    };
+    collect(body);
+    const data = body && body.data;
+    if (data && data !== body) collect(data);
+    return candidates[0];
+  }
+
+  /**
    * Check the status of a transaction using clientReference
    * This is used as a fallback when callback is not received
    * @param {string} clientReference - The unique transaction reference
@@ -242,13 +261,17 @@ class HubtelPaymentService {
       const fullResponseBody = response.data;
       const statusData = fullResponseBody.data || fullResponseBody;
 
+      // Raw provider status: checked at the top level and one level down under
+      // 'data', under the field names 'status' and 'transactionStatus'
+      const rawStatus = this._extractStatus(fullResponseBody);
+
       // Structured logging for HUBTEL_STATUS_CHECK_RESPONSE - response data
       console.log(JSON.stringify({
         label: 'HUBTEL_STATUS_CHECK_RESPONSE',
         timestamp: new Date().toISOString(),
         clientReference: clientReference,
         responseCode: statusData.ResponseCode || statusData.responseCode,
-        status: statusData.status,
+        status: rawStatus,
         transactionId: statusData.transactionId || statusData.POS_SALES_ID,
         amount: statusData.amount || statusData.totalAmount,
         fullResponseBody: fullResponseBody
@@ -258,23 +281,30 @@ class HubtelPaymentService {
       // selects which provider field is read:
       //   gross (default, current behaviour): statusData.amount, falling back
       //     to statusData.totalAmount
-      //   net: statusData.netAmount, falling back to statusData.net_amount,
-      //     then statusData.amountAfterFee, then the gross fields above
+      //   net: statusData.netAmount, then statusData.net_amount, then
+      //     statusData.amountAfterFee. In net mode there is NO gross fallback:
+      //     if no net field is present the amount is unknown (null), the
+      //     payment stays pending and one warning is logged.
       // The exact comparison used by the callback verifier is
-      //   providerAmount >= payment.amount   (assessPayment in
-      //   callbackVerificationService.js)
+      //   Math.round(providerAmount*100) >= Math.round(payment.amount*100)
+      //   (whole pesewas, assessPayment in callbackVerificationService.js)
       // The owner can switch modes after capturing a real Hubtel response with
       // scripts/inspect-hubtel-status.js, without a code change. Default is
       // the current (gross) behaviour.
       const amountMode = String(process.env.HUBTEL_AMOUNT_MODE || 'gross').toLowerCase();
       let providerAmount;
       if (amountMode === 'net') {
-        providerAmount =
-          statusData.netAmount ||
-          statusData.net_amount ||
-          statusData.amountAfterFee ||
-          statusData.amount ||
-          statusData.totalAmount;
+        const net =
+          statusData.netAmount != null ? statusData.netAmount
+          : statusData.net_amount != null ? statusData.net_amount
+          : statusData.amountAfterFee != null ? statusData.amountAfterFee
+          : undefined;
+        if (net == null) {
+          console.warn('[HubtelPaymentService] HUBTEL_AMOUNT_MODE=net but no net amount field present in provider response; amount unknown, payment will stay pending', { clientReference });
+          providerAmount = null;
+        } else {
+          providerAmount = net;
+        }
       } else {
         // gross - current behaviour
         providerAmount = statusData.amount || statusData.totalAmount;
@@ -283,7 +313,8 @@ class HubtelPaymentService {
       return {
         success: true,
         clientReference: clientReference,
-        status: this._mapHubtelStatus(statusData.status),
+        status: this._mapHubtelStatus(rawStatus),
+        rawStatus,
         amount: providerAmount,
         currency: statusData.currency || 'GHS',
         transactionId: statusData.transactionId || statusData.POS_SALES_ID,
@@ -365,15 +396,19 @@ class HubtelPaymentService {
     // Pending words: pending, PENDING, Unpaid, Refunded, 1002, CANCELLED,
     // cancelled, and anything else not explicitly listed above.
     //
+    // Comparison is trimmed and case-insensitive so 'paid', 'Paid', ' PAID ',
+    // 'failed', 'Failed', 'FAILED' all map as expected.
+    //
     // NOTE: the status words above are ASSUMED Hubtel inner-status words. The
     // owner must verify them against Hubtel's documentation (capture a real
     // response with scripts/inspect-hubtel-status.js) before relying on them
     // in production.
-    const paidWords = ['SUCCESS', 'SUCCESSFUL', 'Paid', 'PAID'];
-    const failedWords = ['FAILED'];
+    const raw = String(hubtelStatus || '').trim().toLowerCase();
+    const paidWords = ['success', 'successful', 'paid'];
+    const failedWords = ['failed'];
 
-    if (paidWords.includes(hubtelStatus)) return 'paid';
-    if (failedWords.includes(hubtelStatus)) return 'failed';
+    if (paidWords.includes(raw)) return 'paid';
+    if (failedWords.includes(raw)) return 'failed';
     return 'pending';
   }
 

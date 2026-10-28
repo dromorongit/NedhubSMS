@@ -98,41 +98,119 @@ the record waiting.
 ## Amount handling
 
 The amount the code reads for a Hubtel payment status check comes from the
-provider status response body (statusData = response.data.data || response.data):
+provider status response body. `statusData = response.data` (HubtelPaymentService
+reads `response.data` directly; the inner status is extracted by
+`_extractStatus()` from the top level or one level down under `data`, under the
+field names `status` and `transactionStatus`).
 
 - Field read, gross mode (default, current behaviour):
     statusData.amount, falling back to statusData.totalAmount
 - Field read, net mode (HUBTEL_AMOUNT_MODE=net):
     statusData.netAmount, then statusData.net_amount, then
-    statusData.amountAfterFee, then the gross fields above
-- Exact comparison (callbackVerificationService.assessPayment):
-    providerAmount >= payment.amount
-  where payment.amount is the amount stored on OUR payment record. Amounts
-  from the callback body and from the provider are never used to credit more
-  than the stored amount.
+    statusData.amountAfterFee. In net mode there is NO gross fallback: if no
+    net field is present the amount is unknown (null), the payment stays
+    pending, and one warning is logged (`[HubtelPaymentService] HUBTEL_AMOUNT_MODE=net
+    but no net amount field present ... amount unknown, payment will stay pending`).
+- Exact comparison (callbackVerificationService.assessPayment), whole pesewas:
+    Math.round(providerAmount*100) >= Math.round(payment.amount*100)
+  where payment.amount is the amount stored on OUR payment record. Amounts from
+  the callback body and from the provider are never used to credit more than the
+  stored amount. If providerAmount is null (unknown) the payment stays pending.
 
 Config flag `HUBTEL_AMOUNT_MODE` (set in backend/.env, default `gross`):
 
 - gross (default): providerAmount = statusData.amount || statusData.totalAmount
 - net: providerAmount = statusData.netAmount || statusData.net_amount ||
-  statusData.amountAfterFee || statusData.amount || statusData.totalAmount
+  statusData.amountAfterFee; if all are absent, providerAmount = null (unknown)
 
-The assumed status words and field names above MUST be verified against a real
-Hubtel response captured with `scripts/inspect-hubtel-status.js NH-REF payment`
-(redact the output) before switching to net mode or relying on the mapping in
-production. No code change is required to switch modes.
+## Startup config check
 
-## Capture a real provider response
+Each Hubtel service constructor logs ONE warning at startup when a required
+status-check setting is missing (HUBTEL_CLIENT_ID / HUBTEL_CLIENT_SECRET, which
+build the Basic Auth header used by all three status-check endpoints). The
+services log `Hubtel credentials not configured` / `[HubtelAuth] Hubtel
+credentials not configured` and `basicAuthHeader` is null, so every subsequent
+status check fails fast and the payment/transaction stays pending.
 
-Run (on Railway, never against a local machine with real credentials unless
-intended):
+## Provider status-check URLs (do not change; verify against Hubtel's docs)
 
-    node scripts/inspect-hubtel-status.js <clientReference> payment
+All three status methods make ONE GET to a provider status endpoint and stay
+pending on 401/403/404 (they log one clear message with the HTTP status and
+return `{ ok: false }`, so assess functions leave the record waiting).
 
-The script makes ONE GET to the provider status endpoint, prints the HTTP
-status, the response keys (nested to 2 levels), the value of every field whose
-name contains status/code/amount/charge/fee, and the mapper decision. It
-redacts values longer than 40 characters and never prints names, phone
-numbers, emails or secrets. Drop a redacted response into
-tests/fixtures/hubtel/ and re-run the callback status tests to validate the
-mapping against reality.
+1. Payment — backend/services/HubtelPaymentService.js
+   - URL built: `${this.statusEndpoint}/${clientReference}/status`
+     where `this.statusEndpoint = process.env.HUBTEL_STATUS_ENDPOINT ||
+     'https://api-txnstatus.hubtel.com/transactions'` (line ~221).
+     Example: `https://api-txnstatus.hubtel.com/transactions/NH-xyz/status`
+   - Config values (names only): HUBTEL_CLIENT_ID, HUBTEL_CLIENT_SECRET (Basic
+     Auth), HUBTEL_STATUS_ENDPOINT.
+   - On 401/403/404: the HTTP client rejects, `checkTransactionStatus` throws,
+     `checkProviderStatus` returns `{ ok: false, error }`, and
+     `assessPayment` returns `provider_unavailable` / `leave_pending` — the
+     payment stays pending with a clear message logged including the HTTP status.
+
+2. Transfer (airtime/data/MoMo/bank) — backend/services/HubtelTransferService.js
+   - URL built: `${this.momoEndpoint}/transactions/${clientReference}/status`
+     where `this.momoEndpoint = process.env.HUBTEL_MOMO_ENDPOINT ||
+     'https://smp.hubtel.com/api/merchants'` (line ~837).
+     Example: `https://smp.hubtel.com/api/merchants/transactions/NH-xyz/status`
+   - Config values (names only): HUBTEL_CLIENT_ID, HUBTEL_CLIENT_SECRET (Basic
+     Auth), HUBTEL_MOMO_ENDPOINT.
+   - On 401/403/404: same as payment — stays pending, logs one clear message
+     with the HTTP status.
+
+3. Commission (TV/utility) — backend/services/HubtelCommissionService.js
+   - URL built: `${this.baseURL}/api/merchants/${this.merchantAccountNumber}/transactions/${clientReference}/status`
+     where `this.baseURL = process.env.HUBTEL_COMMISSION_BASE_URL ||
+     'https://cs.hubtel.com/commissionservices'` (line ~696).
+     Example: `https://cs.hubtel.com/commissionservices/api/merchants/<ACCOUNT>/transactions/NH-xyz/status`
+   - Config values (names only): HUBTEL_CLIENT_ID, HUBTEL_CLIENT_SECRET (Basic
+     Auth), HUBTEL_MERCHANT_ACCOUNT_NUMBER, HUBTEL_COMMISSION_BASE_URL.
+   - On 401/403/404: same as payment — stays pending, logs one clear message
+     with the HTTP status.
+
+## Provider response-shape extraction
+
+Each service extracts the inner transaction status with `_extractStatus(body)`:
+it looks at the TOP LEVEL of the response body and ONE LEVEL DOWN under a
+`data` object, under the field names `status` and `transactionStatus`, returning
+the first non-empty value found. The top-level `responseCode` (e.g. '0000'
+meaning the API call itself succeeded) is never used by itself to mark a
+transaction paid or failed.
+
+Shapes all recognised (fixtures in tests/fixtures/hubtel/, marked assumed):
+- `{ status: 'Paid' }` (top level)
+- `{ transactionStatus: 'Paid' }` (top level)
+- `{ data: { status: 'Paid' } }` (one level down)
+- `{ data: { transactionStatus: 'Paid' } }` (one level down)
+
+## Cancelled handling
+
+- Airtime / data / TV / utility purchases (wallet debited at purchase time):
+  an explicit provider `Cancelled` or `Canceled` is treated as a failure that
+  triggers the single idempotent refund (assessPurchase, normalized rawStatus).
+- Top-up payments: `Cancelled` stays pending (no money moved) — assessPayment
+  leaves it pending.
+- `Cancelled`/`Canceled` are NOT in the mapper's paid/failed lists, so the
+  mappers map them to pending; assess functions add the service-specific refund
+  logic for purchases.
+
+## Reconcile: NEEDS MANUAL REVIEW
+
+`scripts/reconcile-pending.js` now prints a `NEEDS MANUAL REVIEW` section listing
+every waiting purchase older than 24 hours with its reference, our amount and
+the provider status (no personal data).
+
+## Frontend: payment status polling on return from Hubtel
+
+The payment return pages (`src/pages/dashboard/payment-success.html` and
+`payment-error.html`) previously called `GET /api/payments/status/:clientReference`
+ONCE with no retries and no pending-confirmation message. They now use
+`window.apiClient.checkPaymentStatusWithRetries(reference)` (src/utils/api.js):
+3 attempts, 5 seconds apart. While the provider reports `pending`, the page
+shows a clear "Payment pending, we are confirming it..." message and hides it
+once the status resolves. Files changed:
+- src/utils/api.js (added checkPaymentStatusWithRetries)
+- src/pages/dashboard/payment-success.html
+- src/pages/dashboard/payment-error.html

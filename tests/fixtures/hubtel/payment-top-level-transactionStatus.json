@@ -1,0 +1,5 @@
+{
+  "name": "top-level transactionStatus maps to paid",
+  "body": { "responseCode": "0000", "transactionStatus": "Paid", "amount": 10 },
+  "label": "assumed response shape, replace with a real captured response (redacted) from inspect-hubtel-status.js"
+}

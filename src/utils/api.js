@@ -626,6 +626,27 @@ class ApiClient {
     return this.request('GET', `/payments/status/${clientReference}`);
   }
 
+  /**
+   * Check a payment status with retries. Returns the first successful result or
+   * the last result after maxRetries attempts. Each attempt is spaced
+   * retryDelayMs apart (default 5 seconds). Used when the customer returns from
+   * Hubtel and the payment may still be pending while the provider callback is
+   * being processed.
+   */
+  async checkPaymentStatusWithRetries(clientReference, { maxRetries = 3, retryDelayMs = 5000 } = {}) {
+    let lastResult;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      lastResult = await this.checkPaymentStatus(clientReference);
+      if (!lastResult.error) {
+        return { ...lastResult, attempts: attempt };
+      }
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
+    return { ...lastResult, error: lastResult.error || 'Payment status check failed', retriesExhausted: true, attempts: maxRetries };
+  }
+
   // Blacklist endpoints
   async addToBlacklist(phoneNumber, reason) {
     return this.request('POST', '/blacklist', { phoneNumber, reason });
