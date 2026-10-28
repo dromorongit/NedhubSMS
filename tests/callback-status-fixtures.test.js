@@ -25,7 +25,9 @@ const FIXTURES = [
   require('./fixtures/hubtel/payment-unknown-status.json'),
   require('./fixtures/hubtel/payment-data-status.json'),
   require('./fixtures/hubtel/payment-data-transactionStatus.json'),
-  require('./fixtures/hubtel/payment-top-level-transactionStatus.json')
+  require('./fixtures/hubtel/payment-top-level-transactionStatus.json'),
+  require('./fixtures/hubtel/payment-top-level-successful-data-unpaid.json'),
+  require('./fixtures/hubtel/payment-top-level-successful-no-data.json')
 ];
 
 const ERROR_CASES = [
@@ -110,6 +112,10 @@ for (const svc of SERVICES) {
           assert.equal(result.status, 'paid', 'data.transactionStatus maps to paid');
         } else if (fx.name.startsWith('top-level transactionStatus')) {
           assert.equal(result.status, 'paid', 'top-level transactionStatus maps to paid');
+        } else if (fx.name.startsWith('top-level Successful with data.status Unpaid')) {
+          assert.equal(result.status, 'pending', 'data.status Unpaid overrides top-level Successful, stays pending');
+        } else if (fx.name.startsWith('top-level Successful with no data object')) {
+          assert.equal(result.status, 'pending', 'top-level Successful is not accepted as paid for top-ups (only Paid)');
         }
       } else {
         // _mapTransactionStatus -> 'success' | 'failed' | 'pending' | 'cancelled'
@@ -131,6 +137,10 @@ for (const svc of SERVICES) {
           assert.equal(result.status, 'success', 'data.transactionStatus maps to success');
         } else if (fx.name.startsWith('top-level transactionStatus')) {
           assert.equal(result.status, 'success', 'top-level transactionStatus maps to success');
+        } else if (fx.name.startsWith('top-level Successful with data.status Unpaid')) {
+          assert.equal(result.status, 'pending', 'data.status Unpaid overrides top-level Successful, stays pending');
+        } else if (fx.name.startsWith('top-level Successful with no data object')) {
+          assert.equal(result.status, 'success', 'top-level Successful maps to success for transfer/commission');
         }
       }
     });
@@ -340,5 +350,32 @@ test('top-level responseCode 0000 alone (no inner status) is not paid for all se
     assert.notEqual(result.status, 'paid', `${c.label}: responseCode 0000 alone must not map to paid`);
     assert.notEqual(result.status, 'success', `${c.label}: responseCode 0000 alone must not map to success`);
     assert.notEqual(result.status, 'failed', `${c.label}: responseCode 0000 alone must not map to failed`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// URL each status method builds for a sample reference (reference redacted).
+// Captures the first argument passed to httpClient.get. These URLs are NOT
+// changed here; the owner verifies them against Hubtel's documentation.
+// ---------------------------------------------------------------------------
+test('status-check URLs built by each service (reference redacted)', async () => {
+  const REDACTED_REF = 'NH-<redacted-reference>';
+  const cases = [
+    { label: 'payment', instance: new HubtelPaymentService(), kind: 'payment' },
+    { label: 'transfer', instance: hubtelTransferService, kind: 'transfer' },
+    { label: 'commission', instance: hubtelCommissionService, kind: 'commission' }
+  ];
+  for (const c of cases) {
+    c.instance.basicAuthHeader = 'Basic dummy';
+    let capturedUrl = null;
+    c.instance.httpClient = { get: async (url) => { capturedUrl = url; return { data: {} }; } };
+    try {
+      await c.instance.checkTransactionStatus(REDACTED_REF);
+    } catch (err) {
+      // ignore errors from empty data; we only care about the captured URL
+    }
+    console.log(`[STATUS URL] ${c.label}: ${capturedUrl}`);
+    assert.ok(capturedUrl, `${c.label}: status-check URL should be built`);
+    assert.ok(capturedUrl.includes(REDACTED_REF), `${c.label}: URL should contain the client reference`);
   }
 });

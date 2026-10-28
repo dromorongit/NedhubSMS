@@ -1,0 +1,5 @@
+{
+  "name": "top-level Successful with data.status Unpaid is not paid",
+  "body": { "responseCode": "0000", "status": "Successful", "data": { "status": "Unpaid", "amount": 10 } },
+  "label": "assumed response shape, replace with a real captured response (redacted) from inspect-hubtel-status.js"
+}

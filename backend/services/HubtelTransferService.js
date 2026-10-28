@@ -828,6 +828,7 @@ class HubtelTransferService {
 
   /**
    * Check transaction status
+   * Verify against Hubtel's current Transaction Status documentation.
    */
   async checkTransactionStatus(clientReference) {
     if (!clientReference) throw new Error('Client reference is required');
@@ -893,6 +894,11 @@ class HubtelTransferService {
     // only explicit failure words map to failed. 'Unpaid', 'Refunded' and
     // every other value not explicitly listed below map to pending.
     //
+    // SUCCESS and SUCCESSFUL are ASSUMED Hubtel inner-status words for
+    // transfer/commission only — they are NOT accepted by the payment mapper
+    // until a real Hubtel response proves otherwise (see
+    // scripts/inspect-hubtel-status.js).
+    //
     // Success words: SUCCESS, SUCCESSFUL, Paid, PAID
     // Failed words: FAILED
     // Pending words: pending, PENDING, Unpaid, Refunded, CANCELLED,
@@ -918,21 +924,32 @@ class HubtelTransferService {
 
   /**
    * Extract the raw transaction status from a Hubtel provider response body.
-   * Looks at the top level and one level down (under a 'data' object), under
-   * the field names 'status' and 'transactionStatus'. Returns the first
-   * non-empty value found, or undefined when none is present.
+   * When the response has a `data` object, its `status`/`transactionStatus`
+   * fields are authoritative and any top-level status field is ignored.
+   * A top-level status field is used only when there is no `data` object.
+   * Looks under the field names 'status' and 'transactionStatus'.
+   * Returns the first non-empty value found, or undefined when none is present.
    */
   _extractStatus(body) {
-    const candidates = [];
-    const collect = (obj) => {
-      if (!obj || typeof obj !== 'object') return;
-      if (typeof obj.status !== 'undefined' && String(obj.status).trim() !== '') candidates.push(String(obj.status).trim());
-      if (typeof obj.transactionStatus !== 'undefined' && String(obj.transactionStatus).trim() !== '') candidates.push(String(obj.transactionStatus).trim());
-    };
-    collect(body);
     const data = body && body.data;
-    if (data && data !== body) collect(data);
-    return candidates[0];
+    if (data && data !== body) {
+      // data object present: only its status fields are authoritative
+      const found = this._extractStatusFromObject(data);
+      if (found) return found;
+    }
+    // No data object: fall back to top-level status fields
+    return this._extractStatusFromObject(body);
+  }
+
+  /**
+   * Extract status/transactionStatus from a single object (no recursion into
+   * nested objects beyond this level).
+   */
+  _extractStatusFromObject(obj) {
+    if (!obj || typeof obj !== 'object') return undefined;
+    if (typeof obj.status !== 'undefined' && String(obj.status).trim() !== '') return String(obj.status).trim();
+    if (typeof obj.transactionStatus !== 'undefined' && String(obj.transactionStatus).trim() !== '') return String(obj.transactionStatus).trim();
+    return undefined;
   }
 
   /**

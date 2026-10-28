@@ -222,8 +222,17 @@ test('mapper normalisation: paid / Paid / " PAID " / failed / Failed / FAILED', 
   const transfer = hubtelTransferService;
   const commission = hubtelCommissionService;
 
-  for (const raw of ['paid', 'Paid', ' PAID ', 'PAID', 'success', 'SUCCESSFUL', 'Successful']) {
+  // Payment (top-up): only 'Paid' (case-insensitive) is accepted as paid.
+  for (const raw of ['paid', 'Paid', ' PAID ', 'PAID']) {
     assert.equal(payment._mapHubtelStatus(raw), 'paid', `payment maps '${raw}' to paid`);
+  }
+  // Payment does NOT accept SUCCESS/SUCCESSFUL/Successful until proven otherwise.
+  for (const raw of ['success', 'SUCCESSFUL', 'Successful']) {
+    assert.equal(payment._mapHubtelStatus(raw), 'pending', `payment maps '${raw}' to pending (not accepted for top-ups)`);
+  }
+
+  // Transfer and commission accept SUCCESS/SUCCESSFUL/Paid as success.
+  for (const raw of ['paid', 'Paid', ' PAID ', 'PAID', 'success', 'SUCCESSFUL', 'Successful']) {
     assert.equal(transfer._mapTransactionStatus(raw), 'success', `transfer maps '${raw}' to success`);
     assert.equal(commission._mapTransactionStatus(raw), 'success', `commission maps '${raw}' to success`);
   }

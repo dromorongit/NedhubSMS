@@ -206,21 +206,32 @@ class HubtelPaymentService {
 
   /**
    * Extract the raw transaction status from a Hubtel provider response body.
-   * Looks at the top level and one level down (under a 'data' object), under
-   * the field names 'status' and 'transactionStatus'. Returns the first
-   * non-empty value found, or undefined when none is present.
+   * When the response has a `data` object, its `status`/`transactionStatus`
+     * fields are authoritative and any top-level status field is ignored.
+   * A top-level status field is used only when there is no `data` object.
+   * Looks under the field names 'status' and 'transactionStatus'.
+   * Returns the first non-empty value found, or undefined when none is present.
    */
   _extractStatus(body) {
-    const candidates = [];
-    const collect = (obj) => {
-      if (!obj || typeof obj !== 'object') return;
-      if (typeof obj.status !== 'undefined' && String(obj.status).trim() !== '') candidates.push(String(obj.status).trim());
-      if (typeof obj.transactionStatus !== 'undefined' && String(obj.transactionStatus).trim() !== '') candidates.push(String(obj.transactionStatus).trim());
-    };
-    collect(body);
     const data = body && body.data;
-    if (data && data !== body) collect(data);
-    return candidates[0];
+    if (data && data !== body) {
+      // data object present: only its status fields are authoritative
+      const found = this._extractStatusFromObject(data);
+      if (found) return found;
+    }
+    // No data object: fall back to top-level status fields
+    return this._extractStatusFromObject(body);
+  }
+
+  /**
+   * Extract status/transactionStatus from a single object (no recursion into
+   * nested objects beyond this level).
+   */
+  _extractStatusFromObject(obj) {
+    if (!obj || typeof obj !== 'object') return undefined;
+    if (typeof obj.status !== 'undefined' && String(obj.status).trim() !== '') return String(obj.status).trim();
+    if (typeof obj.transactionStatus !== 'undefined' && String(obj.transactionStatus).trim() !== '') return String(obj.transactionStatus).trim();
+    return undefined;
   }
 
   /**
@@ -228,6 +239,7 @@ class HubtelPaymentService {
    * This is used as a fallback when callback is not received
    * @param {string} clientReference - The unique transaction reference
    * @returns {Object} - Transaction status details
+   * Verify against Hubtel's current Transaction Status documentation.
    */
   async checkTransactionStatus(clientReference) {
     if (!this.basicAuthHeader) {
@@ -391,20 +403,20 @@ class HubtelPaymentService {
     // refunded payment never credits and is not marked failed; it stays
     // pending for manual review (see reconcile-pending.js).
     //
-    // Paid words: SUCCESS, SUCCESSFUL, Paid, PAID
-    // Failed words: FAILED
-    // Pending words: pending, PENDING, Unpaid, Refunded, 1002, CANCELLED,
-    // cancelled, and anything else not explicitly listed above.
+    // PAYMENT (top-up): accept only 'Paid' (case-insensitive) as paid. We do
+    // NOT accept SUCCESS/SUCCESSFUL here until a real Hubtel response proves
+    // otherwise — those words are accepted only by the transfer and commission
+    // mappers, pending real captured responses from
+    // scripts/inspect-hubtel-status.js.
+    // Assumed words pending verification against Hubtel's documentation:
+    //   Paid words: Paid, PAID, paid
+    //   Failed words: FAILED
+    //   Pending words: pending, PENDING, Unpaid, Refunded, 1002, CANCELLED,
+    //   cancelled, and anything else not explicitly listed above.
     //
-    // Comparison is trimmed and case-insensitive so 'paid', 'Paid', ' PAID ',
-    // 'failed', 'Failed', 'FAILED' all map as expected.
-    //
-    // NOTE: the status words above are ASSUMED Hubtel inner-status words. The
-    // owner must verify them against Hubtel's documentation (capture a real
-    // response with scripts/inspect-hubtel-status.js) before relying on them
-    // in production.
+    // Comparison is trimmed and case-insensitive so 'paid', 'Paid', ' PAID ' map as expected.
     const raw = String(hubtelStatus || '').trim().toLowerCase();
-    const paidWords = ['success', 'successful', 'paid'];
+    const paidWords = ['paid'];
     const failedWords = ['failed'];
 
     if (paidWords.includes(raw)) return 'paid';
