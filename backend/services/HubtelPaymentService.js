@@ -257,7 +257,7 @@ class HubtelPaymentService {
       return {
         success: true,
         clientReference: clientReference,
-        status: this._mapHubtelStatus(statusData.status || statusData.ResponseCode),
+        status: this._mapHubtelStatus(statusData.status),
         amount: statusData.amount || statusData.totalAmount,
         currency: statusData.currency || 'GHS',
         transactionId: statusData.transactionId || statusData.POS_SALES_ID,
@@ -323,20 +323,30 @@ class HubtelPaymentService {
    * @returns {string} - Mapped internal status
    */
   _mapHubtelStatus(hubtelStatus) {
+    // Map the provider's inner transaction status only. The top-level
+    // responseCode (e.g. '0000' meaning the API call itself succeeded) must
+    // never by itself mark a transaction paid or failed. Anything
+    // unrecognised, missing or malformed stays pending.
+    //
+    // NOTE: 'Paid', 'PAID', 'Unpaid' and 'Refunded' below are ASSUMED Hubtel
+    // inner-status words. The owner must verify them against Hubtel's
+    // documentation before relying on them in production.
     const statusMap = {
       'SUCCESS': 'paid',
       'SUCCESSFUL': 'paid',
-      '0000': 'paid',
+      'Paid': 'paid',
+      'PAID': 'paid',
       'pending': 'pending',
       'PENDING': 'pending',
       'FAILED': 'failed',
-      'FAILED': 'failed',
       '1002': 'failed', // Common Hubtel failure code
+      'Unpaid': 'failed',
+      'Refunded': 'failed',
       'CANCELLED': 'cancelled',
       'cancelled': 'cancelled'
     };
 
-    return statusMap[hubtelStatus] || 'unknown';
+    return statusMap[hubtelStatus] || 'pending';
   }
 
   /**

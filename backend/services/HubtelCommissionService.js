@@ -706,7 +706,7 @@ class HubtelCommissionService {
       
       return {
         success: true,
-        status: this._mapTransactionStatus(responseData.status || responseData.responseCode),
+        status: this._mapTransactionStatus(responseData.status),
         responseCode: responseData.responseCode,
         data: responseData.data
       };
@@ -727,13 +727,23 @@ class HubtelCommissionService {
    * Map Hubtel transaction status to internal status
    */
   _mapTransactionStatus(status) {
+    // Map the provider's inner transaction status only. The top-level
+    // responseCode must never by itself mark a transaction paid or failed.
+    // Anything unrecognised, missing or malformed stays pending.
+    //
+    // NOTE: 'Paid', 'PAID', 'Unpaid' and 'Refunded' below are ASSUMED Hubtel
+    // inner-status words. The owner must verify them against Hubtel's
+    // documentation before relying on them in production.
     const statusMap = {
       'SUCCESS': 'success',
       'SUCCESSFUL': 'success',
+      'Paid': 'success',
+      'PAID': 'success',
       'PENDING': 'pending',
       'pending': 'pending',
       'FAILED': 'failed',
-      'FAILED': 'failed',
+      'Unpaid': 'failed',
+      'Refunded': 'failed',
       'CANCELLED': 'cancelled',
       'cancelled': 'cancelled'
     };

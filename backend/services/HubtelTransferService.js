@@ -849,7 +849,7 @@ class HubtelTransferService {
       });
 
       const responseData = response.data;
-      const mappedStatus = this._mapTransactionStatus(responseData.status || responseData.responseCode);
+      const mappedStatus = this._mapTransactionStatus(responseData.status);
 
       logger.info('[HubtelResponse] [StatusCheck] Status response received', {
         clientReference,
@@ -881,12 +881,23 @@ class HubtelTransferService {
    * Map Hubtel transaction status to internal status
    */
   _mapTransactionStatus(status) {
+    // Map the provider's inner transaction status only. The top-level
+    // responseCode must never by itself mark a transaction paid or failed.
+    // Anything unrecognised, missing or malformed stays pending.
+    //
+    // NOTE: 'Paid', 'PAID', 'Unpaid' and 'Refunded' below are ASSUMED Hubtel
+    // inner-status words. The owner must verify them against Hubtel's
+    // documentation before relying on them in production.
     const statusMap = {
       'SUCCESS': 'success',
       'SUCCESSFUL': 'success',
+      'Paid': 'success',
+      'PAID': 'success',
       'PENDING': 'pending',
       'pending': 'pending',
       'FAILED': 'failed',
+      'Unpaid': 'failed',
+      'Refunded': 'failed',
       'CANCELLED': 'cancelled',
       'cancelled': 'cancelled'
     };
