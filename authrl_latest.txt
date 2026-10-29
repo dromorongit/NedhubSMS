@@ -1,0 +1,4 @@
+? authRateLimiter unit: IP and email buckets are independent (in-memory store) (20.5572ms)
+(node:892) [MONGOOSE] DeprecationWarning: Mongoose: the `strictQuery` option will be switched back to `false` by default in Mongoose 7. Use `mongoose.set('strictQuery', false);` if you want to prepare for this change. Or use `mongoose.set('strictQuery', true);` to suppress this warning.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+? authRateLimiter unit: Mongo-backed increment path (mongoose connected) (30442.6135ms)

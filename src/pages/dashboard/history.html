@@ -12,6 +12,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
+    <script src="../../utils/escape.js"></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -420,12 +421,12 @@
                 
                 row.innerHTML = `
                     <td class="message-date">${date}</td>
-                    <td class="message-sender">${msg.senderId || '-'}</td>
-                    <td class="message-recipient">${msg.recipient || '-'}</td>
-                    <td class="message-text">${messagePreview}</td>
-                    <td><span class="status-badge ${getStatusClass(msg.status)}">${formatStatus(msg.status)}</span></td>
+                    <td class="message-sender">${escapeHtml(msg.senderId || '-')}</td>
+                    <td class="message-recipient">${escapeHtml(msg.recipient || '-')}</td>
+                    <td class="message-text">${escapeHtml(messagePreview)}</td>
+                    <td><span class="status-badge ${getStatusClass(msg.status)}">${escapeHtml(formatStatus(msg.status))}</span></td>
                     <td class="message-actions">
-                        ${msg.status === 'failed' && msg.source === 'new' ? `<button class="resend-btn" data-message-id="${msg._id}" title="Resend Failed Message">Resend</button>` : ''}
+                        ${msg.status === 'failed' && msg.source === 'new' ? `<button class="resend-btn" data-message-id="${escapeAttr(msg._id)}" title="Resend Failed Message">Resend</button>` : ''}
                     </td>
                 `;
                 tbody.appendChild(row);

@@ -1,0 +1,43 @@
+﻿✔ authRateLimiter unit: IP and email buckets are independent (in-memory store) (8.5352ms)
+(node:6560) [MONGOOSE] DeprecationWarning: Mongoose: the `strictQuery` option will be switched back to `false` by default in Mongoose 7. Use `mongoose.set('strictQuery', false);` if you want to prepare for this change. Or use `mongoose.set('strictQuery', true);` to suppress this warning.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ authRateLimiter unit: Mongo-backed increment path (mongoose connected) (17552.0746ms)
+✖ auth rate limit: login IP bucket (5 per 15 min) yields HTTP 429 with Retry-After (38515.9194ms)
+✖ auth rate limit: forgot-password IP bucket yields HTTP 429 (35622.6381ms)
+✔ WINDOW_MS and MAX_ATTEMPTS defaults (0.91ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 3
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 97754.689
+
+✖ failing tests:
+
+test at tests\auth-rate-limit.test.js:69:1
+✖ auth rate limit: login IP bucket (5 per 15 min) yields HTTP 429 with Retry-After (38515.9194ms)
+  Error: request timeout
+      at ClientRequest.<anonymous> (C:\Users\Dromor Narh\Desktop\GithubRepos\NedhubSMS\tests\helpers\spawn-server.js:83:49)
+      at Object.onceWrapper (node:events:630:28)
+      at ClientRequest.emit (node:events:509:28)
+      at Socket.emitRequestTimeout (node:_http_client:948:9)
+      at Object.onceWrapper (node:events:630:28)
+      at Socket.emit (node:events:521:24)
+      at Socket._onTimeout (node:net:610:8)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7)
+
+test at tests\auth-rate-limit.test.js:93:1
+✖ auth rate limit: forgot-password IP bucket yields HTTP 429 (35622.6381ms)
+  Error: request timeout
+      at ClientRequest.<anonymous> (C:\Users\Dromor Narh\Desktop\GithubRepos\NedhubSMS\tests\helpers\spawn-server.js:83:49)
+      at Object.onceWrapper (node:events:630:28)
+      at ClientRequest.emit (node:events:509:28)
+      at Socket.emitRequestTimeout (node:_http_client:948:9)
+      at Object.onceWrapper (node:events:630:28)
+      at Socket.emit (node:events:521:24)
+      at Socket._onTimeout (node:net:610:8)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7)

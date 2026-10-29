@@ -12,6 +12,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
+    <script src="../../utils/escape.js"></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -643,16 +644,16 @@
 
                 return `
                     <tr>
-                        <td><strong>${campaign.title}</strong></td>
-                        <td><span class="sender-id-badge">${campaign.senderId}</span></td>
-                        <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                        <td><strong>${escapeHtml(campaign.title)}</strong></td>
+                        <td><span class="sender-id-badge">${escapeHtml(campaign.senderId)}</span></td>
+                        <td><span class="status-badge ${statusClass}">${escapeHtml(statusLabel)}</span></td>
                         <td>${campaign.recipientCount || 0}</td>
                         <td>${deliveryStats.delivered || 0}/${deliveryStats.sent || 0}</td>
                         <td>${deliveryStats.deliveryRate || 0}%</td>
                         <td>GH₵${(costStats.actualCost || costStats.estimatedCost || 0).toFixed(2)}</td>
                         <td>${formattedDate}</td>
                         <td>
-                            <button class="btn-view" onclick="exportCampaign('${campaign._id}')">
+                            <button class="btn-view" data-id="${escapeAttr(campaign._id)}" onclick="exportCampaign(this.dataset.id)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="7 10 12 15 17 10"></polyline>
@@ -838,12 +839,12 @@
                 return `
                     <tr>
                         <td>${formattedDate}</td>
-                        <td><span class="sender-id-badge">${msg.senderId || 'N/A'}</span></td>
+                        <td><span class="sender-id-badge">${escapeHtml(msg.senderId || 'N/A')}</span></td>
                         <td>${recipientCount} recipient${recipientCount > 1 ? 's' : ''}</td>
-                        <td><span class="message-preview">${messagePreview}</span></td>
-                        <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                        <td><span class="message-preview">${escapeHtml(messagePreview)}</span></td>
+                        <td><span class="status-badge ${statusClass}">${escapeHtml(statusLabel)}</span></td>
                         <td>
-                            <button class="btn-view" onclick="viewMessageDetail('${msg._id}')">
+                            <button class="btn-view" data-id="${escapeAttr(msg._id)}" onclick="viewMessageDetail(this.dataset.id)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>

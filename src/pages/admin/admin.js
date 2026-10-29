@@ -309,18 +309,18 @@ function renderUsersTable(users) {
     const tbody = document.getElementById('users-tbody');
     tbody.innerHTML = users.map(user => `
         <tr>
-            <td>${user.name}</td>
-            <td>${user.email}</td>
-            <td>${user.phone || '-'}</td>
-            <td><span class="role-badge role-${user.role}">${user.role}</span></td>
-            <td><span class="status-badge status-${user.status}">${user.status}</span></td>
+            <td>${escapeHtml(user.name)}</td>
+            <td>${escapeHtml(user.email)}</td>
+            <td>${escapeHtml(user.phone || '-')}</td>
+            <td><span class="role-badge role-${escapeAttr(user.role)}">${escapeHtml(user.role)}</span></td>
+            <td><span class="status-badge status-${escapeAttr(user.status)}">${escapeHtml(user.status)}</span></td>
             <td>${new Date(user.createdAt).toLocaleDateString()}</td>
             <td class="actions">
-                <button class="btn-sm btn-secondary" onclick="editUser('${user._id}')">Edit</button>
-                <button class="btn-sm btn-secondary" onclick="openResetPasswordModal('${user._id}', '${(user.name || '').replace(/'/g, "\\'")}', '${user.email}')">Reset Password</button>
+                <button class="btn-sm btn-secondary" data-id="${escapeAttr(user._id)}" onclick="editUser(this.dataset.id)">Edit</button>
+                <button class="btn-sm btn-secondary" data-id="${escapeAttr(user._id)}" data-name="${escapeAttr(user.name || '')}" data-email="${escapeAttr(user.email || '')}" onclick="openResetPasswordModal(this.dataset.id, this.dataset.name, this.dataset.email)">Reset Password</button>
                 ${user.status === 'active' ?
-                    `<button class="btn-sm btn-danger" onclick="suspendUser('${user._id}')">Suspend</button>` :
-                    `<button class="btn-sm btn-success" onclick="activateUser('${user._id}')">Activate</button>`
+                    `<button class="btn-sm btn-danger" data-id="${escapeAttr(user._id)}" onclick="suspendUser(this.dataset.id)">Suspend</button>` :
+                    `<button class="btn-sm btn-success" data-id="${escapeAttr(user._id)}" onclick="activateUser(this.dataset.id)">Activate</button>`
                 }
             </td>
         </tr>
@@ -407,16 +407,16 @@ function renderWalletsTable(wallets) {
     const tbody = document.getElementById('wallets-tbody');
     tbody.innerHTML = wallets.map(wallet => `
         <tr>
-            <td>${wallet.userId.name}</td>
-            <td>${wallet.userId.email}</td>
+            <td>${escapeHtml(wallet.userId.name)}</td>
+            <td>${escapeHtml(wallet.userId.email)}</td>
             <td>₵${wallet.balance.toFixed(2)}</td>
-            <td><span class="status-badge status-${wallet.frozen ? 'suspended' : 'active'}">${wallet.frozen ? 'Frozen' : 'Active'}</span></td>
+            <td><span class="status-badge status-${escapeAttr(wallet.frozen ? 'suspended' : 'active')}">${escapeHtml(wallet.frozen ? 'Frozen' : 'Active')}</span></td>
             <td>${new Date(wallet.updatedAt).toLocaleDateString()}</td>
             <td class="actions">
-                <button class="btn-sm btn-secondary" onclick="adjustBalance('${wallet._id}')">Adjust</button>
+                <button class="btn-sm btn-secondary" data-id="${escapeAttr(wallet._id)}" onclick="adjustBalance(this.dataset.id)">Adjust</button>
                 ${wallet.frozen ?
-                    `<button class="btn-sm btn-success" onclick="unfreezeWallet('${wallet._id}')">Unfreeze</button>` :
-                    `<button class="btn-sm btn-danger" onclick="freezeWallet('${wallet._id}')">Freeze</button>`
+                    `<button class="btn-sm btn-success" data-id="${escapeAttr(wallet._id)}" onclick="unfreezeWallet(this.dataset.id)">Unfreeze</button>` :
+                    `<button class="btn-sm btn-danger" data-id="${escapeAttr(wallet._id)}" onclick="freezeWallet(this.dataset.id)">Freeze</button>`
                 }
             </td>
         </tr>
@@ -529,19 +529,19 @@ function renderSenderIdsTable(senderIds) {
     const tbody = document.getElementById('sender-ids-tbody');
     tbody.innerHTML = senderIds.map(senderId => `
         <tr>
-            <td>${senderId.senderId}</td>
-            <td>${senderId.userId.name} (${senderId.userId.email})</td>
+            <td>${escapeHtml(senderId.senderId)}</td>
+            <td>${escapeHtml(senderId.userId.name)} (${escapeHtml(senderId.userId.email)})</td>
             <td>
-                <button class="btn-sm btn-secondary" onclick="viewSenderIdDocument('${senderId._id}')">View</button>
-                <button class="btn-sm btn-secondary" onclick="downloadSenderIdDocument('${senderId._id}', '${(senderId.documentName || 'document').replace(/'/g, "\\'")}')">Download</button>
+                <button class="btn-sm btn-secondary" data-id="${escapeAttr(senderId._id)}" onclick="viewSenderIdDocument(this.dataset.id)">View</button>
+                <button class="btn-sm btn-secondary" data-id="${escapeAttr(senderId._id)}" data-name="${escapeAttr(senderId.documentName || 'document')}" onclick="downloadSenderIdDocument(this.dataset.id, this.dataset.name)">Download</button>
             </td>
-            <td><span class="status-badge status-${senderId.status}">${senderId.status}</span></td>
-            <td>${senderId.remarks || '-'}</td>
+            <td><span class="status-badge status-${escapeAttr(senderId.status)}">${escapeHtml(senderId.status)}</span></td>
+            <td>${escapeHtml(senderId.remarks || '-')}</td>
             <td>${new Date(senderId.createdAt).toLocaleDateString()}</td>
             <td class="actions">
                 ${senderId.status === 'pending' ? `
-                    <button class="btn-sm btn-success" onclick="approveSenderId('${senderId._id}')">Approve</button>
-                    <button class="btn-sm btn-danger" onclick="rejectSenderId('${senderId._id}')">Reject</button>
+                    <button class="btn-sm btn-success" data-id="${escapeAttr(senderId._id)}" onclick="approveSenderId(this.dataset.id)">Approve</button>
+                    <button class="btn-sm btn-danger" data-id="${escapeAttr(senderId._id)}" onclick="rejectSenderId(this.dataset.id)">Reject</button>
                 ` : ''}
             </td>
         </tr>
@@ -666,14 +666,14 @@ function renderCampaignsTable(campaigns) {
     const tbody = document.getElementById('campaigns-tbody');
     tbody.innerHTML = campaigns.map(campaign => `
         <tr>
-            <td>${campaign.name}</td>
-            <td>${campaign.userId.name}</td>
-            <td><span class="status-badge status-${campaign.status}">${campaign.status}</span></td>
+            <td>${escapeHtml(campaign.name)}</td>
+            <td>${escapeHtml(campaign.userId.name)}</td>
+            <td><span class="status-badge status-${escapeAttr(campaign.status)}">${escapeHtml(campaign.status)}</span></td>
             <td>${campaign.recipientsCount}</td>
             <td>₵${campaign.cost.toFixed(2)}</td>
             <td>${campaign.scheduledAt ? new Date(campaign.scheduledAt).toLocaleDateString() : (campaign.sentAt ? new Date(campaign.sentAt).toLocaleDateString() : '-')}</td>
             <td class="actions">
-                ${campaign.status === 'scheduled' ? `<button class="btn-sm btn-danger" onclick="stopCampaign('${campaign._id}')">Stop</button>` : ''}
+                ${campaign.status === 'scheduled' ? `<button class="btn-sm btn-danger" data-id="${escapeAttr(campaign._id)}" onclick="stopCampaign(this.dataset.id)">Stop</button>` : ''}
             </td>
         </tr>
     `).join('');

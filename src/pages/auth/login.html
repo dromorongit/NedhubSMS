@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../../styles/auth.css">
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
+    <script src="../../utils/escape.js" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -267,7 +268,7 @@
             const form = document.getElementById('loginForm');
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message';
-            errorDiv.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><span>' + message + '</span>';
+            errorDiv.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><span>' + escapeHtml(message) + '</span>';
             form.insertBefore(errorDiv, form.firstChild);
             
             setTimeout(() => {

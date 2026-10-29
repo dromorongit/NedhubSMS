@@ -13,6 +13,7 @@
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
     <script src="../../utils/messageUtils.js" defer></script>
+    <script src="../../utils/escape.js"></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -702,21 +703,21 @@
                     
                     response.data.forEach(campaign => {
                         const row = document.createElement('tr');
-                        let actionButtons = `<button class="btn-secondary view-btn" data-campaign-id="${campaign._id}">View</button>`;
+                        let actionButtons = `<button class="btn-secondary view-btn" data-campaign-id="${escapeAttr(campaign._id)}">View</button>`;
 
                         // Add retry buttons for completed campaigns with failures (sent or partial_success)
                         if ((campaign.status === 'sent' || campaign.status === 'partial_success') && (campaign.failedCount || 0) > 0) {
                             actionButtons += `
-                                <button class="btn-warning retry-btn" data-campaign-id="${campaign._id}" title="Retry Failed Recipients">Retry</button>
-                                <button class="btn-info duplicate-btn" data-campaign-id="${campaign._id}" title="Duplicate with Failed Recipients">Duplicate</button>
+                                <button class="btn-warning retry-btn" data-campaign-id="${escapeAttr(campaign._id)}" title="Retry Failed Recipients">Retry</button>
+                                <button class="btn-info duplicate-btn" data-campaign-id="${escapeAttr(campaign._id)}" title="Duplicate with Failed Recipients">Duplicate</button>
                             `;
                         }
 
                         // Add cancel and reschedule for scheduled campaigns
                         if (campaign.status === 'scheduled') {
                             actionButtons += `
-                                <button class="btn-warning cancel-schedule-btn" data-campaign-id="${campaign._id}" title="Cancel Schedule">Cancel</button>
-                                <button class="btn-info reschedule-btn" data-campaign-id="${campaign._id}" title="Reschedule">Reschedule</button>
+                                <button class="btn-warning cancel-schedule-btn" data-campaign-id="${escapeAttr(campaign._id)}" title="Cancel Schedule">Cancel</button>
+                                <button class="btn-info reschedule-btn" data-campaign-id="${escapeAttr(campaign._id)}" title="Reschedule">Reschedule</button>
                             `;
                         }
 
@@ -731,9 +732,9 @@
                             : '-';
 
                         row.innerHTML = `
-                            <td>${campaign.title || campaign.name}</td>
-                            <td>${campaign.senderId}</td>
-                            <td><span class="status-badge ${campaign.status}">${campaign.status}</span></td>
+                            <td>${escapeHtml(campaign.title || campaign.name)}</td>
+                            <td>${escapeHtml(campaign.senderId)}</td>
+                            <td><span class="status-badge ${escapeAttr(campaign.status)}">${escapeHtml(campaign.status)}</span></td>
                             <td>${campaign.recipientCount || campaign.recipientsCount || 0}</td>
                             <td>GHS ${(campaign.estimatedCost || 0).toFixed(2)}</td>
                             <td class="text-success">${campaign.deliveredCount || 0}</td>
@@ -808,15 +809,15 @@
                     <div class="campaign-details-info">
                         <div class="detail-row">
                             <span class="detail-label">Campaign Name</span>
-                            <span class="detail-value">${campaign.title || campaign.name}</span>
+                            <span class="detail-value">${escapeHtml(campaign.title || campaign.name)}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Sender ID</span>
-                            <span class="detail-value">${campaign.senderId}</span>
+                            <span class="detail-value">${escapeHtml(campaign.senderId)}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Status</span>
-                            <span class="status-badge ${campaign.status}">${campaign.status}</span>
+                            <span class="status-badge ${escapeAttr(campaign.status)}">${escapeHtml(campaign.status)}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Total Recipients</span>
@@ -847,7 +848,7 @@
                         ${campaign.messageBody ? `
                         <div class="detail-row message-row">
                             <span class="detail-label">Message</span>
-                            <span class="detail-value message-text">${campaign.messageBody}</span>
+                            <span class="detail-value message-text">${escapeHtml(campaign.messageBody)}</span>
                         </div>
                         ` : ''}
                     </div>

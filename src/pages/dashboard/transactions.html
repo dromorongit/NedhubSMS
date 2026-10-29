@@ -210,6 +210,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js"></script>
     <script src="../../utils/toast.js"></script>
+    <script src="../../utils/escape.js"></script>
     <script>
         let currentPage = 1;
         let totalPages = 1;
@@ -284,11 +285,11 @@
                         
                         row.innerHTML = `
                             <td>${date}</td>
-                            <td><span class="tx-type ${tx.type}">${type}</span></td>
+                            <td><span class="tx-type ${escapeAttr(tx.type)}">${escapeHtml(type)}</span></td>
                             <td class="${tx.type === 'credit' ? 'text-success' : 'text-danger'}">${amount}</td>
-                            <td class="description-cell">${description}</td>
-                            <td><span class="status-badge ${status}">${status}</span></td>
-                            <td class="reference-cell" title="${tx.reference || ''}">${reference}</td>
+                            <td class="description-cell">${escapeHtml(description)}</td>
+                            <td><span class="status-badge ${escapeAttr(status)}">${escapeHtml(status)}</span></td>
+                            <td class="reference-cell" title="${escapeAttr(tx.reference || '')}">${escapeHtml(reference)}</td>
                         `;
                         tbody.appendChild(row);
                     });

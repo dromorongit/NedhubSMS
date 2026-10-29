@@ -306,6 +306,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js"></script>
     <script src="../../utils/toast.js"></script>
+    <script src="../../utils/escape.js"></script>
     <script>
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
@@ -497,9 +498,9 @@
                         
                         row.innerHTML = `
                             <td>${date}</td>
-                            <td><span class="tx-type ${tx.type}">${type}</span></td>
+                            <td><span class="tx-type ${escapeAttr(tx.type)}">${escapeHtml(type)}</span></td>
                             <td class="${tx.type === 'credit' ? 'text-success' : 'text-danger'}">${amount}</td>
-                            <td>${description}</td>
+                            <td>${escapeHtml(description)}</td>
                         `;
                         tbody.appendChild(row);
                     });

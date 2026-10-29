@@ -12,6 +12,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
+    <script src="../../utils/escape.js"></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -685,7 +686,7 @@
             }
             
             listEl.innerHTML = keys.map(key => `
-                <div class="api-key-row ${key.revoked ? 'revoked' : ''}" data-key-id="${key.keyId}">
+                <div class="api-key-row ${key.revoked ? 'revoked' : ''}" data-key-id="${escapeAttr(key.keyId)}">
                     <div class="api-key-info">
                         <div class="api-key-name">${escapeHtml(key.name)}</div>
                         <div class="api-key-meta">
@@ -696,7 +697,7 @@
                     </div>
                     <div class="api-key-actions">
                         <span class="api-key-badge ${key.revoked ? 'revoked' : 'active'}">${key.revoked ? 'Revoked' : 'Active'}</span>
-                        ${!key.revoked ? `<button class="btn-danger-outline btn-sm revoke-key-btn" data-key-id="${key.keyId}">Revoke</button>` : ''}
+                        ${!key.revoked ? `<button class="btn-danger-outline btn-sm revoke-key-btn" data-key-id="${escapeAttr(key.keyId)}">Revoke</button>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -707,12 +708,6 @@
                     revokeApiKey(keyId);
                 });
             });
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
         }
 
         function formatDate(dateString) {

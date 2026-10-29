@@ -1053,6 +1053,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js"></script>
     <script src="../../utils/toast.js"></script>
+    <script src="../../utils/escape.js"></script>
     <script>
         // Service configurations
         const services = {
@@ -1200,9 +1201,9 @@
             if (service.packages) {
                 formHTML += `
                     <div class="form-group-modern">
-                        <label>${service.smartCardLabel}</label>
+                        <label>${escapeHtml(service.smartCardLabel)}</label>
                         <input type="text" id="smartCardNumber" name="smartCardNumber" 
-                               placeholder="${service.smartCardPlaceholder}" required>
+                               placeholder="${escapeAttr(service.smartCardPlaceholder)}" required>
                     </div>
                     
                     <div class="form-group-modern">
@@ -1212,8 +1213,8 @@
                 
                 service.packages.forEach((pkg, index) => {
                     formHTML += `
-                        <div class="package-card" data-price="${pkg.price}" data-name="${pkg.name}">
-                            <div class="package-name">${pkg.name}</div>
+                        <div class="package-card" data-price="${escapeAttr(pkg.price)}" data-name="${escapeAttr(pkg.name)}">
+                            <div class="package-name">${escapeHtml(pkg.name)}</div>
                             <div class="package-price">₵${pkg.price.toFixed(2)}</div>
                         </div>
                     `;
@@ -1241,9 +1242,9 @@
                 // ECG with meter type
                 formHTML += `
                     <div class="form-group-modern">
-                        <label>${service.meterLabel}</label>
+                        <label>${escapeHtml(service.meterLabel)}</label>
                         <input type="text" id="meterNumber" name="meterNumber" 
-                               placeholder="${service.meterPlaceholder}" required>
+                               placeholder="${escapeAttr(service.meterPlaceholder)}" required>
                     </div>
                     
                     <div class="form-group-modern">
@@ -1273,9 +1274,9 @@
                 // Ghana Water
                 formHTML += `
                     <div class="form-group-modern">
-                        <label>${service.meterLabel}</label>
+                        <label>${escapeHtml(service.meterLabel)}</label>
                         <input type="text" id="meterNumber" name="meterNumber" 
-                               placeholder="${service.meterPlaceholder}" required>
+                               placeholder="${escapeAttr(service.meterPlaceholder)}" required>
                     </div>
                     
                     <div class="form-group-modern">

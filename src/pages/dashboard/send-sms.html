@@ -15,6 +15,7 @@
     <script src="../../utils/logger.js" defer></script>
     <script src="../../utils/messageUtils.js" defer></script>
     <script src="../../utils/recipientUtils.js" defer></script>
+    <script src="../../utils/escape.js" defer></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -1149,11 +1150,11 @@
                     html += `
                         <div class="senderid-item ${statusClass}">
                             <div class="senderid-info">
-                                <span class="senderid-name">${sid.senderId}</span>
-                                <span class="senderid-status ${statusClass}">${statusText}</span>
+                                <span class="senderid-name">${escapeHtml(sid.senderId)}</span>
+                                <span class="senderid-status ${statusClass}">${escapeHtml(statusText)}</span>
                             </div>
                             <p class="senderid-doc">Document: ${docTypeLabel}</p>
-                            ${sid.remarks ? `<p class="senderid-remarks">${sid.remarks}</p>` : ''}
+                            ${sid.remarks ? `<p class="senderid-remarks">${escapeHtml(sid.remarks)}</p>` : ''}
                             <span class="senderid-date">Created: ${new Date(sid.createdAt).toLocaleDateString()}</span>
                         </div>
                     `;
@@ -1508,7 +1509,7 @@ if (result.error) {
                           window.loggers.contacts.error('Failed to load contacts', { error: response.error });
                       }
                       if (contactGroupsEl) {
-                          contactGroupsEl.innerHTML = `<p class="error-text">Error loading contacts: ${response.error}</p>`;
+                          contactGroupsEl.innerHTML = `<p class="error-text">Error loading contacts: ${escapeHtml(response.error)}</p>`;
                       }
                       return;
                   }
@@ -1554,12 +1555,12 @@ if (result.error) {
 
                       html += `
                           <label class="contact-item">
-                              <input type="checkbox"
-                                     value="${contactId}"
-                                     data-name="${escapeHtml(contactName)}"
-                                     data-phone="${escapeHtml(contactPhone)}"
-                                     ${isChecked}
-                                     onchange="handleContactSelection(this)">
+                                 <input type="checkbox"
+                                        value="${escapeAttr(contactId)}"
+                                        data-name="${escapeHtml(contactName)}"
+                                        data-phone="${escapeHtml(contactPhone)}"
+                                        ${isChecked}
+                                        onchange="handleContactSelection(this)">
                               <span class="contact-name">${escapeHtml(contactName)}</span>
                               <span class="contact-phone">${escapeHtml(contactPhone)}</span>
                           </label>
@@ -1620,10 +1621,10 @@ if (result.error) {
                 let html = '<div class="selected-contacts-list">';
                    selectedContacts.forEach(contact => {
                        html += `
-                           <span class="selected-contact-tag">
-                               ${escapeHtml(contact.recipientName)} (${escapeHtml(contact.phoneNumber)})
-                               <button type="button" onclick="removeSelectedContact('${escapeHtml(contact.id)}')">&times;</button>
-                           </span>
+                               <span class="selected-contact-tag">
+                                   ${escapeHtml(contact.recipientName)} (${escapeHtml(contact.phoneNumber)})
+                                   <button type="button" data-id="${escapeAttr(contact.id)}" onclick="removeSelectedContact(this.dataset.id)">&times;</button>
+                               </span>
                        `;
                    });
                   html += '</div>';
@@ -1712,9 +1713,9 @@ if (result.error) {
                    
                    if (response.error) {
                        console.error('[ContactsModal] Load failed', { error: response.error });
-                       if (listContainer) {
-                           listContainer.innerHTML = `<div class="empty-state"><p>Error loading contacts: ${response.error}</p></div>`;
-                       }
+                        if (listContainer) {
+                            listContainer.innerHTML = `<div class="empty-state"><p>Error loading contacts: ${escapeHtml(response.error)}</p></div>`;
+                        }
                        return;
                    }
                    
@@ -2998,7 +2999,7 @@ if (result.error) {
             validationMessageEl.classList.remove('success');
             if (result.error) {
                 validationMessageEl.style.display = 'flex';
-                validationMessageEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> ${result.error}`;
+                validationMessageEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> ${escapeHtml(result.error)}`;
                 commaSeparatedInput.classList.add('error');
             } else if (result.count > 0) {
                 validationMessageEl.style.display = 'flex';
@@ -3343,7 +3344,7 @@ if (result.error) {
             
             if (errors.length > 0) {
                 errorListEl.innerHTML = errors.slice(0, 10).map(err =>
-                    `<li>Row ${err.row}: ${err.error}${err.data ? ' - ' + JSON.stringify(err.data) : ''}</li>`
+                    `<li>Row ${escapeHtml(err.row)}: ${escapeHtml(err.error)}${err.data ? ' - ' + escapeHtml(JSON.stringify(err.data)) : ''}</li>`
                 ).join('');
                 errorsSection.style.display = 'block';
             } else {
@@ -3877,7 +3878,7 @@ if (result.error) {
                      const specialChars = detectUnicodeCharacters(trimmedMessage);
                      if (specialChars.length > 0) {
                          costWarningsEl.style.display = 'flex';
-                         warningTextEl.innerHTML = `Your message contains special characters (<strong>${specialChars.join(', ')}</strong>) which reduce SMS length from 160 to 70 characters per segment.`;
+                          warningTextEl.innerHTML = `Your message contains special characters (<strong>${escapeHtml(specialChars.join(', '))}</strong>) which reduce SMS length from 160 to 70 characters per segment.`;
                      } else {
                          costWarningsEl.style.display = 'none';
                      }
@@ -5061,8 +5062,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 listHtml += `
                     <div class="result-item">
                         <div>
-                            <div class="result-item recipient">${r.recipient}</div>
-                            ${r.error ? `<div class="result-error">${r.error}</div>` : ''}
+                            <div class="result-item recipient">${escapeHtml(r.recipient)}</div>
+                            ${r.error ? `<div class="result-error">${escapeHtml(r.error)}</div>` : ''}
                         </div>
                         <span class="result-item status ${statusClass}">${statusText}</span>
                     </div>

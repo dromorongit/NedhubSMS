@@ -12,6 +12,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
+    <script src="../../utils/escape.js"></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -389,14 +390,14 @@ async function loadUserProfile() {
 
             tbody.innerHTML = blacklistedNumbers.map(item => `
                 <tr>
-                    <td class="phone-number">${item.phoneNumber}</td>
-                    <td class="reason">${item.reason}</td>
+                    <td class="phone-number">${escapeHtml(item.phoneNumber)}</td>
+                    <td class="reason">${escapeHtml(item.reason)}</td>
                     <td class="source">
-                        <span class="source-badge source-${item.source}">${item.source}</span>
+                        <span class="source-badge source-${escapeAttr(item.source)}">${escapeHtml(item.source)}</span>
                     </td>
                     <td class="date">${new Date(item.createdAt).toLocaleDateString()}</td>
                     <td class="actions">
-                        <button class="btn-icon btn-delete" onclick="openDeleteModal('${item._id}', '${item.phoneNumber}', '${item.reason}', '${item.createdAt}')" title="Remove from blacklist">
+                        <button class="btn-icon btn-delete" data-id="${escapeAttr(item._id)}" data-phone="${escapeAttr(item.phoneNumber)}" data-reason="${escapeAttr(item.reason)}" data-date="${escapeAttr(item.createdAt)}" onclick="openDeleteModal(this.dataset.id, this.dataset.phone, this.dataset.reason, this.dataset.date)" title="Remove from blacklist">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"></polyline>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

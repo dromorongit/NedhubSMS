@@ -1,0 +1,21 @@
+process.env.NODE_ENV = 'production';
+process.env.PORT = '49997';
+const express = require('express');
+const app = require('./server/index.js');
+const throwRouter = express.Router();
+throwRouter.post('/__kilo_throw', () => { throw new Error('kilo test boom'); });
+app.use('/__kilo_throw', throwRouter);
+const stack = app._router.stack;
+const throwLayer = stack.pop();
+const errorLayerIndex = stack.findIndex((layer) => layer.handle && layer.handle.length === 4);
+console.log('stack len before splice:', stack.length + 1, 'errorLayerIndex:', errorLayerIndex);
+stack.splice(errorLayerIndex, 0, throwLayer);
+console.log('stack len after splice:', stack.length);
+const http = require('http');
+const req = http.request('http://127.0.0.1:49997/__kilo_throw', { method: 'POST' }, (res) => {
+  let d = '';
+  res.on('data', c => d += c);
+  res.on('end', () => console.log('STATUS', res.statusCode, 'CT', res.headers['content-type'], 'BODY', d.slice(0, 300)));
+});
+req.on('error', e => console.log('ERR', e.message));
+req.end();

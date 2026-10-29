@@ -12,6 +12,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
+    <script src="../../utils/escape.js"></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -369,17 +370,6 @@
     </div>
 
     <script>
-        // Utility function to escape HTML and prevent XSS
-        function escapeHtml(text) {
-            if (text === null || text === undefined) return '';
-            return String(text)
-                .replace(/&/g, '&')
-                .replace(/</g, '<')
-                .replace(/>/g, '>')
-                .replace(/"/g, '"')
-                .replace(/'/g, '&#039;');
-        }
-
         let contacts = [];
         let filteredContacts = [];
         let editingContactId = null;
@@ -521,20 +511,20 @@
                 
                 row.innerHTML = `
                     <td class="contact-name">
-                        <div class="contact-avatar">${displayName}</div>
+                        <div class="contact-avatar">${escapeHtml(displayName)}</div>
                         <span>${escapeHtml(recipientName)}</span>
                     </td>
                     <td class="contact-phone">${escapeHtml(contact.phoneNumber)}</td>
-                    <td><span class="group-badge">${contact.groupName || 'General'}</span></td>
+                    <td><span class="group-badge">${escapeHtml(contact.groupName || 'General')}</span></td>
                     <td class="contact-date">${date}</td>
                     <td class="contact-actions">
-                        <button class="action-btn edit-btn" data-id="${contact._id}" title="Edit">
+                        <button class="action-btn edit-btn" data-id="${escapeAttr(contact._id)}" title="Edit">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
                         </button>
-                        <button class="action-btn delete-btn" data-id="${contact._id}" title="Delete">
+                        <button class="action-btn delete-btn" data-id="${escapeAttr(contact._id)}" title="Delete">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"></polyline>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

@@ -324,6 +324,7 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js"></script>
     <script src="../../utils/toast.js"></script>
+    <script src="../../utils/escape.js"></script>
     <script>
         let sendsChart, deliveryChart, costChart;
 
@@ -637,9 +638,9 @@
             empty.style.display = 'none';
             tbody.innerHTML = campaigns.map(campaign => `
                 <tr>
-                    <td>${campaign.title}</td>
+                    <td>${escapeHtml(campaign.title)}</td>
                     <td>${campaign.sentAt ? new Date(campaign.sentAt).toLocaleDateString() : '-'}</td>
-                    <td><span class="status-${campaign.status}">${campaign.status}</span></td>
+                    <td><span class="status-${escapeAttr(campaign.status)}">${escapeHtml(campaign.status)}</span></td>
                     <td>${campaign.sentCount || 0}</td>
                     <td>${campaign.deliveredCount || 0}</td>
                     <td>${campaign.failedCount || 0}</td>
@@ -664,9 +665,9 @@
             empty.style.display = 'none';
             tbody.innerHTML = campaigns.map(campaign => `
                 <tr>
-                    <td>${campaign.title}</td>
+                    <td>${escapeHtml(campaign.title)}</td>
                     <td>${campaign.sentAt ? new Date(campaign.sentAt).toLocaleDateString() : '-'}</td>
-                    <td><span class="status-${campaign.status}">${campaign.status}</span></td>
+                    <td><span class="status-${escapeAttr(campaign.status)}">${escapeHtml(campaign.status)}</span></td>
                     <td>${campaign.sentCount || 0}</td>
                     <td>${campaign.deliveredCount || 0}</td>
                     <td>${campaign.failedCount || 0}</td>
