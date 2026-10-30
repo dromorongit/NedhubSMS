@@ -281,6 +281,7 @@ select.input {
 
 .stat-card {
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
     gap: var(--space-4);
     padding: var(--space-5);
@@ -289,11 +290,31 @@ select.input {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+    height: 100%;
 }
 
 .stat-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
+}
+
+/* ── Stats grid ── */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 .stat-icon {
@@ -384,11 +405,13 @@ select.input {
     font-family: 'Manrope', sans-serif;
     font-size: var(--text-lg);
     font-weight: var(--fw-bold);
+    color: var(--color-white);
 }
 
 .wallet-subtitle {
     font-size: var(--text-sm);
-    opacity: 0.8;
+    color: var(--color-white);
+    opacity: 0.7;
 }
 
 .balance-display {
@@ -400,6 +423,7 @@ select.input {
     font-size: var(--text-4xl);
     font-weight: var(--fw-bold);
     line-height: var(--line-tight);
+    color: var(--color-white);
 }
 
 .balance-currency {
@@ -408,6 +432,35 @@ select.input {
     font-weight: var(--fw-semibold);
     margin-left: var(--space-1);
     opacity: 0.8;
+}
+
+/* ── Section header ── */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: var(--fw-bold);
+    color: var(--color-text);
+}
+
+.section-header .link--quiet {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semibold);
+    text-decoration: none;
+}
+
+.section-header .link--quiet:hover {
+    color: var(--color-orange-dark);
+    text-decoration: underline;
 }
 
 /* ── Tables ── */
