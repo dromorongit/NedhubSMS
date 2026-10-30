@@ -5,181 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Overview - Nedhub Bulk Messaging</title>
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
-    <link rel="stylesheet" href="../../styles/main.css">
-    <link rel="stylesheet" href="../../styles/dashboard.css">
-    <link rel="stylesheet" href="../../styles/responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400,500,700,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../styles/nedhub-app.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../styles/tokens.css">
+    <link rel="stylesheet" href="../../styles/layout.css">
+    <link rel="stylesheet" href="../../styles/components.css">
 </head>
 <body>
-    <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
-                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
-            </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li><a href="overview.html" class="active">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                        <span>Overview</span>
-                    </a></li>
-                    <li><a href="send-sms.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
-                        </svg>
-                        <span>Send SMS</span>
-                    </a></li>
-                    <li><a href="campaigns.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"></path>
-                            <path d="M3 11h18"></path>
-                            <path d="M9 7v18"></path>
-                            <path d="M15 7v18"></path>
-                        </svg>
-                        <span>Campaigns</span>
-                    </a></li>
-                    <li><a href="contacts.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                        <span>Contacts</span>
-                    </a></li>
-                    <li><a href="history.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <span>Message History</span>
-                    </a></li>
-                    <li><a href="blacklist.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <span>Blacklist</span>
-                    </a></li>
-                    <li><a href="buy-airtime.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                        </svg>
-                        <span>Buy Airtime</span>
-                    </a></li>
-                    <li><a href="buy-data.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                            <polyline points="22,6 12,13 2,6"></polyline>
-                        </svg>
-                        <span>Buy Data</span>
-                    </a></li>
-                    <li><a href="utility-payments.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="3" y1="9" x2="21" y2="9"></line>
-                            <line x1="9" y1="21" x2="9" y2="9"></line>
-                        </svg>
-                        <span>Utility Payments</span>
-                    </a></li>
-                    <li><a href="transactions.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                        </svg>
-                        <span>Transactions</span>
-                    </a></li>
-                    <li><a href="reports.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="20" x2="18" y2="10"></line>
-                            <line x1="12" y1="20" x2="12" y2="4"></line>
-                            <line x1="6" y1="20" x2="6" y2="14"></line>
-                        </svg>
-                        <span>Reports</span>
-                    </a></li>
-                    <li><a href="settings.html">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"></circle>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                        </svg>
-                        <span>Settings</span>
-                    </a></li>
-                    <li class="sidebar-logout">
-                        <a href="#" onclick="logout(); return false;">
-                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                            <span>Logout</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
-        <main class="main-content">
-            <header class="top-nav">
-                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-                <span class="mobile-header-title">Dashboard</span>
-                <div class="user-info">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <span id="userName">Loading...</span>
-                    <button class="logout-btn" onclick="logout()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                    </button>
-                </div>
-            </header>
-            <!-- Sidebar Overlay -->
-            <div class="sidebar-overlay" id="sidebarOverlay"></div>
-            <div class="dashboard-content">
+    <a href="#main" class="skip-link">Skip to content</a>
+
+    <div id="layout-shell"></div>
+
+    <div class="page">
+        <main id="main">
+            <div id="top-nav"></div>
+
+            <div class="page-content">
                 <div class="welcome-section">
-                    <h2 id="welcomeTitle">Welcome!</h2>
+                    <h1 id="welcomeTitle">Welcome back!</h1>
                     <p class="welcome-subtitle">Here's what's happening with your account today.</p>
                 </div>
 
-                <!-- Wallet Balance Card -->
-                <div class="wallet-card">
-                    <div class="wallet-header">
-                        <div class="wallet-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
-                            </svg>
-                        </div>
-                        <div class="wallet-info">
-                            <h3>Wallet Balance</h3>
-                            <p class="wallet-subtitle">Available Balance</p>
-                        </div>
-                    </div>
-                    <div class="balance-display">
-                        <span class="balance-amount" id="walletBalanceAmount">0</span>
-                        <span class="balance-currency">GHS</span>
-                    </div>
-                    <button class="btn-topup" id="topupButton">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Top Up
-                    </button>
-                </div>
-
-                <!-- Low Balance Alert (hidden by default) -->
-                <div class="alert low-balance-alert" id="lowBalanceAlert" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="alert alert--warning is-hidden" id="lowBalanceAlert" role="alert" aria-live="polite">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="8" x2="12" y2="12"></line>
                         <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -187,55 +34,76 @@
                     <span>Low balance! Please top up to continue sending SMS.</span>
                 </div>
 
-                <!-- Stats Grid -->
+                <div class="wallet-card">
+                    <div class="wallet-header">
+                        <div class="wallet-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div class="wallet-info">
+                            <h2 class="wallet-title">Wallet Balance</h2>
+                            <p class="wallet-subtitle">Available Balance</p>
+                        </div>
+                    </div>
+                    <div class="balance-display">
+                        <span class="balance-amount" id="walletBalanceAmount">0</span>
+                        <span class="balance-currency">GHS</span>
+                    </div>
+                    <button class="btn btn--primary" id="topupButton">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Top Up
+                    </button>
+                </div>
+
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon sms-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <div class="stat-icon stat-icon--sms" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
                             </svg>
                         </div>
                         <div class="stat-content">
-                            <h3>SMS Balance</h3>
+                            <span class="stat-label">SMS Balance</span>
                             <p class="stat-value" id="smsBalance">0</p>
-                            <span class="stat-label">GHS available</span>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon sent-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <div class="stat-icon stat-icon--sent" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                             </svg>
                         </div>
                         <div class="stat-content">
-                            <h3>Messages Sent</h3>
+                            <span class="stat-label">Messages Sent</span>
                             <p class="stat-value" id="messagesSent">0</p>
-                            <span class="stat-label">total messages</span>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon delivery-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <div class="stat-icon stat-icon--delivery" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
                             </svg>
                         </div>
                         <div class="stat-content">
-                            <h3>Delivery Rate</h3>
+                            <span class="stat-label">Delivery Rate</span>
                             <p class="stat-value" id="deliveryRate">0%</p>
-                            <span class="stat-label">successfully delivered</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Recent Transactions -->
-                <div class="transactions-section">
+                <div class="transactions-section card">
                     <div class="section-header">
                         <h3>Recent Transactions</h3>
-                        <a href="history.html" class="view-all">View All</a>
+                        <a href="history.html" class="link--quiet">View All</a>
                     </div>
                     <div class="table-container">
-                        <table class="transactions-table">
+                        <table class="table">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -248,18 +116,19 @@
                                 <!-- Transactions will be loaded here -->
                             </tbody>
                         </table>
-                        <div class="loading-spinner" id="loadingSpinner">
-                            <div class="spinner"></div>
-                            <p>Loading transactions...</p>
-                        </div>
-                        <div class="empty-state" id="emptyState" style="display: none;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
-                            </svg>
-                            <p>No transactions yet</p>
-                            <span>Your wallet transactions will appear here</span>
-                        </div>
+                    </div>
+                    <div class="loading-state is-hidden" id="loadingSpinner">
+                        <div class="spinner"></div>
+                        <p class="title">Loading transactions</p>
+                        <p class="desc">Your recent transactions are being loaded.</p>
+                    </div>
+                    <div class="empty-state is-hidden" id="emptyState">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                        <p class="title">No transactions yet</p>
+                        <p class="desc">Your wallet transactions will appear here.</p>
                     </div>
                 </div>
             </div>
@@ -267,41 +136,43 @@
     </div>
 
     <!-- Top Up Modal -->
-    <div class="modal" id="topupModal">
-        <div class="modal-content">
-            <button class="modal-close" id="closeTopupModal">&times;</button>
+    <div class="modal" id="topupModal" aria-hidden="true">
+        <div class="modal-container" id="topupModalContainer" role="dialog" aria-modal="true" aria-labelledby="topupModalTitle">
+            <button class="modal-close" id="closeTopupModal" aria-label="Close top-up">&times;</button>
             <div class="modal-header">
-                <div class="modal-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="modal-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                         <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
                         <line x1="1" y1="10" x2="23" y2="10"></line>
                     </svg>
                 </div>
-                <h3>Top Up Wallet</h3>
+                <h3 class="modal-title" id="topupModalTitle">Top Up Wallet</h3>
                 <p>Add funds to your wallet to send SMS</p>
             </div>
-            <form id="topupForm">
-                <div class="form-group">
-                    <label for="topupAmount">Amount (GHS)</label>
-                    <div class="input-wrapper">
-                        <span class="currency-symbol">₵</span>
-                        <input type="number" id="topupAmount" name="amount" min="1" step="0.01" required placeholder="Enter amount">
+            <div class="modal-body">
+                <form id="topupForm" novalidate>
+                    <div class="form-group">
+                        <label for="topupAmount" class="form-label">Amount (GHS)</label>
+                        <div class="input-group">
+                            <span class="input-prefix">₵</span>
+                            <input type="number" id="topupAmount" name="amount" min="1" step="0.01" required placeholder="0.00">
+                        </div>
+                        <small class="form-hint">Minimum top-up: ₵1.00</small>
                     </div>
-                    <small>Minimum top-up: ₵1.00</small>
-                </div>
-                <div class="form-group">
-                    <label for="topupDescription">Description (optional)</label>
-                    <input type="text" id="topupDescription" name="description" placeholder="e.g., Monthly top-up">
-                </div>
-                <button type="submit" class="btn-primary" id="topupSubmitBtn">
-                    <span>Proceed to Payment</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                        <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
-                </button>
-            </form>
-            <div id="topupError" class="error-message" style="display: none;"></div>
+                    <div class="form-group">
+                        <label for="topupDescription" class="form-label">Description (optional)</label>
+                        <input type="text" id="topupDescription" name="description" class="input" placeholder="e.g., Monthly top-up">
+                    </div>
+                    <div id="topupError" class="form-error is-hidden" role="alert"></div>
+                    <button type="submit" class="btn btn--primary btn--block" id="topupSubmitBtn">
+                        <span>Proceed to Payment</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -309,6 +180,7 @@
     <script src="../../utils/api.js"></script>
     <script src="../../utils/toast.js"></script>
     <script src="../../utils/escape.js"></script>
+    <script src="../../utils/layout.js"></script>
     <script>
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
@@ -325,10 +197,8 @@
             }
 
             console.log('[Dashboard] Token found, loading user profile...');
-            // Load user profile first
             await loadUserProfile();
 
-            // Check if this is a payment return page
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('reference')) {
                 handlePaymentReturn();
@@ -343,20 +213,18 @@
                 console.log('[Dashboard] Loading user profile...');
                 const response = await window.apiClient.getUserProfile();
                 console.log('[Dashboard] getUserProfile response:', response);
-                
+
                 if (response.error) {
                     console.error('[Dashboard] Error loading user profile:', response.error);
-                    // Use stored name if available
                     useStoredUserName();
                     return;
                 }
-                
+
                 if (response.data && response.data.user) {
                     const user = response.data.user;
                     const firstName = user.name ? user.name.split(' ')[0] : 'User';
                     updateUserDisplay(firstName);
-                    
-                    // Store full name for later use
+
                     storage.setItem('userName', user.name);
                     console.log('[Dashboard] User profile loaded:', user.name);
                 } else {
@@ -384,12 +252,11 @@
             const userNameEl = document.getElementById('userName');
             const welcomeTitleEl = document.getElementById('welcomeTitle');
             const userAvatarEl = document.getElementById('userAvatar');
-            
+
             if (userNameEl) userNameEl.textContent = firstName;
             if (welcomeTitleEl) welcomeTitleEl.textContent = `Welcome back, ${firstName}!`;
             if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
         }
-        
 
         async function handlePaymentReturn() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -414,56 +281,53 @@
                 }
             }
 
-            // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname);
         }
 
         async function loadDashboard() {
             try {
-                // Get wallet balance with stats
                 const balanceResponse = await window.apiClient.getWalletBalance();
-                
+
                 if (balanceResponse.error) {
                     console.error('Error loading wallet balance:', balanceResponse.error);
-                    // Keep default values (0) if API fails
                     return;
                 }
-                
+
                 if (balanceResponse.data) {
                     const data = balanceResponse.data;
-                    
-                    // Update wallet balance
+
                     const walletBalanceEl = document.getElementById('walletBalanceAmount');
                     if (walletBalanceEl) {
                         walletBalanceEl.textContent = '₵' + (data.balance || 0).toFixed(2);
                     }
-                    
-                    // Update stats - ensure we use actual data, not hardcoded values
+
                     const smsBalanceEl = document.getElementById('smsBalance');
                     if (smsBalanceEl) {
                         smsBalanceEl.textContent = '₵' + (data.smsBalance || 0).toFixed(2);
                     }
-                    
+
                     const messagesSentEl = document.getElementById('messagesSent');
                     if (messagesSentEl) {
                         messagesSentEl.textContent = (data.stats?.totalSent || 0).toLocaleString();
                     }
-                    
+
                     const deliveryRateEl = document.getElementById('deliveryRate');
                     if (deliveryRateEl) {
                         deliveryRateEl.textContent = (data.stats?.deliveryRate || 0) + '%';
                     }
-                    
-                    // Show low balance alert if balance is low (less than ₵10 GHS)
+
                     const lowBalanceAlert = document.getElementById('lowBalanceAlert');
-                    if (lowBalanceAlert && (data.balance || 0) < 10) {
-                        lowBalanceAlert.style.display = 'flex';
+                    if (lowBalanceAlert) {
+                        if ((data.balance || 0) < 10) {
+                            lowBalanceAlert.classList.remove('is-hidden');
+                        } else {
+                            lowBalanceAlert.classList.add('is-hidden');
+                        }
                     }
                 }
-                
-                // Get recent transactions
+
                 await loadTransactions();
-                
+
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
@@ -473,23 +337,23 @@
             const spinner = document.getElementById('loadingSpinner');
             const emptyState = document.getElementById('emptyState');
             const tbody = document.getElementById('transactionsBody');
-            
+
             if (!tbody) return;
-            
+
             try {
-                spinner.style.display = 'flex';
+                spinner.classList.remove('is-hidden');
                 tbody.innerHTML = '';
-                
+
                 const response = await window.apiClient.getTransactionHistory();
-                
-                spinner.style.display = 'none';
-                
+
+                spinner.classList.add('is-hidden');
+
                 if (response.error) {
                     console.error('Error loading transactions:', response.error);
-                    tbody.innerHTML = '<tr><td colspan="4" class="error">Failed to load transactions</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4">Failed to load transactions</td></tr>';
                     return;
                 }
-                
+
                 if (response.data && response.data.transactions && response.data.transactions.length > 0) {
                     response.data.transactions.slice(0, 5).forEach(tx => {
                         const row = document.createElement('tr');
@@ -497,160 +361,113 @@
                         const type = tx.type ? tx.type.charAt(0).toUpperCase() + tx.type.slice(1) : '-';
                         const amount = tx.amount ? (tx.type === 'credit' ? '+₵' : '-₵') + tx.amount.toFixed(2) : '-';
                         const description = tx.description || '-';
-                        
+
                         row.innerHTML = `
                             <td>${date}</td>
-                            <td><span class="tx-type ${escapeAttr(tx.type)}">${escapeHtml(type)}</span></td>
-                            <td class="${tx.type === 'credit' ? 'text-success' : 'text-danger'}">${amount}</td>
+                            <td><span class="badge ${tx.type === 'credit' ? 'badge--credit' : 'badge--debit'}">${escapeHtml(type)}</span></td>
+                            <td class="${tx.type === 'credit' ? 'stat-value--credit' : 'stat-value--debit'}">${amount}</td>
                             <td>${escapeHtml(description)}</td>
                         `;
                         tbody.appendChild(row);
                     });
                 } else {
-                    emptyState.style.display = 'flex';
+                    emptyState.classList.remove('is-hidden');
                 }
-                
+
             } catch (error) {
-                spinner.style.display = 'none';
+                spinner.classList.add('is-hidden');
                 console.error('Error loading transactions:', error);
-                tbody.innerHTML = '<tr><td colspan="4" class="error">Failed to load transactions</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4">Failed to load transactions</td></tr>';
             }
         }
 
-        // Handle top-up button click
         document.getElementById('topupButton').addEventListener('click', () => {
-            document.getElementById('topupModal').style.display = 'flex';
-            document.getElementById('topupModal').classList.add('active');
+            const modal = document.getElementById('topupModal');
+            const container = document.getElementById('topupModalContainer');
+            modal.classList.add('modal--open');
+            container.classList.add('modal-container--open');
+            modal.setAttribute('aria-hidden', 'false');
         });
 
-        // Handle close modal
         document.getElementById('closeTopupModal').addEventListener('click', () => {
-            document.getElementById('topupModal').style.display = 'none';
-            document.getElementById('topupModal').classList.remove('active');
-            document.getElementById('topupError').style.display = 'none';
+            const modal = document.getElementById('topupModal');
+            const container = document.getElementById('topupModalContainer');
+            const errorDiv = document.getElementById('topupError');
+            modal.classList.remove('modal--open');
+            container.classList.remove('modal-container--open');
+            modal.setAttribute('aria-hidden', 'true');
+            errorDiv.classList.add('is-hidden');
         });
 
-        // Close modal on backdrop click
         document.getElementById('topupModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('topupModal')) {
-                document.getElementById('topupModal').style.display = 'none';
-                document.getElementById('topupModal').classList.remove('active');
+                const modal = document.getElementById('topupModal');
+                const container = document.getElementById('topupModalContainer');
+                const errorDiv = document.getElementById('topupError');
+                modal.classList.remove('modal--open');
+                container.classList.remove('modal-container--open');
+                modal.setAttribute('aria-hidden', 'true');
+                errorDiv.classList.add('is-hidden');
             }
         });
 
-        // Handle form submission
         document.getElementById('topupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const amount = document.getElementById('topupAmount').value;
             const description = document.getElementById('topupDescription').value;
             const submitBtn = document.getElementById('topupSubmitBtn');
             const errorDiv = document.getElementById('topupError');
-            
+
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span>Processing...</span>';
-            errorDiv.style.display = 'none';
-            
+            errorDiv.classList.add('is-hidden');
+
             try {
                 console.log('[Payment] Initiating payment for amount:', amount);
-                
-                // Get the frontend origin for redirect after payment
+
                 const frontendOrigin = window.location.origin;
-                
+
                 const response = await window.apiClient.initiatePayment(amount, description, frontendOrigin);
-                
+
                 console.log('[Payment] Response:', response);
-                
+
                 if (response.error) {
                     console.error('[Payment] Error:', response.error);
-                    errorDiv.textContent = response.error;
-                    errorDiv.style.display = 'block';
+                    errorDiv.textContent = 'Unable to start payment. Please try again.';
+                    errorDiv.classList.remove('is-hidden');
                 } else if (response.data && response.data.checkoutUrl) {
-                    // Redirect to payment
                     console.log('[Payment] Redirecting to:', response.data.checkoutUrl);
                     window.location.href = response.data.checkoutUrl;
                 } else if (response.data && response.data.clientReference) {
-                    // Fallback: show message if no checkoutUrl
                     console.log('[Payment] No checkoutUrl, showing success message');
                     showToast('Payment initiated successfully', 'success');
-                    document.getElementById('topupModal').style.display = 'none';
+                    document.getElementById('topupModal').classList.remove('modal--open');
+                    document.getElementById('topupModalContainer').classList.remove('modal-container--open');
+                    document.getElementById('topupModal').setAttribute('aria-hidden', 'true');
                 } else {
                     console.error('[Payment] Unexpected response:', response);
                     errorDiv.textContent = 'An unexpected error occurred. Please try again.';
-                    errorDiv.style.display = 'block';
+                    errorDiv.classList.remove('is-hidden');
                 }
             } catch (error) {
                 console.error('[Payment] Exception:', error);
                 errorDiv.textContent = 'An error occurred. Please try again.';
-                errorDiv.style.display = 'block';
+                errorDiv.classList.remove('is-hidden');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>Proceed to Payment</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+                submitBtn.innerHTML = '<span>Proceed to Payment</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
         });
 
-        // Logout function
         function logout() {
             const storage = window.getStorage ? window.getStorage() : localStorage;
             storage.removeItem('authToken');
             storage.removeItem('userName');
             storage.removeItem('userEmail');
-            // Also clear the storage type preference
             localStorage.removeItem('authStorageType');
             window.location.href = '../auth/login.html';
         }
-
-        // Mobile sidebar functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const hamburgerBtn = document.getElementById('hamburgerBtn');
-            const sidebar = document.getElementById('sidebar');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
-
-            function toggleSidebar() {
-                sidebar.classList.toggle('active');
-                sidebarOverlay.classList.toggle('active');
-                hamburgerBtn.classList.toggle('active');
-                
-                // Prevent body scroll when sidebar is open
-                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-            }
-
-            function closeSidebar() {
-                sidebar.classList.remove('active');
-                sidebarOverlay.classList.remove('active');
-                hamburgerBtn.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-
-            if (hamburgerBtn) {
-                hamburgerBtn.addEventListener('click', toggleSidebar);
-            }
-
-            if (sidebarCloseBtn) {
-                sidebarCloseBtn.addEventListener('click', closeSidebar);
-            }
-
-            if (sidebarOverlay) {
-                sidebarOverlay.addEventListener('click', closeSidebar);
-            }
-
-            // Close sidebar when clicking nav links on mobile
-            document.querySelectorAll('.sidebar-nav a').forEach(link => {
-                link.addEventListener('click', () => {
-                    if (window.innerWidth <= 1024) {
-                        closeSidebar();
-                    }
-                });
-            });
-
-            // Close sidebar on window resize
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 1024) {
-                    closeSidebar();
-                }
-            });
-        });
     </script>
 </body>
 </html>
