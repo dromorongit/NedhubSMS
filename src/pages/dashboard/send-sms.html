@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="../../styles/responsive.css">
     <link rel="stylesheet" href="../../styles/sms-preview.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400,500,700,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../styles/nedhub-app.css">
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
@@ -2517,7 +2519,7 @@ if (result.error) {
                     const phoneMockup = document.querySelector('.phone-mockup');
                     const phoneFrame = document.querySelector('.phone-frame');
                     
-                    let previewWidth, previewHeight;
+                    let previewWidth = null, previewHeight = null;
                     if (previewSection && phoneMockup && phoneFrame) {
                         previewWidth = previewSection.offsetWidth;
                         previewHeight = previewSection.offsetHeight;
@@ -2577,7 +2579,7 @@ if (result.error) {
                    updateCostEstimation();
                    
                     // Log preview dimensions after mode switch
-                    let previewWidthAfter, previewHeightAfter;
+                    let previewWidthAfter = null, previewHeightAfter = null;
                     if (previewSection && phoneMockup && phoneFrame) {
                         previewWidthAfter = previewSection.offsetWidth;
                         previewHeightAfter = previewSection.offsetHeight;
@@ -2589,8 +2591,8 @@ if (result.error) {
                        console.log(`[LivePreviewLayout] POST-MODE SWITCH [${mode}] - Preview: ${previewWidthAfter}x${previewHeightAfter}, Mockup: ${mockupWidthAfter}x${mockupHeightAfter}, Frame: ${frameWidthAfter}x${frameHeightAfter}`);
                        
                        // Check for any dimension changes
-                       const widthChanged = previewWidth !== previewWidthAfter;
-                       const heightChanged = previewHeight !== previewHeightAfter;
+                       const widthChanged = previewWidth !== null && previewWidthAfter !== null && previewWidth !== previewWidthAfter;
+                       const heightChanged = previewHeight !== null && previewHeightAfter !== null && previewHeight !== previewHeightAfter;
                        
                        if (widthChanged || heightChanged) {
                            console.log(`[LivePreviewLayout] WARNING: Dimensions changed during mode switch! Width changed: ${widthChanged}, Height changed: ${heightChanged}`);
