@@ -1,0 +1,474 @@
+/* ==========================================================================
+   Overview page — self-contained styles
+   - Every rule is scoped under body.page-overview; sidebar, top-nav and the
+     shared layout shell are never touched.
+   - Local design tokens only. Brand colors: navy #0B132B, orange #F77F00.
+   ========================================================================== */
+
+body.page-overview {
+    /* Local design tokens */
+    --ov-navy: #0B132B;
+    --ov-navy-dark: #090D1E;
+    --ov-navy-soft: #1B2A59;
+    --ov-orange: #F77F00;
+    --ov-orange-dark: #C96A00;
+    --ov-orange-soft: rgba(247, 127, 0, 0.10);
+
+    --ov-ink: #0F172A;
+    --ov-text: #334155;
+    --ov-muted: #64748B;
+    --ov-line: #E2E8F0;
+    --ov-surface: #FFFFFF;
+    --ov-surface-soft: #F8FAFC;
+
+    --ov-amber-bg: #FDF3E3;
+    --ov-amber-border: #F5C97A;
+    --ov-amber-text: #7A5A00;
+
+    --ov-success: #15803D;
+    --ov-danger: #DC2626;
+
+    --ov-radius: 16px;
+    --ov-radius-sm: 12px;
+
+    --ov-space-xs: 0.5rem;
+    --ov-space-sm: 0.75rem;
+    --ov-space-md: 1rem;
+    --ov-space-lg: 1.5rem;
+    --ov-space-xl: 2rem;
+
+    --ov-shadow-sm: 0 2px 8px rgba(11, 19, 43, 0.06);
+    --ov-shadow: 0 8px 24px rgba(11, 19, 43, 0.08);
+    --ov-shadow-lg: 0 16px 48px rgba(11, 19, 43, 0.10);
+
+    --ov-transition: 0.25s ease;
+
+    --ov-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --ov-font-display: "Manrope", var(--ov-font);
+}
+
+/* --------------------------------------------------------------
+   Greeting header
+   -------------------------------------------------------------- */
+
+body.page-overview .ov-welcome {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov-space-sm);
+    margin-bottom: var(--ov-space-xl);
+}
+
+body.page-overview #welcomeTitle {
+    font-family: var(--ov-font-display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--ov-ink);
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+body.page-overview .ov-welcome-subtitle {
+    font-size: 0.95rem;
+    color: var(--ov-text);
+    margin: 0;
+}
+
+/* --------------------------------------------------------------
+   Low balance alert
+   -------------------------------------------------------------- */
+
+body.page-overview .low-balance-alert {
+    display: flex;
+    align-items: center;
+    gap: var(--ov-space-sm);
+    padding: var(--ov-space-sm) var(--ov-space-md);
+    border: 1px solid var(--ov-amber-border);
+    border-radius: var(--ov-radius-sm);
+    background: var(--ov-amber-bg);
+    color: var(--ov-amber-text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: var(--ov-shadow-sm);
+    margin-bottom: var(--ov-space-lg);
+}
+
+body.page-overview .low-balance-alert svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    stroke: var(--ov-amber-text);
+}
+
+/* --------------------------------------------------------------
+   Wallet card (white text on navy, orange Top Up button)
+   -------------------------------------------------------------- */
+
+body.page-overview .ov-wallet-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--ov-radius);
+    background: var(--ov-navy);
+    color: var(--ov-surface);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: var(--ov-shadow-lg);
+    padding: var(--ov-space-xl);
+    margin-bottom: var(--ov-space-xl);
+    max-width: 720px;
+    width: 100%;
+}
+
+body.page-overview .ov-wallet-header {
+    display: flex;
+    align-items: center;
+    gap: var(--ov-space-md);
+    margin-bottom: var(--ov-space-lg);
+}
+
+body.page-overview .ov-wallet-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--ov-radius-sm);
+    background: rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+body.page-overview .ov-wallet-icon svg {
+    width: 26px;
+    height: 26px;
+    stroke: var(--ov-surface);
+}
+
+body.page-overview .ov-wallet-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ov-surface);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+body.page-overview .ov-wallet-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+body.page-overview .ov-balance-display {
+    margin-bottom: var(--ov-space-lg);
+}
+
+body.page-overview .ov-balance-amount {
+    font-family: var(--ov-font-display);
+    font-size: 2.75rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ov-surface);
+    margin: 0;
+    line-height: 1.1;
+}
+
+body.page-overview .ov-balance-currency {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin-left: 0.25rem;
+}
+
+body.page-overview .ov-btn-topup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ov-space-sm);
+    background: var(--ov-orange);
+    color: var(--ov-surface);
+    border: none;
+    border-radius: var(--ov-radius-sm);
+    padding: var(--ov-space-sm) var(--ov-space-lg);
+    font-family: var(--ov-font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--ov-transition);
+    box-shadow: 0 3px 10px var(--ov-orange-soft);
+}
+
+body.page-overview .ov-btn-topup:hover {
+    background: var(--ov-orange-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px var(--ov-orange-soft);
+}
+
+body.page-overview .ov-btn-topup:focus-visible {
+    outline: 3px solid rgba(247, 127, 0, 0.4);
+    outline-offset: 2px;
+}
+
+body.page-overview .ov-btn-topup svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--ov-surface);
+}
+
+/* --------------------------------------------------------------
+   Stats grid: 3 cols desktop, 2 tablet, 1 mobile, equal-height cards
+   -------------------------------------------------------------- */
+
+body.page-overview .ov-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--ov-space-lg);
+    margin-bottom: var(--ov-space-xl);
+}
+
+@media (min-width: 768px) {
+    body.page-overview .ov-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1025px) {
+    body.page-overview .ov-stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+body.page-overview .ov-stat-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--ov-radius);
+    background: var(--ov-surface);
+    border: 1px solid var(--ov-line);
+    padding: var(--ov-space-lg);
+    display: flex;
+    flex-direction: column;
+    transition: transform var(--ov-transition), box-shadow var(--ov-transition);
+    box-shadow: var(--ov-shadow-sm);
+}
+
+body.page-overview .ov-stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--ov-shadow);
+}
+
+body.page-overview .ov-stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--ov-radius-sm);
+    background: var(--ov-surface-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-bottom: var(--ov-space-md);
+    stroke-width: 2;
+}
+
+body.page-overview .ov-stat-icon svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--ov-navy);
+}
+
+body.page-overview .ov-stat-card--sms .ov-stat-icon { background: #E8EEF7; }
+body.page-overview .ov-stat-card--sms .ov-stat-icon svg { stroke: var(--ov-navy); }
+body.page-overview .ov-stat-card--sent .ov-stat-icon { background: #E7F4EA; }
+body.page-overview .ov-stat-card--sent .ov-stat-icon svg { stroke: var(--ov-success); }
+body.page-overview .ov-stat-card--delivery .ov-stat-icon { background: #FDF3E3; }
+body.page-overview .ov-stat-card--delivery .ov-stat-icon svg { stroke: var(--ov-orange); }
+
+body.page-overview .ov-stat-content h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ov-muted);
+    margin: 0 0 var(--ov-space-xs) 0;
+}
+
+body.page-overview .ov-stat-value {
+    font-family: var(--ov-font-display);
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--ov-ink);
+    line-height: 1.15;
+    margin: 0 0 var(--ov-space-xs) 0;
+}
+
+body.page-overview .ov-stat-sub {
+    font-size: 0.85rem;
+    color: var(--ov-text);
+    margin: 0;
+    margin-top: auto;
+}
+
+/* --------------------------------------------------------------
+   Recent Transactions card
+   -------------------------------------------------------------- */
+
+body.page-overview .ov-transactions {
+    border-radius: var(--ov-radius);
+    background: var(--ov-surface);
+    border: 1px solid var(--ov-line);
+    box-shadow: var(--ov-shadow-sm);
+    overflow: hidden;
+    margin-bottom: var(--ov-space-xl);
+}
+
+body.page-overview .ov-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--ov-space-lg) var(--ov-space-xl);
+    border-bottom: 1px solid var(--ov-line);
+    background: var(--ov-surface-soft);
+}
+
+body.page-overview .ov-section-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ov-ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+body.page-overview .ov-view-all {
+    color: var(--ov-orange);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.875rem;
+    transition: color var(--ov-transition);
+}
+
+body.page-overview .ov-view-all:hover {
+    color: var(--ov-orange-dark);
+    text-decoration: underline;
+}
+
+body.page-overview .ov-table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+body.page-overview .ov-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+body.page-overview .ov-table th {
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ov-muted);
+    padding: var(--ov-space-md) var(--ov-space-xl);
+    border-bottom: 1px solid var(--ov-line);
+}
+
+body.page-overview .ov-table td {
+    padding: var(--ov-space-md) var(--ov-space-xl);
+    border-bottom: 1px solid var(--ov-line);
+    font-size: 0.9rem;
+    color: var(--ov-text);
+    vertical-align: middle;
+}
+
+body.page-overview .ov-table tbody tr {
+    transition: background-color var(--ov-transition);
+}
+
+body.page-overview .ov-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+body.page-overview .ov-tx-type {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+body.page-overview .ov-tx-type.credit {
+    background: rgba(21, 128, 61, 0.10);
+    color: var(--ov-success);
+}
+
+body.page-overview .ov-tx-type.debit {
+    background: rgba(220, 38, 38, 0.10);
+    color: var(--ov-danger);
+}
+
+body.page-overview .ov-text-success { color: var(--ov-success); }
+body.page-overview .ov-text-danger { color: var(--ov-danger); }
+
+body.page-overview td.error {
+    text-align: center;
+    color: var(--ov-muted);
+    padding: var(--ov-space-xl);
+}
+
+/* --------------------------------------------------------------
+   Loading & empty states
+   -------------------------------------------------------------- */
+
+body.page-overview .ov-loading,
+body.page-overview .ov-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ov-space-xl);
+    gap: var(--ov-space-sm);
+    text-align: center;
+}
+
+body.page-overview .ov-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--ov-line);
+    border-top-color: var(--ov-orange);
+    border-radius: 50%;
+    animation: ov-spin 0.8s linear infinite;
+}
+
+@keyframes ov-spin {
+    to { transform: rotate(360deg); }
+}
+
+body.page-overview .ov-loading-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ov-ink);
+    margin: 0;
+}
+
+body.page-overview .ov-loading-desc {
+    font-size: 0.85rem;
+    color: var(--ov-muted);
+    margin: 0;
+}
+
+body.page-overview .ov-empty svg {
+    width: 48px;
+    height: 48px;
+    stroke: var(--ov-line);
+    flex-shrink: 0;
+    margin-bottom: var(--ov-space-sm);
+}
+
+body.page-overview .ov-empty-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ov-ink);
+    margin: 0 0 var(--ov-space-xs) 0;
+}
+
+body.page-overview .ov-empty-desc {
+    font-size: 0.875rem;
+    color: var(--ov-text);
+    margin: 0;
+}
