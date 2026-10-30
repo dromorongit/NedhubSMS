@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
     <link rel="stylesheet" href="../../styles/responsive.css">
+    <link rel="stylesheet" href="../../styles/sms-preview.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
@@ -495,30 +496,87 @@
                               </div>
                           </div>
 
-                          <!-- Live Mobile Preview Section -->
-                          <div class="live-preview-section">
-                              <h3 class="section-title">Live Preview</h3>
-                              <div class="mobile-preview-wrapper" id="mobilePreviewWrapper">
-                                  <div class="phone-mockup">
-                                      <div class="phone-frame">
-                                          <div class="phone-notch"></div>
-                                          <div class="phone-screen">
-                                              <div class="sms-header-bar">
-                                                  <div class="header-time" id="previewHeaderTime">12:30</div>
-                                                  <div class="header-sender" id="previewHeaderSender">Sender ID</div>
-                                              </div>
-                                              <div class="sms-messages-container" id="previewMessagesContainer">
-                                                  <div class="sms-message-bubble received">
-                                                      <span class="message-text" id="livePreviewText">Your message will appear here...</span>
-                                                      <span class="message-time" id="previewMessageTime">12:30 PM</span>
-                                                  </div>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  </div>
-                              </div>
-                          </div>
-                       </div>
+<!-- Live Mobile Preview Section -->
+                            <div class="live-preview-section" id="previewDetails">
+                                <details class="sp-preview-details">
+                                <h3 class="section-title">Live Preview</h3>
+                                <summary class="sp-preview-details-summary">Preview</summary>
+                                <div class="sms-preview-context sp-preview-context" id="previewContext" style="display:none;">
+                                    Previewing as: <span class="sp-preview-context-name"></span>
+                                </div>
+                                <div class="mobile-preview-wrapper" id="mobilePreviewWrapper">
+                                    <div class="phone-mockup sp-phone-mockup">
+                                        <div class="phone-frame sp-phone-frame">
+                                            <div class="phone-notch sp-phone-notch"></div>
+                                            <div class="phone-dynamic-island sp-phone-dynamic-island"></div>
+                                            <div class="phone-screen sp-phone-screen">
+                                                <div class="phone-status-bar sp-phone-status-bar">
+                                                    <div class="phone-status-left sp-phone-status-left">
+                                                        <svg class="phone-signal-icon sp-phone-signal-icon" viewBox="0 0 12 12" aria-hidden="true"><rect x="0" y="6" width="2" height="6" rx="0.5"/><rect x="3" y="4" width="2" height="8" rx="0.5"/><rect x="6" y="2" width="2" height="10" rx="0.5"/><rect x="9" y="0" width="2" height="12" rx="0.5"/></svg>
+                                                        <span class="phone-status-network sp-phone-status-network" id="previewNetworkName">NEDHUB</span>
+                                                    </div>
+                                                    <span class="phone-status-time sp-phone-status-time" id="previewHeaderTime">12:30</span>
+                                                    <div class="phone-status-right sp-phone-status-right">
+                                                        <svg class="phone-battery-icon sp-phone-battery-icon" viewBox="0 0 12 12" aria-hidden="true"><rect x="0" y="2" width="9" height="8" rx="1" fill="none" stroke="currentColor"/><rect x="9.5" y="4" width="2" height="4" rx="0.5" fill="currentColor"/></svg>
+                                                    </div>
+                                                </div>
+                                                <div class="sms-conversation sp-sms-conversation">
+                                                    <div class="sms-date-divider sp-sms-date-divider"><span id="previewDateDivider">Today</span></div>
+                                                    <div class="sms-messages-container sp-sms-messages-container" id="previewMessagesContainer">
+                                                        <div class="sms-message-bubble received sp-sms-message-bubble">
+                                                            <div class="sms-avatar sp-sms-avatar" id="previewAvatar" aria-hidden="true">S</div>
+                                                            <div class="sms-bubble-row sp-sms-bubble-row">
+                                                                <div class="sms-bubble-head sp-sms-bubble-head">
+                                                                    <span class="sms-sender-name sp-sms-sender-name" id="previewHeaderSender">Sender ID</span>
+                                                                    <span class="sms-sender-label sp-sms-sender-label">Text Message · SMS</span>
+                                                                </div>
+                                                                <div class="sms-bubble-body sp-sms-bubble-body">
+                                                                    <span class="message-text sp-message-text" id="livePreviewText">Your message will appear here</span>
+                                                                </div>
+                                                                <span class="message-time sp-message-time" id="previewMessageTime">12:30 PM</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Summary card under the phone -->
+                                <div class="sms-preview-summary sp-sms-preview-summary" id="smsPreviewSummary">
+                                    <div class="sms-preview-summary-row sp-sms-preview-summary-row">
+                                        <div class="sms-preview-stat sp-sms-preview-stat">
+                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Characters</span>
+                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewCharCount">0</span><span class="sms-preview-stat-limit sp-sms-preview-stat-limit" id="previewCharLimit">/160</span>
+                                        </div>
+                                        <div class="sms-preview-stat sp-sms-preview-stat">
+                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Segments</span>
+                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewSegments">1</span>
+                                        </div>
+                                        <div class="sms-preview-stat sp-sms-preview-stat">
+                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Encoding</span>
+                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewEncodingType">GSM-7</span>
+                                        </div>
+                                    </div>
+                                    <div class="sms-preview-progress-wrap sp-sms-preview-progress-wrap">
+                                        <div class="sms-preview-progress" id="previewProgress" style="width:0%;"></div>
+                                    </div>
+                                    <div class="sms-preview-summary-row sp-sms-preview-summary-row sms-preview-bottom">
+                                        <div class="sms-preview-stat sp-sms-preview-stat">
+                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Recipients</span>
+                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewRecipientCount">0</span>
+                                        </div>
+                                        <div class="sms-preview-stat sp-sms-preview-stat">
+                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Est. Cost</span>
+                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewEstimatedCost">GHS 0.00</span>
+                                        </div>
+                                    </div>
+                                    <div class="sms-preview-notices sp-sms-preview-notices" id="previewNotices"></div>
+                                </div>
+                                <div class="sms-preview-sr" id="previewScreenReader" aria-live="polite"></div>
+                            </div>
+                                </details>
+                            </div>
 
                   </form>
                   </div>

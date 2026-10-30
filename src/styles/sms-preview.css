@@ -1,0 +1,438 @@
+/* =====================================================================
+   SMS Preview Component — send-sms.html
+   - Self-contained colours: no dependency on theme CSS variables.
+   - New component classes are scoped under the .sp- prefix.
+   - Existing ids/classes used by scripts are preserved; only their preview
+     presentation is re-styled here.
+   Loads after dashboard.css and responsive.css so these rules win.
+   ===================================================================== */
+
+/* --- Layout shell --- */
+.live-preview-section {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+.mobile-preview-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+/* Desktop (1100px+): sticky preview column pinned 24px from the top */
+@media (min-width: 1100px) {
+    .live-preview-section {
+        position: sticky;
+        top: 24px;
+        align-self: start;
+    }
+    .live-preview-section summary {
+        display: none;
+    }
+}
+
+/* 768px-1099px: preview sits below the form, not sticky */
+@media (min-width: 768px) and (max-width: 1099px) {
+    .live-preview-section {
+        position: static !important;
+        top: auto;
+    }
+    .live-preview-section summary {
+        display: none;
+    }
+}
+
+/* Under 768px: native <details> collapsible, closed by default */
+@media (max-width: 767px) {
+    .live-preview-section {
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 0 0 1rem 0;
+        display: block;
+    }
+    .live-preview-section summary {
+        display: list-item;
+        cursor: pointer;
+        padding: 0.875rem 1rem;
+        background: #F4F6F8;
+        border-bottom: 1px solid #E5E7EB;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #0B132B;
+        list-style: none;
+    }
+    .live-preview-section summary::marker {
+        content: none;
+    }
+    .live-preview-section summary::-webkit-details-marker {
+        display: none;
+    }
+    .live-preview-section summary::after {
+        content: '\25BE';
+        float: right;
+        font-size: 0.7rem;
+        color: #6B7280;
+    }
+    .sp-preview-details[open] summary::after {
+        content: '\25B4';
+    }
+    .sp-phone-mockup {
+        width: 280px;
+    }
+    .sp-phone-frame {
+        width: 280px;
+        height: 480px;
+    }
+    .sp-phone-dynamic-island {
+        top: 12px;
+        width: 116px;
+        height: 24px;
+        border-radius: 12px;
+    }
+    .sp-phone-screen {
+        inset: 48px 12px 12px 12px;
+    }
+}
+
+/* --- Phone mockup --- */
+.sp-phone-mockup {
+    width: 300px;
+    flex-shrink: 0;
+}
+.sp-phone-frame {
+    width: 300px;
+    height: 560px;
+    box-sizing: border-box;
+    background: #0B132B;
+    border-radius: 36px;
+    padding: 14px 12px;
+    box-shadow:
+        0 24px 48px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    transform: none;
+    aspect-ratio: auto;
+    max-height: none;
+}
+.phone-notch,
+.sp-phone-notch {
+    display: none;
+}
+.sp-phone-dynamic-island {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 26px;
+    background: #141C3A;
+    border-radius: 13px;
+    z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.sp-phone-screen {
+    position: absolute;
+    inset: 56px 12px 12px 12px;
+    background: #FFFFFF;
+    border-radius: 30px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Status bar --- */
+.sp-phone-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 14px;
+    flex-shrink: 0;
+}
+.sp-phone-status-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.sp-phone-signal-icon {
+    width: 12px;
+    height: 12px;
+    display: block;
+}
+.sp-phone-status-network {
+    font-size: 10px;
+    font-weight: 600;
+    color: #0B132B;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+}
+.sp-phone-status-time {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0B132B;
+}
+.sp-phone-status-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.sp-phone-battery-icon {
+    width: 12px;
+    height: 12px;
+    display: block;
+}
+
+/* --- Conversation --- */
+.sp-sms-conversation {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+.sp-sms-date-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    margin-top: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+}
+.sp-sms-date-divider::before,
+.sp-sms-date-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #E5E7EB;
+}
+.sp-sms-messages-container {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 14px;
+    min-height: 0;
+}
+.live-preview-section .sp-sms-message-bubble {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 86%;
+    width: -moz-fit-content;
+    width: fit-content;
+    margin-left: 6px;
+    padding: 8px 12px;
+    border-radius: 18px;
+    background: #E9ECF2;
+    color: #0B132B;
+    font-size: 15px;
+    line-height: 1.5;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    animation: none;
+}
+.sp-sms-message-bubble::after {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 12px;
+    width: 0;
+    height: 0;
+    border: 7px solid transparent;
+    border-right-color: #E9ECF2;
+}
+.sp-sms-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #F59E0B;
+    color: #0B132B;
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.sp-sms-bubble-row {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.sp-sms-bubble-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+.sp-sms-sender-name {
+    font-weight: 700;
+    font-size: 12px;
+    color: #0B132B;
+}
+.sp-sms-sender-label {
+    font-size: 10px;
+    color: #4A5568;
+}
+.sp-sms-bubble-body {
+    display: block;
+}
+#livePreviewText.sp-message-text {
+    display: block;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    color: inherit;
+    transition: opacity 150ms ease;
+}
+#livePreviewText.sp-preview-placeholder {
+    color: #4A5568;
+}
+.sp-preview-token {
+    display: inline-block;
+    background: #FEF3C7;
+    color: #92400E;
+    border-radius: 4px;
+    padding: 0 2px;
+    margin: 0 1px;
+    font-size: 0.9em;
+}
+.sp-preview-url {
+    color: #1D4ED8;
+}
+.sp-message-time {
+    display: block;
+    text-align: right;
+    font-size: 11px;
+    color: #4A5568;
+    margin-top: 4px;
+}
+
+/* Previewing-as context (above the phone, personalized mode) */
+.sp-preview-context {
+    font-size: 0.875rem;
+    color: #6B7280;
+    padding: 0.5rem 1rem;
+    margin-top: 0.5rem;
+}
+.sp-preview-context-name {
+    font-weight: 700;
+    color: #0B132B;
+}
+
+/* Empty / no sender state */
+.sp-sender-empty {
+    color: #4A5568;
+}
+
+/* --- Summary card (under the phone, not inside it) --- */
+.sp-sms-preview-summary {
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 1rem 1rem 0.75rem 1rem;
+    background: #FFFFFF;
+    margin-top: 1rem;
+}
+.sp-sms-preview-summary-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 0.625rem;
+}
+.sp-sms-preview-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.sp-sms-preview-stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.sp-sms-preview-stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0B132B;
+}
+.sp-sms-preview-stat-limit {
+    font-size: 0.75rem;
+    color: #6B7280;
+}
+.sp-sms-preview-progress-wrap {
+    height: 6px;
+    background: #E5E7EB;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.875rem;
+    flex-shrink: 0;
+}
+#previewProgress {
+    height: 100%;
+    background: #F59E0B;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+.sp-sms-preview-notices {
+    margin-top: 0.75rem;
+}
+.sp-sms-preview-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    background: #FEF3C7;
+    border: 1px solid #E5D28B;
+    color: #78350F;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+    flex-shrink: 0;
+}
+.sp-sms-preview-notice-icon {
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+/* --- Screen reader live region (visually hidden) --- */
+.sms-preview-sr,
+#previewScreenReader {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    clip-path: inset(50%);
+}
+
+/* --- Reduced motion: disable fades --- */
+@media (prefers-reduced-motion: reduce) {
+    #livePreviewText {
+        transition: none !important;
+    }
+    .preview-updating #livePreviewText {
+        opacity: 1 !important;
+    }
+    #previewProgress {
+        transition: none !important;
+    }
+}
