@@ -2255,3 +2255,57 @@ body.page-send-sms .empty-state svg {
         max-height: calc(100vh - 2rem);
     }
 }
+
+/* ==========================================================================
+   Live preview fix (appended)
+   ========================================================================== */
+
+/* Desktop: single sticky column, constrained height, below top-nav */
+@media (min-width: 992px) {
+    body.page-send-sms #sendSmsForm {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        column-gap: var(--ss-space-xl);
+        align-items: start;
+    }
+    body.page-send-sms .sms-form-right-sidebar {
+        position: sticky;
+        top: calc(4.625rem + 1rem);
+        align-self: start;
+        max-height: calc(100vh - 4.625rem - 2rem);
+        overflow-y: auto;
+        z-index: 40;
+    }
+    body.page-send-sms .live-preview-section {
+        position: static;
+        top: auto;
+        border-left: none;
+        padding-left: 0;
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+/* Mobile/tablet: preview as normal-flow card, visible and centered */
+@media (max-width: 1023px) {
+    body.page-send-sms .live-preview-section {
+        display: block;
+        position: static;
+        top: auto;
+        max-height: none;
+        overflow: visible;
+        border: none;
+        margin: 0 0 var(--ss-space-lg) 0;
+    }
+    body.page-send-sms .live-preview-section summary {
+        display: none;
+    }
+    body.page-send-sms .mobile-preview-wrapper {
+        justify-content: center;
+        overflow: hidden;
+    }
+    body.page-send-sms .sp-phone-mockup,
+    body.page-send-sms .sp-phone-frame {
+        max-width: 100%;
+    }
+}
