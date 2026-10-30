@@ -11,8 +11,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400,500,700,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../styles/nedhub-app.css">
+    <link rel="stylesheet" href="../../styles/pages/overview.css">
 </head>
-<body>
+<body class="page-overview">
+
     <div class="dashboard-layout">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
@@ -145,41 +147,15 @@
             <!-- Sidebar Overlay -->
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
             <div class="dashboard-content">
-                <div class="welcome-section">
-                    <h2 id="welcomeTitle">Welcome!</h2>
-                    <p class="welcome-subtitle">Here's what's happening with your account today.</p>
+                <!-- Greeting header -->
+                <div class="ov-welcome">
+                    <h1 id="welcomeTitle">Welcome back!</h1>
+                    <p class="ov-welcome-subtitle">Here's what's happening with your account today.</p>
                 </div>
 
-                <!-- Wallet Balance Card -->
-                <div class="wallet-card">
-                    <div class="wallet-header">
-                        <div class="wallet-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
-                            </svg>
-                        </div>
-                        <div class="wallet-info">
-                            <h3>Wallet Balance</h3>
-                            <p class="wallet-subtitle">Available Balance</p>
-                        </div>
-                    </div>
-                    <div class="balance-display">
-                        <span class="balance-amount" id="walletBalanceAmount">0</span>
-                        <span class="balance-currency">GHS</span>
-                    </div>
-                    <button class="btn-topup" id="topupButton">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Top Up
-                    </button>
-                </div>
-
-                <!-- Low Balance Alert (hidden by default) -->
-                <div class="alert low-balance-alert" id="lowBalanceAlert" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <!-- Low balance alert -->
+                <div class="alert low-balance-alert" id="lowBalanceAlert" role="alert" aria-live="polite" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="8" x2="12" y2="12"></line>
                         <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -187,55 +163,82 @@
                     <span>Low balance! Please top up to continue sending SMS.</span>
                 </div>
 
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon sms-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <!-- Wallet card: white text on navy -->
+                <div class="ov-wallet-card">
+                    <div class="ov-wallet-header">
+                        <div class="ov-wallet-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div class="ov-wallet-info">
+                            <h2 class="ov-wallet-title">Wallet Balance</h2>
+                            <p class="ov-wallet-subtitle">Available Balance</p>
+                        </div>
+                    </div>
+                    <div class="ov-balance-display">
+                        <span class="ov-balance-amount" id="walletBalanceAmount">0</span>
+                        <span class="ov-balance-currency">GHS</span>
+                    </div>
+                    <button class="ov-btn-topup" id="topupButton">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Top Up
+                    </button>
+                </div>
+
+                <!-- Stats grid: 3 desktop / 2 tablet / 1 mobile, equal-height cards -->
+                <div class="ov-stats-grid">
+                    <div class="ov-stat-card ov-stat-card--sms">
+                        <div class="ov-stat-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
                             </svg>
                         </div>
-                        <div class="stat-content">
-                            <h3>SMS Balance</h3>
-                            <p class="stat-value" id="smsBalance">0</p>
-                            <span class="stat-label">GHS available</span>
+                        <div class="ov-stat-content">
+                            <h3 class="ov-stat-label">SMS Balance</h3>
+                            <p class="ov-stat-value" id="smsBalance">0</p>
+                            <span class="ov-stat-sub">GHS available</span>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon sent-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <div class="ov-stat-card ov-stat-card--sent">
+                        <div class="ov-stat-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                             </svg>
                         </div>
-                        <div class="stat-content">
-                            <h3>Messages Sent</h3>
-                            <p class="stat-value" id="messagesSent">0</p>
-                            <span class="stat-label">total messages</span>
+                        <div class="ov-stat-content">
+                            <h3 class="ov-stat-label">Messages Sent</h3>
+                            <p class="ov-stat-value" id="messagesSent">0</p>
+                            <span class="ov-stat-sub">total messages</span>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon delivery-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <div class="ov-stat-card ov-stat-card--delivery">
+                        <div class="ov-stat-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
                             </svg>
                         </div>
-                        <div class="stat-content">
-                            <h3>Delivery Rate</h3>
-                            <p class="stat-value" id="deliveryRate">0%</p>
-                            <span class="stat-label">successfully delivered</span>
+                        <div class="ov-stat-content">
+                            <h3 class="ov-stat-label">Delivery Rate</h3>
+                            <p class="ov-stat-value" id="deliveryRate">0%</p>
+                            <span class="ov-stat-sub">successfully delivered</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Recent Transactions -->
-                <div class="transactions-section">
-                    <div class="section-header">
+                <div class="ov-transactions">
+                    <div class="ov-section-header">
                         <h3>Recent Transactions</h3>
-                        <a href="history.html" class="view-all">View All</a>
+                        <a href="history.html" class="ov-view-all">View All</a>
                     </div>
-                    <div class="table-container">
-                        <table class="transactions-table">
+                    <div class="ov-table-container">
+                        <table class="ov-table">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -248,18 +251,19 @@
                                 <!-- Transactions will be loaded here -->
                             </tbody>
                         </table>
-                        <div class="loading-spinner" id="loadingSpinner">
-                            <div class="spinner"></div>
-                            <p>Loading transactions...</p>
-                        </div>
-                        <div class="empty-state" id="emptyState" style="display: none;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
-                            </svg>
-                            <p>No transactions yet</p>
-                            <span>Your wallet transactions will appear here</span>
-                        </div>
+                    </div>
+                    <div class="ov-loading" id="loadingSpinner" style="display: none;">
+                        <div class="ov-spinner"></div>
+                        <p class="ov-loading-title">Loading transactions</p>
+                        <p class="ov-loading-desc">Your recent transactions are being loaded.</p>
+                    </div>
+                    <div class="ov-empty" id="emptyState" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                        <h3 class="ov-empty-title">No transactions yet</h3>
+                        <p class="ov-empty-desc">Your wallet transactions will appear here.</p>
                     </div>
                 </div>
             </div>
@@ -271,7 +275,7 @@
         <div class="modal-content">
             <button class="modal-close" id="closeTopupModal">&times;</button>
             <div class="modal-header">
-                <div class="modal-icon">
+                <div class="modal-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
                         <line x1="1" y1="10" x2="23" y2="10"></line>
@@ -500,8 +504,8 @@
                         
                         row.innerHTML = `
                             <td>${date}</td>
-                            <td><span class="tx-type ${escapeAttr(tx.type)}">${escapeHtml(type)}</span></td>
-                            <td class="${tx.type === 'credit' ? 'text-success' : 'text-danger'}">${amount}</td>
+                            <td><span class="ov-tx-type ${escapeAttr(tx.type)}">${escapeHtml(type)}</span></td>
+                            <td class="${tx.type === 'credit' ? 'ov-text-success' : 'ov-text-danger'}">${amount}</td>
                             <td>${escapeHtml(description)}</td>
                         `;
                         tbody.appendChild(row);
@@ -563,7 +567,7 @@
                 
                 if (response.error) {
                     console.error('[Payment] Error:', response.error);
-                    errorDiv.textContent = response.error;
+                    errorDiv.textContent = 'Unable to start payment. Please try again.';
                     errorDiv.style.display = 'block';
                 } else if (response.data && response.data.checkoutUrl) {
                     // Redirect to payment
