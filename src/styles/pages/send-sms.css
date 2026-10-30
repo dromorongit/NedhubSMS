@@ -1,0 +1,2257 @@
+/* ==========================================================================
+   Send SMS page - self-contained styles
+   - Every rule scoped under body.page-send-sms; sidebar/top-nav untouched.
+   - Local design tokens only. Brand colors: navy #0B132B, orange #F77F00.
+   ========================================================================== */
+
+body.page-send-sms {
+    --ss-navy: #0B132B;
+    --ss-navy-dark: #090D1E;
+    --ss-navy-soft: #1B2A59;
+    --ss-orange: #F77F00;
+    --ss-orange-dark: #C96A00;
+    --ss-orange-soft: rgba(247, 127, 0, 0.10);
+    --ss-ink: #0F172A;
+    --ss-text: #334155;
+    --ss-muted: #64748B;
+    --ss-line: #E2E8F0;
+    --ss-surface: #FFFFFF;
+    --ss-surface-soft: #F8FAFC;
+    --ss-success: #15803D;
+    --ss-danger: #DC2626;
+    --ss-warning: #D97706;
+    --ss-radius: 16px;
+    --ss-radius-sm: 12px;
+    --ss-space-xs: 0.5rem;
+    --ss-space-sm: 0.75rem;
+    --ss-space-md: 1rem;
+    --ss-space-lg: 1.5rem;
+    --ss-space-xl: 2rem;
+    --ss-shadow-sm: 0 2px 8px rgba(11, 19, 43, 0.06);
+    --ss-shadow: 0 8px 24px rgba(11, 19, 43, 0.08);
+    --ss-shadow-lg: 0 16px 48px rgba(11, 19, 43, 0.10);
+    --ss-transition: 0.25s ease;
+    --ss-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --ss-font-display: "Manrope", var(--ss-font);
+}
+
+
+        /* Additional styles for SMS form page */
+        body.page-send-sms .sms-form-card{
+            background-color: var(--ss-surface);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        body.page-send-sms .form-row{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        body.page-send-sms .form-group{
+            margin-bottom: 1rem;
+        }
+
+        body.page-send-sms .form-group label{
+            display: block;
+            margin-bottom: 0.35rem;
+            font-weight: 600;
+            color: var(--ss-navy);
+            font-size: 0.85rem;
+        }
+
+        body.page-send-sms .form-group select, body.page-send-sms .form-group textarea, body.page-send-sms .form-group input[type="text"]{
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background-color: #fafafa;
+        }
+
+        body.page-send-sms .form-group select:focus, body.page-send-sms .form-group textarea:focus, body.page-send-sms .form-group input[type="text"]:focus{
+            outline: none;
+            border-color: var(--ss-orange);
+            box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.1);
+            background-color: white;
+        }
+
+        body.page-send-sms .form-group textarea{
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        body.page-send-sms .form-hint{
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            color: #666;
+            font-size: 0.875rem;
+        }
+
+        body.page-send-sms .form-hint svg{
+            width: 16px;
+            height: 16px;
+        }
+
+        body.page-send-sms .form-hint a{
+            color: var(--ss-orange);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        body.page-send-sms .form-hint a:hover{
+            text-decoration: underline;
+        }
+
+        body.page-send-sms .char-counter-wrapper{
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        body.page-send-sms .char-counter, body.page-send-sms .encoding-info, body.page-send-sms .sms-counter, body.page-send-sms .cost-estimate{
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        body.page-send-sms .char-count-label, body.page-send-sms .encoding-label, body.page-send-sms .sms-count-label, body.page-send-sms .cost-label{
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        body.page-send-sms .char-count-value, body.page-send-sms .encoding-value, body.page-send-sms .sms-count-value, body.page-send-sms .sms-total-value, body.page-send-sms .cost-value{
+            font-weight: 600;
+            color: var(--ss-navy);
+            font-size: 0.95rem;
+        }
+
+        body.page-send-sms .sms-total-label{
+            color: #999;
+            font-size: 0.85rem;
+            margin-left: 0.75rem;
+        }
+
+        body.page-send-sms .cost-warnings{
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            color: #1565c0;
+            font-size: 0.875rem;
+        }
+
+        body.page-send-sms .warning-icon{
+            font-size: 1.1rem;
+            line-height: 1;
+            color: #2196f3;
+        }
+
+        body.page-send-sms .warning-text{
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        body.page-send-sms .warning-text strong{
+            color: #0d47a1;
+        }
+
+        body.page-send-sms .convert-gsm-btn{
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        body.page-send-sms .convert-gsm-btn:hover{
+            background-color: #1976d2;
+        }
+
+        body.page-send-sms .char-count-value.warning{
+            color: #1976d2;
+        }
+
+        body.page-send-sms .char-count-value.danger{
+            color: #c62828;
+        }
+
+        body.page-send-sms .form-actions{
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        body.page-send-sms .btn-secondary{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            background-color: #f5f5f5;
+            color: #666;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        body.page-send-sms .btn-secondary:hover{
+            background-color: #eee;
+            border-color: #ddd;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .btn-secondary svg{
+            width: 18px;
+            height: 18px;
+        }
+
+        body.page-send-sms .btn-primary{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2rem;
+            background: linear-gradient(135deg, var(--ss-orange) 0%, #e56a00 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(247, 127, 0, 0.3);
+        }
+
+        body.page-send-sms .btn-primary:hover:not(:disabled){
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(247, 127, 0, 0.4);
+        }
+
+        body.page-send-sms .btn-primary:disabled{
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        body.page-send-sms .btn-primary svg{
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Tips Card */
+        body.page-send-sms .tips-card{
+            background-color: var(--ss-surface);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem 1.75rem;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        body.page-send-sms .tips-header{
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        body.page-send-sms .tips-header svg{
+            width: 22px;
+            height: 22px;
+            color: var(--ss-orange);
+        }
+
+        body.page-send-sms .tips-header h3{
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .tips-list{
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        body.page-send-sms .tips-list li{
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        body.page-send-sms .tips-list li::before{
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #4caf50;
+            font-weight: 600;
+        }
+
+        body.page-send-sms .tips-list li:last-child{
+            margin-bottom: 0;
+        }
+
+        /* Sender ID styles */
+        body.page-send-sms .sender-id-row{
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        body.page-send-sms .sender-id-row select{
+            flex: 1;
+        }
+
+        body.page-send-sms .btn-create-senderid{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.25rem;
+            background-color: var(--ss-navy);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        body.page-send-sms .btn-create-senderid:hover{
+            background-color: #1a2540;
+        }
+
+        body.page-send-sms .btn-create-senderid svg{
+            width: 16px;
+            height: 16px;
+        }
+
+        body.page-send-sms .sender-id-note{
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            background-color: #fff9e6;
+            border: 1px solid #ffd54f;
+            border-radius: 8px;
+            color: #856404;
+            font-size: 0.875rem;
+        }
+
+        /* Sender ID Modal styles */
+        body.page-send-sms .modal-content{
+            max-width: 380px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 1.25rem;
+        }
+
+        body.page-send-sms .sender-id-requirements{
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        body.page-send-sms .sender-id-requirements h4{
+            margin: 0 0 0.75rem;
+            font-size: 0.9rem;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .sender-id-requirements ul{
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        body.page-send-sms .sender-id-requirements li{
+            position: relative;
+            padding-left: 1.25rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        body.page-send-sms .sender-id-requirements li::before{
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--ss-orange);
+        }
+
+        body.page-send-sms .file-upload-wrapper{
+            position: relative;
+        }
+
+        body.page-send-sms .file-upload-wrapper input[type="file"]{
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px dashed #e8e8e8;
+            border-radius: 10px;
+            background-color: #fafafa;
+            cursor: pointer;
+        }
+
+        body.page-send-sms .file-upload-wrapper input[type="file"]:focus{
+            outline: none;
+            border-color: var(--ss-orange);
+            border-style: solid;
+        }
+
+        body.page-send-sms .file-preview{
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+        }
+
+        body.page-send-sms .file-name{
+            flex: 1;
+            font-size: 0.875rem;
+            color: #2e7d32;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        body.page-send-sms .remove-file{
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #666;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        body.page-send-sms .remove-file:hover{
+            color: #c62828;
+        }
+
+        body.page-send-sms .user-senderids-section{
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        body.page-send-sms .user-senderids-section h4{
+            margin: 0 0 0.75rem;
+            font-size: 0.95rem;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .senderids-list{
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        body.page-send-sms .senderid-item{
+            background-color: #fafafa;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #ddd;
+        }
+
+        body.page-send-sms .senderid-item.status-approved{
+            border-left-color: #4caf50;
+        }
+
+        body.page-send-sms .senderid-item.status-pending{
+            border-left-color: #ff9800;
+        }
+
+        body.page-send-sms .senderid-item.status-rejected{
+            border-left-color: #f44336;
+        }
+
+        body.page-send-sms .senderid-info{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        body.page-send-sms .senderid-name{
+            font-weight: 600;
+            color: var(--ss-navy);
+            font-size: 1rem;
+        }
+
+        body.page-send-sms .senderid-status{
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        body.page-send-sms .senderid-status.status-approved{
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        body.page-send-sms .senderid-status.status-pending{
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        body.page-send-sms .senderid-status.status-rejected{
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        body.page-send-sms .senderid-doc{
+            font-size: 0.85rem;
+            color: #666;
+            margin: 0.5rem 0;
+        }
+
+        body.page-send-sms .senderid-remarks{
+            margin: 0.5rem 0;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        body.page-send-sms .senderid-date{
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        body.page-send-sms .loading-text{
+            text-align: center;
+            color: #666;
+            padding: 1rem;
+        }
+
+        body.page-send-sms .empty-text{
+            text-align: center;
+            color: #999;
+            padding: 1rem;
+            font-style: italic;
+        }
+
+        body.page-send-sms .error-text{
+            text-align: center;
+            color: #c62828;
+            padding: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            body.page-send-sms .form-actions{
+                flex-direction: column;
+            }
+
+            body.page-send-sms .btn-secondary, body.page-send-sms .btn-primary{
+                width: 100%;
+                justify-content: center;
+            }
+
+            body.page-send-sms .char-counter-wrapper{
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            body.page-send-sms .sender-id-row{
+                flex-direction: column;
+            }
+
+            body.page-send-sms .btn-create-senderid{
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* File Upload Section */
+        body.page-send-sms .file-upload-section{
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #fafafa;
+            border: 2px dashed #e0e0e0;
+            border-radius: 10px;
+        }
+
+        body.page-send-sms .file-upload-label{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background-color: var(--ss-navy) ;
+            color: #ffffff ;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        body.page-send-sms .file-upload-label:hover{
+            background-color: #1a2540 ;
+            transform: translateY(-1px);
+        }
+
+        body.page-send-sms .file-upload-label svg{
+            width: 18px;
+            height: 18px;
+            stroke: #ffffff ;
+        }
+
+        body.page-send-sms .file-upload-info{
+            margin-top: 0.75rem;
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        body.page-send-sms .file-preview-list{
+            margin-top: 1rem;
+        }
+
+        body.page-send-sms .file-preview-item{
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+        }
+
+        body.page-send-sms .file-icon{
+            font-size: 1.25rem;
+        }
+
+        body.page-send-sms .file-name{
+            flex: 1;
+            font-size: 0.9rem;
+            color: #2e7d32;
+            font-weight: 500;
+        }
+
+        body.page-send-sms .file-count{
+            font-size: 0.85rem;
+            color: #666;
+            background-color: rgba(255,255,255,0.7);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        body.page-send-sms .remove-file-btn{
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #666;
+            cursor: pointer;
+            padding: 0 0.25rem;
+            line-height: 1;
+        }
+
+        body.page-send-sms .remove-file-btn:hover{
+            color: #c62828;
+        }
+
+        /* Preview Modal Styles */
+        body.page-send-sms .preview-modal-content{
+            max-width: 420px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        body.page-send-sms .preview-content{
+            margin-bottom: 1.5rem;
+        }
+
+        body.page-send-sms .preview-field{
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        body.page-send-sms .preview-field label{
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        body.page-send-sms .preview-field span{
+            color: var(--ss-navy);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        body.page-send-sms .preview-message-box{
+            margin-top: 1rem;
+        }
+
+        body.page-send-sms .preview-message-box label{
+            display: block;
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        body.page-send-sms .preview-message-text{
+            background-color: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 100px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: var(--ss-navy);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        body.page-send-sms .modal-actions{
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        body.page-send-sms .modal-actions .btn-secondary{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background-color: #f5f5f5;
+            color: #666;
+            border: 2px solid #e8e8e8;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        body.page-send-sms .modal-actions .btn-secondary:hover{
+            background-color: #eee;
+            border-color: #ddd;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .modal-actions .btn-secondary svg{
+            width: 16px;
+            height: 16px;
+        }
+
+        /* SMS Result Modal Styles */
+        body.page-send-sms .result-modal-content{
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        body.page-send-sms .result-modal-header{
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        body.page-send-sms .result-modal-icon{
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+
+        body.page-send-sms .result-modal-icon.success{
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+        }
+
+        body.page-send-sms .result-modal-icon.failed{
+            background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+        }
+
+        body.page-send-sms .result-modal-icon svg{
+            width: 28px;
+            height: 28px;
+            color: white;
+        }
+
+        body.page-send-sms .result-modal-header h3{
+            color: var(--ss-navy);
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        body.page-send-sms .result-modal-header p{
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        body.page-send-sms .result-summary{
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        body.page-send-sms .result-stat{
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 10px;
+            background-color: #f5f5f5;
+        }
+
+        body.page-send-sms .result-stat.success{
+            background-color: #e8f5e9;
+        }
+
+        body.page-send-sms .result-stat.failed{
+            background-color: #ffebee;
+        }
+
+        body.page-send-sms .result-stat.total{
+            background-color: #e3f2fd;
+        }
+
+        body.page-send-sms .result-stat-value{
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        body.page-send-sms .result-stat.success .result-stat-value{
+            color: #2e7d32;
+        }
+
+        body.page-send-sms .result-stat.failed .result-stat-value{
+            color: #c62828;
+        }
+
+        body.page-send-sms .result-stat.total .result-stat-value{
+            color: #1565c0;
+        }
+
+        body.page-send-sms .result-stat-label{
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        body.page-send-sms .result-details{
+            margin-bottom: 1.5rem;
+        }
+
+        body.page-send-sms .result-details h4{
+            font-size: 0.95rem;
+            color: var(--ss-navy);
+            margin-bottom: 0.75rem;
+        }
+
+        body.page-send-sms .result-list{
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        body.page-send-sms .result-item{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        body.page-send-sms .result-item:last-child{
+            border-bottom: none;
+        }
+
+        body.page-send-sms .result-item.recipient{
+            font-size: 0.9rem;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .result-item.status{
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        body.page-send-sms .result-item.status.success{
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        body.page-send-sms .result-item.status.failed{
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        body.page-send-sms .result-error{
+            font-size: 0.75rem;
+            color: #c62828;
+            margin-top: 0.25rem;
+        }
+
+        /* Recipient Source Tabs */
+        body.page-send-sms .recipient-source-tabs{
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        body.page-send-sms .tab-btn{
+            padding: 0.75rem 1.25rem;
+            background-color: #f5f5f5;
+            border: 2px solid #e8e8e8;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        body.page-send-sms .tab-btn.active{
+            background-color: var(--ss-orange);
+            border-color: var(--ss-orange);
+            color: white;
+        }
+
+        body.page-send-sms .tab-btn:hover:not(.active){
+            background-color: #eee;
+            border-color: #ddd;
+        }
+
+        body.page-send-sms .recipient-section{
+            display: none;
+        }
+
+        body.page-send-sms .recipient-section.active{
+            display: block;
+        }
+
+        /* Manual Recipients */
+        body.page-send-sms .manual-recipient-list{
+            margin-bottom: 1rem;
+        }
+
+        body.page-send-sms .manual-recipient-item{
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            background-color: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #e8e8e8;
+        }
+
+        /* Default mode: hide name input, phone takes full width */
+        body.page-send-sms .manual-recipients-default-mode .recipient-name-input{
+            display: none;
+        }
+
+        body.page-send-sms .manual-recipients-default-mode .recipient-phone-input{
+            flex: 1;
+            width: 100%;
+        }
+
+        body.page-send-sms .recipient-name-input, body.page-send-sms .recipient-phone-input{
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        body.page-send-sms .remove-recipient-btn{
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #c62828;
+            cursor: pointer;
+            padding: 0 0.25rem;
+            line-height: 1;
+        }
+
+        body.page-send-sms .btn-add-recipient{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--ss-navy);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        body.page-send-sms .btn-add-recipient:hover{
+            background-color: #1a2540;
+        }
+
+        body.page-send-sms .btn-add-recipient svg{
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Default Mode: Comma-separated recipients */
+        body.page-send-sms .mode-recipients-container{
+            width: 100%;
+        }
+
+        body.page-send-sms #commaSeparatedRecipients{
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        body.page-send-sms #commaSeparatedRecipients:focus{
+            outline: none;
+            border-color: var(--ss-orange);
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+        }
+
+        body.page-send-sms #commaSeparatedRecipients.error{
+            border-color: #f44336;
+            box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+        }
+
+        body.page-send-sms .recipient-counter{
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+            text-align: right;
+        }
+
+        body.page-send-sms .recipient-counter.warning{
+            color: #ff9800;
+            font-weight: 500;
+        }
+
+        body.page-send-sms .recipient-counter.error{
+            color: #f44336;
+            font-weight: 500;
+        }
+
+        body.page-send-sms .validation-message{
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #f44336;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        body.page-send-sms .validation-message.success{
+            color: #4caf50;
+        }
+
+        body.page-send-sms .validation-message svg{
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        /* Contacts Selector Styles */
+        body.page-send-sms .contacts-selector{
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        body.page-send-sms .contact-groups{
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            background-color: #fafafa;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        body.page-send-sms .contacts-list{
+            padding: 0.5rem;
+        }
+
+        body.page-send-sms .contact-item{
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e8e8e8;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        body.page-send-sms .contact-item:last-child{
+            border-bottom: none;
+        }
+
+        body.page-send-sms .contact-item:hover{
+            background-color: #f0f0f0;
+        }
+
+        body.page-send-sms .contact-item input[type="checkbox"]{
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--ss-navy);
+        }
+
+        body.page-send-sms .contact-name{
+            flex: 1;
+            font-weight: 500;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .contact-phone{
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        body.page-send-sms .empty-state{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+            color: #666;
+        }
+
+        body.page-send-sms .empty-state svg{
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            color: #ccc;
+        }
+
+        body.page-send-sms .empty-state p{
+            margin: 0.5rem 0;
+            font-weight: 500;
+        }
+
+        body.page-send-sms .empty-state small{
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        body.page-send-sms .loading-text{
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        body.page-send-sms .error-text{
+            text-align: center;
+            padding: 1rem;
+            color: #c62828;
+        }
+
+        body.page-send-sms .selected-contacts-preview{
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            background-color: #fafafa;
+            padding: 0.75rem;
+            min-height: 60px;
+        }
+
+        body.page-send-sms .selected-contacts-list{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        body.page-send-sms .selected-contact-tag{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            background-color: var(--ss-navy);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        body.page-send-sms .selected-contact-tag button{
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.1rem;
+            line-height: 1;
+            padding: 0 0.25rem;
+            opacity: 0.8;
+        }
+
+        body.page-send-sms .selected-contact-tag button:hover{
+            opacity: 1;
+        }
+
+        body.page-send-sms .no-contacts{
+            color: #999;
+            text-align: center;
+            margin: 0;
+        }
+
+        /* Personalization Section */
+        body.page-send-sms .personalization-section, body.page-send-sms .scheduling-section, body.page-send-sms .preview-section{
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background-color: #fafafa;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8;
+        }
+
+        body.page-send-sms .section-title{
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--ss-navy);
+            margin: 0 0 1rem;
+        }
+
+        body.page-send-sms .message-composer{
+            margin-top: 1rem;
+        }
+
+        /* Scheduling */
+        body.page-send-sms .send-options{
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        body.page-send-sms .radio-option{
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        body.page-send-sms .radio-option input[type="radio"]{
+            margin: 0;
+        }
+
+        body.page-send-sms .schedule-settings{
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Preview */
+        body.page-send-sms .preview-controls{
+            margin-bottom: 1rem;
+        }
+
+        body.page-send-sms .btn-preview{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background-color: var(--ss-orange);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        body.page-send-sms .btn-preview:hover{
+            background-color: #e56a00;
+            transform: translateY(-1px);
+        }
+
+        body.page-send-sms .preview-sample{
+            padding: 1rem;
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 0.75rem;
+        }
+
+        body.page-send-sms .preview-sample strong{
+            color: var(--ss-navy);
+        }
+
+        /* Duplicate Handling Section */
+        body.page-send-sms .duplicate-handling-section{
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background-color: #fafafa;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8;
+        }
+
+        body.page-send-sms .duplicate-controls{
+            margin-top: 1rem;
+        }
+
+        body.page-send-sms .duplicate-summary{
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: #fff3e0;
+            border: 1px solid #ffcc02;
+            border-radius: 8px;
+        }
+
+        body.page-send-sms .duplicate-alert{
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        body.page-send-sms .duplicate-alert svg{
+            width: 24px;
+            height: 24px;
+            color: #f57c00;
+        }
+
+        body.page-send-sms .duplicate-info{
+            flex: 1;
+            font-weight: 600;
+            color: #e65100;
+        }
+
+        body.page-send-sms .duplicate-options{
+            margin-bottom: 1rem;
+        }
+
+        body.page-send-sms .duplicate-options .radio-option{
+            margin-bottom: 0.75rem;
+        }
+
+        body.page-send-sms .duplicate-options .radio-option:last-child{
+            margin-bottom: 0;
+        }
+
+        body.page-send-sms .duplicate-details{
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        body.page-send-sms .duplicate-list{
+            margin-top: 0.75rem;
+        }
+
+        body.page-send-sms .duplicate-item{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        body.page-send-sms .duplicate-item:last-child{
+            border-bottom: none;
+        }
+
+        body.page-send-sms .duplicate-name{
+            font-weight: 500;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .duplicate-phone{
+            color: #666;
+        }
+
+        body.page-send-sms .duplicate-normalized{
+            font-size: 0.85rem;
+            color: #999;
+            font-family: monospace;
+        }
+
+        /* Blacklist styles */
+        body.page-send-sms .blacklist-summary{
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: #ffebee;
+            border: 1px solid #e57373;
+            border-radius: 8px;
+        }
+
+        body.page-send-sms .blacklist-alert{
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        body.page-send-sms .blacklist-alert svg{
+            width: 24px;
+            height: 24px;
+            color: #c62828;
+        }
+
+        body.page-send-sms .blacklist-info{
+            flex: 1;
+            font-weight: 600;
+            color: #b71c1c;
+        }
+
+        body.page-send-sms .blacklist-details{
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        body.page-send-sms .blacklist-list{
+            margin-top: 0.75rem;
+        }
+
+        body.page-send-sms .blacklist-item{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        body.page-send-sms .blacklist-item:last-child{
+            border-bottom: none;
+        }
+
+        body.page-send-sms .blacklist-name{
+            font-weight: 500;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .blacklist-phone{
+            color: #666;
+        }
+
+        body.page-send-sms .blacklist-reason{
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        /* Import Preview Modal */
+        body.page-send-sms .import-preview-content{
+            margin-bottom: 1.5rem;
+        }
+
+        body.page-send-sms .column-mapping{
+            margin-bottom: 1.5rem;
+        }
+
+        body.page-send-sms .column-mapping h4{
+            margin-bottom: 1rem;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .mapping-row{
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        body.page-send-sms .mapping-row label{
+            font-weight: 600;
+            color: #666;
+            min-width: 100px;
+        }
+
+        body.page-send-sms .mapping-row select{
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        body.page-send-sms .preview-table-container{
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        body.page-send-sms .preview-table-container h4{
+            margin-bottom: 1rem;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .preview-table{
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        body.page-send-sms .preview-table th, body.page-send-sms .preview-table td{
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        body.page-send-sms .preview-table th{
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .preview-table tr:nth-child(even){
+            background-color: #fafafa;
+        }
+
+        body.page-send-sms .validation-status.valid{
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        body.page-send-sms .validation-status.invalid{
+            color: #c62828;
+            font-weight: 600;
+        }
+
+        /* Pre-Send Review Modal - Centered Professional Modal */
+        body.page-send-sms .pre-send-modal{
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        body.page-send-sms .pre-send-modal.active{
+            display: flex;
+        }
+
+        body.page-send-sms .pre-send-backdrop{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        body.page-send-sms .pre-send-review-content{
+            position: relative;
+            background-color: #fff;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        body.page-send-sms .pre-send-header{
+            flex-shrink: 0;
+            padding: 24px 32px 0 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        body.page-send-sms .pre-send-content{
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 32px;
+        }
+
+        body.page-send-sms .pre-send-footer{
+            flex-shrink: 0;
+            padding: 20px 32px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+            background: #fff;
+        }
+
+        /* Modal close button for centered modal */
+        body.page-send-sms .pre-send-header .modal-close{
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f3f4f6;
+            font-size: 20px;
+            color: #6b7280;
+            transition: all 0.2s ease;
+        }
+
+        body.page-send-sms .pre-send-header .modal-close:hover{
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        /* Pre-send modal header styling */
+        body.page-send-sms .pre-send-header .modal-icon{
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 12px;
+            background: linear-gradient(135deg, var(--ss-navy) 0%, #1a2540 100%);
+            border-radius: 14px;
+        }
+
+        body.page-send-sms .pre-send-header .modal-icon svg{
+            width: 24px;
+            height: 24px;
+        }
+
+        body.page-send-sms .pre-send-header h3{
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .pre-send-header p{
+            font-size: 0.95rem;
+            color: #6b7280;
+            margin: 0;
+        }
+
+        /* Confirmation Sections */
+        body.page-send-sms .confirmation-section{
+            margin-bottom: 24px;
+        }
+
+        body.page-send-sms .confirmation-section:last-child{
+            margin-bottom: 0;
+        }
+
+        body.page-send-sms .confirmation-section h4{
+            margin: 0 0 16px 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--ss-navy);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        body.page-send-sms .confirmation-section h4::before{
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: linear-gradient(135deg, var(--ss-orange) 0%, #e56a00 100%);
+            border-radius: 2px;
+        }
+
+        /* Campaign Summary */
+        body.page-send-sms .campaign-summary-section .confirmation-row{
+            padding: 8px 0;
+        }
+
+        body.page-send-sms .scheduled-datetime-row{
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #e2e8f0;
+        }
+
+        /* Recipients Stats as Cards */
+        body.page-send-sms .recipients-stats-row{
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        body.page-send-sms .recipient-stat-card{
+            flex: 1;
+            min-width: 80px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 16px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        body.page-send-sms .recipient-stat-card:hover{
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        body.page-send-sms .recipient-stat-card .stat-label{
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        body.page-send-sms .recipient-stat-card .stat-value{
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--ss-navy);
+            display: block;
+        }
+
+        body.page-send-sms .recipient-stat-card.valid .stat-value{
+            color: #22c55e;
+        }
+
+        body.page-send-sms .recipient-stat-card.invalid .stat-value, body.page-send-sms .recipient-stat-card.warning .stat-value{
+            color: #f59e0b;
+        }
+
+        /* Warning Alert Card */
+        body.page-send-sms .confirmation-warnings{
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        body.page-send-sms .warning-alert{
+            padding: 16px;
+            border-radius: 10px;
+            border-left: 4px solid;
+            background: #fffbeb;
+            border-color: #f59e0b;
+        }
+
+        body.page-send-sms .warning-alert.wallet-warning{
+            background: #fef2f2;
+            border-color: #ef4444;
+        }
+
+        /* Recipient Search */
+        body.page-send-sms .recipient-search-container{
+            margin-bottom: 12px;
+        }
+
+        body.page-send-sms .recipient-search-input{
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        body.page-send-sms .recipient-search-input:focus{
+            outline: none;
+            border-color: var(--ss-orange);
+            box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.1);
+        }
+
+        /* Recipient Preview */
+        body.page-send-sms .recipient-preview-scrollable{
+            max-height: 160px;
+            overflow-y: auto;
+        }
+
+        body.page-send-sms .recipient-preview-chips{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        body.page-send-sms .more-recipients-info{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f3f4f6;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        body.page-send-sms .btn-view-all-recipients{
+            background: white;
+            border: 1px solid var(--ss-orange);
+            color: var(--ss-orange);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        body.page-send-sms .btn-view-all-recipients:hover{
+            background: var(--ss-orange);
+            color: white;
+        }
+
+        /* Message Preview */
+        body.page-send-sms .confirm-message{
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 140px;
+            overflow-y: auto;
+            color: var(--ss-navy);
+        }
+
+        /* Personalization Preview */
+        body.page-send-sms .personalization-previews{
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        body.page-send-sms .personalization-preview-item{
+            background: #fefce8;
+            border: 1px solid #fef08a;
+            padding: 12px;
+            border-radius: 10px;
+        }
+
+        body.page-send-sms .personalization-preview-item .preview-recipient{
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .personalization-preview-item .preview-phone{
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-left: 6px;
+        }
+
+        body.page-send-sms .personalization-preview-item .preview-message{
+            font-size: 0.85rem;
+            color: #374151;
+            padding-top: 8px;
+            border-top: 1px solid #fef08a;
+            white-space: pre-wrap;
+            margin-top: 8px;
+        }
+
+        /* SMS Analysis Grid */
+        body.page-send-sms .sms-analysis-grid{
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        body.page-send-sms .analysis-item{
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 12px 16px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        body.page-send-sms .analysis-item.full-width{
+            grid-column: 1 / -1;
+        }
+
+        body.page-send-sms .analysis-label{
+            font-size: 0.85rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        body.page-send-sms .analysis-value{
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--ss-navy);
+        }
+
+        body.page-send-sms .analysis-value.cost-value{
+            color: var(--ss-orange);
+        }
+
+        /* Confirmation Rows */
+        body.page-send-sms .confirmation-row{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        body.page-send-sms .confirm-label{
+            font-size: 0.85rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        body.page-send-sms .confirm-value{
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--ss-navy);
+        }
+
+        /* Modal Footer Actions */
+        body.page-send-sms .pre-send-footer{
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        body.page-send-sms .pre-send-footer .btn-secondary{
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+        }
+
+        body.page-send-sms .pre-send-footer .btn-primary{
+            flex: 1;
+            min-width: 160px;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+        }
+
+        /* Spinner */
+        body.page-send-sms .send-spinner{
+            display: none;
+            animation: spin 1s linear infinite;
+            width: 18px;
+            height: 18px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Recipient Preview Chips */
+        body.page-send-sms .recipient-preview-chip{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #e5e7eb;
+            padding: 6px 10px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        body.page-send-sms .recipient-preview-chip .chip-name{
+            color: var(--ss-navy);
+            font-weight: 600;
+        }
+
+        body.page-send-sms .recipient-preview-chip .chip-phone{
+            color: #6b7280;
+        }
+
+/* No search results */
+        body.page-send-sms .no-search-results{
+            padding: 16px;
+            text-align: center;
+            color: #9ca3af;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+    
+/* ==========================================================================
+   Redesign enhancements (appended)
+   ========================================================================== */
+
+body.page-send-sms .dashboard-content {
+    padding: var(--ss-space-lg);
+}
+
+body.page-send-sms .welcome-section {
+    margin-bottom: var(--ss-space-lg);
+}
+
+body.page-send-sms .welcome-section h2 {
+    font-family: var(--ss-font-display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--ss-ink);
+    letter-spacing: -0.02em;
+    margin: 0 0 var(--ss-space-xs) 0;
+}
+
+body.page-send-sms .welcome-section .welcome-subtitle {
+    color: var(--ss-text);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+body.page-send-sms .sms-form-card {
+    background: var(--ss-surface);
+    border: 1px solid var(--ss-line);
+    border-radius: var(--ss-radius);
+    box-shadow: var(--ss-shadow-sm);
+    padding: var(--ss-space-xl);
+    margin-bottom: var(--ss-space-lg);
+}
+
+body.page-send-sms .section-title {
+    font-family: var(--ss-font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ss-ink);
+    letter-spacing: -0.01em;
+    margin: 0 0 var(--ss-space-md) 0;
+}
+
+body.page-send-sms .form-group label {
+    color: var(--ss-ink);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+body.page-send-sms .form-group input,
+body.page-send-sms .form-group select,
+body.page-send-sms .form-group textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--ss-line);
+    border-radius: var(--ss-radius-sm);
+    font-size: 1rem;
+    font-family: inherit;
+    background: var(--ss-surface-soft);
+    color: var(--ss-ink);
+    transition: border-color var(--ss-transition), box-shadow var(--ss-transition), background var(--ss-transition);
+}
+
+body.page-send-sms .form-group input:focus,
+body.page-send-sms .form-group select:focus,
+body.page-send-sms .form-group textarea:focus {
+    outline: none;
+    border-color: var(--ss-orange);
+    box-shadow: 0 0 0 3px var(--ss-orange-soft);
+    background: var(--ss-surface);
+}
+
+body.page-send-sms .form-group input:focus-visible,
+body.page-send-sms .form-group select:focus-visible,
+body.page-send-sms .form-group textarea:focus-visible,
+body.page-send-sms button:focus-visible {
+    outline: 3px solid rgba(247, 127, 0, 0.35);
+    outline-offset: 2px;
+}
+
+body.page-send-sms button {
+    border-radius: var(--ss-radius-sm);
+    transition: transform var(--ss-transition), box-shadow var(--ss-transition), background var(--ss-transition);
+}
+
+body.page-send-sms .btn-primary {
+    background: var(--ss-orange);
+    color: var(--ss-surface);
+    border: none;
+    font-weight: 700;
+    box-shadow: 0 4px 12px var(--ss-orange-soft);
+}
+
+body.page-send-sms .btn-primary:hover {
+    background: var(--ss-orange-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px var(--ss-orange-soft);
+}
+
+body.page-send-sms .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+body.page-send-sms .btn-secondary {
+    background: var(--ss-surface-soft);
+    color: var(--ss-text);
+    border: 1.5px solid var(--ss-line);
+}
+
+body.page-send-sms .btn-secondary:hover {
+    background: var(--ss-line);
+    color: var(--ss-ink);
+}
+
+body.page-send-sms .tips-card {
+    background: var(--ss-surface);
+    border: 1px solid var(--ss-line);
+    border-radius: var(--ss-radius);
+    box-shadow: var(--ss-shadow-sm);
+    padding: var(--ss-space-lg);
+}
+
+body.page-send-sms .tips-card h3 {
+    font-family: var(--ss-font-display);
+    color: var(--ss-ink);
+}
+
+/* Modals */
+body.page-send-sms .modal {
+    background: rgba(11, 19, 43, 0.55);
+    backdrop-filter: blur(4px);
+}
+
+body.page-send-sms .modal-content,
+body.page-send-sms .pre-send-review-content,
+body.page-send-sms .contacts-modal-content,
+body.page-send-sms .preview-modal-content,
+body.page-send-sms .result-modal-content {
+    background: var(--ss-surface);
+    border-radius: var(--ss-radius);
+    box-shadow: var(--ss-shadow-lg);
+    border: 1px solid var(--ss-line);
+}
+
+body.page-send-sms .modal-header h3 {
+    font-family: var(--ss-font-display);
+    color: var(--ss-ink);
+}
+
+body.page-send-sms .modal-close {
+    border-radius: 50%;
+}
+
+/* Badges / validation */
+body.page-send-sms .valid,
+body.page-send-sms .validation-status.valid {
+    color: var(--ss-success);
+    background: rgba(21, 128, 61, 0.10);
+}
+
+body.page-send-sms .invalid,
+body.page-send-sms .validation-status.invalid {
+    color: var(--ss-danger);
+    background: rgba(220, 38, 38, 0.10);
+}
+
+body.page-send-sms .duplicate,
+body.page-send-sms .validation-status.duplicate {
+    color: var(--ss-warning);
+    background: rgba(217, 119, 6, 0.10);
+}
+
+/* Upload preview table */
+body.page-send-sms .preview-table-container,
+body.page-send-sms .preview-table {
+    border-radius: var(--ss-radius-sm);
+    overflow: hidden;
+}
+
+body.page-send-sms .preview-table th {
+    background: var(--ss-surface-soft);
+    color: var(--ss-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+body.page-send-sms .preview-table td {
+    color: var(--ss-text);
+}
+
+/* Cost estimate card */
+body.page-send-sms .cost-estimate,
+body.page-send-sms .char-counter-wrapper {
+    background: var(--ss-surface-soft);
+    border-radius: var(--ss-radius-sm);
+    padding: var(--ss-space-sm) var(--ss-space-md);
+}
+
+/* Empty / loading / error states */
+body.page-send-sms .empty-state,
+body.page-send-sms .loading-state,
+body.page-send-sms .loading-text {
+    color: var(--ss-muted);
+    text-align: center;
+    padding: var(--ss-space-lg);
+}
+
+body.page-send-sms .error-text {
+    color: var(--ss-danger);
+}
+
+body.page-send-sms .empty-state svg {
+    stroke: var(--ss-line);
+}
+
+/* Sticky right sidebar */
+@media (min-width: 992px) {
+    body.page-send-sms #sendSmsForm {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        column-gap: var(--ss-space-xl);
+        align-items: start;
+    }
+    body.page-send-sms .sms-form-right-sidebar {
+        position: sticky;
+        top: var(--ss-space-lg);
+    }
+    body.page-send-sms .live-preview-section {
+        position: sticky;
+        top: calc(var(--ss-space-lg) + 1rem);
+    }
+}
+
+/* Mobile: stack + bottom-sheet feel for modals */
+@media (max-width: 768px) {
+    body.page-send-sms .sms-form-card {
+        padding: var(--ss-space-md);
+    }
+    body.page-send-sms .modal-content {
+        width: calc(100% - 2rem);
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+    }
+}
