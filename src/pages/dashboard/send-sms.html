@@ -2512,14 +2512,15 @@ if (result.error) {
                btn.addEventListener('click', function() {
                    const mode = this.dataset.mode;
                    
-                   // Log preview dimensions before mode switch
-                   const previewSection = document.querySelector('.live-preview-section');
-                   const phoneMockup = document.querySelector('.phone-mockup');
-                   const phoneFrame = document.querySelector('.phone-frame');
-                   
-                   if (previewSection && phoneMockup && phoneFrame) {
-                       const previewWidth = previewSection.offsetWidth;
-                       const previewHeight = previewSection.offsetHeight;
+                    // Log preview dimensions before mode switch
+                    const previewSection = document.querySelector('.live-preview-section');
+                    const phoneMockup = document.querySelector('.phone-mockup');
+                    const phoneFrame = document.querySelector('.phone-frame');
+                    
+                    let previewWidth, previewHeight;
+                    if (previewSection && phoneMockup && phoneFrame) {
+                        previewWidth = previewSection.offsetWidth;
+                        previewHeight = previewSection.offsetHeight;
                        const mockupWidth = phoneMockup.offsetWidth;
                        const mockupHeight = phoneMockup.offsetHeight;
                        const frameWidth = phoneFrame.offsetWidth;
@@ -2575,10 +2576,11 @@ if (result.error) {
                    // Update cost estimation
                    updateCostEstimation();
                    
-                   // Log preview dimensions after mode switch
-                   if (previewSection && phoneMockup && phoneFrame) {
-                       const previewWidthAfter = previewSection.offsetWidth;
-                       const previewHeightAfter = previewSection.offsetHeight;
+                    // Log preview dimensions after mode switch
+                    let previewWidthAfter, previewHeightAfter;
+                    if (previewSection && phoneMockup && phoneFrame) {
+                        previewWidthAfter = previewSection.offsetWidth;
+                        previewHeightAfter = previewSection.offsetHeight;
                        const mockupWidthAfter = phoneMockup.offsetWidth;
                        const mockupHeightAfter = phoneMockup.offsetHeight;
                        const frameWidthAfter = phoneFrame.offsetWidth;
@@ -3625,13 +3627,14 @@ if (result.error) {
         
         // Debounced live preview update
         let previewUpdateTimeout;
+        let previewSrTimeout;
         function schedulePreviewUpdate() {
             clearTimeout(previewUpdateTimeout);
             previewUpdateTimeout = setTimeout(renderLivePreview, 150);
         }
         
         // Centralized live preview renderer
-        function renderLivePreview() {
+        function renderLivePreview(initial = false) {
             console.log('[LivePreview] Rendering preview...');
             const activeModeBtn = document.querySelector('.messaging-mode-tabs .tab-btn.active');
             const isPersonalizedMode = activeModeBtn && activeModeBtn.dataset.mode === 'personalized';
@@ -3657,12 +3660,24 @@ if (result.error) {
             const messageTimeEl = document.getElementById('previewMessageTime');
             const containerEl = document.getElementById('previewMessagesContainer');
             const wrapperEl = document.getElementById('mobilePreviewWrapper');
-            
+            const avatarEl = document.getElementById('previewAvatar');
+            const contextEl = document.getElementById('previewContext');
+            const contextNameEl = document.querySelector('.sp-preview-context-name');
+
             if (!previewTextEl || !containerEl) return;
-            
+
             // Update sender ID in header
             if (headerSenderEl) {
-                headerSenderEl.textContent = senderId || 'Sender ID';
+                if (senderId) {
+                    headerSenderEl.textContent = senderId;
+                    headerSenderEl.classList.remove('sp-sender-empty');
+                } else {
+                    headerSenderEl.textContent = 'Select a sender ID';
+                    headerSenderEl.classList.add('sp-sender-empty');
+                }
+            }
+            if (avatarEl) {
+                avatarEl.textContent = senderId ? senderId.charAt(0).toUpperCase() : '\u2022';
             }
             
             // Update time (current time)
@@ -3670,7 +3685,22 @@ if (result.error) {
             const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
             if (headerTimeEl) headerTimeEl.textContent = timeString;
             if (messageTimeEl) messageTimeEl.textContent = timeString;
-            
+
+            // Personalized preview context: "Previewing as: <first contact name>"
+            if (contextEl) {
+                if (isPersonalizedMode) {
+                    const firstRecipient = getFirstRecipient();
+                    if (firstRecipient && firstRecipient.recipientName) {
+                        if (contextNameEl) contextNameEl.textContent = firstRecipient.recipientName;
+                        contextEl.style.display = 'block';
+                    } else {
+                        contextEl.style.display = 'none';
+                    }
+                } else {
+                    contextEl.style.display = 'none';
+                }
+            }
+
             // Determine the message to display
             let displayMessage = '';
             let recipientName = '';
@@ -3687,18 +3717,20 @@ if (result.error) {
                     recipientName = 'Unknown Recipient';
                 }
                 
-                // Replace {{name}} and {{salutation}} placeholders
-                displayMessage = messageBody
-                    .replace(/\{\{name\}\}/g, recipientName)
-                    .replace(/\{\{salutation\}\}/g, finalSalutation);
-                
-                // If message doesn't start with salutation, prepend it
-                if (!displayMessage.startsWith(finalSalutation)) {
-                    displayMessage = `${finalSalutation} ${recipientName}, ${displayMessage}`;
+                if (messageBody) {
+                    // Replace {{name}} and {{salutation}} placeholders
+                    displayMessage = messageBody
+                        .replace(/\{\{name\}\}/g, recipientName)
+                        .replace(/\{\{salutation\}\}/g, finalSalutation);
+
+                    // If message doesn't start with salutation, prepend it
+                    if (!displayMessage.startsWith(finalSalutation)) {
+                        displayMessage = `${finalSalutation} ${recipientName}, ${displayMessage}`;
+                    }
                 }
             } else {
                 // Default mode: show the message as-is
-                displayMessage = messageBody || 'Your message will appear here...';
+                displayMessage = messageBody || '';
             }
             
             // Log formatting details
@@ -3712,20 +3744,205 @@ if (result.error) {
                 preview: JSON.stringify(displayMessage).substring(0, 100)
             });
             
-            // Update preview with animation
-            if (wrapperEl) wrapperEl.classList.add('preview-updating');
-            console.log('[LivePreview] Updating preview text element');
-            
-            setTimeout(() => {
+            // Update preview with a 150ms fade on bubble text changes (disabled under prefers-reduced-motion)
+            if (!initial && wrapperEl) wrapperEl.classList.add('preview-updating');
+
+            const render = () => {
                 if (previewTextEl) {
-                    previewTextEl.textContent = displayMessage;
-                    console.log('[LivePreview] Text updated successfully');
+                    if (!displayMessage || !displayMessage.trim()) {
+                        previewTextEl.textContent = 'Your message will appear here';
+                        previewTextEl.classList.add('sp-preview-placeholder');
+                    } else {
+                        previewTextEl.classList.remove('sp-preview-placeholder');
+                        renderBubbleTextSafe(displayMessage, previewTextEl);
+                    }
                 }
+
+                // Read the page's existing calculation elements for the summary card
+                const stats = updatePreviewSummary();
+
+                // Debounced screen-reader summary: 800ms after typing stops
+                const srEl = document.getElementById('previewScreenReader');
+                clearTimeout(previewSrTimeout);
+                previewSrTimeout = setTimeout(() => {
+                    if (srEl) srEl.textContent = `Preview updated: ${stats.charCount} characters, ${stats.segments} segments`;
+                }, 800);
+
                 if (wrapperEl) wrapperEl.classList.remove('preview-updating');
-                console.log('[LivePreview] Render complete');
-            }, 100);
+            };
+
+            if (initial) {
+                render();
+            } else {
+                setTimeout(render, 150);
+            }
+        }
+
+        // Render bubble text safely: user text is inserted with textContent only.
+        // {{merge}} tokens and URL-looking text get presentational spans (never links, never HTML).
+        function renderBubbleTextSafe(text, targetEl) {
+            targetEl.textContent = '';
+            const tokenOrUrl = /(\{\{[^}]*\}\}|\{[^}]*\}|https?:\/\/[\w\-~:/?#\[\]@!$&'()*+,;=.]+)/g;
+            const frag = document.createDocumentFragment();
+            let lastIndex = 0;
+            let match;
+            while ((match = tokenOrUrl.exec(text)) !== null) {
+                if (match.index > lastIndex) {
+                    frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+                }
+                const span = document.createElement('span');
+                span.className = match[0].startsWith('{') ? 'sp-preview-token' : 'sp-preview-url';
+                span.textContent = match[0];
+                frag.appendChild(span);
+                lastIndex = tokenOrUrl.lastIndex;
+            }
+            if (lastIndex < text.length) {
+                frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+            }
+            targetEl.appendChild(frag);
+        }
+
+        // Update the summary card, progress bar and notices from the page's EXISTING
+        // calculation elements (no second cost/segment calculation is written here).
+        function updatePreviewSummary() {
+            const charCountEl = document.getElementById('charCount');
+            const encodingTypeEl = document.getElementById('encodingType');
+            const smsCountEl = document.getElementById('smsCount');
+            const estimatedCostEl = document.getElementById('estimatedCost');
+
+            const charCount = charCountEl ? Number(charCountEl.textContent) || 0 : 0;
+            const segmentsRaw = smsCountEl ? smsCountEl.textContent : '1';
+            const segmentsMatch = String(segmentsRaw).match(/\d+/);
+            const segments = segmentsMatch ? Number(segmentsMatch[0]) : 1;
+            const encoding = encodingTypeEl ? encodingTypeEl.textContent : '—';
+            const encodingL = String(encoding).toLowerCase();
+            const recipientCount = typeof getRecipientCount === 'function' ? getRecipientCount() : 0;
+            const cost = estimatedCostEl ? estimatedCostEl.textContent : '—';
+
+            const set = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
+            set('previewCharCount', charCountEl ? charCountEl.textContent : '—');
+            set('previewSegments', smsCountEl ? smsCountEl.textContent : '—');
+            set('previewEncodingType', encodingTypeEl ? encodingTypeEl.textContent : '—');
+            set('previewRecipientCount', String(recipientCount));
+            set('previewEstimatedCost', estimatedCostEl ? estimatedCostEl.textContent : '—');
+
+            const limitEl = document.getElementById('previewCharLimit');
+            const progressEl = document.getElementById('previewProgress');
+            const isUnicode = encodingL === 'unicode';
+            const singleLimit = isUnicode ? 70 : 160;
+            const multiLimit = isUnicode ? 67 : 153;
+            if (limitEl) limitEl.textContent = `/${singleLimit}`;
+            let pct = 0;
+            if (segments <= 1) {
+                pct = charCount / singleLimit * 100;
+            } else {
+                const rest = Math.max(0, charCount - singleLimit);
+                const rem = rest % multiLimit;
+                const charsInSegment = rem === 0 ? multiLimit : rem;
+                pct = charsInSegment / multiLimit * 100;
+            }
+            if (progressEl) progressEl.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+
+            const noticesEl = document.getElementById('previewNotices');
+            if (noticesEl) {
+                noticesEl.textContent = '';
+                if (segments >= 2) {
+                    addPreviewNotice(noticesEl, '⚠️', `Your message uses ${segments} segments`);
+                }
+                if (isUnicode) {
+                    addPreviewNotice(noticesEl, 'ℹ️', 'Special characters or emoji switch this message to Unicode, which fits fewer characters per segment');
+                }
+            }
+
+            return { charCount, segments };
+        }
+
+        function addPreviewNotice(container, icon, text) {
+            const item = document.createElement('div');
+            item.className = 'sp-sms-preview-notice';
+            const ic = document.createElement('span');
+            ic.className = 'sp-sms-preview-notice-icon';
+            ic.textContent = icon;
+            const tx = document.createElement('span');
+            tx.className = 'sp-sms-preview-notice-text';
+            tx.textContent = text;
+            item.appendChild(ic);
+            item.appendChild(tx);
+            container.appendChild(item);
+        }
+
+        // Status-bar clock: ticks every minute so the preview stays current
+        let previewClockInterval;
+        function startPreviewClock() {
+            if (previewClockInterval) return;
+            previewClockInterval = setInterval(function() {
+                const now = new Date();
+                const t = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                const h = document.getElementById('previewHeaderTime');
+                const m = document.getElementById('previewMessageTime');
+                if (h) h.textContent = t;
+                if (m) m.textContent = t;
+            }, 60000);
+        }
+
+        // Responsive placement: desktop keeps the preview sticky in the right sidebar;
+        // under 768px it becomes a collapsible <details> after the message box.
+        let previewInMobilePosition = false;
+        function syncPreviewPlacement() {
+            const column = document.getElementById('previewDetails');
+            if (!column) return;
+            const details = column.querySelector('details');
+            if (!details) return;
+            const mobile = window.innerWidth < 768;
+            const composer = document.querySelector('.message-composer-section');
+            const sidebar = document.querySelector('.sms-form-right-sidebar');
+            if (mobile) {
+                details.removeAttribute('open');
+                if (!previewInMobilePosition && composer && composer.parentNode) {
+                    composer.parentNode.insertBefore(column, composer.nextSibling);
+                    previewInMobilePosition = true;
+                }
+            } else {
+                details.setAttribute('open', '');
+                if (previewInMobilePosition && sidebar) {
+                    sidebar.appendChild(column);
+                    previewInMobilePosition = false;
+                }
+            }
         }
         
+        // Fallback sticky pinning for the preview column. The page scrolls the
+        // document body, but the preview's nearest overflow ancestor does not scroll,
+        // so CSS position: sticky alone cannot pin the preview to the viewport top.
+        let previewNaturalTop = null;
+        function syncPreviewStickyPosition() {
+            const column = document.getElementById('previewDetails');
+            if (!column) return;
+            const desktop = window.matchMedia('(min-width: 1100px)').matches;
+            if (!desktop) {
+                column.style.position = '';
+                column.style.top = '';
+                column.style.width = '';
+                previewNaturalTop = null;
+                return;
+            }
+            const y = window.pageYOffset || document.documentElement.scrollTop || 0;
+            if (previewNaturalTop === null) previewNaturalTop = column.getBoundingClientRect().top + y;
+            const shouldFix = y > previewNaturalTop - 24;
+            if (shouldFix) {
+                column.style.position = 'fixed';
+                column.style.top = '24px';
+                column.style.width = `${Math.round(column.getBoundingClientRect().width)}px`;
+            } else {
+                column.style.position = '';
+                column.style.top = '';
+                column.style.width = '';
+            }
+        }
+
         // Get first recipient for preview
         function getFirstRecipient() {
             // Check manual recipients first
@@ -4053,8 +4270,25 @@ if (result.error) {
         document.addEventListener('DOMContentLoaded', function() {
             // Set up initial state
             updateModeDependentUI();
-            renderLivePreview();
-            
+            renderLivePreview(true);
+            startPreviewClock();
+            syncPreviewPlacement();
+            syncPreviewStickyPosition();
+            let previewResizeTimer;
+            let previewScrollTimer;
+            window.addEventListener('resize', function() {
+                previewNaturalTop = null;
+                clearTimeout(previewResizeTimer);
+                previewResizeTimer = setTimeout(function() {
+                    syncPreviewPlacement();
+                    syncPreviewStickyPosition();
+                }, 100);
+            });
+            window.addEventListener('scroll', function() {
+                clearTimeout(previewScrollTimer);
+                previewScrollTimer = setTimeout(syncPreviewStickyPosition, 50);
+            }, { passive: true });
+
             // Initial counters
             const messageBodyEl = document.getElementById('messageBody');
             if (messageBodyEl) {
