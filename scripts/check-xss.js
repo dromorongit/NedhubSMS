@@ -1,16 +1,18 @@
 // scripts/check-xss.js
 //
 // XSS regression test for the NedhubSMS frontend.
-// Serves src/ statically, intercepts every /api/** and external request,
-// answers with mock data in which EVERY string field holds an XSS payload,
-// loads every page, and asserts that no payload executes (window.__xss stays
-// undefined and no payload-created img/svg elements appear in the DOM).
+// Serves src/ AND a mock /api/** API on port 3000 (matching API_BASE_URL).
+// Every mock string field carries an XSS payload. Loads every page and
+// asserts no payload executes (window.__xss stays undefined and no
+// payload-created img/svg elements appear in the DOM).
 //
 // Usage: node scripts/check-xss.js
+//   SRC_DIR   - static root (default: <repo>/src)
+//   PORT      - port (default 3000)
+//   XSS_FILTER - comma list of labels to run (default all)
+//   XSS_PAYLOAD_MODE=deterministic - use '<img src=x onerror=...>' everywhere
 //
-// Requires Playwright + Chromium (usable from the temporary folder, e.g.
-// the sibling Nedhub/node_modules/playwright or via the PLAYWRIGHT_PATH env
-// var). Nothing is installed inside the repo.
+// Nothing is installed inside the repo; Playwright runs from the temp folder.
 
 'use strict';
 
@@ -20,7 +22,7 @@ const http = require('http');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const SRC_DIR = path.resolve(process.env.SRC_DIR || path.join(REPO_ROOT, 'src'));
-const PORT = parseInt(process.env.PORT || '31337', 10);
+const PORT = parseInt(process.env.PORT || '3000', 10);
 const BASE = `http://localhost:${PORT}`;
 const XSS_FILTER = process.env.XSS_FILTER ? process.env.XSS_FILTER.split(',').map(s => s.trim()).filter(Boolean) : null;
 
@@ -31,175 +33,44 @@ const PAYLOADS = [
   "' onmouseover='window.__xss=1",
   '\"><svg onload=window.__xss=1>'
 ];
-const MAIN_PAYLOAD = PAYLOADS[0];
-
-// ---------------------------------------------------------------------------
-// Playwright resolver (nothing is installed inside the repo).
-// ---------------------------------------------------------------------------
-function resolvePlaywright() {
-  const candidates = [
-    process.env.PLAYWRIGHT_PATH,
-    path.join(REPO_ROOT, 'node_modules', 'playwright'),
-    'C:\\Users\\Dromor Narh\\Desktop\\GithubRepos\\Nedhub\\node_modules\\playwright',
-    path.join(__dirname, '..', '..', 'Nedhub', 'node_modules', 'playwright')
-  ];
-  for (const c of candidates) {
-    if (!c) continue;
-    try {
-      return require(c);
-    } catch (e) {
-      // try next
-    }
-  }
-  try {
-    return require('playwright');
-  } catch (e) {
-    throw new Error('Playwright not found. Set PLAYWRIGHT_PATH or install playwright.');
-  }
-}
-const { chromium } = resolvePlaywright();
-
-// ---------------------------------------------------------------------------
-// Mock API data: every string field is an XSS payload.
-// ---------------------------------------------------------------------------
 function payload() {
   if (process.env.XSS_PAYLOAD_MODE === 'deterministic') return PAYLOADS[0];
+  if (process.env.XSS_PAYLOAD_MODE === 'normal') {
+    const normals = ["O'Brien", 'AT&T', 'He said "hi"', "D'Angelo & Co.", "it's fine", "50% off & free"];
+    return normals[Math.floor(Math.random() * normals.length)];
+  }
   return PAYLOADS[Math.floor(Math.random() * PAYLOADS.length)];
 }
 
-function mockPagination() {
-  return { page: 1, pages: 1, total: 2, limit: 20 };
-}
-
+function mockPagination() { return { page: 1, pages: 1, total: 2, limit: 20 }; }
 function mockUser() {
-  return {
-    _id: payload(),
-    name: payload(),
-    email: payload(),
-    phone: payload(),
-    role: 'admin',
-    status: 'active',
-    createdAt: payload()
-  };
+  return { _id: payload(), name: payload(), email: payload(), phone: payload(), role: 'admin', status: 'active', createdAt: payload() };
 }
-
 function mockTransaction() {
-  return {
-    _id: payload(),
-    type: payload(),
-    status: payload(),
-    description: payload(),
-    reference: payload(),
-    amount: 123.45,
-    createdAt: payload()
-  };
+  return { _id: payload(), type: payload(), status: payload(), description: payload(), reference: payload(), amount: 123.45, createdAt: payload() };
 }
-
 function mockContact() {
-  return {
-    _id: payload(),
-    recipientName: payload(),
-    phoneNumber: payload(),
-    groupName: payload(),
-    createdAt: payload()
-  };
+  return { _id: payload(), recipientName: payload(), phoneNumber: payload(), groupName: payload(), createdAt: payload() };
 }
-
 function mockSenderId() {
-  return {
-    _id: payload(),
-    senderId: payload(),
-    status: payload(),
-    remarks: payload(),
-    documentName: payload(),
-    createdAt: payload(),
-    userId: { _id: payload(), name: payload(), email: payload() }
-  };
+  return { _id: payload(), senderId: payload(), status: payload(), remarks: payload(), documentName: payload(), createdAt: payload(), userId: { _id: payload(), name: payload(), email: payload() } };
 }
-
 function mockCampaign() {
-  return {
-    _id: payload(),
-    name: payload(),
-    title: payload(),
-    senderId: payload(),
-    status: payload(),
-    messageBody: payload(),
-    recipientsCount: 50,
-    cost: 25.0,
-    deliveredCount: 40,
-    failedCount: 5,
-    queuedCount: 5,
-    estimatedCost: 25.0,
-    actualCost: 25.0,
-    createdAt: payload(),
-    scheduledAt: payload(),
-    sentAt: payload(),
-    failedCount: 0
-  };
+  return { _id: payload(), name: payload(), title: payload(), senderId: payload(), status: payload(), messageBody: payload(), recipientsCount: 50, cost: 25.0, deliveredCount: 40, failedCount: 5, queuedCount: 5, estimatedCost: 25.0, actualCost: 25.0, createdAt: payload(), scheduledAt: payload(), sentAt: payload(), failedCount: 0 };
 }
-
 function mockMessage() {
-  return {
-    _id: payload(),
-    message: payload(),
-    senderId: payload(),
-    recipient: payload(),
-    status: payload(),
-    source: 'new',
-    createdAt: payload()
-  };
+  return { _id: payload(), message: payload(), senderId: payload(), recipient: payload(), status: payload(), source: 'new', createdAt: payload() };
 }
-
 function mockApiKey() {
-  return {
-    keyId: payload(),
-    name: payload(),
-    prefix: payload(),
-    createdAt: payload(),
-    lastUsedAt: payload(),
-    revoked: false
-  };
+  return { keyId: payload(), name: payload(), prefix: payload(), createdAt: payload(), lastUsedAt: payload(), revoked: false };
 }
-
 function mockBlacklist() {
-  return {
-    _id: payload(),
-    phoneNumber: payload(),
-    reason: payload(),
-    source: payload(),
-    createdAt: payload()
-  };
+  return { _id: payload(), phoneNumber: payload(), reason: payload(), source: payload(), createdAt: payload() };
 }
 
-function mockResponse(extra) {
-  const data = {
-    pagination: mockPagination(),
-    user: mockUser(),
-    transactions: [mockTransaction(), mockTransaction()],
-    contacts: [mockContact(), mockContact()],
-    senderIds: [mockSenderId()],
-    campaigns: [mockCampaign(), mockCampaign()],
-    messages: [mockMessage(), mockMessage()],
-    messageHistory: [mockMessage()],
-    apiKeys: [mockApiKey()],
-    blacklist: [mockBlacklist()],
-    wallets: [{ userId: mockUser(), balance: 100, frozen: false, updatedAt: payload(), _id: payload() }],
-    total: 2,
-    totalVolume: 100,
-    totalCost: 50.0,
-    token: payload(),
-    newPassword: payload()
-  };
-  if (extra) Object.assign(data, extra);
-  return { data, error: null };
-}
-
-// Some endpoints expect `result.data` to be an array, others an object.
-// Route the mock by path so each page receives a shape it can render without
-// throwing (which would otherwise hide a real XSS).
 function mockForPath(pathname) {
-  const p = pathname.toLowerCase();
+  let p = pathname.toLowerCase();
+  if (p.startsWith('/api/')) p = p.slice(4); // strip /api prefix added by API_BASE_URL
   if (p === '/auth/verify') {
     return { data: { user: mockUser() }, error: null };
   }
@@ -227,11 +98,14 @@ function mockForPath(pathname) {
   if (p === '/admin/nalo/balance') {
     return { data: { balance: 100, currency: 'GHS' }, error: null };
   }
-  return mockResponse();
+  return {
+    data: { pagination: mockPagination(), user: mockUser(), transactions: [mockTransaction(), mockTransaction()], contacts: [mockContact(), mockContact()], senderIds: [mockSenderId()], campaigns: [mockCampaign(), mockCampaign()], messages: [mockMessage(), mockMessage()], apiKeys: [mockApiKey()], blacklist: [mockBlacklist()], wallets: [{ userId: mockUser(), balance: 100, frozen: false, updatedAt: payload(), _id: payload() }], token: payload(), newPassword: payload() },
+    error: null
+  };
 }
 
 // ---------------------------------------------------------------------------
-// Static file server for src/
+// Static file server for src/ + mock /api/**
 // ---------------------------------------------------------------------------
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, content) => {
@@ -249,64 +123,71 @@ function serveFile(res, filePath) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, BASE);
+  if (url.pathname.startsWith('/api/')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(mockForPath(url.pathname)));
+    return;
+  }
   let filePath = path.join(SRC_DIR, url.pathname);
   if (filePath === SRC_DIR || filePath.endsWith('/')) filePath = path.join(filePath, 'index.html');
   serveFile(res, filePath);
 });
 
 server.listen(PORT, () => {
-  console.log(`Static server on ${BASE}`);
+  console.log(`Server (static + mock API) on ${BASE} from ${SRC_DIR}`);
 });
+
+// ---------------------------------------------------------------------------
+// Playwright resolver (nothing installed inside the repo).
+// ---------------------------------------------------------------------------
+function resolvePlaywright() {
+  const candidates = [
+    process.env.PLAYWRIGHT_PATH,
+    path.join(REPO_ROOT, 'node_modules', 'playwright'),
+    'C:\\Users\\Dromor Narh\\Desktop\\GithubRepos\\Nedhub\\node_modules\\playwright',
+    path.join(__dirname, '..', '..', 'Nedhub', 'node_modules', 'playwright')
+  ];
+  for (const c of candidates) {
+    if (!c) continue;
+    try { return require(c); } catch (e) { /* try next */ }
+  }
+  try { return require('playwright'); } catch (e) {
+    throw new Error('Playwright not found. Set PLAYWRIGHT_PATH.');
+  }
+}
+const { chromium } = resolvePlaywright();
 
 // ---------------------------------------------------------------------------
 // Test runner
 // ---------------------------------------------------------------------------
 const results = [];
 
-function injectGuard(page) {
-  return page.addInitScript(() => {
-    window.__xss = undefined;
-  });
-}
-
 async function checkPage(context, label, pageUrl, opts = {}) {
   const page = await context.newPage();
   const errors = [];
   let xssExecuted = false;
   let payloadElements = 0;
-  let consoleErrs = [];
+  const script404s = [];
 
   page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrs.push(msg.text());
+    if (msg.type() === 'error') {
+      const t = msg.text();
+      // Track script-load failures separately so we don't report a page as
+      // tested when its escaping logic never ran. Ignore asset/font/API errors.
+      if (t.includes('Failed to load resource') && t.endsWith('.js)')) {
+        script404s.push(t);
+      }
+    }
   });
   page.on('pageerror', (e) => { errors.push('pageerror: ' + e.message); });
 
-  // Mock every /api/** request and abort other external (non-same-origin)
-  // requests so no live API/provider calls are made.
-  await page.route('**/api/**', async (route) => {
-    try {
-      let url = '';
-      const req = typeof route.request === 'function' ? route.request() : route.request;
-      if (req && typeof req.url === 'function') url = req.url();
-      else if (req && req.url) url = String(req.url);
-      let pathname = '';
-      try { pathname = new URL(url).pathname; } catch (e) { pathname = url; }
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockForPath(pathname))
-      });
-    } catch (e) {
-      await route.abort();
-    }
-  });
+  // Abort external (non-same-origin) requests so no live API/provider calls.
   await page.route((r) => {
     let u = '';
     if (typeof r.url === 'function') u = r.url();
-    else if (r.url) u = String(r.url);
     else if (typeof r.request === 'function' && r.request() && typeof r.request().url === 'function') u = r.request().url();
-    else u = String(r);
-    return u.startsWith('http') && !u.startsWith(BASE) && !u.startsWith('http://localhost:31337');
+    else if (r.request) u = String(r.request.url || r.request);
+    return u.startsWith('http') && !u.startsWith(BASE);
   }, async (route) => {
     await route.abort();
   });
@@ -322,16 +203,13 @@ async function checkPage(context, label, pageUrl, opts = {}) {
     errors.push(`navigation failed: ${e.message}`);
   }
 
-  // Wait for the page to settle (api mocks resolve and onerror/onload fire).
   await page.waitForTimeout(2500);
 
-  // Open modals / click tabs / pagination the mock enables.
   if (opts.interact) {
     try { await opts.interact(page); } catch (e) { errors.push(`interaction: ${e.message}`); }
     await page.waitForTimeout(1200);
   }
 
-  // Evaluate in page context.
   const evalRes = await page.evaluate(() => {
     const xss = window.__xss;
     const imgs = document.querySelectorAll("img[src='x'], img[src=\"x\"]").length;
@@ -339,7 +217,6 @@ async function checkPage(context, label, pageUrl, opts = {}) {
     const text = document.body ? document.body.textContent || '' : '';
     return { xss, imgs, svgs, text };
   });
-  console.log('DEBUG-EVAL', label, 'xss=', evalRes.xss, 'imgs=', evalRes.imgs, 'svgs=', evalRes.svgs, 'url=', pageUrl);
 
   if (evalRes.xss) {
     xssExecuted = true;
@@ -353,8 +230,10 @@ async function checkPage(context, label, pageUrl, opts = {}) {
     payloadElements += evalRes.svgs;
     errors.push(`${evalRes.svgs} payload svg[onload] element(s) in DOM`);
   }
+  if (script404s.length > 0) {
+    errors.push(`script load failure(s): ${script404s.join('; ')}`);
+  }
 
-  // Payload text should be visible as plain (escaped) text, not executed.
   const payloadVisible = evalRes.text.includes('window.__xss=1') || evalRes.text.includes('<img') || evalRes.text.includes('<svg');
   const normalOk = evalRes.text.includes('O\'Brien') || evalRes.text.includes('AT&T') || evalRes.text.includes('&quot;');
 
@@ -366,22 +245,17 @@ async function checkPage(context, label, pageUrl, opts = {}) {
 }
 
 async function interactSendSms(page) {
-  // open sender id modal / contacts picker if present
   const btn = await page.$('#createSenderIdBtn');
   if (btn) await btn.click();
   await page.waitForTimeout(400);
 }
-
 async function interactAdmin(page) {
-  // click through admin tabs
   for (const pageName of ['users', 'wallets', 'sender-ids', 'campaigns', 'system']) {
     const item = await page.$(`[data-page="${pageName}"]`);
     if (item) { await item.click(); await page.waitForTimeout(400); }
   }
 }
-
 async function interactReports(page) {
-  // pagination next if present
   const next = await page.$('.page-btn');
   if (next) { await next.click(); await page.waitForTimeout(400); }
 }
@@ -414,7 +288,6 @@ async function run() {
     { label: 'dashboard/payment-cancelled', url: `${BASE}/pages/dashboard/payment-cancelled.html` },
   ];
 
-  // Admin page needs an admin token and /auth/verify mock returning admin role.
   await context.addInitScript(() => {
     localStorage.setItem('authToken', 'admin-token');
   });
@@ -428,9 +301,6 @@ async function run() {
   await browser.close();
   server.close();
 
-  // ---------------------------------------------------------------------------
-  // Summary
-  // ---------------------------------------------------------------------------
   const pass = results.filter(r => r.status === 'PASS').length;
   const fail = results.filter(r => r.status === 'FAIL').length;
   console.log('\n================ XSS CHECK SUMMARY ================');
