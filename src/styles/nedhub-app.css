@@ -1,0 +1,598 @@
+/* ==========================================================================
+   nedhub-app.css — Nedhub app design-system overlay
+   ==========================================================================
+   Load AFTER main.css, dashboard.css, auth.css, responsive.css.
+   No markup or JavaScript changes.
+   
+   `!important` is used ONLY where a page-level inline <style> block (which
+   loads after this sheet) forces a conflicting colour. Each use is listed
+   at the end of this file.
+   ========================================================================== */
+
+:root {
+    --nh-navy: #0B132B;
+    --nh-navy-2: #1C2541;
+    --nh-orange: #F77F00;
+    --nh-orange-dark: #E56A00;
+    --nh-paper: #F4F6F8;
+    --nh-white: #fff;
+    --nh-muted: #46526b;
+    --nh-line: #dde3ec;
+    --nh-ink: #0B132B;
+    --nh-success: #0A6B3D;
+    --nh-error: #B3261E;
+    --nh-info: #1C5FA8;
+    --nh-success-tint: #e9f7ee;
+    --nh-error-tint: #fdece9;
+    --nh-info-tint: #e8f2fb;
+    --nh-navy-tint: #eef1f6;
+    --nh-radius: 16px;
+    --nh-radius-btn: 10px;
+    --nh-focus-ring: 3px solid var(--nh-orange);
+    --nh-font: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
+}
+
+/* --- Typography ---------------------------------------------------------- */
+html { font-size: 16px; }
+body {
+    font-family: var(--nh-font);
+    color: var(--nh-ink);
+    background-color: var(--nh-paper);
+}
+input, button, select, textarea { font-family: var(--nh-font); }
+
+/* --- Buttons ------------------------------------------------------------- */
+/* !important [1]: inline <style> blocks force gradient orange + white text. */
+.btn-primary,
+.btn-topup {
+    background: var(--nh-orange) !important;
+    color: var(--nh-navy) !important;
+    border: none;
+    border-radius: var(--nh-radius-btn);
+    min-height: 44px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.btn-primary:hover,
+.btn-topup:hover,
+.btn-primary:focus-visible,
+.btn-topup:focus-visible {
+    background: var(--nh-orange-dark) !important;
+}
+.btn-primary:focus-visible,
+.btn-topup:focus-visible {
+    outline: var(--nh-focus-ring);
+    outline-offset: 2px;
+}
+.btn-primary:disabled,
+.btn-topup:disabled {
+    background: #c9c9c9 !important;
+    color: #fff !important;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Filled secondary: navy background, white text. */
+.btn-secondary {
+    background: var(--nh-navy) !important;
+    color: var(--nh-white) !important;
+    border: none;
+    border-radius: var(--nh-radius-btn);
+    min-height: 44px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.btn-secondary:hover,
+.btn-secondary:focus-visible {
+    background: var(--nh-navy-2) !important;
+}
+.btn-secondary:focus-visible {
+    outline: var(--nh-focus-ring);
+    outline-offset: 2px;
+}
+.btn-secondary:disabled {
+    background: #3d4a5f !important;
+    color: #fff !important;
+    cursor: not-allowed;
+}
+
+/* Outline variant. */
+.btn-outline {
+    background: transparent;
+    color: var(--nh-navy);
+    border: 2px solid var(--nh-navy);
+    border-radius: var(--nh-radius-btn);
+    min-height: 44px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.btn-outline:hover,
+.btn-outline:focus-visible {
+    background: var(--nh-navy-tint);
+    border-color: var(--nh-orange);
+}
+.btn-outline:focus-visible {
+    outline: var(--nh-focus-ring);
+    outline-offset: 2px;
+}
+
+/* Ghost variant. */
+.btn-ghost {
+    background: transparent;
+    color: var(--nh-navy);
+    border: none;
+    border-radius: var(--nh-radius-btn);
+    min-height: 44px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.btn-ghost:hover,
+.btn-ghost:focus-visible { background: var(--nh-navy-tint); }
+.btn-ghost:focus-visible {
+    outline: var(--nh-focus-ring);
+    outline-offset: 2px;
+}
+
+/* Danger. */
+.btn-danger {
+    background: var(--nh-error);
+    color: var(--nh-white);
+    border: none;
+    border-radius: var(--nh-radius-btn);
+    min-height: 44px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.btn-danger:hover,
+.btn-danger:focus-visible { background: #9a1e18 !important; }
+.btn-danger:focus-visible {
+    outline: var(--nh-focus-ring);
+    outline-offset: 2px;
+}
+.btn-danger:disabled { background: #d9a3a0 !important; color: #fff !important; cursor: not-allowed; }
+
+/* Pagination buttons. */
+.pagination-btn {
+    background: var(--nh-orange);
+    color: var(--nh-navy);
+    border: none;
+    border-radius: var(--nh-radius-btn);
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.pagination-btn:hover,
+.pagination-btn:focus-visible { background: var(--nh-orange-dark); }
+.pagination-btn:focus-visible {
+    outline: var(--nh-focus-ring);
+    outline-offset: 2px;
+}
+.pagination-btn:disabled {
+    background: #c9c9c9 !important;
+    color: var(--nh-navy) !important;
+    cursor: not-allowed;
+}
+
+/* Generic focus-visible outline (orange). */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+[type="button"]:focus-visible,
+[type="submit"]:focus-visible {
+    outline: var(--nh-focus-ring);
+    outline-offset: 2px;
+}
+
+/* --- Surfaces ------------------------------------------------------------ */
+.stat-card,
+.wallet-card,
+.form-card,
+.transactions-section,
+.contacts-card,
+.bundle-card,
+.import-summary,
+.contact-item-modal {
+    background-color: var(--nh-white);
+    color: var(--nh-ink);
+    border: 1px solid var(--nh-line);
+    border-radius: var(--nh-radius);
+    box-shadow: none;
+}
+.wallet-card {
+    background: var(--nh-navy);
+    color: var(--nh-white);
+    border: 1px solid var(--nh-navy-2);
+    border-radius: var(--nh-radius);
+    box-shadow: none;
+}
+.wallet-card .balance-amount,
+.wallet-card .balance-currency,
+.wallet-card .wallet-info h3,
+.wallet-card .wallet-subtitle { color: var(--nh-white); }
+.wallet-card .wallet-subtitle { color: rgba(255, 255, 255, 0.8); }
+.wallet-card::before {
+    background: radial-gradient(circle, rgba(247, 127, 0, 0.15) 0%, transparent 70%);
+}
+
+/* --- Stat cards ---------------------------------------------------------- */
+.stat-icon, .stat-icon svg { color: var(--nh-navy); }
+.sms-icon { background: var(--nh-info-tint); color: var(--nh-info); }
+.sent-icon { background: var(--nh-success-tint); color: var(--nh-success); }
+.delivery-icon { background: #fdf3e7; color: var(--nh-orange-dark); }
+.stat-content h3 { color: var(--nh-muted); }
+.stat-value, .stat-label { color: var(--nh-ink); }
+.stat-label { color: var(--nh-muted); }
+
+/* --- Tables -------------------------------------------------------------- */
+.table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.transactions-table,
+.contacts-table,
+.preview-table { width: 100%; border-collapse: collapse; min-width: 0; }
+.transactions-table th,
+.contacts-table th,
+.preview-table th {
+    background-color: var(--nh-paper);
+    color: var(--nh-muted);
+    border: 1px solid var(--nh-line);
+    border-bottom: 2px solid var(--nh-line);
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.transactions-table td,
+.contacts-table td,
+.preview-table td {
+    border-bottom: 1px solid var(--nh-line);
+    color: var(--nh-ink);
+    font-size: 0.95rem;
+    padding: 1rem;
+    vertical-align: middle;
+}
+.transactions-table tbody tr:hover,
+.contacts-table tbody tr:hover,
+.preview-table tbody tr:hover { background-color: var(--nh-navy-tint); }
+.preview-table thead { position: sticky; top: 0; z-index: 10; }
+
+/* --- Status badges & tx-type labels -------------------------------------- */
+.status-badge,
+.tx-type,
+.validation-status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+.status-badge { padding: 0.25rem 0.75rem; font-size: 0.75rem; }
+.tx-type { padding: 0.25rem 0.75rem; font-size: 0.8rem; }
+.validation-status { padding: 0.25rem 0.625rem; font-size: 0.7rem; }
+.validation-status svg { width: 12px; height: 12px; flex-shrink: 0; }
+.status-badge.queued,
+.status-badge.draft,
+.status-badge.cancelled { background: var(--nh-navy-tint); color: var(--nh-muted); }
+.status-badge.delivered { background: var(--nh-success-tint); color: var(--nh-success); }
+.status-badge.sent { background: var(--nh-info-tint); color: var(--nh-info); }
+.status-badge.scheduled { background: #fdf0fd; color: #7b1fa2; }
+.status-badge.processing { background: #fdf3e7; color: var(--nh-orange-dark); }
+.status-badge.failed,
+.status-badge.partial_success { background: var(--nh-error-tint); color: var(--nh-error); }
+.tx-type.credit { background: var(--nh-success-tint); color: var(--nh-success); }
+.tx-type.debit { background: var(--nh-error-tint); color: var(--nh-error); }
+.validation-status.valid { background: var(--nh-success-tint); color: var(--nh-success); border: 1px solid var(--nh-success); }
+.validation-status.invalid { background: var(--nh-error-tint); color: var(--nh-error); border: 1px solid var(--nh-error); }
+.text-success { color: var(--nh-success); }
+.text-danger { color: var(--nh-error); }
+
+/* --- Forms --------------------------------------------------------------- */
+.form-group { margin-bottom: 1.5rem; }
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--nh-navy);
+    font-size: 1rem;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--nh-line);
+    border-radius: var(--nh-radius-btn);
+    font-size: 16px;
+    color: var(--nh-ink);
+    background-color: var(--nh-white);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.form-group input::placeholder { color: var(--nh-muted); }
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.input-wrapper input:focus,
+.contacts-search input:focus,
+.mapping-row select:focus {
+    border-color: var(--nh-orange);
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.2);
+    outline: var(--nh-focus-ring);
+    outline-offset: 2px;
+}
+.form-group small,
+.form-group .form-hint { color: var(--nh-muted); font-size: 0.85rem; }
+.form-group .form-hint a {
+    color: var(--nh-navy);
+    text-decoration: underline;
+    text-decoration-color: var(--nh-orange);
+}
+.input-wrapper input { padding-left: 2rem; }
+.currency-symbol, .input-prefix { color: var(--nh-muted); }
+
+/* --- OTP inputs ---------------------------------------------------------- */
+/* !important [2]: page inline <style> blocks force #667eea / #e74c3c. */
+.otp-input-container {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+.otp-input {
+    width: 56px;
+    height: 64px;
+    min-height: 64px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 600;
+    border: 2px solid var(--nh-line);
+    border-radius: var(--nh-radius-btn);
+    background-color: var(--nh-white);
+    color: var(--nh-ink);
+}
+.otp-input:focus {
+    border-color: var(--nh-orange) !important;
+    box-shadow: 0 0 0 4px rgba(247, 127, 0, 0.2) !important;
+    outline: var(--nh-focus-ring) !important;
+    outline-offset: 2px;
+}
+.otp-input.filled {
+    border-color: var(--nh-orange) !important;
+    background-color: var(--nh-navy-tint) !important;
+}
+
+/* --- Modals -------------------------------------------------------------- */
+.modal { background-color: rgba(11, 19, 43, 0.6); }
+.modal-content {
+    background-color: var(--nh-white);
+    color: var(--nh-ink);
+    border-radius: var(--nh-radius);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+.modal-close { color: var(--nh-muted); }
+.modal-close:hover { color: var(--nh-ink); }
+.modal-header h3 { color: var(--nh-navy); }
+.modal-header p { color: var(--nh-muted); }
+
+/* --- Toasts -------------------------------------------------------------- */
+.toast { color: var(--nh-white); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+.toast-success { background: var(--nh-success); }
+.toast-error { background: var(--nh-error); }
+.toast-info { background: var(--nh-info); }
+
+/* --- Sidebar & top bar --------------------------------------------------- */
+.sidebar-nav a { color: rgba(255, 255, 255, 0.85); text-decoration: none; }
+.sidebar-nav a:hover { background: var(--nh-navy-2); color: var(--nh-white); }
+.sidebar-nav a.active {
+    background: var(--nh-navy-2);
+    color: var(--nh-white);
+    border-left: 4px solid var(--nh-orange);
+    transform: none;
+}
+.top-nav {
+    background-color: var(--nh-white);
+    border-bottom: 1px solid var(--nh-line);
+    box-shadow: none;
+}
+.top-nav, .user-info, #userName { color: var(--nh-ink); }
+.user-avatar { background: var(--nh-orange); color: var(--nh-navy); box-shadow: none; }
+.logout-btn { color: var(--nh-muted); }
+.logout-btn:hover { background-color: var(--nh-navy-tint); color: var(--nh-navy); }
+
+/* !important [3]: page inline/earlier rules force #e74c3c logout hover. */
+body .sidebar-logout a {
+    color: var(--nh-white) !important;
+    background: var(--nh-navy-2) !important;
+}
+body .sidebar-logout a:hover {
+    background: var(--nh-orange) !important;
+    color: var(--nh-navy) !important;
+}
+body .sidebar-logout a:hover .nav-icon { color: var(--nh-navy) !important; }
+
+/* --- Auth pages ---------------------------------------------------------- */
+.auth-page { min-height: 100vh; }
+.auth-form-section { background: var(--nh-white); }
+.auth-form-header h2,
+.auth-form-header h1 { font-family: var(--nh-font); font-weight: 800; color: var(--nh-navy); }
+.auth-form-header p { color: var(--nh-muted); }
+.auth-image-content h1 { font-family: var(--nh-font); font-weight: 800; color: var(--nh-white); }
+.auth-image-content p { color: var(--nh-white); }
+.feature-icon-item span { color: var(--nh-white); }
+.brand-badge { color: var(--nh-white); font-weight: 800; }
+
+/* Auth links: navy text, orange underline on hover. */
+.forgot-link,
+.auth-footer a,
+.terms-checkbox a { color: var(--nh-navy); text-decoration: none; }
+.forgot-link:hover,
+.auth-footer a:hover,
+.terms-checkbox a:hover {
+    color: var(--nh-navy);
+    text-decoration: underline;
+    text-decoration-color: var(--nh-orange);
+}
+
+/* Auth inputs: orange focus ring. */
+.input-wrapper input:focus {
+    border-color: var(--nh-orange);
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.2);
+    background-color: var(--nh-white);
+}
+.checkbox-wrapper input:checked + .checkmark { background: var(--nh-orange); border-color: var(--nh-orange); }
+
+/* Auth messages: colour + background in same rule, icon present. */
+.error-message,
+.alert-session-expired {
+    background: var(--nh-error-tint);
+    color: var(--nh-error);
+    border: 1px solid var(--nh-error);
+    border-radius: 10px;
+}
+.error-message svg,
+.alert-session-expired svg { stroke: var(--nh-error); flex-shrink: 0; }
+.success-message {
+    background: var(--nh-success-tint);
+    color: var(--nh-success);
+    border: 1px solid var(--nh-success);
+    border-radius: 10px;
+}
+.success-message svg { stroke: var(--nh-success); flex-shrink: 0; }
+
+/* !important [4]: page inline <style> blocks force #667eea. */
+.btn-link { color: var(--nh-navy) !important; }
+
+/* --- Misc components ----------------------------------------------------- */
+.view-all {
+    color: var(--nh-navy);
+    text-decoration: none;
+}
+.view-all:hover {
+    color: var(--nh-orange);
+    text-decoration: underline;
+    text-decoration-color: var(--nh-orange);
+}
+.quick-amount-btn {
+    background: var(--nh-white);
+    border: 2px solid var(--nh-line);
+    color: var(--nh-ink);
+}
+.quick-amount-btn:hover {
+    border-color: var(--nh-orange);
+    color: var(--nh-orange);
+    background: var(--nh-navy-tint);
+}
+.bundle-card {
+    background: var(--nh-white);
+    border: 2px solid var(--nh-line);
+}
+.bundle-card:hover { border-color: var(--nh-orange); }
+.bundle-card.selected {
+    border-color: var(--nh-orange) !important;
+    background: #fdf3e7 !important;
+}
+.bundle-card.selected .bundle-name,
+.bundle-card.selected .bundle-price { color: var(--nh-orange); }
+.filter-group label { color: var(--nh-muted); }
+.page-subtitle,
+.welcome-subtitle { color: var(--nh-muted); }
+
+/* --- Active tab states --------------------------------------------------- */
+/* !important [5]: page inline <style> blocks force orange active tabs. */
+.tab-btn.active,
+.settings-tab.active {
+    background: var(--nh-navy-2) !important;
+    color: var(--nh-white) !important;
+    border-color: var(--nh-navy-2) !important;
+}
+
+/* --- Muted / supporting text --------------------------------------------- */
+/* !important [6]: page inline <style> blocks force #999 / #666 muted text. */
+.settings-tab,
+.stat-label,
+.stat-mini-label,
+.table-count,
+.toggle-desc,
+.session-location,
+.text-muted,
+.form-hint,
+.page-subtitle,
+.welcome-subtitle,
+.section-header p,
+.empty-state,
+.empty-state span,
+.detail-date,
+input[type="date"] + span,
+.filter-group label,
+.currency-symbol,
+.input-prefix {
+    color: var(--nh-muted) !important;
+}
+
+/* Sidebar close button: visible × on the sidebar. */
+.sidebar-close-btn { color: var(--nh-navy) !important; }
+
+/* Download / action buttons forced light by inline <style>. */
+.btn-download {
+    background: var(--nh-navy) !important;
+    color: var(--nh-white) !important;
+    border: none;
+    border-radius: var(--nh-radius-btn);
+    min-height: 44px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+/* --- Loaders & empty states ---------------------------------------------- */
+.spinner { border-top-color: var(--nh-orange); }
+.empty-state { color: var(--nh-muted) !important; }
+.empty-state p { color: var(--nh-ink) !important; }
+
+/* --- Reduced motion ------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ==========================================================================
+   !important uses (each overrides a colour forced by a page-level inline
+   <style> block that loads after this sheet, or an inline style attribute):
+   [1] .btn-primary/.btn-topup background+color, :hover background,
+       :disabled background+color
+   [2] .otp-input:focus / .otp-input.filled border+background+outline
+   [3] .sidebar-logout a / :hover background+color, .nav-icon color
+   [4] .btn-link color
+   [5] .tab-btn.active / .settings-tab.active background+color+border-color
+   [6] muted-text selectors (.stat-label, .stat-mini-label, .table-count,
+       .toggle-desc, .session-location, .text-muted, .form-hint,
+       .page-subtitle, .welcome-subtitle, .empty-state, .filter-group label,
+       .currency-symbol, .input-prefix) color
+   ========================================================================== */
