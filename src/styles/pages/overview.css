@@ -1331,10 +1331,12 @@ body.page-overview #topupModal {
     backdrop-filter: blur(4px);
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: 16px;
 }
 
-body.page-overview #topupModal.active { display: flex; }
+body.page-overview #topupModal.active {
+    display: flex;
+}
 
 body.page-overview #topupModal .modal-backdrop {
     position: absolute;
@@ -1345,9 +1347,12 @@ body.page-overview #topupModal .modal-panel {
     position: relative;
     width: 100%;
     max-width: 440px;
+    max-height: calc(100dvh - 32px);
     background: var(--ov-surface);
     border-radius: 20px;
     box-shadow: 0 24px 64px rgba(11, 19, 43, 0.25);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     animation: ov-modal-in 0.2s ease;
 }
@@ -1370,12 +1375,13 @@ body.page-overview #topupModal .ov-topup-header {
     background: linear-gradient(135deg, var(--ov-navy), var(--ov-navy-soft));
     color: var(--ov-surface);
     text-align: left;
-    margin-bottom: 0;
+    margin: 0;
+    flex: 0 0 auto;
 }
 
 body.page-overview #topupModal .ov-topup-icon {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: rgba(247,127,0,0.18);
     display: flex;
@@ -1407,22 +1413,32 @@ body.page-overview #topupModal .ov-topup-header p {
 
 body.page-overview #topupModal .modal-close {
     position: static;
-    font-size: 1.5rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
     color: rgba(255,255,255,0.8);
     background: transparent;
     border: none;
+    border-radius: 8px;
     cursor: pointer;
     padding: 0;
     line-height: 1;
+    flex-shrink: 0;
 }
 
-body.page-overview #topupModal .modal-close:hover { color: var(--ov-surface); }
+body.page-overview #topupModal .modal-close:hover { color: var(--ov-surface); background: rgba(255,255,255,0.1); }
 
 body.page-overview #topupModal .modal-body {
     padding: var(--ov-space-lg) var(--ov-space-xl);
     display: flex;
     flex-direction: column;
     gap: var(--ov-space-md);
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 body.page-overview #topupModal .ov-topup-balance {
@@ -1444,23 +1460,36 @@ body.page-overview #topupModal .ov-amount-wrap {
 
 body.page-overview #topupModal .ov-amount-wrap .currency-symbol {
     position: absolute;
-    left: 1rem;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--ov-muted);
     pointer-events: none;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
 }
 
 body.page-overview #topupModal .ov-amount-input {
     width: 100%;
-    padding: 0.875rem 1rem 0.875rem 3.25rem;
+    padding: 0.875rem 1rem 0.875rem 64px;
     border: 2px solid var(--ov-line);
     border-radius: var(--ov-radius-sm);
     font-size: 28px;
     font-weight: 700;
     color: var(--ov-ink);
     font-family: var(--ov-font-display);
+    appearance: textfield;
     transition: border-color var(--ov-transition), box-shadow var(--ov-transition);
+}
+
+body.page-overview #topupModal .ov-amount-input::-webkit-outer-spin-button,
+body.page-overview #topupModal .ov-amount-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 body.page-overview #topupModal .ov-amount-input:focus {
@@ -1469,10 +1498,14 @@ body.page-overview #topupModal .ov-amount-input:focus {
     box-shadow: 0 0 0 4px rgba(247,127,0,0.15);
 }
 
+body.page-overview #topupModal .ov-amount-input::placeholder {
+    color: var(--ov-line);
+}
+
 body.page-overview #topupModal .ov-quick-amounts {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 8px;
     margin-top: 0.5rem;
 }
 
@@ -1505,6 +1538,9 @@ body.page-overview #topupModal .modal-footer {
     flex-direction: column;
     gap: var(--ov-space-sm);
     align-items: center;
+    flex: 0 0 auto;
+    border-top: 1px solid var(--ov-line);
+    background: var(--ov-surface);
 }
 
 body.page-overview #topupModal .ov-topup-submit {
@@ -1528,6 +1564,12 @@ body.page-overview #topupModal .ov-topup-submit {
 body.page-overview #topupModal .ov-topup-submit:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+body.page-overview #topupModal .ov-topup-submit svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--ov-surface);
 }
 
 body.page-overview #topupModal .ov-secure-note {
@@ -1565,8 +1607,17 @@ body.page-overview #topupModal .ov-cancel-btn:hover { color: var(--ov-ink); }
     body.page-overview #topupModal .modal-panel {
         max-width: 100%;
         border-radius: 20px 20px 0 0;
-        max-height: 90vh;
-        overflow-y: auto;
+        max-height: 92dvh;
+        width: 100%;
+        padding: 0;
+        animation: ov-sheet-up 0.25s ease;
+    }
+    @keyframes ov-sheet-up {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        body.page-overview #topupModal .modal-panel { animation: none; }
     }
     body.page-overview #topupModal .modal-panel::before {
         content: '';
@@ -1576,9 +1627,22 @@ body.page-overview #topupModal .ov-cancel-btn:hover { color: var(--ov-ink); }
         border-radius: 999px;
         background: var(--ov-line);
         margin: 0.5rem auto 0;
+        flex: 0 0 auto;
+    }
+    body.page-overview #topupModal .ov-topup-header {
+        padding: 12px 20px;
+    }
+    body.page-overview #topupModal .modal-body {
+        padding: 16px 20px;
+    }
+    body.page-overview #topupModal .modal-footer {
+        padding: 12px 20px calc(20px + env(safe-area-inset-bottom));
     }
     body.page-overview #topupModal .ov-quick-amounts {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
+    }
+    body.page-overview #topupModal .ov-quick-chip {
+        text-align: center;
     }
 }
