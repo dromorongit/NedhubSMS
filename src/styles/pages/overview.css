@@ -1,18 +1,14 @@
 /* ==========================================================================
-   Overview page — self-contained styles
-   - Every rule is scoped under body.page-overview; sidebar, top-nav and the
-     shared layout shell are never touched.
-   - Local design tokens only. Brand colors: navy #0B132B, orange #F77F00.
+   Overview page — self-contained styles (v2)
    ========================================================================== */
 
 body.page-overview {
-    /* Local design tokens */
     --ov-navy: #0B132B;
     --ov-navy-dark: #090D1E;
     --ov-navy-soft: #1B2A59;
     --ov-orange: #F77F00;
     --ov-orange-dark: #C96A00;
-    --ov-orange-soft: rgba(247, 127, 0, 0.10);
+    --ov-orange-soft: rgba(247, 127, 0, 0.12);
 
     --ov-ink: #0F172A;
     --ov-text: #334155;
@@ -39,7 +35,7 @@ body.page-overview {
 
     --ov-shadow-sm: 0 2px 8px rgba(11, 19, 43, 0.06);
     --ov-shadow: 0 8px 24px rgba(11, 19, 43, 0.08);
-    --ov-shadow-lg: 0 16px 48px rgba(11, 19, 43, 0.10);
+    --ov-shadow-lg: 0 16px 48px rgba(11, 19, 43, 0.12);
 
     --ov-transition: 0.25s ease;
 
@@ -48,29 +44,329 @@ body.page-overview {
 }
 
 /* --------------------------------------------------------------
-   Greeting header
+   Sidebar (scoped restyle)
    -------------------------------------------------------------- */
 
-body.page-overview .ov-welcome {
+body.page-overview .sidebar {
+    background: var(--ov-navy);
+    color: var(--ov-surface);
     display: flex;
     flex-direction: column;
+}
+
+body.page-overview .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--ov-space-md) var(--ov-space-lg);
+}
+
+body.page-overview .sidebar-logo {
+    max-height: 36px;
+}
+
+body.page-overview .sidebar-close-btn {
+    color: var(--ov-surface);
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+body.page-overview .sidebar-nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 0 var(--ov-space-sm);
+}
+
+body.page-overview .sidebar-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+body.page-overview .sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 1rem;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.72);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color var(--ov-transition), color var(--ov-transition), transform var(--ov-transition);
+}
+
+body.page-overview .sidebar-nav a:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--ov-surface);
+}
+
+body.page-overview .sidebar-nav a.active {
+    background: linear-gradient(135deg, var(--ov-orange), var(--ov-orange-dark));
+    color: var(--ov-surface);
+    box-shadow: 0 6px 16px rgba(247, 127, 0, 0.35);
+}
+
+body.page-overview .sidebar-nav a .nav-icon {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
+
+body.page-overview .sidebar-footer {
+    padding: var(--ov-space-md) var(--ov-space-lg) var(--ov-space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov-space-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.page-overview .sidebar-help-card {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--ov-radius-sm);
+    padding: var(--ov-space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov-space-xs);
+}
+
+body.page-overview .sidebar-help-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--ov-surface);
+    margin: 0;
+}
+
+body.page-overview .sidebar-help-text {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 0;
+}
+
+body.page-overview .sidebar-help-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: var(--ov-space-xs);
+    padding: 0.5rem 0.75rem;
+    border-radius: 999px;
+    background: var(--ov-orange);
+    color: var(--ov-surface);
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: background-color var(--ov-transition);
+}
+
+body.page-overview .sidebar-help-btn:hover {
+    background: var(--ov-orange-dark);
+}
+
+body.page-overview .sidebar-user-card {
+    display: flex;
+    align-items: center;
     gap: var(--ov-space-sm);
-    margin-bottom: var(--ov-space-xl);
+    padding: var(--ov-space-sm);
+    border-radius: var(--ov-radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+body.page-overview .sidebar-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ov-orange), var(--ov-orange-dark));
+    color: var(--ov-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+body.page-overview .sidebar-user-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ov-surface);
+}
+
+body.page-overview .sidebar-user-account {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* --------------------------------------------------------------
+   Top nav (minimal)
+   -------------------------------------------------------------- */
+
+body.page-overview .top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ov-space-md);
+    padding: var(--ov-space-md) var(--ov-space-xl);
+}
+
+body.page-overview .mobile-header-title {
+    font-weight: 700;
+    color: var(--ov-ink);
+}
+
+body.page-overview .user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--ov-space-sm);
+}
+
+body.page-overview .user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--ov-navy);
+    color: var(--ov-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+body.page-overview .logout-btn {
+    background: transparent;
+    border: 1px solid var(--ov-line);
+    border-radius: var(--ov-radius-sm);
+    padding: 0.375rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color var(--ov-transition);
+}
+
+body.page-overview .logout-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--ov-text);
+}
+
+body.page-overview .logout-btn:hover {
+    background: var(--ov-surface-soft);
+}
+
+/* --------------------------------------------------------------
+   Dashboard content grid
+   -------------------------------------------------------------- */
+
+body.page-overview .dashboard-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--ov-space-lg);
+    padding: var(--ov-space-lg) var(--ov-space-xl) var(--ov-space-xl);
+    max-width: 100%;
+}
+
+@media (min-width: 768px) {
+    body.page-overview .dashboard-content {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    body.page-overview .ov-hero,
+    body.page-overview .ov-stats,
+    body.page-overview .ov-row3,
+    body.page-overview .ov-transactions,
+    body.page-overview .low-balance-alert {
+        grid-column: span 2;
+    }
+    body.page-overview .ov-row3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--ov-space-lg);
+    }
+}
+
+@media (min-width: 1024px) {
+    body.page-overview .dashboard-content {
+        grid-template-columns: repeat(12, 1fr);
+    }
+    body.page-overview .ov-hero,
+    body.page-overview .ov-stats,
+    body.page-overview .ov-row3,
+    body.page-overview .ov-transactions,
+    body.page-overview .low-balance-alert {
+        grid-column: span 12;
+    }
+    body.page-overview .ov-row3 {
+        display: grid;
+        grid-template-columns: 8fr 4fr;
+        gap: var(--ov-space-lg);
+    }
+}
+
+/* --------------------------------------------------------------
+   Hero banner
+   -------------------------------------------------------------- */
+
+body.page-overview .ov-hero {
+    background: linear-gradient(135deg, var(--ov-navy), var(--ov-navy-soft));
+    border-radius: var(--ov-radius);
+    padding: var(--ov-space-xl);
+    color: var(--ov-surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ov-space-lg);
+    box-shadow: var(--ov-shadow-lg);
+    overflow: hidden;
+    position: relative;
+}
+
+body.page-overview .ov-hero-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov-space-xs);
+    min-width: 0;
+}
+
+body.page-overview .ov-hero-kicker {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
 }
 
 body.page-overview #welcomeTitle {
     font-family: var(--ov-font-display);
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 800;
-    color: var(--ov-ink);
+    color: var(--ov-surface);
     letter-spacing: -0.02em;
     margin: 0;
 }
 
-body.page-overview .ov-welcome-subtitle {
+body.page-overview .ov-hero-subtitle {
     font-size: 0.95rem;
-    color: var(--ov-text);
+    color: rgba(255, 255, 255, 0.75);
     margin: 0;
+}
+
+body.page-overview .ov-hero-art {
+    flex-shrink: 0;
+    width: 120px;
+    height: 120px;
+}
+
+body.page-overview .ov-hero-art svg {
+    width: 100%;
+    height: 100%;
 }
 
 /* --------------------------------------------------------------
@@ -89,7 +385,6 @@ body.page-overview .low-balance-alert {
     font-size: 0.9rem;
     font-weight: 500;
     box-shadow: var(--ov-shadow-sm);
-    margin-bottom: var(--ov-space-lg);
 }
 
 body.page-overview .low-balance-alert svg {
@@ -100,125 +395,13 @@ body.page-overview .low-balance-alert svg {
 }
 
 /* --------------------------------------------------------------
-   Wallet card (white text on navy, orange Top Up button)
-   -------------------------------------------------------------- */
-
-body.page-overview .ov-wallet-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--ov-radius);
-    background: var(--ov-navy);
-    color: var(--ov-surface);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: var(--ov-shadow-lg);
-    padding: var(--ov-space-xl);
-    margin-bottom: var(--ov-space-xl);
-    max-width: 720px;
-    width: 100%;
-}
-
-body.page-overview .ov-wallet-header {
-    display: flex;
-    align-items: center;
-    gap: var(--ov-space-md);
-    margin-bottom: var(--ov-space-lg);
-}
-
-body.page-overview .ov-wallet-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: var(--ov-radius-sm);
-    background: rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-body.page-overview .ov-wallet-icon svg {
-    width: 26px;
-    height: 26px;
-    stroke: var(--ov-surface);
-}
-
-body.page-overview .ov-wallet-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--ov-surface);
-    margin: 0;
-    letter-spacing: -0.01em;
-}
-
-body.page-overview .ov-wallet-subtitle {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.875rem;
-    margin: 0;
-}
-
-body.page-overview .ov-balance-display {
-    margin-bottom: var(--ov-space-lg);
-}
-
-body.page-overview .ov-balance-amount {
-    font-family: var(--ov-font-display);
-    font-size: 2.75rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: var(--ov-surface);
-    margin: 0;
-    line-height: 1.1;
-}
-
-body.page-overview .ov-balance-currency {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 1.125rem;
-    font-weight: 500;
-    margin-left: 0.25rem;
-}
-
-body.page-overview .ov-btn-topup {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ov-space-sm);
-    background: var(--ov-orange);
-    color: var(--ov-surface);
-    border: none;
-    border-radius: var(--ov-radius-sm);
-    padding: var(--ov-space-sm) var(--ov-space-lg);
-    font-family: var(--ov-font-display);
-    font-size: 0.95rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all var(--ov-transition);
-    box-shadow: 0 3px 10px var(--ov-orange-soft);
-}
-
-body.page-overview .ov-btn-topup:hover {
-    background: var(--ov-orange-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px var(--ov-orange-soft);
-}
-
-body.page-overview .ov-btn-topup:focus-visible {
-    outline: 3px solid rgba(247, 127, 0, 0.4);
-    outline-offset: 2px;
-}
-
-body.page-overview .ov-btn-topup svg {
-    width: 18px;
-    height: 18px;
-    stroke: var(--ov-surface);
-}
-
-/* --------------------------------------------------------------
-   Stats grid: 3 cols desktop, 2 tablet, 1 mobile, equal-height cards
+   Stats
    -------------------------------------------------------------- */
 
 body.page-overview .ov-stats-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--ov-space-lg);
-    margin-bottom: var(--ov-space-xl);
 }
 
 @media (min-width: 768px) {
@@ -227,7 +410,7 @@ body.page-overview .ov-stats-grid {
     }
 }
 
-@media (min-width: 1025px) {
+@media (min-width: 1024px) {
     body.page-overview .ov-stats-grid {
         grid-template-columns: repeat(3, 1fr);
     }
@@ -252,22 +435,20 @@ body.page-overview .ov-stat-card:hover {
 }
 
 body.page-overview .ov-stat-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: var(--ov-radius-sm);
-    background: var(--ov-surface-soft);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     margin-bottom: var(--ov-space-md);
-    stroke-width: 2;
 }
 
 body.page-overview .ov-stat-icon svg {
-    width: 24px;
-    height: 24px;
-    stroke: var(--ov-navy);
+    width: 22px;
+    height: 22px;
+    stroke-width: 2;
 }
 
 body.page-overview .ov-stat-card--sms .ov-stat-icon { background: #E8EEF7; }
@@ -277,8 +458,8 @@ body.page-overview .ov-stat-card--sent .ov-stat-icon svg { stroke: var(--ov-succ
 body.page-overview .ov-stat-card--delivery .ov-stat-icon { background: #FDF3E3; }
 body.page-overview .ov-stat-card--delivery .ov-stat-icon svg { stroke: var(--ov-orange); }
 
-body.page-overview .ov-stat-content h3 {
-    font-size: 0.8rem;
+body.page-overview .ov-stat-label {
+    font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -288,7 +469,7 @@ body.page-overview .ov-stat-content h3 {
 
 body.page-overview .ov-stat-value {
     font-family: var(--ov-font-display);
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 800;
     color: var(--ov-ink);
     line-height: 1.15;
@@ -303,7 +484,197 @@ body.page-overview .ov-stat-sub {
 }
 
 /* --------------------------------------------------------------
-   Recent Transactions card
+   Wallet card
+   -------------------------------------------------------------- */
+
+body.page-overview .ov-wallet-card {
+    border-radius: var(--ov-radius);
+    background: linear-gradient(135deg, var(--ov-navy), var(--ov-navy-soft));
+    color: var(--ov-surface);
+    padding: var(--ov-space-xl);
+    box-shadow: var(--ov-shadow-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov-space-md);
+}
+
+body.page-overview .ov-wallet-top {
+    display: flex;
+    align-items: center;
+    gap: var(--ov-space-md);
+}
+
+body.page-overview .ov-wallet-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--ov-radius-sm);
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+body.page-overview .ov-wallet-icon svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--ov-surface);
+}
+
+body.page-overview .ov-wallet-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ov-surface);
+    margin: 0;
+}
+
+body.page-overview .ov-wallet-subtitle {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+}
+
+body.page-overview .ov-wallet-balance {
+    margin: var(--ov-space-sm) 0;
+}
+
+body.page-overview .ov-balance-amount {
+    font-family: var(--ov-font-display);
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--ov-surface);
+    line-height: 1.1;
+}
+
+body.page-overview .ov-wallet-available {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+}
+
+body.page-overview .ov-wallet-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--ov-space-md);
+    flex-wrap: wrap;
+    margin-top: var(--ov-space-sm);
+}
+
+body.page-overview .ov-btn-topup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ov-space-sm);
+    background: var(--ov-orange);
+    color: var(--ov-surface);
+    border: none;
+    border-radius: var(--ov-radius-sm);
+    padding: 0.625rem 1.25rem;
+    font-family: var(--ov-font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color var(--ov-transition), transform var(--ov-transition);
+}
+
+body.page-overview .ov-btn-topup:hover {
+    background: var(--ov-orange-dark);
+    transform: translateY(-2px);
+}
+
+body.page-overview .ov-btn-topup:focus-visible {
+    outline: 3px solid rgba(247, 127, 0, 0.4);
+    outline-offset: 2px;
+}
+
+body.page-overview .ov-btn-topup svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--ov-surface);
+}
+
+body.page-overview .ov-tx-link {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: color var(--ov-transition);
+}
+
+body.page-overview .ov-tx-link:hover {
+    color: var(--ov-surface);
+    text-decoration: underline;
+}
+
+/* --------------------------------------------------------------
+   Quick actions
+   -------------------------------------------------------------- */
+
+body.page-overview .ov-quick-actions {
+    border-radius: var(--ov-radius);
+    background: var(--ov-surface);
+    border: 1px solid var(--ov-line);
+    padding: var(--ov-space-lg);
+    box-shadow: var(--ov-shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov-space-md);
+}
+
+body.page-overview .ov-qa-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ov-ink);
+    margin: 0;
+}
+
+body.page-overview .ov-quick-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--ov-space-sm);
+}
+
+body.page-overview .ov-quick-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ov-space-sm);
+    padding: var(--ov-space-md);
+    border-radius: var(--ov-radius-sm);
+    background: var(--ov-surface-soft);
+    border: 1px solid var(--ov-line);
+    text-decoration: none;
+    color: var(--ov-ink);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: transform var(--ov-transition), box-shadow var(--ov-transition), border-color var(--ov-transition);
+    text-align: center;
+}
+
+body.page-overview .ov-quick-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ov-shadow-sm);
+    border-color: var(--ov-orange);
+}
+
+body.page-overview .ov-quick-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--ov-orange-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.page-overview .ov-quick-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--ov-orange);
+}
+
+/* --------------------------------------------------------------
+   Recent transactions
    -------------------------------------------------------------- */
 
 body.page-overview .ov-transactions {
@@ -312,7 +683,8 @@ body.page-overview .ov-transactions {
     border: 1px solid var(--ov-line);
     box-shadow: var(--ov-shadow-sm);
     overflow: hidden;
-    margin-bottom: var(--ov-space-xl);
+    display: flex;
+    flex-direction: column;
 }
 
 body.page-overview .ov-section-header {
@@ -329,7 +701,6 @@ body.page-overview .ov-section-header h3 {
     font-weight: 700;
     color: var(--ov-ink);
     margin: 0;
-    letter-spacing: -0.01em;
 }
 
 body.page-overview .ov-view-all {
@@ -345,6 +716,79 @@ body.page-overview .ov-view-all:hover {
     text-decoration: underline;
 }
 
+body.page-overview .ov-tx-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ov-space-md);
+    padding: var(--ov-space-md) var(--ov-space-xl);
+    border-bottom: 1px solid var(--ov-line);
+    flex-wrap: wrap;
+}
+
+body.page-overview .ov-tx-search-wrap {
+    position: relative;
+    flex: 1 1 220px;
+    min-width: 180px;
+}
+
+body.page-overview .ov-tx-search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    stroke: var(--ov-muted);
+    pointer-events: none;
+}
+
+body.page-overview .ov-tx-search {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+    border: 1px solid var(--ov-line);
+    border-radius: var(--ov-radius-sm);
+    font-size: 0.875rem;
+    color: var(--ov-ink);
+    background: var(--ov-surface);
+    transition: border-color var(--ov-transition), box-shadow var(--ov-transition);
+}
+
+body.page-overview .ov-tx-search:focus {
+    outline: none;
+    border-color: var(--ov-orange);
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.15);
+}
+
+body.page-overview .ov-tx-filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+body.page-overview .ov-chip {
+    border: 1px solid var(--ov-line);
+    background: var(--ov-surface);
+    color: var(--ov-text);
+    border-radius: 999px;
+    padding: 0.375rem 0.875rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--ov-transition);
+}
+
+body.page-overview .ov-chip:hover {
+    border-color: var(--ov-orange);
+    color: var(--ov-orange);
+}
+
+body.page-overview .ov-chip.active {
+    background: var(--ov-orange);
+    color: var(--ov-surface);
+    border-color: var(--ov-orange);
+}
+
 body.page-overview .ov-table-container {
     width: 100%;
     overflow-x: auto;
@@ -353,6 +797,7 @@ body.page-overview .ov-table-container {
 body.page-overview .ov-table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 640px;
 }
 
 body.page-overview .ov-table th {
@@ -364,6 +809,7 @@ body.page-overview .ov-table th {
     color: var(--ov-muted);
     padding: var(--ov-space-md) var(--ov-space-xl);
     border-bottom: 1px solid var(--ov-line);
+    white-space: nowrap;
 }
 
 body.page-overview .ov-table td {
@@ -378,6 +824,10 @@ body.page-overview .ov-table tbody tr {
     transition: background-color var(--ov-transition);
 }
 
+body.page-overview .ov-table tbody tr:hover {
+    background: var(--ov-surface-soft);
+}
+
 body.page-overview .ov-table tbody tr:last-child td {
     border-bottom: none;
 }
@@ -386,7 +836,7 @@ body.page-overview .ov-tx-type {
     display: inline-block;
     padding: 0.15rem 0.6rem;
     border-radius: 999px;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -402,19 +852,55 @@ body.page-overview .ov-tx-type.debit {
     color: var(--ov-danger);
 }
 
+body.page-overview .ov-tx-desc {
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 body.page-overview .ov-text-success { color: var(--ov-success); }
 body.page-overview .ov-text-danger { color: var(--ov-danger); }
 
-body.page-overview td.error {
+body.page-overview .ov-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+body.page-overview .ov-status-badge svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
+    flex-shrink: 0;
+}
+
+body.page-overview .ov-status-completed {
+    background: rgba(21, 128, 61, 0.10);
+    color: var(--ov-success);
+}
+
+body.page-overview .ov-status-failed {
+    background: rgba(220, 38, 38, 0.10);
+    color: var(--ov-danger);
+}
+
+body.page-overview .ov-status-pending {
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--ov-muted);
+}
+
+body.page-overview .ov-td-empty {
     text-align: center;
     color: var(--ov-muted);
     padding: var(--ov-space-xl);
 }
 
-/* --------------------------------------------------------------
-   Loading & empty states
-   -------------------------------------------------------------- */
-
+/* loading & empty */
 body.page-overview .ov-loading,
 body.page-overview .ov-empty {
     display: flex;
@@ -472,3 +958,74 @@ body.page-overview .ov-empty-desc {
     color: var(--ov-text);
     margin: 0;
 }
+
+/* pagination */
+body.page-overview .ov-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--ov-space-md) var(--ov-space-xl);
+    border-top: 1px solid var(--ov-line);
+    gap: var(--ov-space-md);
+    flex-wrap: wrap;
+}
+
+body.page-overview #txPageInfo {
+    font-size: 0.85rem;
+    color: var(--ov-muted);
+    font-weight: 500;
+}
+
+body.page-overview .ov-pagination-btns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+body.page-overview .ov-page-btn {
+    border: 1px solid var(--ov-line);
+    background: var(--ov-surface);
+    color: var(--ov-text);
+    border-radius: var(--ov-radius-sm);
+    padding: 0.375rem 0.875rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--ov-transition);
+}
+
+body.page-overview .ov-page-btn:hover:not(:disabled) {
+    border-color: var(--ov-orange);
+    color: var(--ov-orange);
+}
+
+body.page-overview .ov-page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+    body.page-overview .dashboard-content {
+        padding: var(--ov-space-md);
+    }
+    body.page-overview .ov-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    body.page-overview .ov-hero-art {
+        width: 80px;
+        height: 80px;
+    }
+    body.page-overview #welcomeTitle {
+        font-size: 1.4rem;
+    }
+    body.page-overview .ov-tx-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* Mobile sidebar positioning is handled by shared dashboard.css */
