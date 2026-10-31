@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    Send SMS page - self-contained styles
    - Every rule scoped under body.page-send-sms; sidebar/top-nav untouched.
    - Local design tokens only. Brand colors: navy #0B132B, orange #F77F00.
@@ -305,7 +305,7 @@ body.page-send-sms {
         }
 
         body.page-send-sms .tips-list li::before{
-            content: '✓';
+            content: 'âœ“';
             position: absolute;
             left: 0;
             color: #4caf50;
@@ -397,7 +397,7 @@ body.page-send-sms {
         }
 
         body.page-send-sms .sender-id-requirements li::before{
-            content: '•';
+            content: 'â€¢';
             position: absolute;
             left: 0;
             color: var(--ss-orange);
@@ -2309,3 +2309,321 @@ body.page-send-sms .empty-state svg {
         max-width: 100%;
     }
 }
+/* ==========================================================================
+   Send SMS v2 redesign (scoped)
+   ========================================================================== */
+
+body.page-send-sms {
+    --send-btn-bg: #F77F00;
+    --send-btn-bg-hover: #e56a00;
+    --ss-blue: #0B4FD0;
+    --top-nav-height: 64px;
+}
+
+body.page-send-sms .send-sms-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px 250px;
+    gap: 24px;
+    align-items: start;
+}
+
+body.page-send-sms .compose-column,
+body.page-send-sms .phone-column,
+body.page-send-sms .right-column {
+    min-width: 0;
+}
+
+body.page-send-sms .phone-column,
+body.page-send-sms .right-column {
+    position: sticky;
+    top: calc(var(--topnav-height) + 16px);
+    align-self: start;
+}
+
+body.page-send-sms .compose-column .sms-form-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(11,19,43,0.08);
+    padding: 1.5rem;
+}
+
+body.page-send-sms .compose-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+body.page-send-sms .compose-card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: #0B4FD0;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.page-send-sms .compose-card-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+body.page-send-sms .compose-card-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0;
+}
+
+body.page-send-sms .compose-card-subtitle {
+    font-size: 14px;
+    color: #64748B;
+    margin: 0.25rem 0 0;
+}
+
+body.page-send-sms .compose-card-divider {
+    height: 1px;
+    background: #E2E8F0;
+    margin: 1rem 0 1.5rem;
+}
+
+body.page-send-sms .message-composer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+body.page-send-sms .section-label {
+    font-weight: 700;
+    font-size: 14px;
+    color: #0F172A;
+}
+
+body.page-send-sms .personalization-control {
+    position: relative;
+}
+
+body.page-send-sms .personalization-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid #E2E8F0;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+}
+
+body.page-send-sms .personalization-pill svg {
+    width: 14px;
+    height: 14px;
+}
+
+body.page-send-sms .personalization-pill .chevron {
+    width: 12px;
+    height: 12px;
+}
+
+body.page-send-sms .personalization-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(11,19,43,0.1);
+    padding: 0.4rem;
+    z-index: 10;
+    min-width: 180px;
+}
+
+body.page-send-sms .personalization-menu button {
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+body.page-send-sms .personalization-menu button:hover {
+    background: #F1F5F9;
+}
+
+body.page-send-sms #messageBody {
+    height: 180px;
+    border-radius: 14px;
+    border: 1px solid #E2E8F0;
+    font-size: 17px;
+    padding: 0.9rem 1rem;
+    resize: none;
+}
+
+body.page-send-sms .personalization-tip {
+    margin-top: 0.75rem;
+    background: #EDF2FF;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    font-size: 13px;
+    color: #1E3A8A;
+}
+
+body.page-send-sms .personalization-tip svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: #0B4FD0;
+}
+
+body.page-send-sms .personalization-tip strong {
+    display: block;
+    margin-bottom: 0.15rem;
+}
+
+/* Phone column */
+body.page-send-sms .phone-column {
+    display: flex;
+    justify-content: center;
+}
+
+body.page-send-sms .phone-mockup,
+body.page-send-sms .sp-phone-mockup {
+    width: 100%;
+    max-width: 300px;
+    height: min(640px, calc(100dvh - var(--topnav-height) - 32px));
+    aspect-ratio: 9 / 19.5;
+    background: #111827;
+    border-radius: 40px;
+    padding: 8px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    position: relative;
+}
+
+/* Right column cards */
+body.page-send-sms .summary-card {
+    background: #EDF2FF;
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+body.page-send-sms .summary-card-header,
+body.page-send-sms .networks-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+body.page-send-sms .summary-card-header svg,
+body.page-send-sms .networks-card-header svg {
+    width: 20px;
+    height: 20px;
+    color: #0B4FD0;
+}
+
+body.page-send-sms .summary-card-header h3,
+body.page-send-sms .networks-card-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0;
+}
+
+body.page-send-sms .networks-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 12px rgba(11,19,43,0.06);
+}
+
+body.page-send-sms .networks-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+body.page-send-sms .networks-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+}
+
+body.page-send-sms .net-check {
+    color: #16A34A;
+    font-weight: 700;
+}
+
+/* Send button */
+body.page-send-sms .btn-send-sms,
+body.page-send-sms #sendSmsBtn,
+body.page-send-sms .btn-primary {
+    width: 100%;
+    height: 52px;
+    border-radius: 12px;
+    background: var(--send-btn-bg);
+    color: #fff;
+    font-weight: 700;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 1279px) and (min-width: 900px) {
+    body.page-send-sms .send-sms-grid {
+        grid-template-columns: minmax(0, 1fr) 320px;
+    }
+    body.page-send-sms .phone-column {
+        grid-column: 2;
+        grid-row: 1;
+    }
+    body.page-send-sms .right-column {
+        grid-column: 2;
+        grid-row: 2;
+    }
+    body.page-send-sms .compose-column {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+    }
+}
+
+@media (max-width: 899px) {
+    body.page-send-sms .send-sms-grid {
+        grid-template-columns: 1fr;
+    }
+    body.page-send-sms .phone-column {
+        justify-content: center;
+        max-width: 320px;
+        margin: 0 auto;
+    }
+    body.page-send-sms .phone-mockup,
+    body.page-send-sms .sp-phone-mockup {
+        max-width: 320px;
+    }
+    body.page-send-sms .phone-column,
+    body.page-send-sms .right-column {
+        position: static;
+    }
+}
+
+/* hide original tips? keep */
