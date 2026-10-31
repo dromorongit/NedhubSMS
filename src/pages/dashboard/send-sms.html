@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Send SMS - Nedhub Bulk Messaging</title>
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
-    <link rel="stylesheet" href="../../styles/main.css">
-    <link rel="stylesheet" href="../../styles/dashboard.css">
-    <link rel="stylesheet" href="../../styles/responsive.css">
-    <link rel="stylesheet" href="../../styles/sms-preview.css">
+    <link rel="stylesheet" href="../../styles/main.css?v=2">
+    <link rel="stylesheet" href="../../styles/dashboard.css?v=2">
+    <link rel="stylesheet" href="../../styles/responsive.css?v=2">
+    <link rel="stylesheet" href="../../styles/sms-preview.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400,500,700,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../styles/nedhub-app.css">
-    <link rel="stylesheet" href="../../styles/pages/send-sms.css">
+    <link rel="stylesheet" href="../../styles/nedhub-app.css?v=2">
+    <link rel="stylesheet" href="../../styles/pages/send-sms.css?v=2">
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
@@ -144,11 +144,6 @@
             <!-- Sidebar Overlay -->
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
             <div class="dashboard-content">
-                <div class="welcome-section">
-                    <h2 id="pageTitle">Send SMS</h2>
-                    <p class="welcome-subtitle">Compose and send bulk SMS messages to your contacts</p>
-                </div>
-
                 <!-- Low Balance Alert -->
                 <div class="alert" id="lowBalanceAlert" style="display: none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -159,21 +154,22 @@
                     <span id="lowBalanceMessage">Low balance! Please top up to send SMS.</span>
                 </div>
 
-                 <div class="send-sms-grid">
-                     <div class="compose-column">
+                 <div class="ss2">
+                 <div class="ss2-grid">
+                     <div class="ss2-compose">
                          <div class="sms-form-card">
-                             <div class="compose-card-header">
-                                 <div class="compose-card-icon">
+                             <div class="ss2-compose-header">
+                                 <div class="ss2-compose-icon">
                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                                      </svg>
                                  </div>
                                  <div>
-                                     <h2 class="compose-card-title">Bulk SMS</h2>
-                                     <p class="compose-card-subtitle">Compose, preview and send your message with ease.</p>
+                                     <h2 class="ss2-compose-title">Bulk SMS</h2>
+                                     <p class="ss2-compose-subtitle">Compose, preview and send your message with ease.</p>
                                  </div>
                              </div>
-                             <div class="compose-card-divider"></div>
+                             <div class="ss2-compose-divider"></div>
                              <form id="sendSmsForm">
                          <!-- Left Column: Form Sections -->
                          <div class="sms-form-left-column">
@@ -257,7 +253,7 @@
                                                <div class="manual-recipient-item template" style="display: none;">
                                                    <input type="text" placeholder="Recipient Name" class="recipient-name-input">
                                                    <input type="tel" placeholder="Phone Number (e.g., 0241234567)" class="recipient-phone-input">
-                                                   <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">Ã—</button>
+                                                   <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">&times;</button>
                                                </div>
                                            </div>
                                            <button type="button" class="btn-add-recipient" onclick="addManualRecipient()">
@@ -280,7 +276,7 @@
                                       </div>
                                       <div class="file-preview" id="filePreview" style="display: none;">
                                           <span class="file-name" id="uploadedFileName"></span>
-                                          <button type="button" class="remove-file" onclick="removeUploadedFile()">Ã—</button>
+                                          <button type="button" class="remove-file" onclick="removeUploadedFile()">&times;</button>
                                       </div>
                                       <!-- Import Summary (shown after successful import) -->
                                       <div class="import-summary" id="importSummary" style="display: none; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
@@ -344,21 +340,21 @@
 <!-- Message Composer Section (Always Visible) -->
                             <div class="message-composer-section">
                                   <div class="form-group">
-                                      <div class="message-composer-header">
-                                          <label for="messageBody" class="section-label">Message Content</label>
-                                          <div class="personalization-control">
-                                              <button type="button" class="personalization-pill" id="personalizationPill">
+                                      <div class="ss2-composer-header">
+                                          <label for="messageBody" class="ss2-section-label">Message Content</label>
+                                          <div class="ss2-pers-control">
+                                              <button type="button" class="ss2-pers-pill" id="personalizationPill">
                                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                                                   Use Recipient Name
                                                   <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                               </button>
-                                              <div class="personalization-menu" id="personalizationMenu">
+                                              <div class="ss2-pers-menu" id="personalizationMenu">
                                                   <button type="button" data-placeholder="{{name}}">Insert Name ({{name}})</button>
                                               </div>
                                           </div>
                                       </div>
                                       <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Type your message here..."></textarea>
-                                      <div class="personalization-tip" id="personalizationTip">
+                                      <div class="ss2-pers-tip" id="personalizationTip">
                                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path></svg>
                                           <div>
                                               <strong>Personalization</strong>
@@ -514,7 +510,7 @@
                             </div>
                         </div>
                         <div class="cost-warnings" id="costWarnings" style="display: none;">
-                             <div class="warning-icon">âš ï¸</div>
+                             <div class="warning-icon">&#9888;</div>
                              <div class="warning-text" id="warningText"></div>
                          </div>
                          
@@ -538,11 +534,10 @@
                    </form>
                          </div>
                      </div>
-                     <div class="phone-column">
+                     <div class="ss2-phone-col">
 <!-- Live Mobile Preview Section -->
                             <div class="live-preview-section" id="previewDetails">
                                 <details class="sp-preview-details" open>
-                                <h3 class="section-title">Live Preview</h3>
                                 <summary class="sp-preview-details-summary">Preview</summary>
                                 <div class="sms-preview-context sp-preview-context" id="previewContext" style="display:none;">
                                     Previewing as: <span class="sp-preview-context-name"></span>
@@ -571,7 +566,7 @@
                                                             <div class="sms-bubble-row sp-sms-bubble-row">
                                                                 <div class="sms-bubble-head sp-sms-bubble-head">
                                                                     <span class="sms-sender-name sp-sms-sender-name" id="previewHeaderSender">Sender ID</span>
-                                                                    <span class="sms-sender-label sp-sms-sender-label">Text Message Â· SMS</span>
+                                                                    <span class="sms-sender-label sp-sms-sender-label">Text Message &middot; SMS</span>
                                                                 </div>
                                                                 <div class="sms-bubble-body sp-sms-bubble-body">
                                                                     <span class="message-text sp-message-text" id="livePreviewText">Your message will appear here</span>
@@ -588,9 +583,9 @@
                                 </details>
                             </div>
                      </div>
-                     <div class="right-column">
-                         <div class="summary-card">
-                             <div class="summary-card-header">
+                     <div class="ss2-right">
+                         <div class="ss2-summary">
+                             <div class="ss2-summary-header">
                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                      <line x1="18" y1="20" x2="18" y2="10"></line>
                                      <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -630,8 +625,8 @@
                                     <div class="sms-preview-notices sp-sms-preview-notices" id="previewNotices"></div>
                                 </div>
                          </div>
-                         <div class="networks-card">
-                             <div class="networks-card-header">
+                         <div class="ss2-networks">
+                             <div class="ss2-networks-header">
                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                      <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
                                      <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
@@ -640,32 +635,16 @@
                                  </svg>
                                  <h3>Supported Networks</h3>
                              </div>
-                             <ul class="networks-list">
-                                 <li><span class="net-check">âœ“</span> MTN</li>
-                                 <li><span class="net-check">âœ“</span> AirtelTigo</li>
-                                 <li><span class="net-check">âœ“</span> Telecel</li>
+                             <ul class="ss2-networks-list">
+                                 <li><span class="ss2-net-check">&#10003;</span> MTN</li>
+                                 <li><span class="ss2-net-check">&#10003;</span> AirtelTigo</li>
+                                 <li><span class="ss2-net-check">&#10003;</span> Telecel</li>
                              </ul>
                          </div>
                      </div>
                  </div>
 
-                  <!-- Quick Tips Card -->
-                <div class="tips-card">
-                    <div class="tips-header">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        <h3>Quick Tips</h3>
-                    </div>
-                    <ul class="tips-list">
-                        <li>Use a recognized Sender ID for better delivery rates</li>
-                    <li>Keep messages under 160 characters for single SMS (70 for Unicode)</li>
-                    <li>Longer messages are automatically split into multiple pages</li>
-                    <li>Cost is calculated per page in GHS</li>
-                    </ul>
-                </div>
+                 </div>
             </div>
         </main>
     </div>
@@ -710,7 +689,7 @@
                     </div>
                     <div class="file-preview" id="filePreview" style="display: none;">
                         <span class="file-name" id="fileName"></span>
-                        <button type="button" class="remove-file" onclick="removeFile()">Ã—</button>
+                        <button type="button" class="remove-file" onclick="removeFile()">&times;</button>
                     </div>
                 </div>
                 
@@ -2794,7 +2773,7 @@ if (result.error) {
                                 <div class="duplicate-item">
                                     <span class="duplicate-name">${escapeHtml(duplicate.recipientName)}</span>
                                     <span class="duplicate-phone">${escapeHtml(duplicate.phoneNumber)}</span>
-                                    <span class="duplicate-normalized">â†’ ${escapeHtml(duplicate.normalizedPhoneNumber)}</span>
+                                    <span class="duplicate-normalized">&rarr; ${escapeHtml(duplicate.normalizedPhoneNumber)}</span>
                                 </div>
                             `;
                         });
@@ -3882,20 +3861,20 @@ if (result.error) {
             const segmentsRaw = smsCountEl ? smsCountEl.textContent : '1';
             const segmentsMatch = String(segmentsRaw).match(/\d+/);
             const segments = segmentsMatch ? Number(segmentsMatch[0]) : 1;
-            const encoding = encodingTypeEl ? encodingTypeEl.textContent : 'â€”';
+            const encoding = encodingTypeEl ? encodingTypeEl.textContent : '\u2014';
             const encodingL = String(encoding).toLowerCase();
             const recipientCount = typeof getRecipientCount === 'function' ? getRecipientCount() : 0;
-            const cost = estimatedCostEl ? estimatedCostEl.textContent : 'â€”';
+            const cost = estimatedCostEl ? estimatedCostEl.textContent : '\u2014';
 
             const set = (id, value) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = value;
             };
-            set('previewCharCount', charCountEl ? charCountEl.textContent : 'â€”');
-            set('previewSegments', smsCountEl ? smsCountEl.textContent : 'â€”');
-            set('previewEncodingType', encodingTypeEl ? encodingTypeEl.textContent : 'â€”');
+            set('previewCharCount', charCountEl ? charCountEl.textContent : '\u2014');
+            set('previewSegments', smsCountEl ? smsCountEl.textContent : '\u2014');
+            set('previewEncodingType', encodingTypeEl ? encodingTypeEl.textContent : '\u2014');
             set('previewRecipientCount', String(recipientCount));
-            set('previewEstimatedCost', estimatedCostEl ? estimatedCostEl.textContent : 'â€”');
+            set('previewEstimatedCost', estimatedCostEl ? estimatedCostEl.textContent : '\u2014');
 
             const limitEl = document.getElementById('previewCharLimit');
             const progressEl = document.getElementById('previewProgress');
@@ -3918,10 +3897,10 @@ if (result.error) {
             if (noticesEl) {
                 noticesEl.textContent = '';
                 if (segments >= 2) {
-                    addPreviewNotice(noticesEl, 'âš ï¸', `Your message uses ${segments} segments`);
+                    addPreviewNotice(noticesEl, '&#9888;', `Your message uses ${segments} segments`);
                 }
                 if (isUnicode) {
-                    addPreviewNotice(noticesEl, 'â„¹ï¸', 'Special characters or emoji switch this message to Unicode, which fits fewer characters per segment');
+                    addPreviewNotice(noticesEl, '&#8505;', 'Special characters or emoji switch this message to Unicode, which fits fewer characters per segment');
                 }
             }
 
@@ -4683,7 +4662,7 @@ if (result.error) {
                     } else if (classification === 'temporary_provider_error' || errorCode === 'PROVIDER_TEMPORARY_ERROR') {
                         errorMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
                     } else if (errorCode === '1025' || providerSummaryCode === '1025') {
-                        errorMessage = 'SMS provider account balance is low â€” please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
+                        errorMessage = 'SMS provider account balance is low \u2014 please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
                     } else if (classification === 'auth_configuration_error' || errorCode === 'PROVIDER_AUTH_ERROR') {
                         errorMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
                     }
@@ -4772,7 +4751,7 @@ if (result.error) {
                            } else if (classification === 'temporary_provider_error' || errorCode === 'PROVIDER_TEMPORARY_ERROR') {
                                errorMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
                            } else if (errorCode === '1025' || providerSummaryCode === '1025') {
-                               errorMessage = 'SMS provider account balance is low â€” please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
+                               errorMessage = 'SMS provider account balance is low \u2014 please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
                            } else if (classification === 'auth_configuration_error' || errorCode === 'PROVIDER_AUTH_ERROR') {
                                errorMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
                            } else if (responseData.summary || responseData.duplicatesRemoved !== undefined) {
