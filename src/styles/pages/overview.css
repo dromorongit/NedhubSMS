@@ -1287,4 +1287,14 @@ body.page-overview .ov-btn-create:hover { background: var(--ov-orange-dark); }
     body.page-overview .dashboard-content { padding: 12px; }
 }
 
-/* Mobile sidebar positioning handled by shared dashboard.css */
+@media (min-width: 1024px) {
+    body.page-overview .ov-stat-card {
+        min-height: 60px;
+        padding: 0.625rem var(--ov-space-md);
+        gap: 0.625rem;
+    }
+    body.page-overview .ov-stat-sparkline {
+        width: 90px;
+        height: 32px;
+    }
+}
