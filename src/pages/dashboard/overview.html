@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400,500,700,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../styles/nedhub-app.css">
     <link rel="stylesheet" href="../../styles/pages/overview.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 </head>
 <body class="page-overview">
 
@@ -304,6 +305,8 @@
                     </div>
                 </div>
 
+                <!-- Row 4: Transactions + side stack -->
+                <div class="ov-row4">
                 <!-- Recent Transactions -->
                 <section class="ov-transactions">
                     <div class="ov-section-header">
@@ -361,6 +364,68 @@
                         </div>
                     </div>
                 </section>
+
+                <div class="ov-side-stack">
+                    <!-- Messaging Analytics -->
+                    <section class="ov-card ov-analytics">
+                        <div class="ov-section-header">
+                            <h3>
+                                <svg class="ov-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                                </svg>
+                                Messaging Analytics
+                            </h3>
+                            <select id="analyticsRange" class="ov-range-select" aria-label="Analytics range">
+                                <option value="7">Last 7 Days</option>
+                                <option value="30" selected>Last 30 Days</option>
+                                <option value="90">Last 90 Days</option>
+                            </select>
+                        </div>
+                        <div class="ov-chart-wrap">
+                            <canvas id="analyticsChart" aria-label="Messages sent per day over the selected range"></canvas>
+                        </div>
+                        <div class="ov-chart-empty" id="analyticsEmpty" style="display: none;">
+                            <p class="ov-empty-title">No message data</p>
+                            <p class="ov-empty-desc">Send your first message to see analytics.</p>
+                        </div>
+                        <div class="ov-chart-unavailable" id="analyticsUnavailable" style="display: none;">
+                            <p class="ov-empty-title">Chart unavailable</p>
+                            <p class="ov-empty-desc">Unable to load the chart. Please refresh.</p>
+                        </div>
+                    </section>
+
+                    <!-- Recent Campaigns -->
+                    <section class="ov-card ov-campaigns">
+                        <div class="ov-section-header">
+                            <h3>
+                                <svg class="ov-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <path d="M3 11l19-9-9 19-2-8-8-2z"></path>
+                                </svg>
+                                Recent Campaigns
+                            </h3>
+                            <a href="campaigns.html" class="ov-view-all">View All</a>
+                        </div>
+                        <div class="ov-loading" id="campaignsLoading" style="display: none;">
+                            <div class="ov-spinner"></div>
+                            <p class="ov-loading-desc">Loading campaigns...</p>
+                        </div>
+                        <div class="ov-campaigns-list" id="campaignsList"></div>
+                        <div class="ov-empty" id="campaignsEmpty" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <path d="M3 11l19-9-9 19-2-8-8-2z"></path>
+                            </svg>
+                            <h3 class="ov-empty-title">No campaigns yet</h3>
+                            <p class="ov-empty-desc">Create your first campaign to reach your audience.</p>
+                            <a href="campaigns.html" class="ov-btn-create">Create Campaign</a>
+                        </div>
+                        <div class="ov-campaigns-error" id="campaignsError" style="display: none;">
+                            <p class="ov-empty-desc">Unable to load campaigns. Please try again.</p>
+                        </div>
+                    </section>
+                </div>
+                </div>
             </div>
         </main>
     </div>
@@ -539,6 +604,8 @@
                     }
                 }
                 await loadTransactions();
+                await loadCampaignsOverview();
+                renderAnalytics();
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
@@ -667,6 +734,182 @@
             nextBtn.disabled = txPage >= totalPages;
         }
 
+        // Messaging analytics + recent campaigns
+        let analyticsChart = null;
+        let allCampaigns = [];
+
+        function aggregateMessagesByDay(messages, days) {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            start.setDate(start.getDate() - (days - 1));
+            const counts = {};
+            for (let i = 0; i < days; i++) {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                counts[d.toISOString().slice(0, 10)] = 0;
+            }
+            messages.forEach(m => {
+                if (!m || !m.createdAt) return;
+                const dt = new Date(m.createdAt);
+                if (isNaN(dt.getTime()) || dt < start) return;
+                const key = dt.toISOString().slice(0, 10);
+                if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key]++;
+            });
+            const labels = Object.keys(counts).map(k => {
+                const d = new Date(k);
+                return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            });
+            return { labels, data: Object.values(counts) };
+        }
+
+        async function fetchMessageHistoryForAnalytics() {
+            try {
+                const res = await window.apiClient.request('GET', '/sms/logs?limit=200&page=1');
+                if (res.error) return [];
+                return (res.data && Array.isArray(res.data.messages)) ? res.data.messages : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        async function renderAnalytics() {
+            const rangeEl = document.getElementById('analyticsRange');
+            const canvas = document.getElementById('analyticsChart');
+            const emptyEl = document.getElementById('analyticsEmpty');
+            const unavailEl = document.getElementById('analyticsUnavailable');
+            if (!canvas) return;
+            const days = parseInt(rangeEl ? rangeEl.value : '30', 10) || 30;
+            canvas.style.display = '';
+            emptyEl.style.display = 'none';
+            unavailEl.style.display = 'none';
+
+            if (typeof Chart === 'undefined') {
+                canvas.style.display = 'none';
+                unavailEl.style.display = 'flex';
+                return;
+            }
+
+            const messages = await fetchMessageHistoryForAnalytics();
+            const { labels, data } = aggregateMessagesByDay(messages, days);
+            const total = data.reduce((a, b) => a + b, 0);
+            canvas.setAttribute('aria-label', 'Messages sent per day over the last ' + days + ' days. Total ' + total + '.');
+
+            if (total === 0) {
+                canvas.style.display = 'none';
+                emptyEl.style.display = 'flex';
+                if (analyticsChart) { analyticsChart.destroy(); analyticsChart = null; }
+                return;
+            }
+
+            if (analyticsChart) { analyticsChart.destroy(); analyticsChart = null; }
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 200);
+            gradient.addColorStop(0, 'rgba(247, 127, 0, 0.28)');
+            gradient.addColorStop(1, 'rgba(247, 127, 0, 0)');
+            analyticsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Messages',
+                        data,
+                        borderColor: '#F77F00',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: '#F77F00',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0B132B',
+                            titleColor: '#FFFFFF',
+                            bodyColor: '#FFFFFF',
+                            callbacks: {
+                                label: (ctx) => ctx.parsed.y + ' messages'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748B', maxTicksLimit: 8, font: { size: 10 } } },
+                        y: { beginAtZero: true, grid: { color: '#E2E8F0' }, ticks: { color: '#64748B', precision: 0, font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function campaignStatusIcon(key) {
+            if (key === 'completed') return '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M2.5 7.5l3 3 6-6"></path></svg>';
+            if (key === 'scheduled') return '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="5.5"></circle><polyline points="7 3.5 7 7 9.5 8.5"></polyline></svg>';
+            if (key === 'processing') return '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 1.5v2M7 10.5v2M1.5 7h2M10.5 7h2"></path></svg>';
+            if (key === 'failed') return '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="3" y1="3" x2="11" y2="11"></line><line x1="11" y1="3" x2="3" y2="11"></line></svg>';
+            return '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="5.5"></circle><line x1="7" y1="4" x2="7" y2="7"></line></svg>';
+        }
+
+        function normalizeCampaignStatus(s) {
+            const v = (s || '').toLowerCase();
+            if (v === 'sent' || v === 'partial_success' || v === 'completed') return { key: 'completed', label: 'Completed' };
+            if (v === 'scheduled') return { key: 'scheduled', label: 'Scheduled' };
+            if (v === 'processing' || v === 'queued' || v === 'running') return { key: 'processing', label: 'Processing' };
+            if (v === 'failed') return { key: 'failed', label: 'Failed' };
+            if (v === 'draft') return { key: 'draft', label: 'Draft' };
+            return { key: 'draft', label: s || 'Draft' };
+        }
+
+        async function loadCampaignsOverview() {
+            const loading = document.getElementById('campaignsLoading');
+            const list = document.getElementById('campaignsList');
+            const empty = document.getElementById('campaignsEmpty');
+            const error = document.getElementById('campaignsError');
+            if (!list) return;
+            loading.style.display = 'flex';
+            list.innerHTML = '';
+            empty.style.display = 'none';
+            error.style.display = 'none';
+            try {
+                const res = await window.apiClient.getCampaigns();
+                loading.style.display = 'none';
+                if (res.error) {
+                    error.style.display = 'flex';
+                    return;
+                }
+                const campaigns = (res.data || []).slice()
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                    .slice(0, 3);
+                if (campaigns.length === 0) {
+                    empty.style.display = 'flex';
+                    return;
+                }
+                campaigns.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'ov-campaign-item';
+                    const name = c.title || c.name || 'Untitled Campaign';
+                    const recipients = c.recipientCount || c.recipientsCount || 0;
+                    const date = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-';
+                    const st = normalizeCampaignStatus(c.status);
+                    item.innerHTML = `
+                        <div class="ov-campaign-avatar">${escapeHtml((name.charAt(0) || 'C').toUpperCase())}</div>
+                        <div class="ov-campaign-info">
+                            <div class="ov-campaign-name">${escapeHtml(name)}</div>
+                            <div class="ov-campaign-meta">Sent to ${recipients} recipients \u2022 ${escapeHtml(date)}</div>
+                        </div>
+                        <span class="ov-campaign-status ov-cstatus-${st.key}">${campaignStatusIcon(st.key)}${escapeHtml(st.label)}</span>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch (e) {
+                loading.style.display = 'none';
+                error.style.display = 'flex';
+            }
+        }
+
         // Top-up modal
         document.getElementById('topupButton').addEventListener('click', () => {
             const modal = document.getElementById('topupModal');
@@ -762,6 +1005,9 @@
                 const totalPages = Math.max(1, Math.ceil(filtered.length / TX_PAGE_SIZE));
                 if (txPage < totalPages) { txPage++; renderTransactions(); }
             });
+
+            const rangeEl = document.getElementById('analyticsRange');
+            if (rangeEl) rangeEl.addEventListener('change', () => renderAnalytics());
         });
 
         // Mobile sidebar functionality
