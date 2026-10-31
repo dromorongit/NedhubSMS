@@ -665,7 +665,7 @@ body.page-overview .ov-qa-title {
 
 body.page-overview .ov-quick-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     align-items: start;
 }
@@ -683,12 +683,12 @@ body.page-overview .ov-quick-tile {
     line-height: 1.2;
     font-weight: 600;
     text-align: center;
-    border-left: 1px solid var(--ov-line);
+    border-left: none;
     min-width: 0;
 }
 
-body.page-overview .ov-quick-tile:first-child {
-    border-left: none;
+body.page-overview .ov-quick-tile:nth-child(2n) {
+    border-left: 1px solid var(--ov-line);
 }
 
 body.page-overview .ov-quick-tile:last-child { border-right: none; }
