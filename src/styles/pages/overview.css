@@ -1029,3 +1029,205 @@ body.page-overview .ov-page-btn:disabled {
 }
 
 /* Mobile sidebar positioning is handled by shared dashboard.css */
+
+
+/* --------------------------------------------------------------
+   Row 4: Transactions (2/3) + side stack (1/3)
+   -------------------------------------------------------------- */
+
+body.page-overview .ov-row4 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--ov-space-lg);
+    grid-column: span 1;
+}
+
+@media (min-width: 768px) {
+    body.page-overview .ov-row4 {
+        grid-column: span 2;
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+@media (min-width: 1024px) {
+    body.page-overview .ov-row4 {
+        grid-column: span 12;
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+body.page-overview .ov-side-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov-space-lg);
+}
+
+body.page-overview .ov-card {
+    border-radius: var(--ov-radius);
+    background: var(--ov-surface);
+    border: 1px solid var(--ov-line);
+    box-shadow: var(--ov-shadow-sm);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+body.page-overview .ov-card .ov-section-header {
+    background: var(--ov-surface-soft);
+}
+
+body.page-overview .ov-card-icon {
+    width: 18px;
+    height: 18px;
+    stroke: var(--ov-navy);
+    vertical-align: middle;
+    margin-right: 0.375rem;
+}
+
+body.page-overview .ov-range-select {
+    border: 1px solid var(--ov-line);
+    border-radius: var(--ov-radius-sm);
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8rem;
+    color: var(--ov-text);
+    background: var(--ov-surface);
+    cursor: pointer;
+}
+
+body.page-overview .ov-chart-wrap {
+    padding: var(--ov-space-md) var(--ov-space-lg);
+    height: 220px;
+    position: relative;
+}
+
+body.page-overview .ov-chart-wrap canvas {
+    width: 100%;
+    height: 100%;
+}
+
+body.page-overview .ov-chart-empty,
+body.page-overview .ov-chart-unavailable {
+    padding: var(--ov-space-xl) var(--ov-space-lg);
+    text-align: center;
+}
+
+/* Recent campaigns */
+body.page-overview .ov-campaigns-list {
+    display: flex;
+    flex-direction: column;
+    padding: var(--ov-space-sm) var(--ov-space-lg);
+    gap: 0.25rem;
+}
+
+body.page-overview .ov-campaign-item {
+    display: flex;
+    align-items: center;
+    gap: var(--ov-space-sm);
+    padding: var(--ov-space-sm) 0;
+    border-bottom: 1px solid var(--ov-line);
+}
+
+body.page-overview .ov-campaign-item:last-child {
+    border-bottom: none;
+}
+
+body.page-overview .ov-campaign-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--ov-orange-soft);
+    color: var(--ov-orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+body.page-overview .ov-campaign-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+body.page-overview .ov-campaign-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ov-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.page-overview .ov-campaign-meta {
+    font-size: 0.75rem;
+    color: var(--ov-muted);
+    margin-top: 0.125rem;
+}
+
+body.page-overview .ov-campaign-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+body.page-overview .ov-campaign-status svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2;
+    flex-shrink: 0;
+}
+
+body.page-overview .ov-cstatus-completed {
+    background: rgba(21, 128, 61, 0.10);
+    color: var(--ov-success);
+}
+
+body.page-overview .ov-cstatus-scheduled {
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--ov-muted);
+}
+
+body.page-overview .ov-cstatus-processing {
+    background: rgba(247, 127, 0, 0.12);
+    color: var(--ov-orange);
+}
+
+body.page-overview .ov-cstatus-failed {
+    background: rgba(220, 38, 38, 0.10);
+    color: var(--ov-danger);
+}
+
+body.page-overview .ov-cstatus-draft {
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--ov-muted);
+}
+
+body.page-overview .ov-campaigns-error {
+    padding: var(--ov-space-md) var(--ov-space-lg);
+    text-align: center;
+}
+
+body.page-overview .ov-btn-create {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: var(--ov-space-sm);
+    padding: 0.5rem 1rem;
+    border-radius: var(--ov-radius-sm);
+    background: var(--ov-orange);
+    color: var(--ov-surface);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: background-color var(--ov-transition);
+}
+
+body.page-overview .ov-btn-create:hover {
+    background: var(--ov-orange-dark);
+}
