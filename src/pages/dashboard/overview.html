@@ -126,9 +126,13 @@
             </nav>
             <div class="sidebar-footer">
                 <div class="sidebar-help-card">
+                    <svg class="sidebar-help-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+                    </svg>
                     <p class="sidebar-help-title">Need Help?</p>
                     <p class="sidebar-help-text">Our support team is here for you.</p>
-                    <a href="settings.html" class="sidebar-help-btn">Contact Support</a>
+                    <a href="settings.html" class="sidebar-help-btn">Contact Support →</a>
                 </div>
                 <div class="sidebar-user-card">
                     <div class="sidebar-user-avatar" id="sidebarUserAvatar">U</div>
@@ -136,6 +140,9 @@
                         <div class="sidebar-user-name" id="sidebarUserName">User</div>
                         <div class="sidebar-user-account" id="sidebarAccountLabel">Personal Account</div>
                     </div>
+                    <svg class="sidebar-user-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </div>
             </div>
         </aside>
@@ -148,16 +155,15 @@
                     <span></span>
                 </button>
                 <span class="mobile-header-title">Overview</span>
-                <div class="user-info">
+                <div class="user-pill" id="userPill">
                     <div class="user-avatar" id="userAvatar">U</div>
                     <span id="userName">Loading...</span>
-                    <button class="logout-btn" onclick="logout()" aria-label="Logout">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                    </button>
+                    <svg class="user-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                    <div class="user-menu" id="userMenu" style="display:none;">
+                        <button type="button" onclick="logout()">Logout</button>
+                    </div>
                 </div>
             </header>
             <!-- Sidebar Overlay -->
@@ -167,15 +173,15 @@
                 <!-- Hero -->
                 <section class="ov-hero">
                     <div class="ov-hero-content">
-                        <p class="ov-hero-kicker">Overview</p>
-                        <h1 id="welcomeTitle">Good morning, User</h1>
+                        <h1 id="welcomeTitle">Good morning, User 👋</h1>
                         <p class="ov-hero-subtitle" id="heroSubtitle">Here's what's happening with your account today.</p>
                     </div>
                     <div class="ov-hero-art" aria-hidden="true">
-                        <svg viewBox="0 0 120 120" fill="none" aria-hidden="true" focusable="false">
-                            <circle cx="60" cy="60" r="58" fill="rgba(247,127,0,0.12)"></circle>
-                            <path d="M28 62 L88 34 L70 84 L58 66 L28 62 Z" fill="#F77F00"></path>
-                            <path d="M58 66 L88 34" stroke="#C96A00" stroke-width="2"></path>
+                        <svg viewBox="0 0 200 120" fill="none" aria-hidden="true" focusable="false">
+                            <path d="M20 70 Q60 20 100 60 T180 50" stroke="rgba(255,255,255,0.35)" stroke-width="2" stroke-dasharray="4 6" fill="none"></path>
+                            <g transform="translate(150,30) rotate(15)">
+                                <path d="M0 0 L28 12 L0 24 L8 12 Z" fill="#F77F00"></path>
+                            </g>
                         </svg>
                     </div>
                 </section>
@@ -200,10 +206,11 @@
                                 </svg>
                             </div>
                             <div class="ov-stat-content">
-                                <h3 class="ov-stat-label">SMS Balance</h3>
-                                <p class="ov-stat-value" id="smsBalance">₵0.00</p>
-                                <span class="ov-stat-sub">Available to send</span>
+                                <p class="ov-stat-label">SMS Balance</p>
+                                <p class="ov-stat-value" id="smsBalance">GH¢0.00</p>
+                                <div class="ov-stat-trend" id="smsBalanceTrend" style="display:none;"></div>
                             </div>
+                            <div class="ov-stat-sparkline" id="smsBalanceSparkline" style="display:none;"></div>
                         </article>
                         <article class="ov-stat-card ov-stat-card--sent">
                             <div class="ov-stat-icon" aria-hidden="true">
@@ -212,10 +219,11 @@
                                 </svg>
                             </div>
                             <div class="ov-stat-content">
-                                <h3 class="ov-stat-label">Messages Sent</h3>
+                                <p class="ov-stat-label">Messages Sent</p>
                                 <p class="ov-stat-value" id="messagesSent">0</p>
-                                <span class="ov-stat-sub">Total messages</span>
+                                <div class="ov-stat-trend" id="messagesSentTrend" style="display:none;"></div>
                             </div>
+                            <div class="ov-stat-sparkline" id="messagesSentSparkline" style="display:none;"></div>
                         </article>
                         <article class="ov-stat-card ov-stat-card--delivery">
                             <div class="ov-stat-icon" aria-hidden="true">
@@ -225,10 +233,11 @@
                                 </svg>
                             </div>
                             <div class="ov-stat-content">
-                                <h3 class="ov-stat-label">Delivery Rate</h3>
+                                <p class="ov-stat-label">Delivery Rate</p>
                                 <p class="ov-stat-value" id="deliveryRate">0%</p>
-                                <span class="ov-stat-sub">Successfully delivered</span>
+                                <div class="ov-stat-trend" id="deliveryRateTrend" style="display:none;"></div>
                             </div>
+                            <div class="ov-stat-sparkline" id="deliveryRateSparkline" style="display:none;"></div>
                         </article>
                     </div>
                 </section>
@@ -236,6 +245,7 @@
                 <!-- Row 3: Wallet + Quick Actions -->
                 <div class="ov-row3">
                     <div class="ov-wallet-card">
+                        <div class="ov-wallet-glow" aria-hidden="true"></div>
                         <div class="ov-wallet-top">
                             <div class="ov-wallet-icon" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
@@ -245,11 +255,10 @@
                             </div>
                             <div>
                                 <h2 class="ov-wallet-title">Wallet Balance</h2>
-                                <p class="ov-wallet-subtitle">Available Balance</p>
                             </div>
                         </div>
                         <div class="ov-wallet-balance">
-                            <span class="ov-balance-amount" id="walletBalanceAmount">₵0.00</span>
+                            <span class="ov-balance-amount" id="walletBalanceAmount">GH¢0.00</span>
                         </div>
                         <p class="ov-wallet-available">Available Balance</p>
                         <div class="ov-wallet-actions">
@@ -258,9 +267,15 @@
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                Top Up Wallet
+                                + Top Up Wallet →
                             </button>
-                            <a href="transactions.html" class="ov-tx-link">View Transaction History</a>
+                            <a href="transactions.html" class="ov-tx-link">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                View Transaction History
+                            </a>
                         </div>
                     </div>
 
@@ -268,7 +283,7 @@
                         <h3 class="ov-qa-title">Quick Actions</h3>
                         <div class="ov-quick-grid">
                             <a href="send-sms.html" class="ov-quick-tile">
-                                <span class="ov-quick-icon" aria-hidden="true">
+                                <span class="ov-quick-icon ov-quick-icon--blue" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                         <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
                                     </svg>
@@ -276,7 +291,7 @@
                                 <span>Send SMS</span>
                             </a>
                             <a href="campaigns.html" class="ov-quick-tile">
-                                <span class="ov-quick-icon" aria-hidden="true">
+                                <span class="ov-quick-icon ov-quick-icon--green" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                         <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"></path>
                                         <path d="M3 11h18"></path>
@@ -285,7 +300,7 @@
                                 <span>Create Campaign</span>
                             </a>
                             <a href="contacts.html" class="ov-quick-tile">
-                                <span class="ov-quick-icon" aria-hidden="true">
+                                <span class="ov-quick-icon ov-quick-icon--purple" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                                         <circle cx="9" cy="7" r="4"></circle>
@@ -294,7 +309,7 @@
                                 <span>Manage Contacts</span>
                             </a>
                             <a href="buy-airtime.html" class="ov-quick-tile">
-                                <span class="ov-quick-icon" aria-hidden="true">
+                                <span class="ov-quick-icon ov-quick-icon--orange" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                                     </svg>
@@ -310,8 +325,14 @@
                 <!-- Recent Transactions -->
                 <section class="ov-transactions">
                     <div class="ov-section-header">
-                        <h3>Recent Transactions</h3>
-                        <a href="transactions.html" class="ov-view-all">View All</a>
+                        <h3>
+                            <svg class="ov-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Recent Transactions
+                        </h3>
+                        <a href="transactions.html" class="ov-view-all">View All →</a>
                     </div>
                     <div class="ov-tx-toolbar">
                         <div class="ov-tx-search-wrap">
@@ -323,9 +344,9 @@
                         </div>
                         <div class="ov-tx-filters" role="group" aria-label="Filter transactions">
                             <button type="button" class="ov-chip active" data-filter="all">All</button>
-                            <button type="button" class="ov-chip" data-filter="completed">Success</button>
-                            <button type="button" class="ov-chip" data-filter="failed">Failed</button>
-                            <button type="button" class="ov-chip" data-filter="pending">Pending</button>
+                            <button type="button" class="ov-chip" data-filter="completed"><span class="ov-chip-dot ov-chip-dot--green"></span>Success</button>
+                            <button type="button" class="ov-chip" data-filter="failed"><span class="ov-chip-dot ov-chip-dot--red"></span>Failed</button>
+                            <button type="button" class="ov-chip" data-filter="pending"><span class="ov-chip-dot ov-chip-dot--orange"></span>Pending</button>
                         </div>
                     </div>
                     <div class="ov-table-container">
@@ -357,9 +378,10 @@
                         <p class="ov-empty-desc">Your wallet transactions will appear here.</p>
                     </div>
                     <div class="ov-pagination">
-                        <span id="txPageInfo">Showing 0-0 of 0</span>
+                        <div class="ov-page-numbers" id="txPageNumbers"></div>
+                        <span id="txPageInfo">Showing 0–0 of 0 transactions</span>
                         <div class="ov-pagination-btns">
-                            <button type="button" id="txPrev" class="ov-page-btn" disabled>Previous</button>
+                            <button type="button" id="txPrev" class="ov-page-btn" disabled>Prev</button>
                             <button type="button" id="txNext" class="ov-page-btn" disabled>Next</button>
                         </div>
                     </div>
@@ -375,13 +397,18 @@
                                     <line x1="12" y1="20" x2="12" y2="4"></line>
                                     <line x1="6" y1="20" x2="6" y2="14"></line>
                                 </svg>
-                                Messaging Analytics
+                                Your Messaging Analytics
                             </h3>
-                            <select id="analyticsRange" class="ov-range-select" aria-label="Analytics range">
-                                <option value="7">Last 7 Days</option>
-                                <option value="30" selected>Last 30 Days</option>
-                                <option value="90">Last 90 Days</option>
-                            </select>
+                            <div class="ov-range-wrap">
+                                <select id="analyticsRange" class="ov-range-select" aria-label="Analytics range">
+                                    <option value="7">Last 7 Days</option>
+                                    <option value="30" selected>Last 30 Days</option>
+                                    <option value="90">Last 90 Days</option>
+                                </select>
+                                <svg class="ov-range-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
                         </div>
                         <div class="ov-chart-wrap">
                             <canvas id="analyticsChart" aria-label="Messages sent per day over the selected range"></canvas>
@@ -405,7 +432,7 @@
                                 </svg>
                                 Recent Campaigns
                             </h3>
-                            <a href="campaigns.html" class="ov-view-all">View All</a>
+                            <a href="campaigns.html" class="ov-view-all">View All →</a>
                         </div>
                         <div class="ov-loading" id="campaignsLoading" style="display: none;">
                             <div class="ov-spinner"></div>
@@ -516,6 +543,11 @@
                     if (sidebarName) sidebarName.textContent = fullName;
                     storage.setItem('userName', fullName);
                     if (user.email) storage.setItem('userEmail', user.email);
+                    const accountLabel = document.getElementById('sidebarAccountLabel');
+                    if (accountLabel) {
+                        const role = (user.role || 'user').toLowerCase();
+                        accountLabel.textContent = (role === 'admin' || role === 'super_admin') ? 'Admin Account' : 'Personal Account';
+                    }
                 } else {
                     useStoredUserName();
                 }
@@ -549,7 +581,7 @@
             const userAvatarEl = document.getElementById('userAvatar');
             const sidebarAvatarEl = document.getElementById('sidebarUserAvatar');
             if (userNameEl) userNameEl.textContent = firstName;
-            if (welcomeTitleEl) welcomeTitleEl.textContent = getTimeGreeting() + ', ' + firstName;
+            if (welcomeTitleEl) welcomeTitleEl.textContent = getTimeGreeting() + ', ' + firstName + ' 👋';
             if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
             if (sidebarAvatarEl) sidebarAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
         }
@@ -587,10 +619,10 @@
                 if (balanceResponse.data) {
                     const data = balanceResponse.data;
                     const walletBalanceEl = document.getElementById('walletBalanceAmount');
-                    if (walletBalanceEl) walletBalanceEl.textContent = '₵' + (data.balance || 0).toFixed(2);
+                    if (walletBalanceEl) walletBalanceEl.textContent = 'GH¢' + (data.balance || 0).toFixed(2);
 
                     const smsBalanceEl = document.getElementById('smsBalance');
-                    if (smsBalanceEl) smsBalanceEl.textContent = '₵' + (data.smsBalance || 0).toFixed(2);
+                    if (smsBalanceEl) smsBalanceEl.textContent = 'GH¢' + (data.smsBalance || 0).toFixed(2);
 
                     const messagesSentEl = document.getElementById('messagesSent');
                     if (messagesSentEl) messagesSentEl.textContent = (data.stats?.totalSent || 0).toLocaleString();
@@ -606,6 +638,7 @@
                 await loadTransactions();
                 await loadCampaignsOverview();
                 renderAnalytics();
+                loadStatExtras();
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
@@ -680,6 +713,7 @@
             const pageInfo = document.getElementById('txPageInfo');
             const prevBtn = document.getElementById('txPrev');
             const nextBtn = document.getElementById('txNext');
+            const pageNumbers = document.getElementById('txPageNumbers');
             if (!tbody) return;
 
             const filtered = getFilteredTransactions();
@@ -702,9 +736,10 @@
                 if (allTransactions.length > 0) {
                     tbody.innerHTML = '<tr><td colspan="5" class="ov-td-empty">No transactions match your search or filter.</td></tr>';
                 }
-                pageInfo.textContent = 'Showing 0-0 of 0';
-                prevBtn.disabled = true;
-                nextBtn.disabled = true;
+                if (pageInfo) pageInfo.textContent = 'Showing 0–0 of 0 transactions';
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+                if (pageNumbers) pageNumbers.innerHTML = '';
                 return;
             }
 
@@ -713,7 +748,7 @@
                 const date = tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : '-';
                 const typeUpper = (tx.type === 'credit') ? 'CREDIT' : 'DEBIT';
                 const typeClass = (tx.type === 'credit') ? 'credit' : 'debit';
-                const amount = (tx.amount != null) ? ((tx.type === 'credit' ? '+₵' : '-₵') + Number(tx.amount).toFixed(2)) : '-';
+                const amount = (tx.amount != null) ? ((tx.type === 'credit' ? '+GH¢' : '-GH¢') + Number(tx.amount).toFixed(2)) : '-';
                 const amountClass = (tx.type === 'credit') ? 'ov-text-success' : 'ov-text-danger';
                 const description = tx.description || '-';
                 const st = normalizeTxStatus(tx.status);
@@ -729,9 +764,26 @@
 
             const showingStart = total === 0 ? 0 : start + 1;
             const showingEnd = end;
-            pageInfo.textContent = 'Showing ' + showingStart + '-' + showingEnd + ' of ' + total;
-            prevBtn.disabled = txPage <= 1;
-            nextBtn.disabled = txPage >= totalPages;
+            if (pageInfo) pageInfo.textContent = 'Showing ' + showingStart + '–' + showingEnd + ' of ' + total + ' transactions';
+            if (prevBtn) prevBtn.disabled = txPage <= 1;
+            if (nextBtn) nextBtn.disabled = txPage >= totalPages;
+
+            // page numbers
+            if (pageNumbers) {
+                pageNumbers.innerHTML = '';
+                const maxButtons = 5;
+                let first = Math.max(1, txPage - 2);
+                let last = Math.min(totalPages, first + maxButtons - 1);
+                if (last - first < maxButtons - 1) first = Math.max(1, last - maxButtons + 1);
+                for (let p = first; p <= last; p++) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'ov-page-num' + (p === txPage ? ' active' : '');
+                    btn.textContent = p;
+                    btn.addEventListener('click', () => { txPage = p; renderTransactions(); });
+                    pageNumbers.appendChild(btn);
+                }
+            }
         }
 
         // Messaging analytics + recent campaigns
@@ -803,9 +855,10 @@
 
             if (analyticsChart) { analyticsChart.destroy(); analyticsChart = null; }
             const ctx = canvas.getContext('2d');
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 200);
-            gradient.addColorStop(0, 'rgba(247, 127, 0, 0.28)');
-            gradient.addColorStop(1, 'rgba(247, 127, 0, 0)');
+            const gradient = ctx.createLinearGradient(0, 0, canvas.height || 220, 0);
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height || 220);
+            g.addColorStop(0, 'rgba(247, 127, 0, 0.25)');
+            g.addColorStop(1, 'rgba(247, 127, 0, 0)');
             analyticsChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -814,24 +867,28 @@
                         label: 'Messages',
                         data,
                         borderColor: '#F77F00',
-                        backgroundColor: gradient,
+                        backgroundColor: g,
                         fill: true,
-                        tension: 0.35,
+                        tension: 0.4,
                         pointRadius: 3,
                         pointHoverRadius: 5,
                         pointBackgroundColor: '#F77F00',
-                        borderWidth: 2
+                        borderWidth: 2.5
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             backgroundColor: '#0B132B',
                             titleColor: '#FFFFFF',
                             bodyColor: '#FFFFFF',
+                            cornerRadius: 8,
+                            padding: 8,
+                            displayColors: false,
                             callbacks: {
                                 label: (ctx) => ctx.parsed.y + ' messages'
                             }
@@ -839,9 +896,27 @@
                     },
                     scales: {
                         x: { grid: { display: false }, ticks: { color: '#64748B', maxTicksLimit: 8, font: { size: 10 } } },
-                        y: { beginAtZero: true, grid: { color: '#E2E8F0' }, ticks: { color: '#64748B', precision: 0, font: { size: 10 } } }
+                        y: { beginAtZero: true, grid: { color: '#E2E8F0' }, ticks: { color: '#64748B', precision: 0, stepSize: 50, font: { size: 10 } } }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'vline',
+                    afterDraw(chart) {
+                        if (chart.tooltip && chart.tooltip.getActiveElements && chart.tooltip.getActiveElements().length) {
+                            const ctx = chart.ctx;
+                            const x = chart.tooltip.getActiveElements()[0].element.x;
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.setLineDash([4, 4]);
+                            ctx.moveTo(x, chart.chartArea.top);
+                            ctx.lineTo(x, chart.chartArea.bottom);
+                            ctx.lineWidth = 1;
+                            ctx.strokeStyle = 'rgba(11,19,43,0.25)';
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    }
+                }]
             });
         }
 
@@ -892,13 +967,13 @@
                     item.className = 'ov-campaign-item';
                     const name = c.title || c.name || 'Untitled Campaign';
                     const recipients = c.recipientCount || c.recipientsCount || 0;
-                    const date = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-';
+                    const date = c.createdAt ? new Date(c.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
                     const st = normalizeCampaignStatus(c.status);
                     item.innerHTML = `
                         <div class="ov-campaign-avatar">${escapeHtml((name.charAt(0) || 'C').toUpperCase())}</div>
                         <div class="ov-campaign-info">
                             <div class="ov-campaign-name">${escapeHtml(name)}</div>
-                            <div class="ov-campaign-meta">Sent to ${recipients} recipient${recipients === 1 ? '' : 's'} \u2022 ${escapeHtml(date)}</div>
+                            <div class="ov-campaign-meta">Sent to ${recipients.toLocaleString()} recipient${recipients === 1 ? '' : 's'} \u2022 ${escapeHtml(date)}</div>
                         </div>
                         <span class="ov-campaign-status ov-cstatus-${st.key}">${campaignStatusIcon(st.key)}${escapeHtml(st.label)}</span>
                     `;
@@ -908,6 +983,132 @@
                 loading.style.display = 'none';
                 error.style.display = 'flex';
             }
+        }
+
+        // Stat extras: trends + sparklines from real data
+        async function loadStatExtras() {
+            try {
+                const messages = await fetchMessageHistoryForAnalytics();
+                // Messages Sent trend/sparkline
+                const now = new Date();
+                const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+                const thisMonthMsgs = messages.filter(m => m && m.createdAt && new Date(m.createdAt) >= thisMonthStart);
+                const lastMonthMsgs = messages.filter(m => m && m.createdAt && new Date(m.createdAt) >= lastMonthStart && new Date(m.createdAt) <= lastMonthEnd);
+                const thisCount = thisMonthMsgs.length;
+                const lastCount = lastMonthMsgs.length;
+                const sentTrendEl = document.getElementById('messagesSentTrend');
+                if (sentTrendEl && lastCount > 0) {
+                    const pct = Math.round(((thisCount - lastCount) / lastCount) * 100);
+                    const arrow = pct >= 0 ? '↑' : '↓';
+                    const color = pct >= 0 ? '#15803D' : '#DC2626';
+                    sentTrendEl.style.color = color;
+                    sentTrendEl.style.display = '';
+                    sentTrendEl.textContent = arrow + ' ' + Math.abs(pct) + '% vs last month';
+                } else if (sentTrendEl) {
+                    sentTrendEl.style.display = 'none';
+                }
+                // sparkline daily series last 30 days
+                const sparkSent = aggregateMessagesByDay(messages, 30).data;
+                renderSparkline('messagesSentSparkline', sparkSent, '#15803D');
+
+                // Delivery Rate
+                const thisDelivered = thisMonthMsgs.filter(m => m.status === 'delivered' || m.status === 'sent').length;
+                const lastDelivered = lastMonthMsgs.filter(m => m.status === 'delivered' || m.status === 'sent').length;
+                const thisRate = thisCount > 0 ? Math.round((thisDelivered / thisCount) * 100) : 0;
+                const lastRate = lastCount > 0 ? Math.round((lastDelivered / lastCount) * 100) : 0;
+                const delTrendEl = document.getElementById('deliveryRateTrend');
+                if (delTrendEl && lastCount > 0 && lastRate > 0) {
+                    const pct = Math.round(((thisRate - lastRate) / lastRate) * 100);
+                    const arrow = pct >= 0 ? '↑' : '↓';
+                    const color = pct >= 0 ? '#15803D' : '#DC2626';
+                    delTrendEl.style.color = color;
+                    delTrendEl.style.display = '';
+                    delTrendEl.textContent = arrow + ' ' + Math.abs(pct) + '% vs last month';
+                } else if (delTrendEl) {
+                    delTrendEl.style.display = 'none';
+                }
+                // sparkline: daily delivered counts
+                const dailyDelivered = [];
+                const now2 = new Date();
+                const start2 = new Date(now2.getFullYear(), now2.getMonth(), now2.getDate());
+                start2.setDate(start2.getDate() - 29);
+                const dcounts = {};
+                for (let i = 0; i < 30; i++) {
+                    const d = new Date(start2); d.setDate(start2.getDate() + i);
+                    dcounts[d.toISOString().slice(0,10)] = 0;
+                }
+                messages.forEach(m => {
+                    if (!m || !m.createdAt) return;
+                    const dt = new Date(m.createdAt);
+                    if (isNaN(dt.getTime()) || dt < start2) return;
+                    const key = dt.toISOString().slice(0,10);
+                    if (!Object.prototype.hasOwnProperty.call(dcounts, key)) return;
+                    if (m.status === 'delivered' || m.status === 'sent') dcounts[key]++;
+                });
+                renderSparkline('deliveryRateSparkline', Object.values(dcounts), '#F77F00');
+
+                // SMS Balance from transactions running balance
+                const smsTrendEl = document.getElementById('smsBalanceTrend');
+                const txs = allTransactions.slice().sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
+                const balPoints = txs.map(t => (t.balanceAfter != null ? Number(t.balanceAfter) : null)).filter(v => v != null);
+                if (balPoints.length >= 2) {
+                    renderSparkline('smsBalanceSparkline', balPoints, '#2563EB');
+                } else {
+                    const sp = document.getElementById('smsBalanceSparkline');
+                    if (sp) sp.style.display = 'none';
+                }
+                // trend for sms balance: compare current to point 30 days ago
+                const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+                const oldTx = txs.filter(t => t.createdAt && new Date(t.createdAt) <= cutoff);
+                if (smsTrendEl && oldTx.length > 0) {
+                    const oldBal = oldTx[oldTx.length-1].balanceAfter;
+                    const curBal = txs[txs.length-1].balanceAfter;
+                    if (oldBal != null && curBal != null && Number(oldBal) !== 0) {
+                        const pct = Math.round(((Number(curBal) - Number(oldBal)) / Number(oldBal)) * 100);
+                        const arrow = pct >= 0 ? '↑' : '↓';
+                        const color = pct >= 0 ? '#15803D' : '#DC2626';
+                        smsTrendEl.style.color = color;
+                        smsTrendEl.style.display = '';
+                        smsTrendEl.textContent = arrow + ' ' + Math.abs(pct) + '% vs last month';
+                    } else {
+                        smsTrendEl.style.display = 'none';
+                    }
+                } else if (smsTrendEl) {
+                    smsTrendEl.style.display = 'none';
+                }
+            } catch (e) {
+                // hide all
+            }
+        }
+
+        function renderSparkline(containerId, data, color) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            if (!data || data.length < 2) { el.style.display = 'none'; return; }
+            const w = 110, h = 50;
+            const min = Math.min(...data), max = Math.max(...data);
+            const range = (max - min) || 1;
+            const pts = data.map((v, i) => {
+                const x = (i / (data.length - 1)) * w;
+                const y = h - ((v - min) / range) * (h - 6) - 3;
+                return [x, y];
+            });
+            const line = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+            const area = line + ' L ' + w + ' ' + h + ' L 0 ' + h + ' Z';
+            const gradId = 'spg' + containerId;
+            el.style.display = '';
+            el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" width="100%" height="100%" aria-hidden="true">
+                <defs>
+                    <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+                    </linearGradient>
+                </defs>
+                <path d="${area}" fill="url(#${gradId})"></path>
+                <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>`;
         }
 
         // Top-up modal
@@ -1008,6 +1209,18 @@
 
             const rangeEl = document.getElementById('analyticsRange');
             if (rangeEl) rangeEl.addEventListener('change', () => renderAnalytics());
+
+            const userPill = document.getElementById('userPill');
+            const userMenu = document.getElementById('userMenu');
+            if (userPill && userMenu) {
+                userPill.addEventListener('click', (e) => {
+                    if (e.target.closest('.user-menu')) return;
+                    userMenu.style.display = userMenu.style.display === 'block' ? 'none' : 'block';
+                });
+                document.addEventListener('click', (e) => {
+                    if (!userPill.contains(e.target)) userMenu.style.display = 'none';
+                });
+            }
         });
 
         // Mobile sidebar functionality
