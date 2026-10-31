@@ -665,10 +665,9 @@ body.page-overview .ov-qa-title {
 
 body.page-overview .ov-quick-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    flex: 1;
-    align-items: stretch;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    align-items: start;
 }
 
 body.page-overview .ov-quick-tile {
@@ -684,8 +683,12 @@ body.page-overview .ov-quick-tile {
     line-height: 1.2;
     font-weight: 600;
     text-align: center;
-    border-right: 1px solid var(--ov-line);
+    border-left: 1px solid var(--ov-line);
     min-width: 0;
+}
+
+body.page-overview .ov-quick-tile:first-child {
+    border-left: none;
 }
 
 body.page-overview .ov-quick-tile:last-child { border-right: none; }
@@ -1289,13 +1292,16 @@ body.page-overview .ov-btn-create:hover { background: var(--ov-orange-dark); }
     body.page-overview .ov-hero-art { width: 120px; height: 80px; }
     body.page-overview #welcomeTitle { font-size: 24px; }
     body.page-overview .ov-tx-toolbar { flex-direction: column; align-items: stretch; }
-    body.page-overview .ov-quick-grid { grid-template-columns: repeat(2, 1fr); }
-    body.page-overview .ov-quick-tile { border-right: none; border-bottom: 1px solid var(--ov-line); }
     body.page-overview .ov-stat-sparkline { display: none; }
     body.page-overview .ov-wallet-actions { flex-direction: column; align-items: stretch; }
     body.page-overview .ov-btn-topup { width: 100%; justify-content: center; }
     body.page-overview .ov-wallet-card,
     body.page-overview .ov-quick-actions { min-height: auto; }
+}
+
+@media (max-width: 479px) {
+    body.page-overview .ov-quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    body.page-overview .ov-quick-tile { border-left: none; border-bottom: none; }
 }
 
 @media (max-width: 360px) {
