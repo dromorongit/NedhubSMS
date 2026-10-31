@@ -1297,4 +1297,20 @@ body.page-overview .ov-btn-create:hover { background: var(--ov-orange-dark); }
         width: 90px;
         height: 32px;
     }
+    body.page-overview .ov-wallet-card,
+    body.page-overview .ov-quick-actions {
+        min-height: 110px;
+        padding: var(--ov-space-md) var(--ov-space-lg);
+    }
+    body.page-overview .ov-wallet-icon {
+        width: 64px;
+        height: 64px;
+    }
+    body.page-overview .ov-wallet-icon svg {
+        width: 28px;
+        height: 28px;
+    }
+    body.page-overview .ov-balance-amount {
+        font-size: 28px;
+    }
 }
