@@ -898,7 +898,7 @@
                         <div class="ov-campaign-avatar">${escapeHtml((name.charAt(0) || 'C').toUpperCase())}</div>
                         <div class="ov-campaign-info">
                             <div class="ov-campaign-name">${escapeHtml(name)}</div>
-                            <div class="ov-campaign-meta">Sent to ${recipients} recipients \u2022 ${escapeHtml(date)}</div>
+                            <div class="ov-campaign-meta">Sent to ${recipients} recipient${recipients === 1 ? '' : 's'} \u2022 ${escapeHtml(date)}</div>
                         </div>
                         <span class="ov-campaign-status ov-cstatus-${st.key}">${campaignStatusIcon(st.key)}${escapeHtml(st.label)}</span>
                     `;
