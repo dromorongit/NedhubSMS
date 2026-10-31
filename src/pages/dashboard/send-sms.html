@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -159,9 +159,22 @@
                     <span id="lowBalanceMessage">Low balance! Please top up to send SMS.</span>
                 </div>
 
-                 <!-- SMS Form Card -->
-                 <div class="sms-form-card">
-                     <form id="sendSmsForm">
+                 <div class="send-sms-grid">
+                     <div class="compose-column">
+                         <div class="sms-form-card">
+                             <div class="compose-card-header">
+                                 <div class="compose-card-icon">
+                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                     </svg>
+                                 </div>
+                                 <div>
+                                     <h2 class="compose-card-title">Bulk SMS</h2>
+                                     <p class="compose-card-subtitle">Compose, preview and send your message with ease.</p>
+                                 </div>
+                             </div>
+                             <div class="compose-card-divider"></div>
+                             <form id="sendSmsForm">
                          <!-- Left Column: Form Sections -->
                          <div class="sms-form-left-column">
                              <div class="form-row">
@@ -244,7 +257,7 @@
                                                <div class="manual-recipient-item template" style="display: none;">
                                                    <input type="text" placeholder="Recipient Name" class="recipient-name-input">
                                                    <input type="tel" placeholder="Phone Number (e.g., 0241234567)" class="recipient-phone-input">
-                                                   <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">×</button>
+                                                   <button type="button" class="remove-recipient-btn" onclick="removeManualRecipient(this)">Ã—</button>
                                                </div>
                                            </div>
                                            <button type="button" class="btn-add-recipient" onclick="addManualRecipient()">
@@ -267,7 +280,7 @@
                                       </div>
                                       <div class="file-preview" id="filePreview" style="display: none;">
                                           <span class="file-name" id="uploadedFileName"></span>
-                                          <button type="button" class="remove-file" onclick="removeUploadedFile()">×</button>
+                                          <button type="button" class="remove-file" onclick="removeUploadedFile()">Ã—</button>
                                       </div>
                                       <!-- Import Summary (shown after successful import) -->
                                       <div class="import-summary" id="importSummary" style="display: none; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
@@ -289,13 +302,71 @@
                               </div>
                            </div>
                            
+                           <!-- Schedule Date & Time Field -->
+                           <div class="schedule-section" id="scheduleSettings">
+                              <h3 class="section-title">Schedule Message</h3>
+                              <div class="form-row">
+                                  <div class="form-group">
+                                      <label for="scheduledDate">Schedule Date</label>
+                                      <input type="date" id="scheduledDate" name="scheduledDate" required min="">
+                                      <small>Select the date to send this campaign</small>
+                                  </div>
+                                  <div class="form-group">
+                                      <label for="scheduledTime">Schedule Time</label>
+                                      <input type="time" id="scheduledTime" name="scheduledTime" required>
+                                      <small>Select the time to send (your local timezone)</small>
+                                  </div>
+                              </div>
+                              <div class="schedule-info" id="scheduleInfo">
+                                  <div class="timezone-display">
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                          <circle cx="12" cy="12" r="10"></circle>
+                                          <polyline points="12 6 12 12 16 14"></polyline>
+                                      </svg>
+                                      <span id="timezoneDisplay">Detecting timezone...</span>
+                                  </div>
+                                  <div class="schedule-preview" id="schedulePreview">
+                                      <!-- Will show "Scheduled for Tomorrow at 9:00 AM" -->
+                                  </div>
+                              </div>
+                              <!-- Schedule Button (moved under schedule fields) -->
+                              <div class="schedule-action">
+                                  <button type="button" class="btn-secondary" id="scheduleBtn" disabled>
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                          <circle cx="12" cy="12" r="10"></circle>
+                                          <polyline points="12 6 12 12 16 14"></polyline>
+                                      </svg>
+                                      Schedule Message
+                                  </button>
+                              </div>
+                          </div>
+
 <!-- Message Composer Section (Always Visible) -->
                             <div class="message-composer-section">
                                   <div class="form-group">
-                                      <label for="messageBody">Message Body</label>
+                                      <div class="message-composer-header">
+                                          <label for="messageBody" class="section-label">Message Content</label>
+                                          <div class="personalization-control">
+                                              <button type="button" class="personalization-pill" id="personalizationPill">
+                                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                                  Use Recipient Name
+                                                  <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                              </button>
+                                              <div class="personalization-menu" id="personalizationMenu">
+                                                  <button type="button" data-placeholder="{{name}}">Insert Name ({{name}})</button>
+                                              </div>
+                                          </div>
+                                      </div>
                                       <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Type your message here..."></textarea>
+                                      <div class="personalization-tip" id="personalizationTip">
+                                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path></svg>
+                                          <div>
+                                              <strong>Personalization</strong>
+                                              <p>Use {{name}} for personalized messages.</p>
+                                          </div>
+                                      </div>
                                   </div>
-                            </div>
+                            </div>'''
                             
                          <!-- Duplicate Handling Section -->
                          <div class="duplicate-handling-section" id="duplicateHandlingSection" style="display: none;">
@@ -443,7 +514,7 @@
                             </div>
                         </div>
                         <div class="cost-warnings" id="costWarnings" style="display: none;">
-                             <div class="warning-icon">⚠️</div>
+                             <div class="warning-icon">âš ï¸</div>
                              <div class="warning-text" id="warningText"></div>
                          </div>
                          
@@ -460,45 +531,14 @@
 
                        <!-- Right Sidebar: Schedule + Live Preview -->
                        <div class="sms-form-right-sidebar">
-                           <!-- Schedule Date & Time Field -->
-                           <div class="schedule-section" id="scheduleSettings">
-                              <h3 class="section-title">Schedule Message</h3>
-                              <div class="form-row">
-                                  <div class="form-group">
-                                      <label for="scheduledDate">Schedule Date</label>
-                                      <input type="date" id="scheduledDate" name="scheduledDate" required min="">
-                                      <small>Select the date to send this campaign</small>
-                                  </div>
-                                  <div class="form-group">
-                                      <label for="scheduledTime">Schedule Time</label>
-                                      <input type="time" id="scheduledTime" name="scheduledTime" required>
-                                      <small>Select the time to send (your local timezone)</small>
-                                  </div>
-                              </div>
-                              <div class="schedule-info" id="scheduleInfo">
-                                  <div class="timezone-display">
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                          <circle cx="12" cy="12" r="10"></circle>
-                                          <polyline points="12 6 12 12 16 14"></polyline>
-                                      </svg>
-                                      <span id="timezoneDisplay">Detecting timezone...</span>
-                                  </div>
-                                  <div class="schedule-preview" id="schedulePreview">
-                                      <!-- Will show "Scheduled for Tomorrow at 9:00 AM" -->
-                                  </div>
-                              </div>
-                              <!-- Schedule Button (moved under schedule fields) -->
-                              <div class="schedule-action">
-                                  <button type="button" class="btn-secondary" id="scheduleBtn" disabled>
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                          <circle cx="12" cy="12" r="10"></circle>
-                                          <polyline points="12 6 12 12 16 14"></polyline>
-                                      </svg>
-                                      Schedule Message
-                                  </button>
-                              </div>
-                          </div>
 
+
+
+
+                   </form>
+                         </div>
+                     </div>
+                     <div class="phone-column">
 <!-- Live Mobile Preview Section -->
                             <div class="live-preview-section" id="previewDetails">
                                 <details class="sp-preview-details" open>
@@ -531,7 +571,7 @@
                                                             <div class="sms-bubble-row sp-sms-bubble-row">
                                                                 <div class="sms-bubble-head sp-sms-bubble-head">
                                                                     <span class="sms-sender-name sp-sms-sender-name" id="previewHeaderSender">Sender ID</span>
-                                                                    <span class="sms-sender-label sp-sms-sender-label">Text Message · SMS</span>
+                                                                    <span class="sms-sender-label sp-sms-sender-label">Text Message Â· SMS</span>
                                                                 </div>
                                                                 <div class="sms-bubble-body sp-sms-bubble-body">
                                                                     <span class="message-text sp-message-text" id="livePreviewText">Your message will appear here</span>
@@ -545,7 +585,20 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!-- Summary card under the phone -->
+                                </details>
+                            </div>
+                     </div>
+                     <div class="right-column">
+                         <div class="summary-card">
+                             <div class="summary-card-header">
+                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                     <line x1="18" y1="20" x2="18" y2="10"></line>
+                                     <line x1="12" y1="20" x2="12" y2="4"></line>
+                                     <line x1="6" y1="20" x2="6" y2="14"></line>
+                                 </svg>
+                                 <h3>Message Summary</h3>
+                             </div>
+<!-- Summary card under the phone -->
                                 <div class="sms-preview-summary sp-sms-preview-summary" id="smsPreviewSummary">
                                     <div class="sms-preview-summary-row sp-sms-preview-summary-row">
                                         <div class="sms-preview-stat sp-sms-preview-stat">
@@ -576,15 +629,27 @@
                                     </div>
                                     <div class="sms-preview-notices sp-sms-preview-notices" id="previewNotices"></div>
                                 </div>
-                                <div class="sms-preview-sr" id="previewScreenReader" aria-live="polite"></div>
-                            </div>
-                                </details>
-                            </div>
+                         </div>
+                         <div class="networks-card">
+                             <div class="networks-card-header">
+                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                     <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                                     <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                                     <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                                     <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                                 </svg>
+                                 <h3>Supported Networks</h3>
+                             </div>
+                             <ul class="networks-list">
+                                 <li><span class="net-check">âœ“</span> MTN</li>
+                                 <li><span class="net-check">âœ“</span> AirtelTigo</li>
+                                 <li><span class="net-check">âœ“</span> Telecel</li>
+                             </ul>
+                         </div>
+                     </div>
+                 </div>
 
-                  </form>
-                  </div>
-
-                 <!-- Quick Tips Card -->
+                  <!-- Quick Tips Card -->
                 <div class="tips-card">
                     <div class="tips-header">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -645,7 +710,7 @@
                     </div>
                     <div class="file-preview" id="filePreview" style="display: none;">
                         <span class="file-name" id="fileName"></span>
-                        <button type="button" class="remove-file" onclick="removeFile()">×</button>
+                        <button type="button" class="remove-file" onclick="removeFile()">Ã—</button>
                     </div>
                 </div>
                 
@@ -2729,7 +2794,7 @@ if (result.error) {
                                 <div class="duplicate-item">
                                     <span class="duplicate-name">${escapeHtml(duplicate.recipientName)}</span>
                                     <span class="duplicate-phone">${escapeHtml(duplicate.phoneNumber)}</span>
-                                    <span class="duplicate-normalized">→ ${escapeHtml(duplicate.normalizedPhoneNumber)}</span>
+                                    <span class="duplicate-normalized">â†’ ${escapeHtml(duplicate.normalizedPhoneNumber)}</span>
                                 </div>
                             `;
                         });
@@ -3817,20 +3882,20 @@ if (result.error) {
             const segmentsRaw = smsCountEl ? smsCountEl.textContent : '1';
             const segmentsMatch = String(segmentsRaw).match(/\d+/);
             const segments = segmentsMatch ? Number(segmentsMatch[0]) : 1;
-            const encoding = encodingTypeEl ? encodingTypeEl.textContent : '—';
+            const encoding = encodingTypeEl ? encodingTypeEl.textContent : 'â€”';
             const encodingL = String(encoding).toLowerCase();
             const recipientCount = typeof getRecipientCount === 'function' ? getRecipientCount() : 0;
-            const cost = estimatedCostEl ? estimatedCostEl.textContent : '—';
+            const cost = estimatedCostEl ? estimatedCostEl.textContent : 'â€”';
 
             const set = (id, value) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = value;
             };
-            set('previewCharCount', charCountEl ? charCountEl.textContent : '—');
-            set('previewSegments', smsCountEl ? smsCountEl.textContent : '—');
-            set('previewEncodingType', encodingTypeEl ? encodingTypeEl.textContent : '—');
+            set('previewCharCount', charCountEl ? charCountEl.textContent : 'â€”');
+            set('previewSegments', smsCountEl ? smsCountEl.textContent : 'â€”');
+            set('previewEncodingType', encodingTypeEl ? encodingTypeEl.textContent : 'â€”');
             set('previewRecipientCount', String(recipientCount));
-            set('previewEstimatedCost', estimatedCostEl ? estimatedCostEl.textContent : '—');
+            set('previewEstimatedCost', estimatedCostEl ? estimatedCostEl.textContent : 'â€”');
 
             const limitEl = document.getElementById('previewCharLimit');
             const progressEl = document.getElementById('previewProgress');
@@ -3853,10 +3918,10 @@ if (result.error) {
             if (noticesEl) {
                 noticesEl.textContent = '';
                 if (segments >= 2) {
-                    addPreviewNotice(noticesEl, '⚠️', `Your message uses ${segments} segments`);
+                    addPreviewNotice(noticesEl, 'âš ï¸', `Your message uses ${segments} segments`);
                 }
                 if (isUnicode) {
-                    addPreviewNotice(noticesEl, 'ℹ️', 'Special characters or emoji switch this message to Unicode, which fits fewer characters per segment');
+                    addPreviewNotice(noticesEl, 'â„¹ï¸', 'Special characters or emoji switch this message to Unicode, which fits fewer characters per segment');
                 }
             }
 
@@ -4618,7 +4683,7 @@ if (result.error) {
                     } else if (classification === 'temporary_provider_error' || errorCode === 'PROVIDER_TEMPORARY_ERROR') {
                         errorMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
                     } else if (errorCode === '1025' || providerSummaryCode === '1025') {
-                        errorMessage = 'SMS provider account balance is low — please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
+                        errorMessage = 'SMS provider account balance is low â€” please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
                     } else if (classification === 'auth_configuration_error' || errorCode === 'PROVIDER_AUTH_ERROR') {
                         errorMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
                     }
@@ -4707,7 +4772,7 @@ if (result.error) {
                            } else if (classification === 'temporary_provider_error' || errorCode === 'PROVIDER_TEMPORARY_ERROR') {
                                errorMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
                            } else if (errorCode === '1025' || providerSummaryCode === '1025') {
-                               errorMessage = 'SMS provider account balance is low — please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
+                               errorMessage = 'SMS provider account balance is low â€” please top up your Nalo account and try again. (This is separate from your in-app wallet balance.)';
                            } else if (classification === 'auth_configuration_error' || errorCode === 'PROVIDER_AUTH_ERROR') {
                                errorMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
                            } else if (responseData.summary || responseData.duplicatesRemoved !== undefined) {
@@ -5441,5 +5506,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     </script>
 
-    </body>
+    <script>
+(function(){
+  function ready(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded',fn); }
+  ready(function(){
+    var pill = document.getElementById('personalizationPill');
+    var menu = document.getElementById('personalizationMenu');
+    if (pill && menu) {
+      pill.addEventListener('click', function(e){ e.stopPropagation(); menu.style.display = menu.style.display === 'block' ? 'none' : 'block'; });
+      document.addEventListener('click', function(){ if (menu) menu.style.display = 'none'; });
+      menu.querySelectorAll('button[data-placeholder]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var ph = btn.getAttribute('data-placeholder');
+          var ta = document.getElementById('messageBody');
+          if (!ta) return;
+          var start = ta.selectionStart || 0;
+          var end = ta.selectionEnd || 0;
+          var val = ta.value;
+          ta.value = val.slice(0,start) + ph + val.slice(end);
+          ta.selectionStart = ta.selectionEnd = start + ph.length;
+          ta.focus();
+          if (menu) menu.style.display = 'none';
+        });
+      });
+    }
+    // clock for date divider
+    function updateClock(){
+      var el = document.getElementById('previewDateDivider');
+      if (!el) return;
+      var now = new Date();
+      var time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      el.textContent = 'Today, ' + time;
+    }
+    updateClock();
+    setInterval(updateClock, 60000);
+  });
+})();
+</script>
+</body>
 </html>
+
