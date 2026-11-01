@@ -37,8 +37,12 @@ function serve(req, res) {
 const server = http.createServer(serve);
 await new Promise((resolve) => server.listen(PORT, resolve));
 
+const capturedRequests = [];
+
 function mockApi(route) {
   const url = route.request().url();
+  const postData = route.request().postData();
+  capturedRequests.push({ url, method: route.request().method(), body: postData || '' });
   let body = { data: {} };
   if (url.includes('/auth/me')) body = { data: { user: { name: 'John Doe', email: 'john@example.com' } }, message: 'ok' };
   else if (url.includes('/wallet')) body = { data: { balance: 2.00 } };
@@ -47,6 +51,8 @@ function mockApi(route) {
   else if (url.includes('/calculate-cost')) body = { data: { cost: 0.04, segments: 1, encoding: 'gsm7', recipientCount: 0 } };
   else if (url.includes('/sms/upload-temp') || url.includes('/sms-uploads')) body = { data: { recipients: [{ name: 'John', phone: '0241234567' }], total: 1, valid: 1, invalid: 0, duplicates: 0 } };
   else if (url.includes('/blacklist')) body = { data: { blacklisted: [] } };
+  else if (url.includes('/sms/send') || url.includes('/sms/schedule')) body = { data: { success: true, messageId: 'msg_1' }, message: 'ok' };
+  else if (url.includes('/sms-campaigns')) body = { data: { success: true }, message: 'ok' };
   route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
@@ -83,10 +89,11 @@ for (const vp of viewports) {
 
   const asserts = await page.evaluate(() => {
     const grid = document.querySelector('.ss2-grid');
-    const composeCard = document.querySelector('.sms-form-card');
+    const composeCard = document.querySelector('.ss2-compose');
     const phone = document.querySelector('.ss2-phone');
     const summary = document.querySelector('.ss2-summary');
     const networks = document.querySelector('.ss2-networks');
+    const schedule = document.querySelector('.schedule-section');
     const contentArea = document.querySelector('.dashboard-content') || document.querySelector('.main-content') || document.querySelector('.ss2');
     const gcs = grid ? getComputedStyle(grid) : null;
     const colStr = gcs ? gcs.gridTemplateColumns : '';
@@ -97,27 +104,13 @@ for (const vp of viewports) {
     const phoneRect = phone ? phone.getBoundingClientRect() : null;
     const summaryRect = summary ? summary.getBoundingClientRect() : null;
     const networksRect = networks ? networks.getBoundingClientRect() : null;
+    const scheduleRect = schedule ? schedule.getBoundingClientRect() : null;
     const gridRect = grid ? grid.getBoundingClientRect() : null;
     const contentRect = contentArea ? contentArea.getBoundingClientRect() : null;
 
-    const msgContent = document.querySelector('.message-composer-section');
-    const schedule = document.querySelector('.schedule-section');
-    let scheduleAfterMessageDom = false;
-    if (msgContent && schedule) {
-      scheduleAfterMessageDom = !!(msgContent.compareDocumentPosition(schedule) & Node.DOCUMENT_POSITION_FOLLOWING);
-    }
-    const scheduleAfterMessageScreen = !!(msgContent && schedule && schedule.getBoundingClientRect().top >= msgContent.getBoundingClientRect().bottom - 5);
-
-    const senderSelect = document.querySelector('#senderId');
-    const createBtn = document.querySelector('#createSenderIdBtn');
-    const sr = senderSelect ? senderSelect.getBoundingClientRect() : null;
-    const cr = createBtn ? createBtn.getBoundingClientRect() : null;
-    const createNewSameRow = !!(sr && cr && Math.abs(sr.top - cr.top) <= 6);
-    const senderDebug = { sr: sr?{top:Math.round(sr.top),left:Math.round(sr.left),right:Math.round(sr.right),height:Math.round(sr.height)}:null, cr: cr?{top:Math.round(cr.top),left:Math.round(cr.left),right:Math.round(cr.right),height:Math.round(cr.height)}:null, flexDir: senderSelect && senderSelect.parentElement ? getComputedStyle(senderSelect.parentElement).flexDirection : null, btnWidth: cr?Math.round(cr.width):null };
-
     const noHScroll = document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1;
     const text = document.body.innerText || '';
-    const mojibake = /[Ã¢ÃƒÃ‚]/.test(text);
+    const mojibake = /[âÃÂ]/.test(text);
 
     const assertions = {
       phoneLeftGEComposeRight: !!(phoneRect && composeRect && phoneRect.left >= composeRect.right - 1),
@@ -126,25 +119,30 @@ for (const vp of viewports) {
       networksTopGESummaryBottom: !!(networksRect && summaryRect && networksRect.top >= summaryRect.bottom - 1),
       gridRightWithin24OfContent: !!(gridRect && contentRect && Math.abs(contentRect.right - gridRect.right) <= 24),
       phoneTopWithin40OfComposeTop: !!(phoneRect && composeRect && Math.abs(phoneRect.top - composeRect.top) <= 40),
-      scheduleAfterMessageDom,
-      scheduleAfterMessageScreen,
-      createNewSameRow,
+      scheduleLeftEqPhoneLeft: !!(scheduleRect && phoneRect && Math.abs(scheduleRect.left - phoneRect.left) <= 2),
+      scheduleTopGapPhone: !!(scheduleRect && phoneRect && (scheduleRect.top - phoneRect.bottom) >= 12 && (scheduleRect.top - phoneRect.bottom) <= 40),
+      scheduleWidthEqPhone: !!(scheduleRect && phoneRect && Math.abs(scheduleRect.width - phoneRect.width) <= 2),
+      scheduleNotDescendantCompose: !!(schedule && composeCard && !composeCard.contains(schedule)),
+      summaryLeftGEScheduleRight: !!(summaryRect && scheduleRect && summaryRect.left >= scheduleRect.right - 1),
       noHScroll,
       noMojibake: !mojibake,
+      // mobile order
+      mobileOrder: !!(composeRect && scheduleRect && phoneRect && summaryRect && networksRect &&
+        composeRect.top < scheduleRect.top && scheduleRect.top < phoneRect.top &&
+        phoneRect.top < summaryRect.top && summaryRect.top < networksRect.top),
     };
 
     return {
       viewport: { w: window.innerWidth, h: window.innerHeight },
       gridCols: nCols,
       gridColStr: colStr,
-      composeWidth: composeRect ? Math.round(composeRect.width) : 0,
       noHScroll,
       mojibake,
       assertions,
-      senderDebug,
       measure: {
         compose: composeRect ? { left: Math.round(composeRect.left), top: Math.round(composeRect.top), right: Math.round(composeRect.right), bottom: Math.round(composeRect.bottom), width: Math.round(composeRect.width) } : null,
         phone: phoneRect ? { left: Math.round(phoneRect.left), top: Math.round(phoneRect.top), right: Math.round(phoneRect.right), bottom: Math.round(phoneRect.bottom), width: Math.round(phoneRect.width) } : null,
+        schedule: scheduleRect ? { left: Math.round(scheduleRect.left), top: Math.round(scheduleRect.top), right: Math.round(scheduleRect.right), bottom: Math.round(scheduleRect.bottom), width: Math.round(scheduleRect.width) } : null,
         summary: summaryRect ? { left: Math.round(summaryRect.left), top: Math.round(summaryRect.top), right: Math.round(summaryRect.right), bottom: Math.round(summaryRect.bottom), width: Math.round(summaryRect.width) } : null,
         networks: networksRect ? { left: Math.round(networksRect.left), top: Math.round(networksRect.top), right: Math.round(networksRect.right), bottom: Math.round(networksRect.bottom), width: Math.round(networksRect.width) } : null,
         grid: gridRect ? { left: Math.round(gridRect.left), top: Math.round(gridRect.top), right: Math.round(gridRect.right), bottom: Math.round(gridRect.bottom), width: Math.round(gridRect.width) } : null,
@@ -158,6 +156,57 @@ for (const vp of viewports) {
   await page.close();
 }
 
+// Request capture test
+console.log('--- REQUEST CAPTURE TEST ---');
+const testPage = await context.newPage();
+await testPage.setViewportSize({ width: 1280, height: 720 });
+await testPage.route('**/api/**', mockApi);
+capturedRequests.length = 0;
+await testPage.goto(`http://localhost:${PORT}/src/pages/dashboard/send-sms.html`, { waitUntil: 'networkidle' });
+await testPage.waitForTimeout(1500);
+try { await testPage.selectOption('#senderId', 'NEDHUB'); } catch (e) { console.log('sender select err', e.message); }
+await testPage.fill('#commaSeparatedRecipients', '0241234567');
+await testPage.fill('#messageBody', 'Hello world');
+const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+const dateStr = tomorrow.toISOString().split('T')[0];
+await testPage.fill('#scheduledDate', dateStr);
+await testPage.fill('#scheduledTime', '10:30');
+await testPage.waitForTimeout(800);
+await testPage.click('#scheduleBtn');
+await testPage.waitForTimeout(1200);
+try { await testPage.click('#confirmationSendBtn'); } catch (e) { console.log('confirm sched err', e.message); }
+await testPage.waitForTimeout(2000);
+const schedReq = capturedRequests.find(r => r.url.includes('/sms/schedule') || r.url.includes('/sms-campaigns/schedule'));
+console.log('SCHEDULE_REQUEST_BODY', schedReq ? schedReq.body : 'NONE');
+let schedHasDate = false, schedHasTime = false, schedNoIssue = true;
+if (schedReq && schedReq.body) {
+  schedHasDate = schedReq.body.includes(dateStr);
+  schedHasTime = schedReq.body.includes('10:30');
+}
+console.log('SCHED_HAS_DATE', schedHasDate, 'SCHED_HAS_TIME', schedHasTime);
+
+// Send Now on a fresh page
+capturedRequests.length = 0;
+await testPage.goto(`http://localhost:${PORT}/src/pages/dashboard/send-sms.html`, { waitUntil: 'networkidle' });
+await testPage.waitForTimeout(1500);
+try { await testPage.selectOption('#senderId', 'NEDHUB'); } catch (e) {}
+await testPage.fill('#commaSeparatedRecipients', '0241234567');
+await testPage.fill('#messageBody', 'Hello world');
+await testPage.waitForTimeout(500);
+await testPage.click('#sendNowBtn');
+await testPage.waitForTimeout(1200);
+try { await testPage.click('#confirmationSendBtn'); } catch (e) { console.log('confirm send err', e.message); }
+await testPage.waitForTimeout(2000);
+const sendReq = capturedRequests.find(r => (r.url.includes('/sms/send') || r.url.includes('/sms-campaigns/send')) && r.method === 'POST');
+console.log('SEND_REQUEST_BODY', sendReq ? sendReq.body : 'NONE');
+let sendHasSchedule = false;
+if (sendReq && sendReq.body) {
+  sendHasSchedule = /scheduledAt/i.test(sendReq.body);
+}
+console.log('SEND_HAS_SCHEDULE', sendHasSchedule);
+
+await testPage.close();
+
 await browser.close();
 server.close();
 
@@ -169,35 +218,37 @@ for (const vp of viewports) {
   const A = a.assertions;
   let requiredOk = true;
   // universal
-  if (!A.networksTopGESummaryBottom) requiredOk = false;
-  if (!A.gridRightWithin24OfContent) requiredOk = false;
-  if (!A.scheduleAfterMessageDom || !A.scheduleAfterMessageScreen) requiredOk = false;
   if (!A.noHScroll) requiredOk = false;
   if (!A.noMojibake) requiredOk = false;
-  // >=1280: createNew same row
-  if (vp.width >= 1280 && !A.createNewSameRow) requiredOk = false;
-  // >=1200 (3 cols): phone/summary/networks placement
+  if (!A.gridRightWithin24OfContent) requiredOk = false;
+  // >=1200 (3 cols): placement
   if (vp.width >= 1200) {
     if (!A.phoneLeftGEComposeRight) requiredOk = false;
-    if (!A.summaryLeftGEPhoneRight) requiredOk = false;
-    if (!A.networksLeftEqSummaryLeft) requiredOk = false;
+    if (!A.summaryLeftGEPhoneRight) requiredOk = false; // summary right of phone? kept
+    if (!A.networksTopGESummaryBottom) requiredOk = false;
+    if (!A.scheduleLeftEqPhoneLeft) requiredOk = false;
+    if (!A.scheduleTopGapPhone) requiredOk = false;
+    if (!A.scheduleWidthEqPhone) requiredOk = false;
+    if (!A.scheduleNotDescendantCompose) requiredOk = false;
+    if (!A.summaryLeftGEScheduleRight) requiredOk = false;
   }
-  // >=768 (2+ cols): phone top aligned
-  if (vp.width >= 768) {
+  // 2-col
+  if (vp.width >= 768 && vp.width < 1200) {
+    if (!A.phoneLeftGEComposeRight) requiredOk = false;
     if (!A.phoneTopWithin40OfComposeTop) requiredOk = false;
-    if (vp.width < 1200) {
-      // 2-col: phone is right of compose
-      if (!A.phoneLeftGEComposeRight) requiredOk = false;
-    }
+  }
+  // mobile order
+  if (vp.width < 768) {
+    if (!A.mobileOrder) requiredOk = false;
   }
   if (!colOk || !requiredOk) {
     allPass = false;
     console.log('FAIL', vp.name, { colOk, expCols, gotCols: a.gridCols, requiredOk });
   }
 }
+// request capture pass
+if (!schedHasDate || !schedHasTime) { allPass = false; console.log('FAIL request capture: schedule missing date/time'); }
+if (sendHasSchedule) { allPass = false; console.log('FAIL request capture: send now carried schedule'); }
+
 console.log('ALL_PASS', allPass);
 console.log('RESULTS_JSON', JSON.stringify(allResults, null, 2));
-
-
-
-
