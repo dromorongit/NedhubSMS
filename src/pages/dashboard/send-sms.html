@@ -156,7 +156,6 @@
 
                  <div class="ss2">
                  <div class="ss2-grid">
-                     <div class="ss2-compose">
                          <div class="sms-form-card">
                              <div class="ss2-compose-header">
                                  <div class="ss2-compose-icon">
@@ -176,7 +175,7 @@
                              <div class="form-row">
                             <div class="form-group">
                                 <label for="senderId">Sender ID</label>
-                                <div class="sender-id-row">
+                                <div class="ss2-sender-id-row">
                                     <select id="senderId" name="senderId" required>
                                         <option value="">Select an approved Sender ID</option>
                                     </select>
@@ -298,6 +297,34 @@
                               </div>
                            </div>
                            
+<!-- Message Composer Section (Always Visible) -->
+                            <div class="message-composer-section">
+                                  <div class="form-group">
+                                      <div class="ss2-composer-header">
+                                          <label for="messageBody" class="ss2-section-label">Message Content</label>
+                                          <div class="ss2-pers-control">
+                                              <button type="button" class="ss2-pers-pill" id="personalizationPill">
+                                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                                  Use Recipient Name
+                                                  <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                              </button>
+                                              <div class="ss2-pers-menu" id="personalizationMenu">
+                                                  <button type="button" data-placeholder="{{name}}">Insert Name ({{name}})</button>
+                                              </div>
+                                          </div>
+                                      </div>
+                                      <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Type your message here..."></textarea>
+                                      <div class="ss2-pers-tip" id="personalizationTip">
+                                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path></svg>
+                                          <div>
+                                              <strong>Personalization</strong>
+                                              <p>Use {{name}} for personalized messages.</p>
+                                          </div>
+                                      </div>
+                                  </div>
+                            </div>'''
+                            
+
                            <!-- Schedule Date & Time Field -->
                            <div class="schedule-section" id="scheduleSettings">
                               <h3 class="section-title">Schedule Message</h3>
@@ -337,33 +364,6 @@
                               </div>
                           </div>
 
-<!-- Message Composer Section (Always Visible) -->
-                            <div class="message-composer-section">
-                                  <div class="form-group">
-                                      <div class="ss2-composer-header">
-                                          <label for="messageBody" class="ss2-section-label">Message Content</label>
-                                          <div class="ss2-pers-control">
-                                              <button type="button" class="ss2-pers-pill" id="personalizationPill">
-                                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                                                  Use Recipient Name
-                                                  <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                              </button>
-                                              <div class="ss2-pers-menu" id="personalizationMenu">
-                                                  <button type="button" data-placeholder="{{name}}">Insert Name ({{name}})</button>
-                                              </div>
-                                          </div>
-                                      </div>
-                                      <textarea id="messageBody" name="messageBody" rows="6" required placeholder="Type your message here..."></textarea>
-                                      <div class="ss2-pers-tip" id="personalizationTip">
-                                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path></svg>
-                                          <div>
-                                              <strong>Personalization</strong>
-                                              <p>Use {{name}} for personalized messages.</p>
-                                          </div>
-                                      </div>
-                                  </div>
-                            </div>'''
-                            
                          <!-- Duplicate Handling Section -->
                          <div class="duplicate-handling-section" id="duplicateHandlingSection" style="display: none;">
                             <h3 class="section-title">Duplicate & Blacklist Handling</h3>
@@ -534,7 +534,6 @@
                    </form>
                          </div>
                      </div>
-                      <div class="ss2-phone-col">
                           <div class="ss2-phone">
                               <div class="ss2-phone-body">
                                   <div class="ss2-phone-side-btn"></div>
@@ -590,8 +589,6 @@
                                   </div>
                               </div>
                           </div>
-                      </div>
-                     <div class="ss2-right">
                          <div class="ss2-summary">
                              <div class="ss2-summary-header">
                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -603,31 +600,49 @@
                              </div>
 <!-- Summary card under the phone -->
                                 <div class="sms-preview-summary sp-sms-preview-summary" id="smsPreviewSummary">
-                                    <div class="sms-preview-summary-row sp-sms-preview-summary-row">
-                                        <div class="sms-preview-stat sp-sms-preview-stat">
-                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Characters</span>
-                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewCharCount">0</span><span class="sms-preview-stat-limit sp-sms-preview-stat-limit" id="previewCharLimit">/160</span>
+                                    <div class="ss2-summary-row">
+                                        <div class="ss2-summary-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"></path></svg>
                                         </div>
-                                        <div class="sms-preview-stat sp-sms-preview-stat">
-                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Segments</span>
-                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewSegments">1</span>
-                                        </div>
-                                        <div class="sms-preview-stat sp-sms-preview-stat">
-                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Encoding</span>
-                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewEncodingType">GSM-7</span>
+                                        <div class="ss2-summary-text">
+                                            <span class="ss2-summary-label">Characters</span>
+                                            <span class="ss2-summary-value"><span id="previewCharCount">0</span><span id="previewCharLimit">/160</span></span>
                                         </div>
                                     </div>
-                                    <div class="sms-preview-progress-wrap sp-sms-preview-progress-wrap">
-                                        <div class="sms-preview-progress" id="previewProgress" style="width:0%;"></div>
-                                    </div>
-                                    <div class="sms-preview-summary-row sp-sms-preview-summary-row sms-preview-bottom">
-                                        <div class="sms-preview-stat sp-sms-preview-stat">
-                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Recipients</span>
-                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewRecipientCount">0</span>
+                                    <div class="ss2-summary-row">
+                                        <div class="ss2-summary-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18"></path></svg>
                                         </div>
-                                        <div class="sms-preview-stat sp-sms-preview-stat">
-                                            <span class="sms-preview-stat-label sp-sms-preview-stat-label">Est. Cost</span>
-                                            <span class="sms-preview-stat-value sp-sms-preview-stat-value" id="previewEstimatedCost">GHS 0.00</span>
+                                        <div class="ss2-summary-text">
+                                            <span class="ss2-summary-label">SMS Segments</span>
+                                            <span class="ss2-summary-value" id="previewSegments">1</span>
+                                        </div>
+                                    </div>
+                                    <div class="ss2-summary-row">
+                                        <div class="ss2-summary-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                        </div>
+                                        <div class="ss2-summary-text">
+                                            <span class="ss2-summary-label">Recipients</span>
+                                            <span class="ss2-summary-value" id="previewRecipientCount">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="ss2-summary-row">
+                                        <div class="ss2-summary-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
+                                        </div>
+                                        <div class="ss2-summary-text">
+                                            <span class="ss2-summary-label">Encoding</span>
+                                            <span class="ss2-summary-value" id="previewEncodingType">GSM-7</span>
+                                        </div>
+                                    </div>
+                                    <div class="ss2-summary-row">
+                                        <div class="ss2-summary-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                                        </div>
+                                        <div class="ss2-summary-text">
+                                            <span class="ss2-summary-label">Est. Cost</span>
+                                            <span class="ss2-summary-value" id="previewEstimatedCost">GHS 0.00</span>
                                         </div>
                                     </div>
                                     <div class="sms-preview-notices sp-sms-preview-notices" id="previewNotices"></div>
@@ -5532,4 +5547,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
 
