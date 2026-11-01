@@ -534,55 +534,63 @@
                    </form>
                          </div>
                      </div>
-                     <div class="ss2-phone-col">
-<!-- Live Mobile Preview Section -->
-                            <div class="live-preview-section" id="previewDetails">
-                                <details class="sp-preview-details" open>
-                                <summary class="sp-preview-details-summary">Preview</summary>
-                                <div class="sms-preview-context sp-preview-context" id="previewContext" style="display:none;">
-                                    Previewing as: <span class="sp-preview-context-name"></span>
-                                </div>
-                                <div class="mobile-preview-wrapper" id="mobilePreviewWrapper">
-                                    <div class="phone-mockup sp-phone-mockup">
-                                        <div class="phone-frame sp-phone-frame">
-                                            <div class="phone-notch sp-phone-notch"></div>
-                                            <div class="phone-dynamic-island sp-phone-dynamic-island"></div>
-                                            <div class="phone-screen sp-phone-screen">
-                                                <div class="phone-status-bar sp-phone-status-bar">
-                                                    <div class="phone-status-left sp-phone-status-left">
-                                                        <svg class="phone-signal-icon sp-phone-signal-icon" viewBox="0 0 12 12" aria-hidden="true"><rect x="0" y="6" width="2" height="6" rx="0.5"/><rect x="3" y="4" width="2" height="8" rx="0.5"/><rect x="6" y="2" width="2" height="10" rx="0.5"/><rect x="9" y="0" width="2" height="12" rx="0.5"/></svg>
-                                                        <span class="phone-status-network sp-phone-status-network" id="previewNetworkName">NEDHUB</span>
-                                                    </div>
-                                                    <span class="phone-status-time sp-phone-status-time" id="previewHeaderTime">12:30</span>
-                                                    <div class="phone-status-right sp-phone-status-right">
-                                                        <svg class="phone-battery-icon sp-phone-battery-icon" viewBox="0 0 12 12" aria-hidden="true"><rect x="0" y="2" width="9" height="8" rx="1" fill="none" stroke="currentColor"/><rect x="9.5" y="4" width="2" height="4" rx="0.5" fill="currentColor"/></svg>
-                                                    </div>
-                                                </div>
-                                                <div class="sms-conversation sp-sms-conversation">
-                                                    <div class="sms-date-divider sp-sms-date-divider"><span id="previewDateDivider">Today</span></div>
-                                                    <div class="sms-messages-container sp-sms-messages-container" id="previewMessagesContainer">
-                                                        <div class="sms-message-bubble received sp-sms-message-bubble">
-                                                            <div class="sms-avatar sp-sms-avatar" id="previewAvatar" aria-hidden="true">S</div>
-                                                            <div class="sms-bubble-row sp-sms-bubble-row">
-                                                                <div class="sms-bubble-head sp-sms-bubble-head">
-                                                                    <span class="sms-sender-name sp-sms-sender-name" id="previewHeaderSender">Sender ID</span>
-                                                                    <span class="sms-sender-label sp-sms-sender-label">Text Message &middot; SMS</span>
-                                                                </div>
-                                                                <div class="sms-bubble-body sp-sms-bubble-body">
-                                                                    <span class="message-text sp-message-text" id="livePreviewText">Your message will appear here</span>
-                                                                </div>
-                                                                <span class="message-time sp-message-time" id="previewMessageTime">12:30 PM</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                </details>
-                            </div>
-                     </div>
+                      <div class="ss2-phone-col">
+                          <div class="ss2-phone">
+                              <div class="ss2-phone-body">
+                                  <div class="ss2-phone-side-btn"></div>
+                                  <div class="ss2-phone-screen">
+                                      <div class="ss2-phone-camera"></div>
+                                      <div class="ss2-phone-status">
+                                          <span class="ss2-phone-time" id="previewHeaderTime">12:30</span>
+                                          <div class="ss2-phone-status-icons">
+                                              <svg viewBox="0 0 16 12" aria-hidden="true"><rect x="0" y="6" width="2" height="6" rx="0.5"/><rect x="3" y="4" width="2" height="8" rx="0.5"/><rect x="6" y="2" width="2" height="10" rx="0.5"/><rect x="9" y="0" width="2" height="12" rx="0.5"/></svg>
+                                              <svg viewBox="0 0 16 12" aria-hidden="true"><path d="M1 9a5 5 0 0 1 6-4M1 6a8 8 0 0 1 10-3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="9" r="1.5" fill="currentColor"/></svg>
+                                              <svg viewBox="0 0 20 12" aria-hidden="true"><rect x="0" y="2" width="15" height="8" rx="1.5" fill="none" stroke="currentColor"/><rect x="15.5" y="4" width="2" height="4" rx="0.5" fill="currentColor"/><rect x="1.5" y="3.5" width="10" height="5" rx="0.5" fill="currentColor"/></svg>
+                                          </div>
+                                      </div>
+                                      <div class="ss2-phone-chat-header">
+                                          <button class="ss2-phone-back" type="button" aria-label="Back">
+                                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                                          </button>
+                                          <div class="ss2-phone-avatar" id="previewAvatar" aria-hidden="true">S</div>
+                                          <div class="ss2-phone-sender">
+                                              <span class="ss2-phone-sender-name" id="previewHeaderSender">Sender ID</span>
+                                              <span class="ss2-phone-verified" aria-label="Verified">
+                                                  <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 0l1.5 1.2 1.9-.2.2 1.9L11.8 4.5 10.6 6l1.2 1.5-1.9.2-.2 1.9-1.9-.2L6 11 4.5 9.8l-1.9.2-.2-1.9L.2 7.5 1.4 6 .2 4.5l1.9-.2.2-1.9 1.9.2z"/><path d="M3.5 6l2 2 3-3" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                              </span>
+                                          </div>
+                                          <button class="ss2-phone-menu" type="button" aria-label="Menu">
+                                              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+                                          </button>
+                                      </div>
+                                      <div class="ss2-phone-chat-divider"></div>
+                                      <div class="ss2-phone-date" id="previewDateDivider">Today, 12:30 PM</div>
+                                      <div class="ss2-phone-messages" id="previewMessagesContainer">
+                                          <div class="ss2-phone-bubble">
+                                              <span class="ss2-phone-text" id="livePreviewText">Your message will appear here</span>
+                                          </div>
+                                      </div>
+                                      <div class="ss2-phone-inputbar">
+                                          <span class="ss2-phone-smiley" aria-hidden="true">
+                                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01M8 15s1.5 2 4 2 4-2 4-2"/></svg>
+                                          </span>
+                                          <span class="ss2-phone-placeholder">Text message</span>
+                                          <span class="ss2-phone-clip" aria-hidden="true">
+                                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                          </span>
+                                          <button class="ss2-phone-send" type="button" aria-label="Send">
+                                              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                                          </button>
+                                      </div>
+                                      <div class="ss2-phone-nav">
+                                          <span class="ss2-phone-nav-icon">☰</span>
+                                          <span class="ss2-phone-nav-icon">▭</span>
+                                          <span class="ss2-phone-nav-icon">‹</span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
                      <div class="ss2-right">
                          <div class="ss2-summary">
                              <div class="ss2-summary-header">

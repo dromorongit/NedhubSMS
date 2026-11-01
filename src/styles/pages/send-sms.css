@@ -305,7 +305,7 @@ body.page-send-sms {
         }
 
         body.page-send-sms .tips-list li::before{
-            content: 'âœ“';
+            content: '\2713';
             position: absolute;
             left: 0;
             color: #4caf50;
@@ -397,7 +397,7 @@ body.page-send-sms {
         }
 
         body.page-send-sms .sender-id-requirements li::before{
-            content: 'â€¢';
+            content: '\2022';
             position: absolute;
             left: 0;
             color: var(--ss-orange);
@@ -2226,21 +2226,16 @@ body.page-send-sms .empty-state svg {
     stroke: var(--ss-line);
 }
 
-/* Sticky right sidebar */
+/* Sticky right sidebar (disabled: everything scrolls normally) */
 @media (min-width: 992px) {
     body.page-send-sms #sendSmsForm {
-        display: grid;
-        grid-template-columns: 1fr 420px;
-        column-gap: var(--ss-space-xl);
-        align-items: start;
+        display: block;
     }
     body.page-send-sms .sms-form-right-sidebar {
-        position: sticky;
-        top: var(--ss-space-lg);
+        position: static;
     }
     body.page-send-sms .live-preview-section {
-        position: sticky;
-        top: calc(var(--ss-space-lg) + 1rem);
+        position: static;
     }
 }
 
@@ -2260,21 +2255,18 @@ body.page-send-sms .empty-state svg {
    Live preview fix (appended)
    ========================================================================== */
 
-/* Desktop: single sticky column, constrained height, below top-nav */
+/* Live preview fix (appended) - no sticky, all scroll normally */
 @media (min-width: 992px) {
     body.page-send-sms #sendSmsForm {
-        display: grid;
-        grid-template-columns: 1fr 420px;
-        column-gap: var(--ss-space-xl);
-        align-items: start;
+        display: block;
     }
     body.page-send-sms .sms-form-right-sidebar {
-        position: sticky;
-        top: calc(4.625rem + 1rem);
-        align-self: start;
-        max-height: calc(100vh - 4.625rem - 2rem);
-        overflow-y: auto;
-        z-index: 40;
+        position: static;
+        top: auto;
+        align-self: auto;
+        max-height: none;
+        overflow: visible;
+        z-index: auto;
     }
     body.page-send-sms .live-preview-section {
         position: static;
@@ -2302,7 +2294,7 @@ body.page-send-sms .empty-state svg {
     }
     body.page-send-sms .mobile-preview-wrapper {
         justify-content: center;
-        overflow: hidden;
+        overflow: visible;
     }
     body.page-send-sms .sp-phone-mockup,
     body.page-send-sms .sp-phone-frame {
@@ -2320,23 +2312,49 @@ body.page-send-sms {
     --top-nav-height: 64px;
 }
 
+body.page-send-sms .ss2 {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    align-self: stretch;
+    flex: 1 1 100%;
+    min-width: 0;
+}
+
+body.page-send-sms .ss2 * {
+    box-sizing: border-box;
+}
+
+body.page-send-sms .dashboard-layout,
+body.page-send-sms .main-content,
+body.page-send-sms .dashboard-content,
+body.page-send-sms .ss2,
+body.page-send-sms .ss2-grid {
+    overflow: visible;
+}
+
 body.page-send-sms .ss2-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 300px 250px;
-    gap: 24px;
+    gap: 20px;
     align-items: start;
+    min-width: 0;
+}
+
+body.page-send-sms .ss2-grid > * {
+    min-width: 0;
 }
 
 body.page-send-sms .ss2-compose,
 body.page-send-sms .ss2-phone-col,
 body.page-send-sms .ss2-right {
     min-width: 0;
+    position: static;
 }
 
 body.page-send-sms .ss2-phone-col,
 body.page-send-sms .ss2-right {
-    position: sticky;
-    top: calc(var(--topnav-height) + 16px);
     align-self: start;
 }
 
@@ -2589,36 +2607,23 @@ body.page-send-sms .btn-primary {
 }
 
 /* Responsive */
-@media (max-width: 1279px) and (min-width: 900px) {
+@media (min-width: 768px) and (max-width: 1199px) {
     body.page-send-sms .ss2-grid {
         grid-template-columns: minmax(0, 1fr) 320px;
-    }
-    body.page-send-sms .ss2-phone-col {
-        grid-column: 2;
-        grid-row: 1;
-    }
-    body.page-send-sms .ss2-right {
-        grid-column: 2;
-        grid-row: 2;
+        gap: 20px;
     }
     body.page-send-sms .ss2-compose {
         grid-column: 1;
         grid-row: 1 / span 2;
     }
-}
-
-@media (max-width: 899px) {
-    body.page-send-sms .ss2-grid {
-        grid-template-columns: 1fr;
-    }
     body.page-send-sms .ss2-phone-col {
+        grid-column: 2;
+        grid-row: 1;
         justify-content: center;
-        max-width: 320px;
-        margin: 0 auto;
     }
-    body.page-send-sms .phone-mockup,
-    body.page-send-sms .sp-phone-mockup {
-        max-width: 320px;
+    body.page-send-sms .ss2-right {
+        grid-column: 2;
+        grid-row: 2;
     }
     body.page-send-sms .ss2-phone-col,
     body.page-send-sms .ss2-right {
@@ -2626,7 +2631,255 @@ body.page-send-sms .btn-primary {
     }
 }
 
-/* hide original tips? keep */
+@media (max-width: 767px) {
+    body.page-send-sms .ss2-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    body.page-send-sms .ss2-phone-col {
+        justify-content: center;
+        max-width: 320px;
+        margin: 0 auto;
+    }
+    body.page-send-sms .ss2-phone,
+    body.page-send-sms .ss2-phone-body {
+        max-width: 100%;
+    }
+    body.page-send-sms .ss2-phone-col,
+    body.page-send-sms .ss2-right {
+        position: static;
+    }
+}
+
+/* ==========================================================================
+   Phone rebuild (ss2-phone-)
+   ========================================================================== */
+body.page-send-sms .ss2-phone {
+    width: 300px;
+    margin: 0 auto;
+}
+body.page-send-sms .ss2-phone-body {
+    width: 300px;
+    height: 610px;
+    border-radius: 40px;
+    background: #0F1220;
+    padding: 8px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.06);
+    position: relative;
+    overflow: hidden;
+}
+body.page-send-sms .ss2-phone-side-btn {
+    position: absolute;
+    right: -3px;
+    top: 120px;
+    width: 3px;
+    height: 60px;
+    background: #1A1F33;
+    border-radius: 2px;
+}
+body.page-send-sms .ss2-phone-screen {
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    border-radius: 32px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+body.page-send-sms .ss2-phone-camera {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #0F1220;
+    z-index: 5;
+}
+body.page-send-sms .ss2-phone-status {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1B1B1F;
+    flex-shrink: 0;
+}
+body.page-send-sms .ss2-phone-status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #1B1B1F;
+}
+body.page-send-sms .ss2-phone-status-icons svg {
+    width: 14px;
+    height: 12px;
+}
+body.page-send-sms .ss2-phone-chat-header {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    border-bottom: 1px solid #E2E8F0;
+    flex-shrink: 0;
+}
+body.page-send-sms .ss2-phone-back,
+body.page-send-sms .ss2-phone-menu {
+    background: none;
+    border: none;
+    color: #0B4FD0;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+}
+body.page-send-sms .ss2-phone-back svg {
+    width: 20px;
+    height: 20px;
+}
+body.page-send-sms .ss2-phone-menu svg {
+    width: 18px;
+    height: 18px;
+    color: #64748B;
+}
+body.page-send-sms .ss2-phone-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #0B132B;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+body.page-send-sms .ss2-phone-sender {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+body.page-send-sms .ss2-phone-sender-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0F172A;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+body.page-send-sms .ss2-phone-verified {
+    color: #0B4FD0;
+    display: inline-flex;
+    align-items: center;
+}
+body.page-send-sms .ss2-phone-verified svg {
+    width: 14px;
+    height: 14px;
+}
+body.page-send-sms .ss2-phone-chat-divider {
+    height: 0;
+}
+body.page-send-sms .ss2-phone-date {
+    font-size: 12px;
+    color: #64748B;
+    text-align: center;
+    margin: 12px 0;
+    flex-shrink: 0;
+}
+body.page-send-sms .ss2-phone-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+body.page-send-sms .ss2-phone-bubble {
+    background: #EDEDF1;
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    padding: 14px 16px;
+    font-size: 15px;
+    line-height: 1.45;
+    color: #1B1B1F;
+    max-width: 84%;
+    align-self: flex-start;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+body.page-send-sms .ss2-phone-text {
+    display: block;
+}
+body.page-send-sms .ss2-phone-inputbar {
+    height: 52px;
+    border-top: 1px solid #E2E8F0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    flex-shrink: 0;
+}
+body.page-send-sms .ss2-phone-smiley,
+body.page-send-sms .ss2-phone-clip {
+    color: #64748B;
+    display: inline-flex;
+    align-items: center;
+}
+body.page-send-sms .ss2-phone-smiley svg,
+body.page-send-sms .ss2-phone-clip svg {
+    width: 20px;
+    height: 20px;
+}
+body.page-send-sms .ss2-phone-placeholder {
+    flex: 1;
+    color: #94A3B8;
+    font-size: 14px;
+}
+body.page-send-sms .ss2-phone-send {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #0B4FD0;
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+body.page-send-sms .ss2-phone-send svg {
+    width: 18px;
+    height: 18px;
+}
+body.page-send-sms .ss2-phone-nav {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    color: #94A3B8;
+    font-size: 16px;
+    flex-shrink: 0;
+    border-top: 1px solid #F1F5F9;
+}
+body.page-send-sms .ss2-phone-nav-icon {
+    line-height: 1;
+}
+/* empty state muted */
+body.page-send-sms .ss2-phone-bubble:empty::before,
+body.page-send-sms #livePreviewText:empty::before {
+    content: 'Your message will appear here';
+    color: #94A3B8;
+}
 
 /* Isolation overrides for legacy hook classes under .ss2 */
 body.page-send-sms .ss2 #sendSmsForm {
