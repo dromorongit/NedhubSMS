@@ -1,12 +1,24 @@
 /* shell.css - shared dashboard shell (nhs- prefix) */
 .nhs-sidebar {
+  --color-navy: #0B132B;
+  --color-navy-dark: #090D1F;
+  --color-navy-light: #1B2A59;
+  --color-orange: #F77F00;
+  --color-orange-dark: #D97706;
+  --color-orange-light: #FF9A1F;
+  --color-gray-200: #E2E7EE;
+  --color-gray-900: #1E293B;
+  --color-text-muted: #64748B;
+  --color-inverse: #FFFFFF;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --z-sticky: 50;
   position: fixed;
   top: 0;
   left: 0;
   width: 260px;
   height: 100dvh;
-  background: var(--color-navy);
-  color: var(--color-inverse);
+  background: linear-gradient(180deg, #0B132B, #0E1A3A);
+  color: var(--color-inverse, #ffffff);
   display: flex;
   flex-direction: column;
   z-index: 1001;
@@ -18,7 +30,7 @@
   align-items: center;
   padding: 1rem 1.25rem;
 }
-.nhs-logo { max-height: 36px; }
+.nhs-logo { max-height: 36px; filter: brightness(0) invert(1); }
 .nhs-nav {
   flex: 1 1 auto;
   min-height: 0;
@@ -28,7 +40,7 @@
   scrollbar-width: thin;
 }
 .nhs-nav::-webkit-scrollbar { width: 6px; }
-.nhs-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+.nhs-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.25); border-radius: 3px; }
 .nhs-nav-list {
   list-style: none;
   margin: 0;
@@ -43,7 +55,7 @@
   gap: 0.75rem;
   padding: 0.625rem 1rem;
   border-radius: 999px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.82);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
@@ -53,13 +65,14 @@
 .nhs-link:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
 .nhs-link.is-active,
 .nhs-link[aria-current="page"] {
-  background: linear-gradient(135deg, var(--color-orange), var(--color-orange-dark));
+  background: linear-gradient(135deg, #F77F00, #FF9A1F);
   color: #ffffff;
+  font-weight: 700;
   box-shadow: 0 6px 16px rgba(247, 127, 0, 0.35);
 }
 .nhs-icon { width: 20px; height: 20px; stroke: currentColor; flex-shrink: 0; }
-.nhs-link--logout { color: rgba(255, 120, 120, 0.85); }
-.nhs-link--logout:hover { background: rgba(179, 38, 30, 0.18); color: #ffb4b4; }
+.nhs-link--logout { color: #FFB4A8; }
+.nhs-link--logout:hover { background: rgba(255, 90, 70, 0.12); color: #FFB4A8; }
 .nhs-sidebar-footer {
   flex: 0 0 auto;
   padding: 0.75rem 1rem 1rem;
@@ -70,8 +83,8 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 .nhs-help {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 0.75rem;
   display: flex;
@@ -79,9 +92,9 @@
   gap: 0.25rem;
   align-items: flex-start;
 }
-.nhs-help-icon { width: 24px; height: 24px; stroke: var(--color-orange); margin-bottom: 0.25rem; }
+.nhs-help-icon { width: 24px; height: 24px; stroke: var(--color-orange, #F77F00); margin-bottom: 0.25rem; }
 .nhs-help-title { font-weight: 700; font-size: 0.9rem; color: #ffffff; margin: 0; }
-.nhs-help-text { font-size: 0.8rem; color: rgba(255, 255, 255, 0.65); margin: 0; }
+.nhs-help-text { font-size: 0.8rem; color: rgba(255, 255, 255, 0.7); margin: 0; }
 .nhs-help-btn {
   display: inline-flex;
   align-items: center;
@@ -91,7 +104,7 @@
   width: 100%;
   border-radius: 6px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   color: #ffffff;
   text-decoration: none;
   font-size: 0.8rem;
@@ -105,7 +118,8 @@
   gap: 0.5rem;
   padding: 0.5rem;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   text-decoration: none;
   color: inherit;
 }
@@ -113,7 +127,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-orange), var(--color-orange-dark));
+  background: linear-gradient(135deg, #F77F00, #FF9A1F);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -133,7 +147,7 @@
 }
 .nhs-user-account {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -143,6 +157,8 @@
   .nhs-help { display: none; }
 }
 .nhs-overlay {
+  --color-navy: #0B132B;
+  --color-inverse: #FFFFFF;
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
@@ -153,20 +169,29 @@
 }
 .nhs-overlay.is-visible { opacity: 1; pointer-events: auto; }
 .nhs-topbar {
+  --color-navy: #0B132B;
+  --color-navy-dark: #090D1F;
+  --color-orange: #F77F00;
+  --color-orange-light: #FF9A1F;
+  --color-gray-200: #E2E7EE;
+  --color-gray-900: #1E293B;
+  --color-text-muted: #64748B;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --z-sticky: 50;
   position: sticky;
   top: 0;
   height: 64px;
   padding-top: env(safe-area-inset-top);
   background: #ffffff;
-  border-bottom: 1px solid var(--color-gray-200);
-  box-shadow: var(--shadow-sm);
+  border-bottom: 1px solid var(--color-gray-200, #E2E7EE);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(15, 23, 42, 0.08));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   padding-left: 1rem;
   padding-right: 1rem;
-  z-index: var(--z-sticky);
+  z-index: var(--z-sticky, 50);
 }
 .nhs-topbar-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1; }
 .nhs-burger {
@@ -182,11 +207,11 @@
   cursor: pointer;
   padding: 0;
 }
-.nhs-burger span { display: block; width: 20px; height: 2px; background: var(--color-gray-900); border-radius: 1px; }
+.nhs-burger span { display: block; width: 20px; height: 2px; background: var(--color-gray-900, #1E293B); border-radius: 1px; }
 .nhs-page-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: var(--color-gray-900);
+  color: #0B132B;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -197,7 +222,7 @@
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
-  color: var(--color-gray-900);
+  color: #0B132B;
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -205,7 +230,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--color-navy);
+  background: linear-gradient(135deg, #F77F00, #FF9A1F);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -215,7 +240,7 @@
   flex-shrink: 0;
 }
 .nhs-topbar-name { white-space: nowrap; }
-.nhs-topbar-chevron { width: 14px; height: 14px; stroke: var(--color-text-muted); }
+.nhs-topbar-chevron { width: 14px; height: 14px; stroke: var(--color-text-muted, #64748B); }
 @media (max-width: 480px) {
   .nhs-topbar-name { display: none; }
 }

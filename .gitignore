@@ -96,3 +96,6 @@ jspm_packages/
 
 # DynamoDB Local files
 .dynamodb/"backend/node_modules"  
+
+# Screenshots
+docs/screenshots/
