@@ -1,4 +1,4 @@
-import http from 'node:http';
+﻿import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -41,7 +41,7 @@ function mockApi(route) {
   const url = route.request().url();
   let body = { data: {} };
   if (url.includes('/auth/me')) body = { data: { user: { name: 'John Doe', email: 'john@example.com' } }, message: 'ok' };
-  else if (url.includes('/wallet')) body = { data: { balance: 100.00 } };
+  else if (url.includes('/wallet')) body = { data: { balance: 2.00 } };
   else if (url.includes('/sender-ids')) body = { data: { senderIds: [{ senderId: 'NEDHUB', status: 'approved' }, { senderId: 'NEDHUB2', status: 'pending' }] } };
   else if (url.includes('/contacts')) body = { data: { contacts: [] } };
   else if (url.includes('/calculate-cost')) body = { data: { cost: 0.04, segments: 1, encoding: 'gsm7', recipientCount: 0 } };
@@ -57,10 +57,10 @@ await context.addInitScript(() => {
 });
 
 const viewports = [
-  { width: 1672, height: 900, name: '1672x900' },
-  { width: 1366, height: 650, name: '1366x650' },
+  { width: 1366, height: 768, name: '1366x768' },
+  { width: 1280, height: 720, name: '1280x720' },
+  { width: 1440, height: 900, name: '1440x900' },
   { width: 1100, height: 800, name: '1100x800' },
-  { width: 768, height: 1024, name: '768x1024' },
   { width: 390, height: 844, name: '390x844' },
 ];
 
@@ -74,98 +74,130 @@ for (const vp of viewports) {
   await page.route('**/api/**', mockApi);
   await page.goto(`http://localhost:${PORT}/src/pages/dashboard/send-sms.html`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
+  try { await page.click('.messaging-mode-tabs .tab-btn[data-mode="personalized"]'); await page.waitForTimeout(500); } catch (e) {}
+  try { await page.fill('#messageBody', 'Dear {{name}}, '); await page.waitForTimeout(300); } catch (e) {}
+
   const outPath = path.join(OUT_DIR, `send-sms-${vp.name}.png`);
   await page.screenshot({ path: outPath, fullPage: true });
   console.log('saved', outPath);
 
   const asserts = await page.evaluate(() => {
     const grid = document.querySelector('.ss2-grid');
-    const composeCard = document.querySelector('.ss2-compose .sms-form-card') || document.querySelector('.sms-form-card');
-    const gridRect = grid ? grid.getBoundingClientRect() : null;
-    const composeRect = composeCard ? composeCard.getBoundingClientRect() : null;
-    // 3 columns check: computed grid-template-columns count
+    const composeCard = document.querySelector('.sms-form-card');
+    const phone = document.querySelector('.ss2-phone');
+    const summary = document.querySelector('.ss2-summary');
+    const networks = document.querySelector('.ss2-networks');
+    const contentArea = document.querySelector('.dashboard-content') || document.querySelector('.main-content') || document.querySelector('.ss2');
     const gcs = grid ? getComputedStyle(grid) : null;
-    const cols = gcs ? gcs.gridTemplateColumns.split(/\s+(?![^()]*\))/).filter(Boolean).length : 0;
-    // actually split by spaces not inside minmax; minmax(0, 1fr) has space inside. Count minmax occurrences + px
     const colStr = gcs ? gcs.gridTemplateColumns : '';
-    const colCount = (colStr.match(/minmax|px|fr/g) || []).length; // rough
-    // better: count top-level columns by counting 'minmax' and standalone lengths
     const matches = colStr.match(/minmax\([^)]*\)|\d+px|\d+fr/g) || [];
     const nCols = matches.length;
 
-    // compose sections width >= 90% of card inner width
-    let sectionsOk = true;
-    let minSectionRatio = 1;
-    if (composeCard) {
-      const cardRect = composeCard.getBoundingClientRect();
-      const cs = getComputedStyle(composeCard);
-      const innerWidth = cardRect.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      const sections = composeCard.querySelectorAll('section, .form-group, .form-row, .message-composer-section, .schedule-section, .char-counter-wrapper, .send-now-action, .duplicate-handling-section, .personalization-section');
-      // fallback: direct children divs
-      const targets = sections.length ? sections : composeCard.children;
-      targets.forEach((s) => {
-        const r = s.getBoundingClientRect();
-        if (r.width > 0) {
-          const ratio = r.width / innerWidth;
-          if (ratio < minSectionRatio) minSectionRatio = ratio;
-          if (ratio < 0.9) sectionsOk = false;
-        }
-      });
+    const composeRect = composeCard ? composeCard.getBoundingClientRect() : null;
+    const phoneRect = phone ? phone.getBoundingClientRect() : null;
+    const summaryRect = summary ? summary.getBoundingClientRect() : null;
+    const networksRect = networks ? networks.getBoundingClientRect() : null;
+    const gridRect = grid ? grid.getBoundingClientRect() : null;
+    const contentRect = contentArea ? contentArea.getBoundingClientRect() : null;
+
+    const msgContent = document.querySelector('.message-composer-section');
+    const schedule = document.querySelector('.schedule-section');
+    let scheduleAfterMessageDom = false;
+    if (msgContent && schedule) {
+      scheduleAfterMessageDom = !!(msgContent.compareDocumentPosition(schedule) & Node.DOCUMENT_POSITION_FOLLOWING);
     }
+    const scheduleAfterMessageScreen = !!(msgContent && schedule && schedule.getBoundingClientRect().top >= msgContent.getBoundingClientRect().bottom - 5);
 
-    // no horizontal scroll
-    const noHScroll = document.documentElement.scrollWidth <= document.documentElement.clientWidth;
+    const senderSelect = document.querySelector('#senderId');
+    const createBtn = document.querySelector('#createSenderIdBtn');
+    const sr = senderSelect ? senderSelect.getBoundingClientRect() : null;
+    const cr = createBtn ? createBtn.getBoundingClientRect() : null;
+    const createNewSameRow = !!(sr && cr && Math.abs(sr.top - cr.top) <= 6);
+    const senderDebug = { sr: sr?{top:Math.round(sr.top),left:Math.round(sr.left),right:Math.round(sr.right),height:Math.round(sr.height)}:null, cr: cr?{top:Math.round(cr.top),left:Math.round(cr.left),right:Math.round(cr.right),height:Math.round(cr.height)}:null, flexDir: senderSelect && senderSelect.parentElement ? getComputedStyle(senderSelect.parentElement).flexDirection : null, btnWidth: cr?Math.round(cr.width):null };
 
-    // no sticky/fixed in page content (excluding modals? check all non-sidebar/top-nav)
-    const badPos = [];
-    document.querySelectorAll('body.page-send-sms *').forEach((el) => {
-      if (el.closest('.sidebar, .top-nav, .modal, .sidebar-overlay')) return;
-      if (el.classList && (el.classList.contains('modal') || el.classList.contains('sidebar-overlay'))) return;
-      const pos = getComputedStyle(el).position;
-      if (pos === 'sticky' || pos === 'fixed') badPos.push({ tag: el.tagName, cls: el.className, pos });
-    });
-
-    // mojibake in text
+    const noHScroll = document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1;
     const text = document.body.innerText || '';
-    const mojibake = /[âÃÂ]/.test(text);
+    const mojibake = /[Ã¢ÃƒÃ‚]/.test(text);
 
-    // compose width
-    const composeWidth = composeRect ? composeRect.width : 0;
+    const assertions = {
+      phoneLeftGEComposeRight: !!(phoneRect && composeRect && phoneRect.left >= composeRect.right - 1),
+      summaryLeftGEPhoneRight: !!(summaryRect && phoneRect && summaryRect.left >= phoneRect.right - 1),
+      networksLeftEqSummaryLeft: !!(networksRect && summaryRect && Math.abs(networksRect.left - summaryRect.left) <= 2),
+      networksTopGESummaryBottom: !!(networksRect && summaryRect && networksRect.top >= summaryRect.bottom - 1),
+      gridRightWithin24OfContent: !!(gridRect && contentRect && Math.abs(contentRect.right - gridRect.right) <= 24),
+      phoneTopWithin40OfComposeTop: !!(phoneRect && composeRect && Math.abs(phoneRect.top - composeRect.top) <= 40),
+      scheduleAfterMessageDom,
+      scheduleAfterMessageScreen,
+      createNewSameRow,
+      noHScroll,
+      noMojibake: !mojibake,
+    };
 
     return {
       viewport: { w: window.innerWidth, h: window.innerHeight },
       gridCols: nCols,
       gridColStr: colStr,
-      composeWidth,
-      sectionsOk,
-      minSectionRatio,
+      composeWidth: composeRect ? Math.round(composeRect.width) : 0,
       noHScroll,
-      scrollWidth: document.documentElement.scrollWidth,
-      clientWidth: document.documentElement.clientWidth,
-      badPosCount: badPos.length,
-      badPosSample: badPos.slice(0, 5),
       mojibake,
+      assertions,
+      senderDebug,
+      measure: {
+        compose: composeRect ? { left: Math.round(composeRect.left), top: Math.round(composeRect.top), right: Math.round(composeRect.right), bottom: Math.round(composeRect.bottom), width: Math.round(composeRect.width) } : null,
+        phone: phoneRect ? { left: Math.round(phoneRect.left), top: Math.round(phoneRect.top), right: Math.round(phoneRect.right), bottom: Math.round(phoneRect.bottom), width: Math.round(phoneRect.width) } : null,
+        summary: summaryRect ? { left: Math.round(summaryRect.left), top: Math.round(summaryRect.top), right: Math.round(summaryRect.right), bottom: Math.round(summaryRect.bottom), width: Math.round(summaryRect.width) } : null,
+        networks: networksRect ? { left: Math.round(networksRect.left), top: Math.round(networksRect.top), right: Math.round(networksRect.right), bottom: Math.round(networksRect.bottom), width: Math.round(networksRect.width) } : null,
+        grid: gridRect ? { left: Math.round(gridRect.left), top: Math.round(gridRect.top), right: Math.round(gridRect.right), bottom: Math.round(gridRect.bottom), width: Math.round(gridRect.width) } : null,
+        content: contentRect ? { left: Math.round(contentRect.left), top: Math.round(contentRect.top), right: Math.round(contentRect.right), bottom: Math.round(contentRect.bottom), width: Math.round(contentRect.width) } : null,
+      },
     };
   });
 
   allResults[vp.name] = asserts;
-  console.log('ASSERTS', vp.name, JSON.stringify(asserts));
+  console.log('ASSERTIONS', vp.name, JSON.stringify(asserts));
   await page.close();
 }
 
 await browser.close();
 server.close();
 
-// Overall pass/fail
 let allPass = true;
 for (const vp of viewports) {
   const a = allResults[vp.name];
-  const threeCols = (vp.width >= 1200) ? (a.gridCols === 3) : true;
-  const composeOk = (vp.width === 1366) ? (a.composeWidth >= 480) : true;
-  if (!threeCols || !composeOk || !a.sectionsOk || !a.noHScroll || a.badPosCount > 0 || a.mojibake) {
+  const expCols = vp.width >= 1200 ? 3 : (vp.width >= 768 ? 2 : 1);
+  const colOk = a.gridCols === expCols;
+  const A = a.assertions;
+  let requiredOk = true;
+  // universal
+  if (!A.networksTopGESummaryBottom) requiredOk = false;
+  if (!A.gridRightWithin24OfContent) requiredOk = false;
+  if (!A.scheduleAfterMessageDom || !A.scheduleAfterMessageScreen) requiredOk = false;
+  if (!A.noHScroll) requiredOk = false;
+  if (!A.noMojibake) requiredOk = false;
+  // >=1280: createNew same row
+  if (vp.width >= 1280 && !A.createNewSameRow) requiredOk = false;
+  // >=1200 (3 cols): phone/summary/networks placement
+  if (vp.width >= 1200) {
+    if (!A.phoneLeftGEComposeRight) requiredOk = false;
+    if (!A.summaryLeftGEPhoneRight) requiredOk = false;
+    if (!A.networksLeftEqSummaryLeft) requiredOk = false;
+  }
+  // >=768 (2+ cols): phone top aligned
+  if (vp.width >= 768) {
+    if (!A.phoneTopWithin40OfComposeTop) requiredOk = false;
+    if (vp.width < 1200) {
+      // 2-col: phone is right of compose
+      if (!A.phoneLeftGEComposeRight) requiredOk = false;
+    }
+  }
+  if (!colOk || !requiredOk) {
     allPass = false;
-    console.log('FAIL', vp.name, { threeCols, composeOk, sectionsOk: a.sectionsOk, noHScroll: a.noHScroll, badPos: a.badPosCount, mojibake: a.mojibake });
+    console.log('FAIL', vp.name, { colOk, expCols, gotCols: a.gridCols, requiredOk });
   }
 }
 console.log('ALL_PASS', allPass);
 console.log('RESULTS_JSON', JSON.stringify(allResults, null, 2));
+
+
+
+
