@@ -2338,10 +2338,6 @@ body.page-send-sms .ss2-grid {
 body.page-send-sms .ss2-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 300px 250px;
-    grid-template-areas:
-        "compose phone summary"
-        "compose phone networks"
-        "compose . .";
     gap: 20px;
     align-items: start;
     min-width: 0;
@@ -2351,20 +2347,14 @@ body.page-send-sms .ss2-grid > * {
     min-width: 0;
 }
 
-body.page-send-sms .sms-form-card {
-    grid-area: compose;
-}
-
-body.page-send-sms .ss2-phone {
-    grid-area: phone;
-}
-
-body.page-send-sms .ss2-summary {
-    grid-area: summary;
-}
-
-body.page-send-sms .ss2-networks {
-    grid-area: networks;
+body.page-send-sms .ss2-compose,
+body.page-send-sms .ss2-col-center,
+body.page-send-sms .ss2-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+    align-self: start;
 }
 
 body.page-send-sms .sms-form-card {
@@ -2619,32 +2609,27 @@ body.page-send-sms .btn-primary {
 @media (min-width: 768px) and (max-width: 1199px) {
     body.page-send-sms .ss2-grid {
         grid-template-columns: minmax(0, 1fr) 320px;
-        grid-template-areas:
-            "compose phone"
-            "compose summary"
-            "compose networks";
         gap: 20px;
     }
-    body.page-send-sms .sms-form-card { grid-area: compose; }
-    body.page-send-sms .ss2-phone { grid-area: phone; }
-    body.page-send-sms .ss2-summary { grid-area: summary; }
-    body.page-send-sms .ss2-networks { grid-area: networks; }
+    body.page-send-sms .ss2-compose { grid-column: 1; grid-row: 1 / span 2; }
+    body.page-send-sms .ss2-col-center { grid-column: 2; grid-row: 1; }
+    body.page-send-sms .ss2-col-right { grid-column: 2; grid-row: 2; }
 }
 
 @media (max-width: 767px) {
     body.page-send-sms .ss2-grid {
         grid-template-columns: 1fr;
-        grid-template-areas:
-            "compose"
-            "phone"
-            "summary"
-            "networks";
         gap: 20px;
     }
-    body.page-send-sms .sms-form-card { grid-area: compose; }
-    body.page-send-sms .ss2-phone { grid-area: phone; }
-    body.page-send-sms .ss2-summary { grid-area: summary; }
-    body.page-send-sms .ss2-networks { grid-area: networks; }
+    body.page-send-sms .ss2-col-center,
+    body.page-send-sms .ss2-col-right {
+        display: contents;
+    }
+    body.page-send-sms .ss2-compose { order: 1; }
+    body.page-send-sms .schedule-section { order: 2; }
+    body.page-send-sms .ss2-phone { order: 3; }
+    body.page-send-sms .ss2-summary { order: 4; }
+    body.page-send-sms .ss2-networks { order: 5; }
     body.page-send-sms .ss2-phone {
         justify-content: center;
         max-width: 320px;
@@ -2955,9 +2940,25 @@ body.page-send-sms .sms-form-left-column {
 }
 
 body.page-send-sms .schedule-section {
-    margin-top: 4px;
-    padding-top: 20px;
-    border-top: 1px solid #E2E8F0;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(11,19,43,0.08);
+    padding: 20px;
+    margin-top: 0;
+    border-top: none;
+}
+
+body.page-send-sms .schedule-section .form-group input[type="date"],
+body.page-send-sms .schedule-section .form-group input[type="time"] {
+    width: 100%;
+}
+
+body.page-send-sms .schedule-section .section-title svg {
+    width: 18px;
+    height: 18px;
+    vertical-align: -3px;
+    margin-right: 6px;
+    color: #0B4FD0;
 }
 
 body.page-send-sms .send-now-action {
