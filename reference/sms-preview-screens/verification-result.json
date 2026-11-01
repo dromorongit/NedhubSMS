@@ -1,0 +1,765 @@
+{
+  "screenshots": [
+    {
+      "case": "empty",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-empty-1440.png"
+    },
+    {
+      "case": "short",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-short-1440.png"
+    },
+    {
+      "case": "gsm-160",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-gsm-160-1440.png"
+    },
+    {
+      "case": "gsm-161",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-gsm-161-1440.png"
+    },
+    {
+      "case": "unicode-emoji",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-unicode-emoji-1440.png"
+    },
+    {
+      "case": "gsm-600",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-gsm-600-1440.png"
+    },
+    {
+      "case": "newlines-url",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-newlines-url-1440.png"
+    },
+    {
+      "case": "personalized",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-personalized-1440.png"
+    },
+    {
+      "case": "xss-img",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-xss-img-1440.png"
+    },
+    {
+      "case": "xss-script",
+      "viewport": "1440",
+      "path": "reference/sms-preview-screens/send-sms-xss-script-1440.png"
+    },
+    {
+      "case": "empty",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-empty-390.png"
+    },
+    {
+      "case": "short",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-short-390.png"
+    },
+    {
+      "case": "gsm-160",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-gsm-160-390.png"
+    },
+    {
+      "case": "gsm-161",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-gsm-161-390.png"
+    },
+    {
+      "case": "unicode-emoji",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-unicode-emoji-390.png"
+    },
+    {
+      "case": "gsm-600",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-gsm-600-390.png"
+    },
+    {
+      "case": "newlines-url",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-newlines-url-390.png"
+    },
+    {
+      "case": "personalized",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-personalized-390.png"
+    },
+    {
+      "case": "xss-img",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-xss-img-390.png"
+    },
+    {
+      "case": "xss-script",
+      "viewport": "390",
+      "path": "reference/sms-preview-screens/send-sms-xss-script-390.png"
+    }
+  ],
+  "cases": [
+    {
+      "name": "empty",
+      "viewport": "1440",
+      "message": "",
+      "preview": {
+        "char": "0",
+        "seg": "1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.00",
+        "limit": "/160",
+        "progress": "0%",
+        "noticeCount": 0,
+        "bubbleText": "Your message will appear here",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "0",
+        "seg": "1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.00"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "short",
+      "viewport": "1440",
+      "message": "Hello world",
+      "preview": {
+        "char": "11",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "6.875%",
+        "noticeCount": 0,
+        "bubbleText": "Hello world",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "11",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "gsm-160",
+      "viewport": "1440",
+      "message": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preview": {
+        "char": "160",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "100%",
+        "noticeCount": 0,
+        "bubbleText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "160",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "gsm-161",
+      "viewport": "1440",
+      "message": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preview": {
+        "char": "161",
+        "seg": "2-2",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.10",
+        "limit": "/160",
+        "progress": "0.653595%",
+        "noticeCount": 1,
+        "bubbleText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "161",
+        "seg": "2-2",
+        "enc": "GSM-7",
+        "cost": "GHS 0.10"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "unicode-emoji",
+      "viewport": "1440",
+      "message": "Hello 😊",
+      "preview": {
+        "char": "8",
+        "seg": "1-1",
+        "enc": "Unicode",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/70",
+        "progress": "11.4286%",
+        "noticeCount": 1,
+        "bubbleText": "Hello 😊",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "8",
+        "seg": "1-1",
+        "enc": "Unicode",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "gsm-600",
+      "viewport": "1440",
+      "message": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preview": {
+        "char": "600",
+        "seg": "4-4",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.20",
+        "limit": "/160",
+        "progress": "87.5817%",
+        "noticeCount": 1,
+        "bubbleText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "600",
+        "seg": "4-4",
+        "enc": "GSM-7",
+        "cost": "GHS 0.20"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "newlines-url",
+      "viewport": "1440",
+      "message": "Hello team\n\nPlease check https://nedhub.example.com/docs/sms-guide for details. Thanks!",
+      "preview": {
+        "char": "87",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "54.375%",
+        "noticeCount": 0,
+        "bubbleText": "Hello team\n\nPlease check https://nedhub.example.com/docs/sms-guide for details. Thanks!",
+        "bubbleChildren": 1,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "87",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "personalized",
+      "viewport": "1440",
+      "message": "Hi {{name}}, your {{salutation}} code is 1234",
+      "preview": {
+        "char": "45",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "1",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "28.125%",
+        "noticeCount": 0,
+        "bubbleText": "Dear Ama Mensah, Hi Ama Mensah, your Dear code is 1234",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: Ama Mensah\n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "45",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "xss-img",
+      "viewport": "1440",
+      "message": "<img src=x onerror=window.__xss=1>",
+      "preview": {
+        "char": "34",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "21.25%",
+        "noticeCount": 0,
+        "bubbleText": "<img src=x onerror=window.__xss=1>",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "34",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "xssFired": false,
+      "bubbleLiteral": true,
+      "bubbleNoChildren": true,
+      "ok": true
+    },
+    {
+      "name": "xss-script",
+      "viewport": "1440",
+      "message": "<script>window.__xss=1</script>",
+      "preview": {
+        "char": "31",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "19.375%",
+        "noticeCount": 0,
+        "bubbleText": "<script>window.__xss=1</script>",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": true
+      },
+      "main": {
+        "char": "31",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "xssFired": false,
+      "bubbleLiteral": true,
+      "bubbleNoChildren": true,
+      "ok": true
+    },
+    {
+      "name": "empty",
+      "viewport": "390",
+      "message": "",
+      "preview": {
+        "char": "0",
+        "seg": "1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.00",
+        "limit": "/160",
+        "progress": "0%",
+        "noticeCount": 0,
+        "bubbleText": "Your message will appear here",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "0",
+        "seg": "1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.00"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "short",
+      "viewport": "390",
+      "message": "Hello world",
+      "preview": {
+        "char": "11",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "6.875%",
+        "noticeCount": 0,
+        "bubbleText": "Hello world",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "11",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "gsm-160",
+      "viewport": "390",
+      "message": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preview": {
+        "char": "160",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "100%",
+        "noticeCount": 0,
+        "bubbleText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "160",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "gsm-161",
+      "viewport": "390",
+      "message": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preview": {
+        "char": "161",
+        "seg": "2-2",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.10",
+        "limit": "/160",
+        "progress": "0.653595%",
+        "noticeCount": 1,
+        "bubbleText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "161",
+        "seg": "2-2",
+        "enc": "GSM-7",
+        "cost": "GHS 0.10"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "unicode-emoji",
+      "viewport": "390",
+      "message": "Hello 😊",
+      "preview": {
+        "char": "8",
+        "seg": "1-1",
+        "enc": "Unicode",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/70",
+        "progress": "11.4286%",
+        "noticeCount": 1,
+        "bubbleText": "Hello 😊",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "8",
+        "seg": "1-1",
+        "enc": "Unicode",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "gsm-600",
+      "viewport": "390",
+      "message": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preview": {
+        "char": "600",
+        "seg": "4-4",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.20",
+        "limit": "/160",
+        "progress": "87.5817%",
+        "noticeCount": 1,
+        "bubbleText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "600",
+        "seg": "4-4",
+        "enc": "GSM-7",
+        "cost": "GHS 0.20"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "newlines-url",
+      "viewport": "390",
+      "message": "Hello team\n\nPlease check https://nedhub.example.com/docs/sms-guide for details. Thanks!",
+      "preview": {
+        "char": "87",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "54.375%",
+        "noticeCount": 0,
+        "bubbleText": "Hello team\n\nPlease check https://nedhub.example.com/docs/sms-guide for details. Thanks!",
+        "bubbleChildren": 1,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "87",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "personalized",
+      "viewport": "390",
+      "message": "Hi {{name}}, your {{salutation}} code is 1234",
+      "preview": {
+        "char": "45",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "1",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "28.125%",
+        "noticeCount": 0,
+        "bubbleText": "Dear Ama Mensah, Hi Ama Mensah, your Dear code is 1234",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: Ama Mensah\n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "45",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "ok": true
+    },
+    {
+      "name": "xss-img",
+      "viewport": "390",
+      "message": "<img src=x onerror=window.__xss=1>",
+      "preview": {
+        "char": "34",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "21.25%",
+        "noticeCount": 0,
+        "bubbleText": "<img src=x onerror=window.__xss=1>",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "34",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "xssFired": false,
+      "bubbleLiteral": true,
+      "bubbleNoChildren": true,
+      "ok": true
+    },
+    {
+      "name": "xss-script",
+      "viewport": "390",
+      "message": "<script>window.__xss=1</script>",
+      "preview": {
+        "char": "31",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "recip": "0",
+        "cost": "GHS 0.05",
+        "limit": "/160",
+        "progress": "19.375%",
+        "noticeCount": 0,
+        "bubbleText": "<script>window.__xss=1</script>",
+        "bubbleChildren": 0,
+        "context": "\n                                    Previewing as: \n                                ",
+        "senderHeader": "NEDHUB",
+        "detailsOpen": false
+      },
+      "main": {
+        "char": "31",
+        "seg": "1-1",
+        "enc": "GSM-7",
+        "cost": "GHS 0.05"
+      },
+      "match": true,
+      "xssFired": false,
+      "bubbleLiteral": true,
+      "bubbleNoChildren": true,
+      "ok": true
+    }
+  ],
+  "contrast": [
+    {
+      "viewport": "1440",
+      "violations": [],
+      "violationCount": 0
+    },
+    {
+      "viewport": "390",
+      "violations": [],
+      "violationCount": 0
+    }
+  ],
+  "overflow": [
+    {
+      "viewport": "1440",
+      "docScroll": false,
+      "bodyScroll": false,
+      "docWidth": 1440,
+      "winWidth": 1440,
+      "phoneRight": 1291,
+      "phoneLeft": 991,
+      "ok": true
+    },
+    {
+      "viewport": "390",
+      "docScroll": false,
+      "bodyScroll": false,
+      "docWidth": 390,
+      "winWidth": 390,
+      "phoneRight": 364.5,
+      "phoneLeft": 25.5,
+      "ok": true
+    }
+  ],
+  "sticky": {
+    "position": "fixed",
+    "top": 24,
+    "pinned": true
+  },
+  "behaviour": [
+    {
+      "name": "sender-id-selection",
+      "ok": true,
+      "detail": {
+        "header": "NEDHUB",
+        "avatar": "N",
+        "muted": false
+      }
+    },
+    {
+      "name": "recipient-tabs",
+      "ok": true,
+      "detail": {
+        "uploadActive": true,
+        "manualActive": true
+      }
+    },
+    {
+      "name": "contacts-picker",
+      "ok": true,
+      "detail": {
+        "modalClosed": true,
+        "recipientCount": "1"
+      }
+    },
+    {
+      "name": "schedule-fields",
+      "ok": true,
+      "detail": {
+        "preview": "Scheduled for Friday, Nov 6, 10:00 AM",
+        "btnDisabled": false
+      }
+    },
+    {
+      "name": "pre-send-modal",
+      "ok": true,
+      "detail": {
+        "visible": true,
+        "chipCount": 2,
+        "hasRecipients": false,
+        "hasMessage": true,
+        "total": "2",
+        "display": "none"
+      }
+    }
+  ],
+  "consoleErrors": []
+}

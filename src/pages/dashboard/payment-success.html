@@ -12,48 +12,15 @@
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js"></script>
     <script src="../../utils/toast.js"></script>
+    <link rel="stylesheet" href="../../styles/shell.css?v=1">
 </head>
-<body>
+<body class="nhs-has-shell">
     <div class="dashboard-layout">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="sidebar-logo">
-                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
-            </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li><a href="overview.html">Overview</a></li>
-                    <li><a href="send-sms.html">Send SMS</a></li>
-                    <li><a href="campaigns.html">Campaigns</a></li>
-                    <li><a href="contacts.html">Contacts</a></li>
-                    <li><a href="history.html">Message History</a></li>
-                    <li><a href="reports.html">Reports</a></li>
-                    <li><a href="settings.html">Settings</a></li>
-                </ul>
-            </nav>
-        </aside>
+        <div id="nhs-sidebar-mount"></div>
         <main class="main-content">
-            <header class="top-nav">
-                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-                <span class="mobile-header-title">Payment</span>
-                <div class="user-info">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <span id="userName">Loading...</span>
-                    <button class="logout-btn" onclick="logout()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                    </button>
-                </div>
-            </header>
+            <div id="nhs-topbar-mount"></div>
+    <script src="../../utils/shell.js?v=1"></script>
             <!-- Sidebar Overlay -->
-            <div class="sidebar-overlay" id="sidebarOverlay"></div>
             <div class="dashboard-content">
                 <div class="welcome-section">
                     <h2>Payment Successful!</h2>
@@ -212,53 +179,6 @@
             window.location.href = '../auth/login.html';
         }
 
-        // Mobile sidebar functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const hamburgerBtn = document.getElementById('hamburgerBtn');
-            const sidebar = document.getElementById('sidebar');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
-
-            function toggleSidebar() {
-                sidebar.classList.toggle('active');
-                sidebarOverlay.classList.toggle('active');
-                hamburgerBtn.classList.toggle('active');
-                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-            }
-
-            function closeSidebar() {
-                sidebar.classList.remove('active');
-                sidebarOverlay.classList.remove('active');
-                hamburgerBtn.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-
-            if (hamburgerBtn) {
-                hamburgerBtn.addEventListener('click', toggleSidebar);
-            }
-
-            if (sidebarCloseBtn) {
-                sidebarCloseBtn.addEventListener('click', closeSidebar);
-            }
-
-            if (sidebarOverlay) {
-                sidebarOverlay.addEventListener('click', closeSidebar);
-            }
-
-            document.querySelectorAll('.sidebar-nav a').forEach(link => {
-                link.addEventListener('click', () => {
-                    if (window.innerWidth <= 1024) {
-                        closeSidebar();
-                    }
-                });
-            });
-
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 1024) {
-                    closeSidebar();
-                }
-            });
-        });
     </script>
 
     <style>

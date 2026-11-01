@@ -225,6 +225,9 @@ class ApiClient {
     return this.request('POST', '/auth/forgot-password', { email });
   }
 
+  async makeRequest(endpoint, method = 'GET', data = null, options = {}) {
+    return this.request(method, endpoint, data, options);
+  }
   async requestPasswordReset(email) {
     return this.request('POST', '/auth/request-password-reset', { email });
   }
