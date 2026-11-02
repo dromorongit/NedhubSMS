@@ -68,6 +68,28 @@ const paymentSchema = new mongoose.Schema({
   failureReason: {
     type: String
   },
+  // Record of the last provider status-check failure. Kept on the payment so
+  // the pending page can tell the customer their payment is still being
+  // confirmed, without exposing technical details.
+  lastVerificationError: {
+    at: { type: Date },
+    httpStatus: { type: Number },
+    code: { type: String }
+  },
+  verificationFailures: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  // How the payment was verified: 'provider' (Hubtel server-to-server check)
+  // or 'manual' (administrative one-off script).
+  verifiedBy: {
+    type: String,
+    enum: ['provider', 'manual']
+  },
+  manualReason: { type: String },
+  manualHubtelId: { type: String },
+  manualAt: { type: Date },
   // Financial tracking fields for gateway fees
   gatewayFeeEstimated: {
     type: Number,

@@ -77,19 +77,56 @@ class CallbackVerificationService {
       }
     } catch (err) {
       this.logger.warn('[CallbackVerification] Provider status check failed', {
-        kind, clientReference, error: err.message
+        kind, clientReference, error: err.message, httpStatus: err.httpStatus, code: err.code
       });
-      return { ok: false, error: err.message };
+      return {
+        ok: false,
+        error: err.message,
+        status: err.httpStatus,
+        code: err.code,
+        isTimeout: err.isTimeout,
+        isNetwork: err.isNetwork,
+        isUnparseable: err.isUnparseable
+      };
     }
     return {
       ok: true,
       status: result.status,
       rawStatus: result.rawStatus,
       amount: result.amount,
+      currency: result.currency,
       transactionId: result.transactionId,
       paymentMethod: result.paymentMethod,
       message: result.message
     };
+  }
+
+  /**
+   * Classify a failed provider status check. A verification is "unavailable"
+   * when the provider could not be reached or rejected the call (401, 403,
+   * 5xx, timeout, network error, unparseable body). These must never be
+   * confused with a genuine provider 'pending' status: the payment stays
+   * pending and the failure is recorded on the payment record.
+   */
+  isVerificationUnavailable(provider) {
+    if (provider.status === 401 || provider.status === 403) return true;
+    if (provider.status != null && provider.status >= 500) return true;
+    if (provider.isTimeout || provider.isNetwork || provider.isUnparseable) return true;
+    return false;
+  }
+
+  /**
+   * Record that a status check failed on the payment record so the pending
+   * page and operators can see that confirmation is delayed.
+   */
+  async recordVerificationFailure(clientReference, httpStatus, code) {
+    await this.Payment.findOneAndUpdate(
+      { clientReference },
+      {
+        $set: { lastVerificationError: { at: new Date(), httpStatus, code } },
+        $inc: { verificationFailures: 1 }
+      }
+    );
   }
 
   /**
@@ -194,12 +231,30 @@ class CallbackVerificationService {
 
     const provider = await this.checkProviderStatus('payment', clientReference);
     if (!provider.ok) {
+      if (this.isVerificationUnavailable(provider)) {
+        await this.recordVerificationFailure(clientReference, provider.status, provider.code);
+        this.logger.error('[Payment] Hubtel status check failed', {
+          clientReference,
+          httpStatus: provider.status,
+          code: provider.code
+        });
+        return {
+          action: 'verification_unavailable',
+          clientReference,
+          error: provider.error,
+          httpStatus: provider.status,
+          code: provider.code
+        };
+      }
       return { action: 'provider_unavailable', clientReference, error: provider.error };
     }
 
     const providerAmount = Number(provider.amount) || 0;
+    const providerCurrency = String(provider.currency || '').toUpperCase();
+    const paymentCurrency = String(payment.currency || 'GHS').toUpperCase();
+    const currencyOk = !provider.currency || providerCurrency === paymentCurrency;
     const status = normalizeStatus(provider.status);
-    if (status === 'paid' && providerAmount != null && Math.round(providerAmount * 100) >= Math.round(payment.amount * 100)) {
+    if (status === 'paid' && currencyOk && providerAmount != null && Math.round(providerAmount * 100) >= Math.round(payment.amount * 100)) {
       return {
         action: 'credit',
         clientReference,
@@ -232,6 +287,7 @@ class CallbackVerificationService {
       Object.assign(update, {
         status: 'paid',
         callbackVerified: true,
+        verifiedBy: 'provider',
         hubtelTransactionId: assessment.hubtelTransactionId,
         paymentMethod: assessment.paymentMethod,
         paidAt: new Date(),

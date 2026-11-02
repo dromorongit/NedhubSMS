@@ -51,6 +51,9 @@ Payment.findOneAndUpdate = async (filter, update) => {
   if (!p) return null;
   if (filter.status && filter.status.$in && !filter.status.$in.includes(p.status)) return null;
   if (update.$set) Object.assign(p, update.$set);
+  if (update.$inc) {
+    Object.keys(update.$inc).forEach((k) => { p[k] = (p[k] || 0) + update.$inc[k]; });
+  }
   return p;
 };
 Transaction.findOne = async (filter) => creditTransactions.find((t) => match(t, filter)) || null;
@@ -139,6 +142,7 @@ test('GET /api/payments/status/:clientReference - route-level', async () => {
     const outageBody = JSON.parse(outage.body);
     assert.equal(outageBody.status, 'pending', 'outage: payment left pending');
     assert.ok(/provider unavailable|unavailable/i.test(outageBody.message), 'outage: clear message to client');
+    assert.equal(outageBody.verificationDelayed, true, 'outage: verificationDelayed flag set');
 
     // ---- (e) refresh sequence: Unpaid -> Paid -> Paid, credited exactly once ----
     fakeUserId = 'owner-user';
