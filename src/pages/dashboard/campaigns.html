@@ -288,6 +288,23 @@
         </div>
     </div>
 
+    <!-- Confirmation Modal -->
+    <div class="modal cp-modal" id="cpConfirmModal">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+                <h3>Confirm Action</h3>
+                <p id="cpConfirmMessage">Are you sure?</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="cpConfirmCancel">Cancel</button>
+                <button type="button" class="btn-primary" id="cpConfirmOk">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js"></script>
     <script src="../../utils/toast.js"></script>
@@ -321,6 +338,10 @@
         const rescheduleDateInput = document.getElementById('rescheduleDate');
         const rescheduleTimezoneDisplay = document.getElementById('rescheduleTimezoneDisplay');
         const rescheduleSubmitBtn = document.getElementById('rescheduleSubmitBtn');
+        const cpConfirmModal = document.getElementById('cpConfirmModal');
+        const cpConfirmMessage = document.getElementById('cpConfirmMessage');
+        const cpConfirmOk = document.getElementById('cpConfirmOk');
+        const cpConfirmCancel = document.getElementById('cpConfirmCancel');
         const campaignsLoadingEl = document.getElementById('campaignsLoading');
         const cpEmptyStateEl = document.getElementById('cpEmptyState');
         const cpNoResultsEl = document.getElementById('cpNoResults');
@@ -447,6 +468,26 @@
         const closeRescheduleModalBtn2 = closeRescheduleModalBtn;
         if (closeRescheduleModalBtn2) closeRescheduleModalBtn2.addEventListener('click', () => { if (rescheduleModal) rescheduleModal.style.display = 'none'; unlockScroll(); });
 
+        let cpConfirmResolver = null;
+        function openCpConfirm(message) {
+            return new Promise((resolve) => {
+                cpConfirmResolver = resolve;
+                if (cpConfirmMessage) cpConfirmMessage.textContent = message;
+                if (cpConfirmModal) { cpConfirmModal.style.display = 'block'; lockScroll(); }
+            });
+        }
+        function closeCpConfirm(result) {
+            if (cpConfirmModal) cpConfirmModal.style.display = 'none';
+            unlockScroll();
+            if (cpConfirmResolver) { cpConfirmResolver(result); cpConfirmResolver = null; }
+        }
+        if (cpConfirmOk) cpConfirmOk.addEventListener('click', () => closeCpConfirm(true));
+        if (cpConfirmCancel) cpConfirmCancel.addEventListener('click', () => closeCpConfirm(false));
+        if (cpConfirmModal) {
+            cpConfirmModal.addEventListener('click', (e) => { if (e.target === cpConfirmModal) closeCpConfirm(false); });
+        }
+        window.openCpConfirm = openCpConfirm;
+
         window.addEventListener('click', (event) => {
             if (event.target === campaignModal) closeCreateModal();
             if (event.target === campaignDetailsModal) { campaignDetailsModal.style.display = 'none'; unlockScroll(); }
@@ -524,7 +565,8 @@
 
         function statusInfo(s) {
             const v = (s || '').toLowerCase();
-            if (v === 'sent' || v === 'partial_success' || v === 'completed' || v === 'delivered') return { key: 'completed', label: 'Completed', chip: 'successful' };
+            if (v === 'sent' || v === 'completed' || v === 'delivered') return { key: 'completed', label: 'Completed', chip: 'successful' };
+            if (v === 'partial_success') return { key: 'partial', label: 'Partial', chip: 'successful' };
             if (v === 'processing' || v === 'queued' || v === 'running') return { key: 'processing', label: 'Processing', chip: 'pending' };
             if (v === 'scheduled') return { key: 'scheduled', label: 'Scheduled', chip: 'pending' };
             if (v === 'failed') return { key: 'failed', label: 'Failed', chip: 'failed' };
@@ -535,6 +577,7 @@
 
         function statusIconSvg(key) {
             if (key === 'completed') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M3 8.5l3.5 3.5 6.5-7"></path></svg>';
+            if (key === 'partial') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M8 2L14 13H2z"></path><line x1="8" y1="6" x2="8" y2="9"></line><circle cx="8" cy="11" r="0.6" fill="currentColor"></circle></svg>';
             if (key === 'processing') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"></circle><polyline points="8 4 8 8 10.5 9.5"></polyline></svg>';
             if (key === 'scheduled') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><rect x="3" y="3" width="10" height="10" rx="2"></rect><line x1="3" y1="6" x2="13" y2="6"></line></svg>';
             if (key === 'failed') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="4" y1="4" x2="12" y2="12"></line><line x1="12" y1="4" x2="4" y2="12"></line></svg>';
@@ -544,6 +587,7 @@
 
         function iconTileClass(key) {
             if (key === 'completed') return 'cp-tile--green';
+            if (key === 'partial') return 'cp-tile--amber';
             if (key === 'processing') return 'cp-tile--blue';
             if (key === 'scheduled') return 'cp-tile--purple';
             if (key === 'failed') return 'cp-tile--red';
@@ -613,7 +657,7 @@
                 let actions = [];
                 if ((c.status === 'sent' || c.status === 'partial_success') && (c.failedCount || 0) > 0) {
                     actions.push({ label: 'Retry failed', cls: 'retry', fn: 'retryFailedRecipients' });
-                    actions.push({ label: 'Duplicate', cls: 'duplicate', fn: 'duplicateWithFailed' });
+                    actions.push({ label: 'Duplicate failed recipients', cls: 'duplicate', fn: 'duplicateWithFailed' });
                 }
                 if (c.status === 'scheduled') {
                     actions.push({ label: 'Cancel schedule', cls: 'cancel', fn: 'cancelScheduledCampaign' });
@@ -639,7 +683,7 @@
                     </td>
                     <td class="cp-td-recip" data-label="Recipients">${fmtNum(recipients)}</td>
                     <td class="cp-td-status" data-label="Status">
-                        <span class="cp-pill cp-pill--${si.key}">${statusIconSvg(si.key)}<span>${escapeHtml(si.label)}</span></span>
+                        <span class="cp-pill cp-pill--${si.key}"${si.key === 'partial' ? ' title="Some messages failed"' : ''}>${statusIconSvg(si.key)}<span>${escapeHtml(si.label)}</span></span>
                     </td>
                     <td class="cp-td-date" data-label="Date">${escapeHtml(dateStr)}</td>
                     <td class="cp-td-actions" data-label="Actions">${actionHtml}</td>
@@ -760,22 +804,23 @@
         function updateCpStats(campaigns) {
             const total = campaigns.length;
             const totalSent = campaigns.reduce((s, c) => s + (c.sentCount || 0), 0);
-            const totalDelivered = campaigns.reduce((s, c) => s + (c.deliveredCount || 0), 0);
-            const hasDelivery = campaigns.some(c => c.deliveredCount != null || c.sentCount != null);
+            const deliveryCampaigns = campaigns.filter(c => c.deliveredCount != null);
+            const deliverySent = deliveryCampaigns.reduce((s, c) => s + (c.sentCount || 0), 0);
+            const totalDelivered = deliveryCampaigns.reduce((s, c) => s + (c.deliveredCount || 0), 0);
             const elTotal = document.getElementById('cpTotalCampaigns');
             const elSent = document.getElementById('cpMessagesSent');
             const elRate = document.getElementById('cpDeliveryRate');
             if (elTotal) elTotal.textContent = total.toLocaleString();
             if (elSent) elSent.textContent = totalSent.toLocaleString();
             if (elRate) {
-                if (!hasDelivery || totalSent === 0) {
-                    elRate.textContent = totalSent === 0 && !campaigns.some(c=>c.deliveredCount) ? '—' : (totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) + '%' : '—');
+                if (deliveryCampaigns.length === 0 || deliverySent === 0) {
+                    elRate.textContent = '—';
                 } else {
-                    elRate.textContent = Math.round((totalDelivered / totalSent) * 100) + '%';
+                    elRate.textContent = Math.round((totalDelivered / deliverySent) * 100) + '%';
                 }
             }
-
-            // Trends + sparklines
+  
+        // Trends + sparklines
             const now = new Date();
             const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -910,7 +955,10 @@
         }
 
         async function retryFailedRecipients(campaignId) {
-            if (!confirm('Are you sure you want to retry failed recipients? This will incur additional charges.')) return;
+            const campaign = allCampaigns.find(c => c._id === campaignId);
+            const count = campaign ? (campaign.failedCount || 0) : 0;
+            const ok = await openCpConfirm('Failed messages will be sent again and charged to the wallet balance (' + count + ' recipients).');
+            if (!ok) return;
             try {
                 const response = await window.apiClient.retryFailedRecipients(campaignId);
                 if (response.error) throw new Error(response.error);
@@ -919,7 +967,10 @@
             } catch (error) { window.showToast('Failed to retry failed recipients: ' + extractErrorMessage(error), 'error'); }
         }
         async function duplicateWithFailed(campaignId) {
-            if (!confirm('Are you sure you want to create a new campaign with failed recipients? This will incur charges.')) return;
+            const campaign = allCampaigns.find(c => c._id === campaignId);
+            const count = campaign ? (campaign.failedCount || 0) : 0;
+            const ok = await openCpConfirm('A new campaign will be created with the failed recipients and charged to the wallet balance (' + count + ' recipients).');
+            if (!ok) return;
             try {
                 const response = await window.apiClient.duplicateCampaignWithFailed(campaignId);
                 if (response.error) throw new Error(response.error);
@@ -928,7 +979,8 @@
             } catch (error) { window.showToast('Failed to duplicate campaign: ' + extractErrorMessage(error), 'error'); }
         }
         async function cancelScheduledCampaign(campaignId) {
-            if (!confirm('Are you sure you want to cancel this scheduled campaign?')) return;
+            const ok = await openCpConfirm('The scheduled campaign will be cancelled and its reserved funds released.');
+            if (!ok) return;
             try {
                 const response = await window.apiClient.cancelScheduledCampaign(campaignId);
                 if (response.error) throw new Error(response.error);

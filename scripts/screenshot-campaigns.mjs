@@ -75,6 +75,7 @@ campaigns[1].createdAt = daysAgo(95);
 
 function mockApi(route, mode) {
   const url = route.request().url();
+  console.log('MOCKAPI', mode, url);
   if (mode === 'error') {
     if (url.includes('/campaigns')) {
       route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ success: false, message: 'Server error' }) });
@@ -118,6 +119,8 @@ const allResults = {};
 async function runMode(mode, label) {
   for (const vp of viewports) {
     const page = await context.newPage();
+    page.on('console', (m) => console.log('PAGECONSOLE', vp.name, m.type(), m.text()));
+    page.on('pageerror', (e) => console.log('PAGEERROR', vp.name, e.message));
     await page.setViewportSize({ width: vp.width, height: vp.height });
     await page.route('**/api/**', (route) => mockApi(route, mode));
     // loading mode: delay campaigns response
@@ -166,7 +169,7 @@ async function runMode(mode, label) {
       let pillsOk = true;
       pills.forEach(p => { if (!p.querySelector('svg') || !p.textContent.trim()) pillsOk = false; });
       // mobile cards check
-      const isMobile = window.innerWidth < 768;
+      const isMobile = window.innerWidth < 900;
       let cardsOk = true;
       if (isMobile) {
         const tr = document.querySelector('#campaignsBody tr');
