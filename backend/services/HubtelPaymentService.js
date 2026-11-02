@@ -269,6 +269,19 @@ class HubtelPaymentService {
         }
       });
 
+      // Any non-2xx HTTP status is a verification failure, not a transaction
+      // status. 401/403 mean credentials or IP are blocked; 404 means Hubtel
+      // has no record; 5xx means the provider is down. These must never be
+      // mapped to a transaction 'pending' status.
+      if (response.status < 200 || response.status >= 300) {
+        const statusData = response.data && typeof response.data === 'object' ? response.data : {};
+        const err = new Error(`Hubtel status check failed with HTTP ${response.status}`);
+        err.httpStatus = response.status;
+        err.code = statusData.responseCode || statusData.response_code || statusData.code || statusData.Status || statusData.status;
+        err.isHttpError = true;
+        throw err;
+      }
+
       // Extract full response body
       const fullResponseBody = response.data;
       const statusData = fullResponseBody.data || fullResponseBody;
@@ -324,6 +337,7 @@ class HubtelPaymentService {
 
       return {
         success: true,
+        httpStatus: response.status,
         clientReference: clientReference,
         status: this._mapHubtelStatus(rawStatus),
         rawStatus,
@@ -335,6 +349,19 @@ class HubtelPaymentService {
       };
 
     } catch (error) {
+      // Classify the failure so callers can distinguish a genuine provider
+      // 'pending' from a verification that could not be completed.
+      const httpStatus = error.response ? error.response.status : undefined;
+      let code;
+      if (error.response && error.response.data && typeof error.response.data === 'object') {
+        const body = error.response.data;
+        code = body.responseCode || body.response_code || body.code || body.Status || body.status;
+      }
+      const message = error.message || '';
+      const isTimeout = error.code === 'ECONNABORTED' || /timeout/i.test(message);
+      const isNetwork = !error.response;
+      const isUnparseable = isNetwork && /JSON|parse|syntax/i.test(message);
+
       // Structured error logging
       console.error(JSON.stringify({
         label: 'HUBTEL_STATUS_CHECK_ERROR',
@@ -359,7 +386,13 @@ class HubtelPaymentService {
         }, null, 2));
       }
 
-      throw new Error(`Failed to check transaction status: ${error.message}`);
+      const err = new Error(`Failed to check transaction status: ${error.message}`);
+      err.httpStatus = httpStatus;
+      err.code = code;
+      err.isTimeout = isTimeout;
+      err.isNetwork = isNetwork;
+      err.isUnparseable = isUnparseable;
+      throw err;
     }
   }
 

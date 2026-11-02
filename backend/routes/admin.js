@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const { authenticate, authorize } = require('../middleware/auth');
 const User = require('../models/User');
 const Wallet = require('../models/Wallet');
@@ -13,12 +14,49 @@ const Payment = require('../models/Payment');
 const FinancialSummary = require('../models/FinancialSummary');
 const CostCalculatorService = require('../services/CostCalculatorService');
 const WalletService = require('../services/WalletService');
+const HubtelPaymentService = require('../services/HubtelPaymentService');
 const { logAction } = require('../utils/audit');
 const HubtelAuthAuditService = require('../services/HubtelAuthAuditService');
 const { checkBalance } = require('../utils/nalo');
 const logger = require('../utils/logger');
 
 const NALO_LOW_BALANCE_THRESHOLD = parseFloat(process.env.NALO_LOW_BALANCE_THRESHOLD) || 100;
+
+// Rate limit for the Hubtel status access diagnostic: 6 requests per hour per
+// client IP. Independent of the 15-minute adminLimiter mounted on /api/admin.
+const hubtelStatusAccessLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const resetTime = new Date(Date.now() + 60 * 60 * 1000);
+    res.status(429).json({
+      success: false,
+      message: 'Too many requests. Please try again later.',
+      error: { code: 'RATE_LIMIT_EXCEEDED', retryAfter: 3600, resetTime: resetTime.toISOString() }
+    });
+  }
+});
+
+/**
+ * Best-effort detection of the server's outbound IPv4 as seen by api.ipify.org.
+ * Returns null on any failure (timeout, network error, non-IP response).
+ * Never sends credentials or secrets.
+ */
+async function getOutboundIpv4() {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch('https://api.ipify.org', { signal: controller.signal });
+    clearTimeout(timer);
+    if (!response.ok) return null;
+    const ip = (await response.text()).trim();
+    return /^\d{1,3}(\.\d{1,3}){3}$/.test(ip) ? ip : null;
+  } catch {
+    return null;
+  }
+}
 
 const router = express.Router();
 
@@ -1005,4 +1043,83 @@ router.get('/nalo/balance', authorize(['admin', 'super_admin']), async (req, res
   }
 });
 
+// ==================== Hubtel status access diagnostic ====================
+
+// Diagnostic: checks whether the server can reach Hubtel's transaction status
+// endpoint and classifies the access result. Uses a reference that cannot exist
+// (NH-DIAGNOSTIC-0000). No credentials or secret-bearing bodies are logged or
+// returned.
+/**
+ * Build the Hubtel status access diagnostic handler with injectable
+ * dependencies so it can be tested with fakes (no real provider, no network).
+ */
+function buildHubtelStatusAccessDiagnostic(opts = {}) {
+  const { checkTransactionStatus = defaultCheckTransactionStatus, getOutboundIpv4 } = opts;
+
+  return async (req, res) => {
+    try {
+      let classification;
+      let httpStatus;
+      let code;
+
+      try {
+        const result = await checkTransactionStatus('NH-DIAGNOSTIC-0000');
+        classification = 'ALLOWED';
+        httpStatus = result.httpStatus;
+        code = result.rawStatus;
+      } catch (err) {
+        httpStatus = err.httpStatus;
+        code = err.code;
+        if (err.httpStatus === 401 || err.httpStatus === 403) {
+          classification = 'BLOCKED';
+        } else if (err.httpStatus === 404) {
+          // A well-formed "not found" response from Hubtel means access works.
+          classification = 'ALLOWED';
+        } else if (err.httpStatus == null || err.httpStatus >= 500 || err.isNetwork || err.isUnparseable) {
+          classification = 'UNREACHABLE';
+        } else {
+          classification = 'ALLOWED';
+        }
+      }
+
+      // The outbound-IP lookup is best-effort: it must never fail the diagnostic.
+      let outboundIpv4 = null;
+      try {
+        outboundIpv4 = await getOutboundIpv4();
+      } catch {
+        outboundIpv4 = null;
+      }
+
+      res.json({
+        success: true,
+        classification,
+        httpStatus,
+        code,
+        outboundIpv4,
+        checkedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('[Payment] Hubtel status access diagnostic error', { error: error.message });
+      res.status(500).json({
+        success: false,
+        message: 'Diagnostic failed',
+        error: { code: 'INTERNAL_SERVER_ERROR' }
+      });
+    }
+  };
+}
+
+function defaultCheckTransactionStatus(clientReference) {
+  return new HubtelPaymentService().checkTransactionStatus(clientReference);
+}
+
+router.get(
+  '/diagnostics/hubtel-status-access',
+  authenticate,
+  authorize(['admin', 'super_admin']),
+  hubtelStatusAccessLimiter,
+  buildHubtelStatusAccessDiagnostic()
+);
+
 module.exports = router;
+module.exports.buildHubtelStatusAccessDiagnostic = buildHubtelStatusAccessDiagnostic;

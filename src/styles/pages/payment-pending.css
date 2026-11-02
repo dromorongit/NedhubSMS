@@ -1,0 +1,151 @@
+/* Scoped styles for payment-pending.html */
+body.page-payment-pending .payment-result-card {
+    background-color: var(--neutral-white);
+    border-radius: 16px;
+    padding: 3rem;
+    text-align: center;
+    max-width: 500px;
+    margin: 2rem auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+body.page-payment-pending .payment-result-card.pending {
+    border-top: 4px solid var(--accent-orange, #f77f00);
+}
+
+body.page-payment-pending .payment-result-card.long-pending {
+    border-top: 4px solid #ff9800;
+}
+
+body.page-payment-pending .result-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+}
+
+body.page-payment-pending .result-icon svg {
+    width: 40px;
+    height: 40px;
+    color: var(--accent-orange, #f77f00);
+}
+
+body.page-payment-pending .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #ffe0b2;
+    border-top-color: var(--accent-orange, #f77f00);
+    border-radius: 50%;
+    animation: pp-spin 1s linear infinite;
+}
+
+@keyframes pp-spin {
+    to { transform: rotate(360deg); }
+}
+
+body.page-payment-pending .payment-result-card h3 {
+    font-size: 1.5rem;
+    color: var(--primary-dark, #1a1a2e);
+    margin-bottom: 0.5rem;
+}
+
+body.page-payment-pending .payment-result-card > p {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+body.page-payment-pending .result-details {
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+body.page-payment-pending .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+body.page-payment-pending .detail-row:last-child {
+    border-bottom: none;
+}
+
+body.page-payment-pending .detail-label {
+    color: #666;
+    font-weight: 500;
+}
+
+body.page-payment-pending .detail-value {
+    color: var(--primary-dark, #1a1a2e);
+    font-weight: 600;
+    word-break: break-all;
+}
+
+body.page-payment-pending .info-box {
+    background-color: #fff8e1;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+body.page-payment-pending .result-actions {
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+body.page-payment-pending .btn-primary,
+body.page-payment-pending .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+body.page-payment-pending .btn-primary {
+    background: linear-gradient(135deg, var(--accent-orange, #f77f00) 0%, #e56a00 100%);
+    color: white;
+}
+
+body.page-payment-pending .btn-secondary {
+    background: #f0f0f0;
+    color: var(--primary-dark, #1a1a2e);
+}
+
+body.page-payment-pending .btn-primary:hover,
+body.page-payment-pending .btn-secondary:hover {
+    transform: translateY(-2px);
+}
+
+body.page-payment-pending .redirect-msg {
+    color: #999;
+    font-size: 0.9rem;
+}
+
+body.page-payment-pending .redirect-msg span {
+    color: var(--accent-orange, #f77f00);
+    font-weight: 600;
+}
+
+body.page-payment-pending .long-pending-message {
+    color: #666;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}

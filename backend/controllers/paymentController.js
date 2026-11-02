@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getAppBaseUrl } = require('../utils/appBaseUrl');
 const CallbackVerificationService = require('../services/callbackVerificationService');
 const Payment = require('../models/Payment');
 const Transaction = require('../models/Transaction');
@@ -264,10 +265,13 @@ const checkPaymentStatus = async (req, res) => {
       case 'credit': message = 'Payment confirmed and wallet credited'; break;
       case 'mark_failed': message = 'Payment failed'; break;
       case 'already_terminal': message = 'Payment already confirmed via callback'; break;
+      case 'verification_unavailable': message = 'Status check unavailable, payment left pending'; break;
       case 'provider_unavailable': message = 'Provider unavailable, payment left pending'; break;
       case 'not_found': message = 'Payment not found'; break;
       default: message = 'Payment left pending';
     }
+
+    const verificationDelayed = !!(current && current.verificationFailures > 0);
 
     return res.status(200).json({
       success: true,
@@ -275,7 +279,8 @@ const checkPaymentStatus = async (req, res) => {
       status: current.status,
       amount: current.amount,
       currency: current.currency,
-      message
+      message,
+      verificationDelayed
     });
 
   } catch (error) {
@@ -339,7 +344,7 @@ const handlePaymentReturn = async (req, res) => {
     const reference = clientReference || checkoutid;
 
     if (!reference) {
-      return res.redirect(`/src/pages/dashboard/payment-error.html?message=missing_reference`);
+      return res.redirect(`${getAppBaseUrl()}/src/pages/dashboard/payment-error.html?message=missing_reference`);
     }
 
     // Find payment by clientReference or checkoutId
@@ -352,22 +357,14 @@ const handlePaymentReturn = async (req, res) => {
 
     if (!payment) {
       logger.info('[Payment] Payment not found for return', { reference });
-      return res.redirect(`/src/pages/dashboard/payment-error.html?message=payment_not_found`);
+      return res.redirect(`${getAppBaseUrl()}/src/pages/dashboard/payment-error.html?message=payment_not_found`);
     }
 
     // Redirect based on payment status
     if (payment.status === 'paid') {
-      if (frontend) {
-        try {
-          const frontendUrl = new URL(frontend);
-          return res.redirect(`${frontendUrl.origin}/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
-        } catch (e) {
-          return res.redirect(`/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
-        }
-      }
-      return res.redirect(`/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
+      return res.redirect(`${getAppBaseUrl()}/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
     } else if (payment.status === 'failed') {
-      return res.redirect(`/src/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
+      return res.redirect(`${getAppBaseUrl()}/src/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
     } else {
       // Payment still pending - server-to-server check with Hubtel as fallback
       logger.info('[Payment] Return handler checking Hubtel for pending payment', { clientReference: payment.clientReference });
@@ -396,25 +393,25 @@ const handlePaymentReturn = async (req, res) => {
               `PAYMENT-${payment.clientReference}`
             );
           }
-          return res.redirect(redirectTo(frontend, payment.clientReference, 'success'));
+          return res.redirect(`${getAppBaseUrl()}/src/pages/dashboard/payment-success.html?reference=${payment.clientReference}`);
         } else if (provider.ok && provider.status === 'failed') {
           await Payment.findOneAndUpdate(
             { clientReference: payment.clientReference, status: { $in: ['pending', 'processing'] } },
             { $set: { status: 'failed', callbackVerified: true, failureReason: provider.message } }
           );
-          return res.redirect(`/src/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
+          return res.redirect(`${getAppBaseUrl()}/src/pages/dashboard/payment-error.html?reference=${payment.clientReference}&message=payment_failed`);
         }
       } catch (hubtelError) {
         logger.error('[Payment] Hubtel status check error in return handler', { error: hubtelError.message });
       }
 
       // Payment still pending, redirect to pending page
-      return res.redirect(`/src/pages/dashboard/payment-pending.html?reference=${payment.clientReference}`);
+      return res.redirect(`${getAppBaseUrl()}/src/pages/dashboard/payment-pending.html?reference=${payment.clientReference}`);
     }
 
   } catch (error) {
     logger.error('[Payment] Return handler error', { error: error.message });
-    res.redirect(`/src/pages/dashboard/payment-error.html?message=internal_error`);
+    res.redirect(`${getAppBaseUrl()}/src/pages/dashboard/payment-error.html?message=internal_error`);
   }
 };
 
@@ -446,7 +443,7 @@ const handlePaymentCancelled = async (req, res) => {
     );
   }
 
-  res.redirect(`/pages/dashboard/payment-cancelled.html`);
+  res.redirect(`${getAppBaseUrl()}/src/pages/dashboard/payment-cancelled.html`);
 };
 
 /**
