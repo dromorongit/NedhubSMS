@@ -9,170 +9,212 @@
     <link rel="stylesheet" href="../../styles/dashboard.css">
     <link rel="stylesheet" href="../../styles/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="../../utils/authStorage.js"></script>
-    <script src="../../utils/api.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400,500,700,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../styles/nedhub-app.css">
+    <link rel="stylesheet" href="../../styles/pages/campaigns.css?v=1">
     <script src="../../utils/toast.js" defer></script>
     <script src="../../utils/messageUtils.js" defer></script>
     <script src="../../utils/escape.js"></script>
     <link rel="stylesheet" href="../../styles/shell.css?v=2">
 </head>
-<body class="nhs-has-shell">
+<body class="page-campaigns nhs-has-shell">
     <div class="dashboard-layout">
         <div id="nhs-sidebar-mount"></div>
         <main class="main-content">
             <div id="nhs-topbar-mount"></div>
-    <script src="../../utils/shell.js?v=2"></script>
-            <!-- Sidebar Overlay -->
+            <script src="../../utils/shell.js?v=2"></script>
             <div class="dashboard-content">
-                <div class="welcome-section">
-                    <h2 id="pageTitle">Campaigns</h2>
-                    <p class="welcome-subtitle">Manage and track your SMS campaigns</p>
-                </div>
+                <div class="cp">
+                    <!-- Title row -->
+                    <div class="cp-head">
+                        <div class="cp-head-text">
+                            <h1 class="cp-title">Campaigns</h1>
+                            <p class="cp-subtitle">Create, manage and track your SMS campaigns with ease.</p>
+                        </div>
+                        <button class="cp-new-btn" id="createCampaignBtn" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+                            <span>New Campaign</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                    </div>
 
-                <!-- Campaign Stats Grid -->
-                <div class="stats-grid" id="campaignStatsGrid">
-                    <div class="stat-card">
-                        <div class="stat-icon sent-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <h3>Total Campaigns</h3>
-                            <div class="stat-value" id="totalCampaigns">0</div>
-                            <div class="stat-label">All time</div>
-                        </div>
+                    <!-- Stat cards -->
+                    <div class="cp-stats" id="cpStats">
+                        <article class="cp-stat cp-stat--blue">
+                            <div class="cp-stat-icon cp-stat-icon--blue" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"></path></svg>
+                            </div>
+                            <div class="cp-stat-body">
+                                <p class="cp-stat-label">Total Campaigns</p>
+                                <p class="cp-stat-value" id="cpTotalCampaigns">0</p>
+                                <p class="cp-stat-trend" id="cpTotalCampaignsTrend" style="display:none;"></p>
+                            </div>
+                            <div class="cp-stat-spark" id="cpTotalCampaignsSpark" style="display:none;"></div>
+                        </article>
+                        <article class="cp-stat cp-stat--green">
+                            <div class="cp-stat-icon cp-stat-icon--green" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            </div>
+                            <div class="cp-stat-body">
+                                <p class="cp-stat-label">Messages Sent</p>
+                                <p class="cp-stat-value" id="cpMessagesSent">0</p>
+                                <p class="cp-stat-trend" id="cpMessagesSentTrend" style="display:none;"></p>
+                            </div>
+                            <div class="cp-stat-spark" id="cpMessagesSentSpark" style="display:none;"></div>
+                        </article>
+                        <article class="cp-stat cp-stat--purple">
+                            <div class="cp-stat-icon cp-stat-icon--purple" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            </div>
+                            <div class="cp-stat-body">
+                                <p class="cp-stat-label">Delivery Rate</p>
+                                <p class="cp-stat-value" id="cpDeliveryRate">—</p>
+                                <p class="cp-stat-trend" id="cpDeliveryRateTrend" style="display:none;"></p>
+                            </div>
+                            <div class="cp-stat-spark" id="cpDeliveryRateSpark" style="display:none;"></div>
+                        </article>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); color: #388e3c;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <h3>Delivered</h3>
-                            <div class="stat-value" id="totalDelivered">0</div>
-                            <div class="stat-label">Messages sent</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon delivery-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <h3>Scheduled</h3>
-                            <div class="stat-value" id="totalScheduled">0</div>
-                            <div class="stat-label">Pending</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); color: #c62828;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="15" y1="9" x2="9" y2="15"></line>
-                                <line x1="9" y1="9" x2="15" y2="15"></line>
-                            </svg>
-                        </div>
-                        <div class="stat-content">
-                            <h3>Failed</h3>
-                            <div class="stat-value" id="totalFailed">0</div>
-                            <div class="stat-label">Messages</div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Create Campaign Button -->
-                <div class="campaigns-header">
-                    <button class="btn-primary" id="createCampaignBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Create New Campaign
-                    </button>
-                </div>
+                    <!-- Banner -->
+                    <div class="cp-banner">
+                        <div class="cp-banner-dots" aria-hidden="true"></div>
+                        <div class="cp-banner-content">
+                            <h2 class="cp-banner-title"><span class="cp-banner-white">Run </span><span class="cp-banner-orange">Smarter</span><span class="cp-banner-white"> Campaigns</span></h2>
+                            <p class="cp-banner-sub">Reach your audience instantly with our reliable bulk SMS service.</p>
+                            <button class="cp-banner-btn" id="bannerCreateBtn" type="button">
+                                <span>Create Campaign</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            </button>
+                        </div>
+                        <div class="cp-banner-art" aria-hidden="true">
+                            <div class="cp-banner-swoosh"></div>
+                            <div class="cp-banner-phone">
+                                <div class="cp-banner-phone-bezel">
+                                    <div class="cp-banner-phone-screen">
+                                        <div class="cp-banner-bubble">Your message reaches more people with NedHub!</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <svg class="cp-banner-plane" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
+                                <path d="M4 32 L52 8 L36 32 L52 56 Z" fill="#F77F00"></path>
+                            </svg>
+                            <svg class="cp-banner-path" viewBox="0 0 200 80" fill="none" aria-hidden="true" focusable="false">
+                                <path d="M10 70 Q60 10 120 40 T190 20" stroke="#F77F00" stroke-width="2" stroke-dasharray="4 6" fill="none" opacity="0.6"></path>
+                            </svg>
+                        </div>
+                    </div>
 
-                <!-- Campaigns Table -->
-                <div class="transactions-section">
-                    <div class="section-header">
-                        <h3>Your Campaigns</h3>
-                    </div>
-                    <div class="table-container">
-                        <table class="transactions-table" id="campaignsTable">
-                            <thead>
-                                <tr>
-                                    <th>Campaign Name</th>
-                                    <th>Sender ID</th>
-                                    <th>Status</th>
-                                    <th>Recipients</th>
-                                    <th>Est. Cost</th>
-                                    <th>Delivered</th>
-                                    <th>Failed</th>
-                                    <th>Created</th>
-                                    <th>Scheduled For</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="campaignsBody">
-                                <!-- Campaigns will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="empty-campaigns-state" id="emptyCampaignsState" style="display: none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
-                        </svg>
-                        <p>No campaigns yet</p>
-                        <span>Create your first campaign to get started</span>
-                    </div>
-                    <div class="loading-spinner" id="campaignsLoading">
-                        <div class="spinner"></div>
-                        <span>Loading campaigns...</span>
+                    <!-- Table card -->
+                    <div class="cp-card">
+                        <div class="cp-card-head">
+                            <div class="cp-card-title-wrap">
+                                <svg class="cp-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M3 11l19-9-9 19-2-8-8-2z"></path></svg>
+                                <h3 class="cp-card-title">Your Campaigns</h3>
+                            </div>
+                            <div class="cp-card-tools">
+                                <div class="cp-chips" role="group" aria-label="Filter campaigns">
+                                    <button type="button" class="cp-chip active" data-filter="all">All</button>
+                                    <button type="button" class="cp-chip" data-filter="successful">Successful</button>
+                                    <button type="button" class="cp-chip" data-filter="pending">Pending</button>
+                                    <button type="button" class="cp-chip" data-filter="failed">Failed</button>
+                                </div>
+                                <div class="cp-date-wrap">
+                                    <select id="cpDateRange" class="cp-date-select" aria-label="Date range">
+                                        <option value="7">Last 7 Days</option>
+                                        <option value="30">Last 30 Days</option>
+                                        <option value="90">Last 90 Days</option>
+                                        <option value="all" selected>All Time</option>
+                                    </select>
+                                    <svg class="cp-date-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cp-table-wrap">
+                            <table class="cp-table" id="campaignsTable">
+                                <thead>
+                                    <tr>
+                                        <th class="cp-th-name">Campaign Name</th>
+                                        <th class="cp-th-preview">Message Preview</th>
+                                        <th class="cp-th-recip">Recipients</th>
+                                        <th class="cp-th-status">Status</th>
+                                        <th class="cp-th-date">Date</th>
+                                        <th class="cp-th-actions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="campaignsBody"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="cp-skeleton" id="campaignsLoading" style="display:none;">
+                            <div class="cp-skel-row"></div>
+                            <div class="cp-skel-row"></div>
+                            <div class="cp-skel-row"></div>
+                        </div>
+
+                        <div class="cp-empty" id="cpEmptyState" style="display:none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+                            <h3>No campaigns yet</h3>
+                            <p>Create your first campaign to get started</p>
+                            <button type="button" class="cp-create-btn" id="emptyCreateBtn">Create Campaign</button>
+                        </div>
+
+                        <div class="cp-noresults" id="cpNoResults" style="display:none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <h3>No campaigns match your filters</h3>
+                            <p>Try adjusting your filters or date range.</p>
+                            <button type="button" class="cp-clear-btn" id="clearFiltersBtn">Clear filters</button>
+                        </div>
+
+                        <div class="cp-error" id="cpErrorState" style="display:none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            <h3>Unable to load campaigns</h3>
+                            <p>Please try again.</p>
+                            <button type="button" class="cp-retry-btn" id="retryLoadBtn">Retry</button>
+                        </div>
+
+                        <div class="cp-footer">
+                            <span class="cp-page-info" id="cpPageInfo">Showing 0–0 of 0 campaigns</span>
+                            <div class="cp-pager">
+                                <button type="button" class="cp-page-btn" id="cpPrev" aria-label="Previous page">‹</button>
+                                <div class="cp-page-numbers" id="cpPageNumbers"></div>
+                                <button type="button" class="cp-page-btn" id="cpNext" aria-label="Next page">›</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
-    
+
     <!-- Create Campaign Modal -->
-    <div class="modal" id="createCampaignModal">
+    <div class="modal cp-modal" id="createCampaignModal">
         <div class="modal-content">
-            <button class="modal-close" id="closeCampaignModal">&times;</button>
+            <button class="modal-close" id="closeCampaignModal" type="button">&times;</button>
             <div class="modal-header">
                 <div class="modal-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
-                    </svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
                 </div>
                 <h3>Create New Campaign</h3>
                 <p>Set up a new SMS campaign</p>
             </div>
-            
             <form id="campaignForm">
                 <div class="form-group">
                     <label for="campaignName">Campaign Name</label>
                     <input type="text" id="campaignName" name="campaignName" placeholder="Enter a name for your campaign" required>
                 </div>
-                
                 <div class="form-group">
                     <label for="campaignSenderId">Sender ID</label>
                     <select id="campaignSenderId" name="campaignSenderId" required>
                         <option value="">Select Sender ID</option>
-                        <!-- Sender IDs will be loaded here -->
                     </select>
                 </div>
-                
                 <div class="form-group">
                     <label for="campaignTemplate">Message Template (Optional)</label>
                     <select id="campaignTemplate" name="campaignTemplate">
                         <option value="">Select Template</option>
-                        <!-- Templates will be loaded here -->
                     </select>
                 </div>
-                
                 <div class="form-group">
                     <label for="campaignMessage">Custom Message</label>
                     <textarea id="campaignMessage" name="campaignMessage" rows="4" placeholder="Type your message here..."></textarea>
@@ -181,23 +223,18 @@
                         <span>Pages: <strong id="segmentCount">0</strong></span>
                     </div>
                 </div>
-                
                 <div class="form-group">
                     <label for="campaignRecipients">Recipients</label>
-                    <textarea id="campaignRecipients" name="campaignRecipients" rows="3" placeholder="Enter phone numbers separated by commas (e.g., 0241234567, 0271234567)" required></textarea>
+                    <textarea id="campaignRecipients" name="campaignRecipients" rows="3" placeholder="Enter phone numbers separated by commas" required></textarea>
                     <small>Enter phone numbers separated by commas</small>
                 </div>
-                
                 <div class="form-group">
                     <label for="campaignSchedule">Schedule (Optional)</label>
                     <input type="datetime-local" id="campaignSchedule" name="campaignSchedule">
                     <small>Leave empty to send immediately</small>
                 </div>
-                
                 <button type="submit" class="btn-primary" id="createCampaignSubmitBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
-                    </svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
                     Create Campaign
                 </button>
             </form>
@@ -205,95 +242,68 @@
     </div>
 
     <!-- Campaign Details Modal -->
-    <div class="modal" id="campaignDetailsModal">
+    <div class="modal cp-modal" id="campaignDetailsModal">
         <div class="modal-content" style="max-width: 500px;">
-            <button class="modal-close" id="closeDetailsModal">&times;</button>
+            <button class="modal-close" id="closeDetailsModal" type="button">&times;</button>
             <div class="modal-header">
                 <div class="modal-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <h3>Campaign Details</h3>
                 <p>View campaign information</p>
             </div>
-            
-            <div id="campaignDetailsContent">
-                <!-- Campaign details will be loaded here -->
-            </div>
-            
+            <div id="campaignDetailsContent"></div>
             <div class="modal-actions">
-                <button type="button" class="btn-secondary" onclick="closeCampaignDetailsModal()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                    Close
-                </button>
+                <button type="button" class="btn-secondary" onclick="closeCampaignDetailsModal()">Close</button>
             </div>
         </div>
     </div>
 
     <!-- Reschedule Campaign Modal -->
-    <div class="modal" id="rescheduleModal">
+    <div class="modal cp-modal" id="rescheduleModal">
         <div class="modal-content" style="max-width: 500px;">
-            <button class="modal-close" id="closeRescheduleModal">&times;</button>
+            <button class="modal-close" id="closeRescheduleModal" type="button">&times;</button>
             <div class="modal-header">
                 <div class="modal-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                 </div>
                 <h3>Reschedule Campaign</h3>
                 <p>Select a new date and time for this campaign</p>
             </div>
-            
             <form id="rescheduleForm" onsubmit="submitReschedule(event)">
                 <input type="hidden" id="rescheduleCampaignId" name="campaignId">
                 <div class="form-group">
-                    <label for="rescheduleDate">New Date & Time</label>
+                    <label for="rescheduleDate">New Date &amp; Time</label>
                     <input type="datetime-local" id="rescheduleDate" name="scheduledAt" required>
-                    <small class="form-hint">Select the new date and time for campaign execution</small>
                 </div>
-
                 <div class="form-group">
                     <label>Timezone</label>
-                    <div class="timezone-display" id="rescheduleTimezoneDisplay">
-                        Africa/Accra
-                    </div>
-                    <small class="form-hint">Campaign will be scheduled in your local timezone</small>
+                    <div class="timezone-display" id="rescheduleTimezoneDisplay">Africa/Accra</div>
                 </div>
-
                 <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="closeRescheduleModal()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                        Cancel
-                    </button>
-                    <button type="submit" class="btn-primary" id="rescheduleSubmitBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Reschedule
-                    </button>
+                    <button type="button" class="btn-secondary" onclick="closeRescheduleModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="rescheduleSubmitBtn">Reschedule</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script>
-        // Global variables
-        let allCampaigns = [];
+    <script src="../../utils/authStorage.js"></script>
+    <script src="../../utils/api.js"></script>
+    <script src="../../utils/toast.js"></script>
+    <script src="../../utils/escape.js"></script>
 
-        // DOM elements
+    <script>
+        let allCampaigns = [];
+        let cpFilter = 'all';
+        let cpDateRange = 'all';
+        let cpPage = 1;
+        const CP_PAGE_SIZE = 5;
+        let activeKebab = null;
+
         const createCampaignBtn = document.getElementById('createCampaignBtn');
+        const bannerCreateBtn = document.getElementById('bannerCreateBtn');
+        const emptyCreateBtn = document.getElementById('emptyCreateBtn');
         const closeCampaignModal = document.getElementById('closeCampaignModal');
         const campaignModal = document.getElementById('createCampaignModal');
         const campaignForm = document.getElementById('campaignForm');
@@ -301,13 +311,9 @@
         const charCount = document.getElementById('charCount');
         const segmentCount = document.getElementById('segmentCount');
         const campaignsBody = document.getElementById('campaignsBody');
-        
-        // Campaign details modal
         const campaignDetailsModal = document.getElementById('campaignDetailsModal');
         const closeDetailsModal = document.getElementById('closeDetailsModal');
         const campaignDetailsContent = document.getElementById('campaignDetailsContent');
-
-        // Reschedule modal elements
         const rescheduleModal = document.getElementById('rescheduleModal');
         const closeRescheduleModalBtn = document.getElementById('closeRescheduleModal');
         const rescheduleForm = document.getElementById('rescheduleForm');
@@ -315,31 +321,37 @@
         const rescheduleDateInput = document.getElementById('rescheduleDate');
         const rescheduleTimezoneDisplay = document.getElementById('rescheduleTimezoneDisplay');
         const rescheduleSubmitBtn = document.getElementById('rescheduleSubmitBtn');
-
-        // Page elements
-        const userAvatarEl = document.getElementById('userAvatar');
-        const userNameEl = document.getElementById('userName');
-        const totalCampaignsEl = document.getElementById('totalCampaigns');
-        const totalDeliveredEl = document.getElementById('totalDelivered');
-        const totalScheduledEl = document.getElementById('totalScheduled');
-        const totalFailedEl = document.getElementById('totalFailed');
         const campaignsLoadingEl = document.getElementById('campaignsLoading');
-        const emptyCampaignsStateEl = document.getElementById('emptyCampaignsState');
+        const cpEmptyStateEl = document.getElementById('cpEmptyState');
+        const cpNoResultsEl = document.getElementById('cpNoResults');
+        const cpErrorStateEl = document.getElementById('cpErrorState');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const retryLoadBtn = document.getElementById('retryLoadBtn');
+        const cpPageInfo = document.getElementById('cpPageInfo');
+        const cpPrev = document.getElementById('cpPrev');
+        const cpNext = document.getElementById('cpNext');
+        const cpPageNumbers = document.getElementById('cpPageNumbers');
+        const cpDateRangeSel = document.getElementById('cpDateRange');
 
-        // Initialize on page load
+        function lockScroll() {
+            document.body.style.overflow = 'hidden';
+            const sc = (window.NhShell && window.NhShell.scroller) ? window.NhShell.scroller() : document.querySelector('.main-content');
+            if (sc) sc.style.overflow = 'hidden';
+        }
+        function unlockScroll() {
+            document.body.style.overflow = '';
+            const sc = (window.NhShell && window.NhShell.scroller) ? window.NhShell.scroller() : document.querySelector('.main-content');
+            if (sc) sc.style.overflow = '';
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthAndLoad();
             await loadCampaigns();
-});
+        });
 
         async function checkAuthAndLoad() {
             const token = window.getStorage ? window.getStorage().getItem('authToken') : localStorage.getItem('authToken');
-            console.log('[AuthBootstrap] [Dashboard] checkAuthAndLoad - token present:', !!token);
-            if (!token) {
-                window.location.href = '../auth/login.html';
-                return;
-            }
-
+            if (!token) { window.location.href = '../auth/login.html'; return; }
             await loadUserProfile();
         }
 
@@ -352,469 +364,613 @@
                     const firstName = user.name ? user.name.split(' ')[0] : 'User';
                     updateUserDisplay(firstName);
                     storage.setItem('userName', user.name);
-                } else {
-                    useStoredUserName();
-                }
-            } catch (error) {
-                console.error('Error loading user profile:', error);
-                useStoredUserName();
-            }
+                } else { useStoredUserName(); }
+            } catch (e) { useStoredUserName(); }
         }
-
         function useStoredUserName() {
             const storage = window.getStorage ? window.getStorage() : localStorage;
             const storedName = storage.getItem('userName');
-            if (storedName) {
-                const firstName = storedName.split(' ')[0];
-                updateUserDisplay(firstName);
-            } else {
-                updateUserDisplay('User');
-            }
+            if (storedName) updateUserDisplay(storedName.split(' ')[0]);
+            else updateUserDisplay('User');
         }
-
         function updateUserDisplay(firstName) {
+            const userNameEl = document.getElementById('userName');
+            const userAvatarEl = document.getElementById('userAvatar');
             if (userNameEl) userNameEl.textContent = firstName;
             if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
         }
 
-
-        // Character counter
-        campaignMessage.addEventListener('input', () => {
-            const chars = campaignMessage.value.length;
-            charCount.textContent = chars;
-            
-            // Calculate segments using same logic as messageUtils.js
-            if (chars > 0) {
-                const segmentResult = calculateSmsSegments(campaignMessage.value);
-                segmentCount.textContent = segmentResult.segments;
-            } else {
-                segmentCount.textContent = '1';
-            }
-        });
-
-        // Open create campaign modal
-        createCampaignBtn.addEventListener('click', async () => {
-            campaignModal.style.display = 'block';
-            
-            // Load sender IDs
-            const senderIdsResponse = await window.apiClient.getSenderIds();
-            if (senderIdsResponse.data) {
-                const senderIdSelect = document.getElementById('campaignSenderId');
-                senderIdSelect.innerHTML = '<option value="">Select Sender ID</option>';
-                
-                senderIdsResponse.data.forEach(senderId => {
-                    if (senderId.status === 'approved') {
-                        const option = document.createElement('option');
-                        option.value = senderId.senderId;
-                        option.textContent = senderId.senderId;
-                        senderIdSelect.appendChild(option);
-                    }
-                });
-            }
-            
-            // Load templates
-            const templatesResponse = await window.apiClient.getTemplates();
-            if (templatesResponse.data) {
-                const templateSelect = document.getElementById('campaignTemplate');
-                templateSelect.innerHTML = '<option value="">Select Template</option>';
-                
-                templatesResponse.data.forEach(template => {
-                    const option = document.createElement('option');
-                    option.value = template._id;
-                    option.textContent = template.title;
-                    templateSelect.appendChild(option);
-                });
-            }
-        });
-
-        // Close modal
-        closeCampaignModal.addEventListener('click', () => {
-            campaignModal.style.display = 'none';
-        });
-
-        // Close details modal
-        closeDetailsModal.addEventListener('click', () => {
-            campaignDetailsModal.style.display = 'none';
-        });
-
-        // Close reschedule modal
-        closeRescheduleModalBtn.addEventListener('click', () => {
-            rescheduleModal.style.display = 'none';
-        });
-
-        function closeCampaignDetailsModal() {
-            campaignDetailsModal.style.display = 'none';
+        if (campaignMessage) {
+            campaignMessage.addEventListener('input', () => {
+                const chars = campaignMessage.value.length;
+                if (charCount) charCount.textContent = chars;
+                if (chars > 0 && typeof calculateSmsSegments === 'function') {
+                    const r = calculateSmsSegments(campaignMessage.value);
+                    if (segmentCount) segmentCount.textContent = r.segments;
+                } else if (segmentCount) { segmentCount.textContent = '1'; }
+            });
         }
 
-        // Close modal when clicking outside
+        function openCreateModal() {
+            if (!campaignModal) return;
+            campaignModal.style.display = 'block';
+            lockScroll();
+            (async () => {
+                try {
+                    const senderIdsResponse = await window.apiClient.getSenderIds();
+                    if (senderIdsResponse && senderIdsResponse.data) {
+                        const senderIdSelect = document.getElementById('campaignSenderId');
+                        if (senderIdSelect) {
+                            senderIdSelect.innerHTML = '<option value="">Select Sender ID</option>';
+                            (senderIdsResponse.data.senderIds || senderIdsResponse.data || []).forEach(senderId => {
+                                if (senderId.status === 'approved') {
+                                    const option = document.createElement('option');
+                                    option.value = senderId.senderId;
+                                    option.textContent = senderId.senderId;
+                                    senderIdSelect.appendChild(option);
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {}
+                try {
+                    const templatesResponse = await window.apiClient.getTemplates();
+                    if (templatesResponse && templatesResponse.data) {
+                        const templateSelect = document.getElementById('campaignTemplate');
+                        if (templateSelect) {
+                            templateSelect.innerHTML = '<option value="">Select Template</option>';
+                            (templatesResponse.data || []).forEach(template => {
+                                const option = document.createElement('option');
+                                option.value = template._id;
+                                option.textContent = template.title;
+                                templateSelect.appendChild(option);
+                            });
+                        }
+                    }
+                } catch (e) {}
+            })();
+        }
+        function closeCreateModal() {
+            if (campaignModal) campaignModal.style.display = 'none';
+            unlockScroll();
+        }
+
+        if (createCampaignBtn) createCampaignBtn.addEventListener('click', openCreateModal);
+        if (bannerCreateBtn) bannerCreateBtn.addEventListener('click', openCreateModal);
+        if (emptyCreateBtn) emptyCreateBtn.addEventListener('click', openCreateModal);
+        if (closeCampaignModal) closeCampaignModal.addEventListener('click', closeCreateModal);
+        if (campaignModal) {
+            campaignModal.addEventListener('click', (e) => { if (e.target === campaignModal) closeCreateModal(); });
+        }
+
+        if (closeDetailsModal) closeDetailsModal.addEventListener('click', () => { if (campaignDetailsModal) campaignDetailsModal.style.display = 'none'; unlockScroll(); });
+        const closeRescheduleModalBtn2 = closeRescheduleModalBtn;
+        if (closeRescheduleModalBtn2) closeRescheduleModalBtn2.addEventListener('click', () => { if (rescheduleModal) rescheduleModal.style.display = 'none'; unlockScroll(); });
+
         window.addEventListener('click', (event) => {
-            if (event.target === campaignModal) {
-                campaignModal.style.display = 'none';
-            }
-            if (event.target === campaignDetailsModal) {
-                campaignDetailsModal.style.display = 'none';
-            }
-            if (event.target === rescheduleModal) {
-                rescheduleModal.style.display = 'none';
-            }
+            if (event.target === campaignModal) closeCreateModal();
+            if (event.target === campaignDetailsModal) { campaignDetailsModal.style.display = 'none'; unlockScroll(); }
+            if (event.target === rescheduleModal) { rescheduleModal.style.display = 'none'; unlockScroll(); }
+            if (activeKebab && !activeKebab.contains(event.target)) closeKebab();
         });
 
-        // Handle form submission
-        campaignForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = {
-                name: document.getElementById('campaignName').value,
-                senderId: document.getElementById('campaignSenderId').value,
-                templateId: document.getElementById('campaignTemplate').value || null,
-                customMessage: document.getElementById('campaignMessage').value || null,
-                recipients: document.getElementById('campaignRecipients').value.split(',').map(r => r.trim()),
-                schedule: document.getElementById('campaignSchedule').value || null
-            };
-
-            const submitBtn = document.getElementById('createCampaignSubmitBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span>Creating...</span>';
-            
-            try {
-                const response = await window.apiClient.createCampaign(formData);
-                if (response.error) {
-                    throw new Error(response.error);
+        if (campaignForm) {
+            campaignForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = {
+                    name: document.getElementById('campaignName').value,
+                    senderId: document.getElementById('campaignSenderId').value,
+                    templateId: document.getElementById('campaignTemplate').value || null,
+                    customMessage: document.getElementById('campaignMessage').value || null,
+                    recipients: document.getElementById('campaignRecipients').value.split(',').map(r => r.trim()).filter(Boolean),
+                    schedule: document.getElementById('campaignSchedule').value || null
+                };
+                const submitBtn = document.getElementById('createCampaignSubmitBtn');
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<span>Creating...</span>'; }
+                try {
+                    const response = await window.apiClient.createCampaign(formData);
+                    if (response.error) throw new Error(response.error);
+                    window.showToast('Campaign created successfully!', 'success');
+                    closeCreateModal();
+                    campaignForm.reset();
+                    if (charCount) charCount.textContent = '0';
+                    if (segmentCount) segmentCount.textContent = '0';
+                    loadCampaigns();
+                } catch (error) {
+                    console.error('Error creating campaign:', error);
+                    window.showToast('Failed to create campaign: ' + extractErrorMessage(error), 'error');
+                } finally {
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = 'Create Campaign'; }
                 }
-                
-                window.showToast('Campaign created successfully!', 'success');
-                campaignModal.style.display = 'none';
-                campaignForm.reset();
-                charCount.textContent = '0';
-                segmentCount.textContent = '0';
-                
-                // Refresh campaigns list
-                loadCampaigns();
-                
-            } catch (error) {
-                console.error('Error creating campaign:', error);
-                window.showToast('Failed to create campaign: ' + extractErrorMessage(error), 'error');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>Create Campaign';
-            }
-        });
+            });
+        }
 
-        // Load campaigns on page load
+        function closeCampaignDetailsModal() { if (campaignDetailsModal) campaignDetailsModal.style.display = 'none'; unlockScroll(); }
+        window.closeCampaignDetailsModal = closeCampaignDetailsModal;
+
+        function closeRescheduleModal() { if (rescheduleModal) rescheduleModal.style.display = 'none'; if (rescheduleForm) rescheduleForm.reset(); unlockScroll(); }
+        window.closeRescheduleModal = closeRescheduleModal;
+
         async function loadCampaigns() {
             try {
-                campaignsLoadingEl.style.display = 'block';
-                emptyCampaignsStateEl.style.display = 'none';
-                campaignsBody.innerHTML = '';
+                if (campaignsLoadingEl) campaignsLoadingEl.style.display = 'flex';
+                if (cpEmptyStateEl) cpEmptyStateEl.style.display = 'none';
+                if (cpNoResultsEl) cpNoResultsEl.style.display = 'none';
+                if (cpErrorStateEl) cpErrorStateEl.style.display = 'none';
+                if (campaignsBody) campaignsBody.innerHTML = '';
 
                 const response = await window.apiClient.getCampaigns();
-                
-                campaignsLoadingEl.style.display = 'none';
-                
-                if (response.data && response.data.length > 0) {
-                    allCampaigns = response.data;
-                    updateCampaignStats(response.data);
-                    
-                    response.data.forEach(campaign => {
-                        const row = document.createElement('tr');
-                        let actionButtons = `<button class="btn-secondary view-btn" data-campaign-id="${escapeAttr(campaign._id)}">View</button>`;
+                if (campaignsLoadingEl) campaignsLoadingEl.style.display = 'none';
 
-                        // Add retry buttons for completed campaigns with failures (sent or partial_success)
-                        if ((campaign.status === 'sent' || campaign.status === 'partial_success') && (campaign.failedCount || 0) > 0) {
-                            actionButtons += `
-                                <button class="btn-warning retry-btn" data-campaign-id="${escapeAttr(campaign._id)}" title="Retry Failed Recipients">Retry</button>
-                                <button class="btn-info duplicate-btn" data-campaign-id="${escapeAttr(campaign._id)}" title="Duplicate with Failed Recipients">Duplicate</button>
-                            `;
-                        }
-
-                        // Add cancel and reschedule for scheduled campaigns
-                        if (campaign.status === 'scheduled') {
-                            actionButtons += `
-                                <button class="btn-warning cancel-schedule-btn" data-campaign-id="${escapeAttr(campaign._id)}" title="Cancel Schedule">Cancel</button>
-                                <button class="btn-info reschedule-btn" data-campaign-id="${escapeAttr(campaign._id)}" title="Reschedule">Reschedule</button>
-                            `;
-                        }
-
-                        const scheduledFor = campaign.scheduledAt
-                            ? new Date(campaign.scheduledAt).toLocaleString(undefined, {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })
-                            : '-';
-
-                        row.innerHTML = `
-                            <td>${escapeHtml(campaign.title || campaign.name)}</td>
-                            <td>${escapeHtml(campaign.senderId)}</td>
-                            <td><span class="status-badge ${escapeAttr(campaign.status)}">${escapeHtml(campaign.status)}</span></td>
-                            <td>${campaign.recipientCount || campaign.recipientsCount || 0}</td>
-                            <td>GHS ${(campaign.estimatedCost || 0).toFixed(2)}</td>
-                            <td class="text-success">${campaign.deliveredCount || 0}</td>
-                            <td class="text-danger">${campaign.failedCount || 0}</td>
-                            <td>${new Date(campaign.createdAt).toLocaleDateString()}</td>
-                            <td>${scheduledFor}</td>
-                            <td>${actionButtons}</td>
-                        `;
-                        campaignsBody.appendChild(row);
-                    });
+                if (response.error) { showCpError(); return; }
+                const data = (response.data && Array.isArray(response.data)) ? response.data : (response.data && response.data.campaigns ? response.data.campaigns : []);
+                allCampaigns = data || [];
+                if (!allCampaigns.length) {
+                    if (cpEmptyStateEl) cpEmptyStateEl.style.display = 'flex';
                 } else {
-                    emptyCampaignsStateEl.style.display = 'block';
+                    updateCpStats(allCampaigns);
+                    cpPage = 1;
+                    renderCampaigns();
                 }
             } catch (error) {
                 console.error('Error loading campaigns:', error);
-                campaignsLoadingEl.style.display = 'none';
-                emptyCampaignsStateEl.style.display = 'block';
+                if (campaignsLoadingEl) campaignsLoadingEl.style.display = 'none';
+                showCpError();
             }
         }
+        window.loadCampaigns = loadCampaigns;
 
-        function updateCampaignStats(campaigns) {
-            let total = campaigns.length;
-            let delivered = 0;
-            let scheduled = 0;
-            let failed = 0;
+        function showCpError() { if (cpErrorStateEl) cpErrorStateEl.style.display = 'flex'; }
 
-            campaigns.forEach(c => {
-                delivered += c.deliveredCount || 0;
-                failed += c.failedCount || 0;
-                if (c.status === 'scheduled' || c.status === 'queued') {
-                    scheduled++;
+        function statusInfo(s) {
+            const v = (s || '').toLowerCase();
+            if (v === 'sent' || v === 'partial_success' || v === 'completed' || v === 'delivered') return { key: 'completed', label: 'Completed', chip: 'successful' };
+            if (v === 'processing' || v === 'queued' || v === 'running') return { key: 'processing', label: 'Processing', chip: 'pending' };
+            if (v === 'scheduled') return { key: 'scheduled', label: 'Scheduled', chip: 'pending' };
+            if (v === 'failed') return { key: 'failed', label: 'Failed', chip: 'failed' };
+            if (v === 'cancelled') return { key: 'cancelled', label: 'Cancelled', chip: 'failed' };
+            if (v === 'draft') return { key: 'draft', label: 'Draft', chip: 'pending' };
+            return { key: 'draft', label: s || 'Draft', chip: 'pending' };
+        }
+
+        function statusIconSvg(key) {
+            if (key === 'completed') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M3 8.5l3.5 3.5 6.5-7"></path></svg>';
+            if (key === 'processing') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"></circle><polyline points="8 4 8 8 10.5 9.5"></polyline></svg>';
+            if (key === 'scheduled') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><rect x="3" y="3" width="10" height="10" rx="2"></rect><line x1="3" y1="6" x2="13" y2="6"></line></svg>';
+            if (key === 'failed') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="4" y1="4" x2="12" y2="12"></line><line x1="12" y1="4" x2="4" y2="12"></line></svg>';
+            if (key === 'cancelled') return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"></circle><line x1="5" y1="8" x2="11" y2="8"></line></svg>';
+            return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"></circle></svg>';
+        }
+
+        function iconTileClass(key) {
+            if (key === 'completed') return 'cp-tile--green';
+            if (key === 'processing') return 'cp-tile--blue';
+            if (key === 'scheduled') return 'cp-tile--purple';
+            if (key === 'failed') return 'cp-tile--red';
+            return 'cp-tile--gray';
+        }
+
+        function fmtNum(n) { return Number(n || 0).toLocaleString(); }
+        function fmtDate(d) {
+            if (!d) return '-';
+            const dt = new Date(d);
+            if (isNaN(dt.getTime())) return '-';
+            return dt.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+        }
+
+        function getFilteredCampaigns() {
+            const now = new Date();
+            let list = allCampaigns.slice();
+            // chip filter
+            if (cpFilter !== 'all') {
+                list = list.filter(c => statusInfo(c.status).chip === cpFilter);
+            }
+            // date range
+            if (cpDateRange !== 'all') {
+                const days = parseInt(cpDateRange, 10);
+                const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+                list = list.filter(c => {
+                    const d = new Date(c.createdAt);
+                    return !isNaN(d.getTime()) && d >= cutoff;
+                });
+            }
+            return list;
+        }
+
+        function renderCampaigns() {
+            if (!campaignsBody) return;
+            const filtered = getFilteredCampaigns();
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / CP_PAGE_SIZE));
+            if (cpPage > totalPages) cpPage = totalPages;
+            const start = (cpPage - 1) * CP_PAGE_SIZE;
+            const end = Math.min(start + CP_PAGE_SIZE, total);
+            const pageItems = filtered.slice(start, end);
+
+            campaignsBody.innerHTML = '';
+
+            if (allCampaigns.length === 0) {
+                if (cpEmptyStateEl) cpEmptyStateEl.style.display = 'flex';
+                if (cpNoResultsEl) cpNoResultsEl.style.display = 'none';
+            } else {
+                if (cpEmptyStateEl) cpEmptyStateEl.style.display = 'none';
+                if (pageItems.length === 0) {
+                    if (cpNoResultsEl) cpNoResultsEl.style.display = 'flex';
+                } else {
+                    if (cpNoResultsEl) cpNoResultsEl.style.display = 'none';
                 }
+            }
+
+            pageItems.forEach(c => {
+                const row = document.createElement('tr');
+                const si = statusInfo(c.status);
+                const name = c.title || c.name || 'Untitled Campaign';
+                const preview = c.messageBody || c.customMessage || '';
+                const recipients = c.recipientCount || c.recipientsCount || 0;
+                const dateStr = fmtDate(c.createdAt);
+
+                // extra actions
+                let actions = [];
+                if ((c.status === 'sent' || c.status === 'partial_success') && (c.failedCount || 0) > 0) {
+                    actions.push({ label: 'Retry failed', cls: 'retry', fn: 'retryFailedRecipients' });
+                    actions.push({ label: 'Duplicate', cls: 'duplicate', fn: 'duplicateWithFailed' });
+                }
+                if (c.status === 'scheduled') {
+                    actions.push({ label: 'Cancel schedule', cls: 'cancel', fn: 'cancelScheduledCampaign' });
+                    actions.push({ label: 'Reschedule', cls: 'reschedule', fn: 'showRescheduleModal' });
+                }
+                // always delete? original no delete button in table; only view. Keep view only + kebab if extras.
+                let actionHtml = `<button type="button" class="cp-view-btn" data-campaign-id="${escapeAttr(c._id)}">View</button>`;
+                if (actions.length) {
+                    actionHtml += `<button type="button" class="cp-kebab-btn" data-campaign-id="${escapeAttr(c._id)}" aria-label="More actions" onclick="event.stopPropagation(); window.__openKebabById('${escapeAttr(c._id)}')">⋮</button>`;
+                }
+                // store actions data on row
+                row.dataset.actions = JSON.stringify(actions.map(a => a.label + '|' + a.fn));
+
+                row.innerHTML = `
+                    <td class="cp-td-name" data-label="Campaign Name">
+                        <div class="cp-name-cell">
+                            <span class="cp-tile ${iconTileClass(si.key)}">${escapeHtml((name.charAt(0) || 'C').toUpperCase())}</span>
+                            <span class="cp-name-text" title="${escapeAttr(name)}">${escapeHtml(name)}</span>
+                        </div>
+                    </td>
+                    <td class="cp-td-preview" data-label="Message Preview">
+                        <span class="cp-preview-text" title="${escapeAttr(preview)}">${escapeHtml(preview)}</span>
+                    </td>
+                    <td class="cp-td-recip" data-label="Recipients">${fmtNum(recipients)}</td>
+                    <td class="cp-td-status" data-label="Status">
+                        <span class="cp-pill cp-pill--${si.key}">${statusIconSvg(si.key)}<span>${escapeHtml(si.label)}</span></span>
+                    </td>
+                    <td class="cp-td-date" data-label="Date">${escapeHtml(dateStr)}</td>
+                    <td class="cp-td-actions" data-label="Actions">${actionHtml}</td>
+                `;
+                // attach action data
+                const kebab = row.querySelector('.cp-kebab-btn');
+                if (kebab) {
+                    kebab._actions = actions;
+                    kebab._campaignId = c._id;
+                    window.__cpActions[c._id] = actions;
+                }
+                const viewBtn = row.querySelector('.cp-view-btn');
+                if (viewBtn) viewBtn.addEventListener('click', () => viewCampaignDetails(c._id));
+                campaignsBody.appendChild(row);
             });
 
-            if (totalCampaignsEl) totalCampaignsEl.textContent = total;
-            if (totalDeliveredEl) totalDeliveredEl.textContent = delivered;
-            if (totalScheduledEl) totalScheduledEl.textContent = scheduled;
-            if (totalFailedEl) totalFailedEl.textContent = failed;
+            // pagination info
+            const showingStart = total === 0 ? 0 : start + 1;
+            const showingEnd = end;
+            if (cpPageInfo) cpPageInfo.textContent = 'Showing ' + showingStart + '–' + showingEnd + ' of ' + total + ' campaigns';
+            if (cpPrev) cpPrev.disabled = cpPage <= 1;
+            if (cpNext) cpNext.disabled = cpPage >= totalPages;
+
+            // page numbers
+            if (cpPageNumbers) {
+                cpPageNumbers.innerHTML = '';
+                const maxButtons = 5;
+                let first = Math.max(1, cpPage - 2);
+                let last = Math.min(totalPages, first + maxButtons - 1);
+                if (last - first < maxButtons - 1) first = Math.max(1, last - maxButtons + 1);
+                for (let p = first; p <= last; p++) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'cp-page-num' + (p === cpPage ? ' active' : '');
+                    btn.textContent = p;
+                    btn.addEventListener('click', () => { cpPage = p; renderCampaigns(); });
+                    cpPageNumbers.appendChild(btn);
+                }
+            }
+
+            // scroll top on page change handled by caller? We'll call scrollToTop on pagination button clicks.
         }
 
-        // Event delegation for dynamic buttons
-        campaignsBody.addEventListener('click', async (e) => {
-            const target = e.target;
-            const campaignId = target.dataset.campaignId;
+        function closeKebab() { if (activeKebab) { activeKebab.remove(); activeKebab = null; } }
+        window.__cpActions = window.__cpActions || {};
+        window.__openKebabById = function (campaignId) {
+            const btn = document.querySelector('.cp-kebab-btn[data-campaign-id="' + campaignId + '"]');
+            const actions = window.__cpActions[campaignId] || [];
+            if (btn) openKebab(btn, campaignId, actions);
+        };
+        function openKebab(trigger, campaignId, actions) {
+            closeKebab();
+            trigger.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            const rect = trigger.getBoundingClientRect();
+            const menu = document.createElement('div');
+            menu.className = 'cp-menu';
+            menu.style.position = 'fixed';
+            menu.style.zIndex = '99999';
+            menu.style.top = '0px';
+            menu.style.left = '0px';
+            menu.innerHTML = actions.map(a => `<button type="button" class="cp-menu-item" data-action="${escapeAttr(a.fn)}" data-id="${escapeAttr(campaignId)}">${escapeHtml(a.label)}</button>`).join('');
+            document.body.appendChild(menu);
+            const mRect = menu.getBoundingClientRect();
+            let top = rect.bottom + 4;
+            if (top + mRect.height > window.innerHeight - 8) top = rect.top - mRect.height - 4;
+            if (top < 8) top = 8;
+            let left = rect.right - mRect.width;
+            if (left < 8) left = 8;
+            if (left + mRect.width > window.innerWidth - 8) left = window.innerWidth - mRect.width - 8;
+            menu.style.top = top + 'px';
+            menu.style.left = left + 'px';
+            activeKebab = menu;
+            menu.querySelectorAll('.cp-menu-item').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const fn = btn.dataset.action;
+                    const id = btn.dataset.id;
+                    closeKebab();
+                    if (fn === 'retryFailedRecipients') await retryFailedRecipients(id);
+                    else if (fn === 'duplicateWithFailed') await duplicateWithFailed(id);
+                    else if (fn === 'cancelScheduledCampaign') await cancelScheduledCampaign(id);
+                    else if (fn === 'showRescheduleModal') await showRescheduleModal(id);
+                });
+            });
+        }
 
-            if (!campaignId) return;
-
-            if (target.classList.contains('view-btn')) {
-                await viewCampaignDetails(campaignId);
-            } else if (target.classList.contains('retry-btn')) {
-                await retryFailedRecipients(campaignId);
-            } else if (target.classList.contains('duplicate-btn')) {
-                await duplicateWithFailed(campaignId);
-            } else if (target.classList.contains('cancel-schedule-btn')) {
-                await cancelScheduledCampaign(campaignId);
-            } else if (target.classList.contains('reschedule-btn')) {
-                await showRescheduleModal(campaignId);
-            }
+        // chip clicks
+        document.querySelectorAll('.cp-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.cp-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                cpFilter = chip.dataset.filter;
+                cpPage = 1;
+                renderCampaigns();
+            });
         });
+        if (cpDateRangeSel) {
+            cpDateRangeSel.addEventListener('change', () => {
+                cpDateRange = cpDateRangeSel.value;
+                cpPage = 1;
+                renderCampaigns();
+            });
+        }
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', () => {
+                cpFilter = 'all';
+                cpDateRange = 'all';
+                if (cpDateRangeSel) cpDateRangeSel.value = 'all';
+                document.querySelectorAll('.cp-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all'));
+                cpPage = 1;
+                renderCampaigns();
+            });
+        }
+        if (retryLoadBtn) retryLoadBtn.addEventListener('click', loadCampaigns);
+        if (cpPrev) cpPrev.addEventListener('click', () => { if (cpPage > 1) { cpPage--; renderCampaigns(); if (window.NhShell && window.NhShell.scrollToTop) window.NhShell.scrollToTop(); } });
+        if (cpNext) cpNext.addEventListener('click', () => { cpPage++; renderCampaigns(); if (window.NhShell && window.NhShell.scrollToTop) window.NhShell.scrollToTop(); });
 
-        // View campaign details
+        // Stats
+        function updateCpStats(campaigns) {
+            const total = campaigns.length;
+            const totalSent = campaigns.reduce((s, c) => s + (c.sentCount || 0), 0);
+            const totalDelivered = campaigns.reduce((s, c) => s + (c.deliveredCount || 0), 0);
+            const hasDelivery = campaigns.some(c => c.deliveredCount != null || c.sentCount != null);
+            const elTotal = document.getElementById('cpTotalCampaigns');
+            const elSent = document.getElementById('cpMessagesSent');
+            const elRate = document.getElementById('cpDeliveryRate');
+            if (elTotal) elTotal.textContent = total.toLocaleString();
+            if (elSent) elSent.textContent = totalSent.toLocaleString();
+            if (elRate) {
+                if (!hasDelivery || totalSent === 0) {
+                    elRate.textContent = totalSent === 0 && !campaigns.some(c=>c.deliveredCount) ? '—' : (totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) + '%' : '—');
+                } else {
+                    elRate.textContent = Math.round((totalDelivered / totalSent) * 100) + '%';
+                }
+            }
+
+            // Trends + sparklines
+            const now = new Date();
+            const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+            // Total campaigns trend
+            const thisMonthCamps = campaigns.filter(c => c.createdAt && new Date(c.createdAt) >= thisMonthStart);
+            const lastMonthCamps = campaigns.filter(c => c.createdAt && new Date(c.createdAt) >= lastMonthStart && new Date(c.createdAt) <= lastMonthEnd);
+            const trendTotal = document.getElementById('cpTotalCampaignsTrend');
+            if (trendTotal && lastMonthCamps.length > 0) {
+                const pct = Math.round(((thisMonthCamps.length - lastMonthCamps.length) / lastMonthCamps.length) * 100);
+                const arrow = pct >= 0 ? '↑' : '↓';
+                trendTotal.style.color = pct >= 0 ? '#15803D' : '#DC2626';
+                trendTotal.style.display = '';
+                trendTotal.textContent = arrow + ' ' + Math.abs(pct) + '% from last month';
+            } else if (trendTotal) trendTotal.style.display = 'none';
+
+            // Messages sent trend
+            const thisMonthSent = thisMonthCamps.reduce((s, c) => s + (c.sentCount || 0), 0);
+            const lastMonthSent = lastMonthCamps.reduce((s, c) => s + (c.sentCount || 0), 0);
+            const trendSent = document.getElementById('cpMessagesSentTrend');
+            if (trendSent && lastMonthSent > 0) {
+                const pct = Math.round(((thisMonthSent - lastMonthSent) / lastMonthSent) * 100);
+                const arrow = pct >= 0 ? '↑' : '↓';
+                trendSent.style.color = pct >= 0 ? '#15803D' : '#DC2626';
+                trendSent.style.display = '';
+                trendSent.textContent = arrow + ' ' + Math.abs(pct) + '% from last month';
+            } else if (trendSent) trendSent.style.display = 'none';
+
+            // Delivery rate trend
+            const thisDelivered = thisMonthCamps.reduce((s, c) => s + (c.deliveredCount || 0), 0);
+            const lastDelivered = lastMonthCamps.reduce((s, c) => s + (c.deliveredCount || 0), 0);
+            const thisRate = thisMonthSent > 0 ? (thisDelivered / thisMonthSent) * 100 : 0;
+            const lastRate = lastMonthSent > 0 ? (lastDelivered / lastMonthSent) * 100 : 0;
+            const trendRate = document.getElementById('cpDeliveryRateTrend');
+            if (trendRate && lastMonthSent > 0 && lastRate > 0) {
+                const pct = Math.round(((thisRate - lastRate) / lastRate) * 100);
+                const arrow = pct >= 0 ? '↑' : '↓';
+                trendRate.style.color = pct >= 0 ? '#15803D' : '#DC2626';
+                trendRate.style.display = '';
+                trendRate.textContent = arrow + ' ' + Math.abs(pct) + '% from last month';
+            } else if (trendRate) trendRate.style.display = 'none';
+
+            // Sparklines last 30 days
+            const startDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            startDay.setDate(startDay.getDate() - 29);
+            const dayKeys = [];
+            for (let i = 0; i < 30; i++) {
+                const d = new Date(startDay); d.setDate(startDay.getDate() + i);
+                dayKeys.push(d.toISOString().slice(0, 10));
+            }
+            const idx = (d) => dayKeys.indexOf(d.toISOString().slice(0, 10));
+
+            // campaigns created per day
+            const campCounts = new Array(30).fill(0);
+            campaigns.forEach(c => {
+                if (!c.createdAt) return;
+                const i = idx(new Date(c.createdAt));
+                if (i >= 0) campCounts[i]++;
+            });
+            renderSparkline('cpTotalCampaignsSpark', campCounts, '#2563EB');
+
+            // messages sent per day (weighted by sentCount, using sentAt/createdAt)
+            const sentCounts = new Array(30).fill(0);
+            campaigns.forEach(c => {
+                const d = c.sentAt || c.createdAt;
+                if (!d) return;
+                const i = idx(new Date(d));
+                if (i >= 0) sentCounts[i] += (c.sentCount || 0);
+            });
+            renderSparkline('cpMessagesSentSpark', sentCounts, '#15803D');
+
+            // delivery rate per day (delivered/sent ratio -> use delivered counts)
+            const delCounts = new Array(30).fill(0);
+            campaigns.forEach(c => {
+                const d = c.sentAt || c.createdAt;
+                if (!d) return;
+                const i = idx(new Date(d));
+                if (i >= 0) delCounts[i] += (c.deliveredCount || 0);
+            });
+            // only show if delivery data exists
+            if (campaigns.some(c => c.deliveredCount != null)) renderSparkline('cpDeliveryRateSpark', delCounts, '#7C3AED');
+            else { const el = document.getElementById('cpDeliveryRateSpark'); if (el) el.style.display = 'none'; }
+        }
+
+        function renderSparkline(containerId, data, color) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            if (!data || data.length < 2 || data.every(v => v === 0)) { el.style.display = 'none'; return; }
+            const w = 110, h = 50;
+            const min = Math.min(...data), max = Math.max(...data);
+            const range = (max - min) || 1;
+            const pts = data.map((v, i) => {
+                const x = (i / (data.length - 1)) * w;
+                const y = h - ((v - min) / range) * (h - 6) - 3;
+                return [x, y];
+            });
+            const line = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+            const area = line + ' L ' + w + ' ' + h + ' L 0 ' + h + ' Z';
+            const gradId = 'spg' + containerId;
+            el.style.display = '';
+            el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" width="100%" height="100%" aria-hidden="true">
+                <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
+                    <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+                </linearGradient></defs>
+                <path d="${area}" fill="url(#${gradId})"></path>
+                <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>`;
+        }
+
+        // View details
         async function viewCampaignDetails(campaignId) {
             try {
                 const campaign = allCampaigns.find(c => c._id === campaignId);
-
-                if (!campaign) {
-                    window.showToast('Campaign not found', 'error');
-                    return;
-                }
-
+                if (!campaign) { window.showToast('Campaign not found', 'error'); return; }
                 let detailsHtml = `
                     <div class="campaign-details-info">
-                        <div class="detail-row">
-                            <span class="detail-label">Campaign Name</span>
-                            <span class="detail-value">${escapeHtml(campaign.title || campaign.name)}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Sender ID</span>
-                            <span class="detail-value">${escapeHtml(campaign.senderId)}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Status</span>
-                            <span class="status-badge ${escapeAttr(campaign.status)}">${escapeHtml(campaign.status)}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Total Recipients</span>
-                            <span class="detail-value">${campaign.recipientCount || campaign.recipientsCount || 0}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Delivered</span>
-                            <span class="detail-value text-success">${campaign.deliveredCount || 0}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Failed</span>
-                            <span class="detail-value text-danger">${campaign.failedCount || 0}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Queued</span>
-                            <span class="detail-value">${campaign.queuedCount || 0}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Created</span>
-                            <span class="detail-value">${new Date(campaign.createdAt).toLocaleString()}</span>
-                        </div>
-                        ${campaign.estimatedCost ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Estimated Cost</span>
-                            <span class="detail-value">GHS ${campaign.estimatedCost}</span>
-                        </div>
-                        ` : ''}
-                        ${campaign.messageBody ? `
-                        <div class="detail-row message-row">
-                            <span class="detail-label">Message</span>
-                            <span class="detail-value message-text">${escapeHtml(campaign.messageBody)}</span>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-
-                campaignDetailsContent.innerHTML = detailsHtml;
-                campaignDetailsModal.style.display = 'block';
-
-            } catch (error) {
-                console.error('Error loading campaign details:', error);
-                window.showToast('Failed to load campaign details', 'error');
-            }
+                        <div class="detail-row"><span class="detail-label">Campaign Name</span><span class="detail-value">${escapeHtml(campaign.title || campaign.name)}</span></div>
+                        <div class="detail-row"><span class="detail-label">Sender ID</span><span class="detail-value">${escapeHtml(campaign.senderId)}</span></div>
+                        <div class="detail-row"><span class="detail-label">Status</span><span class="status-badge ${escapeAttr(campaign.status)}">${escapeHtml(campaign.status)}</span></div>
+                        <div class="detail-row"><span class="detail-label">Total Recipients</span><span class="detail-value">${campaign.recipientCount || campaign.recipientsCount || 0}</span></div>
+                        <div class="detail-row"><span class="detail-label">Delivered</span><span class="detail-value text-success">${campaign.deliveredCount || 0}</span></div>
+                        <div class="detail-row"><span class="detail-label">Failed</span><span class="detail-value text-danger">${campaign.failedCount || 0}</span></div>
+                        <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value">${new Date(campaign.createdAt).toLocaleString()}</span></div>
+                        ${campaign.estimatedCost ? `<div class="detail-row"><span class="detail-label">Estimated Cost</span><span class="detail-value">GHS ${campaign.estimatedCost}</span></div>` : ''}
+                        ${campaign.messageBody ? `<div class="detail-row message-row"><span class="detail-label">Message</span><span class="detail-value message-text">${escapeHtml(campaign.messageBody)}</span></div>` : ''}
+                    </div>`;
+                if (campaignDetailsContent) campaignDetailsContent.innerHTML = detailsHtml;
+                if (campaignDetailsModal) { campaignDetailsModal.style.display = 'block'; lockScroll(); }
+            } catch (e) { window.showToast('Failed to load campaign details', 'error'); }
         }
 
-        // Retry failed recipients
         async function retryFailedRecipients(campaignId) {
-            if (!confirm('Are you sure you want to retry failed recipients? This will incur additional charges.')) {
-                return;
-            }
-
+            if (!confirm('Are you sure you want to retry failed recipients? This will incur additional charges.')) return;
             try {
                 const response = await window.apiClient.retryFailedRecipients(campaignId);
-                if (response.error) {
-                    throw new Error(response.error);
-                }
-
-                window.showToast(`Retry completed! ${response.successCount} succeeded, ${response.failedCount} failed. Total cost: GHS ${response.totalCost}`, 'success');
+                if (response.error) throw new Error(response.error);
+                window.showToast(`Retry completed! ${response.successCount} succeeded, ${response.failedCount} failed.`, 'success');
                 loadCampaigns();
-
-            } catch (error) {
-                console.error('Error retrying failed recipients:', error);
-                window.showToast('Failed to retry failed recipients: ' + extractErrorMessage(error), 'error');
-            }
+            } catch (error) { window.showToast('Failed to retry failed recipients: ' + extractErrorMessage(error), 'error'); }
         }
-
-        // Duplicate campaign with failed recipients
         async function duplicateWithFailed(campaignId) {
-            if (!confirm('Are you sure you want to create a new campaign with failed recipients? This will incur charges.')) {
-                return;
-            }
-
+            if (!confirm('Are you sure you want to create a new campaign with failed recipients? This will incur charges.')) return;
             try {
                 const response = await window.apiClient.duplicateCampaignWithFailed(campaignId);
-                if (response.error) {
-                    throw new Error(response.error);
-                }
-
-                window.showToast(`New campaign created! ${response.successCount} succeeded, ${response.failedCount} failed. Total cost: GHS ${response.totalCost}`, 'success');
+                if (response.error) throw new Error(response.error);
+                window.showToast('New campaign created!', 'success');
                 loadCampaigns();
-
-            } catch (error) {
-                console.error('Error duplicating campaign:', error);
-                window.showToast('Failed to duplicate campaign: ' + extractErrorMessage(error), 'error');
-            }
+            } catch (error) { window.showToast('Failed to duplicate campaign: ' + extractErrorMessage(error), 'error'); }
         }
-
-        // Cancel scheduled campaign
         async function cancelScheduledCampaign(campaignId) {
-            if (!confirm('Are you sure you want to cancel this scheduled campaign? This will release any reserved wallet balance.')) {
-                return;
-            }
-
+            if (!confirm('Are you sure you want to cancel this scheduled campaign?')) return;
             try {
                 const response = await window.apiClient.cancelScheduledCampaign(campaignId);
-                if (response.error) {
-                    throw new Error(response.error);
-                }
-
+                if (response.error) throw new Error(response.error);
                 window.showToast('Scheduled campaign cancelled successfully', 'success');
                 loadCampaigns();
-
-            } catch (error) {
-                console.error('Error cancelling scheduled campaign:', error);
-                window.showToast('Failed to cancel scheduled campaign: ' + extractErrorMessage(error), 'error');
-            }
+            } catch (error) { window.showToast('Failed to cancel scheduled campaign: ' + extractErrorMessage(error), 'error'); }
         }
-
-        // Show reschedule modal
         async function showRescheduleModal(campaignId) {
             try {
                 const campaign = allCampaigns.find(c => c._id === campaignId);
-                if (!campaign) {
-                    window.showToast('Campaign not found', 'error');
-                    return;
-                }
-
-                // Populate modal with current schedule info
+                if (!campaign) { window.showToast('Campaign not found', 'error'); return; }
                 const currentDate = new Date(campaign.scheduledAt);
-                const formattedDate = currentDate.toISOString().slice(0, 16); // For datetime-local input
-
-                // Set minimum datetime to now (prevent past dates)
+                const formattedDate = currentDate.toISOString().slice(0, 16);
                 const now = new Date();
                 const minDateTime = now.toISOString().slice(0, 16);
-                rescheduleDateInput.min = minDateTime;
-
-                rescheduleCampaignIdInput.value = campaignId;
-                rescheduleDateInput.value = formattedDate;
-                rescheduleTimezoneDisplay.textContent = campaign.scheduledTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-                rescheduleModal.style.display = 'block';
-
-            } catch (error) {
-                console.error('Error loading reschedule modal:', error);
-                window.showToast('Failed to load reschedule modal', 'error');
-            }
+                if (rescheduleDateInput) rescheduleDateInput.min = minDateTime;
+                if (rescheduleCampaignIdInput) rescheduleCampaignIdInput.value = campaignId;
+                if (rescheduleDateInput) rescheduleDateInput.value = formattedDate;
+                if (rescheduleTimezoneDisplay) rescheduleTimezoneDisplay.textContent = campaign.scheduledTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (rescheduleModal) { rescheduleModal.style.display = 'block'; lockScroll(); }
+            } catch (error) { window.showToast('Failed to load reschedule modal', 'error'); }
         }
-
-        // Handle reschedule form submission
         async function submitReschedule(event) {
             event.preventDefault();
-
             try {
                 const campaignId = rescheduleCampaignIdInput.value;
                 const scheduledAt = rescheduleDateInput.value;
-
-                if (!scheduledAt) {
-                    window.showToast('Please select a valid date and time', 'error');
-                    return;
-                }
-
+                if (!scheduledAt) { window.showToast('Please select a valid date and time', 'error'); return; }
                 const scheduledDate = new Date(scheduledAt);
-                if (scheduledDate <= new Date()) {
-                    window.showToast('Scheduled time must be in the future', 'error');
-                    return;
-                }
-
+                if (scheduledDate <= new Date()) { window.showToast('Scheduled time must be in the future', 'error'); return; }
                 const response = await window.apiClient.updateScheduledCampaign(campaignId, {
                     scheduledAt,
                     scheduledTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
                 });
-
-                if (response.error) {
-                    throw new Error(response.error);
-                }
-
+                if (response.error) throw new Error(response.error);
                 window.showToast('Campaign rescheduled successfully', 'success');
                 closeRescheduleModal();
                 loadCampaigns();
-
-            } catch (error) {
-                console.error('Error rescheduling campaign:', error);
-                window.showToast('Failed to reschedule campaign: ' + extractErrorMessage(error), 'error');
-            }
+            } catch (error) { window.showToast('Failed to reschedule campaign: ' + extractErrorMessage(error), 'error'); }
         }
+        window.submitReschedule = submitReschedule;
 
-        // Close reschedule modal
-        function closeRescheduleModal() {
-            rescheduleModal.style.display = 'none';
-            rescheduleForm.reset();
-        }
-
-        // Logout function
         function logout() {
             const storage = window.getStorage ? window.getStorage() : localStorage;
             storage.removeItem('authToken');
@@ -824,225 +980,5 @@
         }
     </script>
 
-    <style>
-        /* Additional styles for Campaigns page */
-        .campaigns-header {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 1.5rem;
-        }
-
-        .campaigns-header .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.875rem 1.5rem;
-            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(247, 127, 0, 0.3);
-        }
-
-        .campaigns-header .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(247, 127, 0, 0.4);
-        }
-
-        .campaigns-header .btn-primary svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .campaigns-header .btn-primary:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        /* Empty state */
-        .empty-campaigns-state {
-            padding: 3rem 2rem;
-            text-align: center;
-            color: #999;
-        }
-
-        .empty-campaigns-state svg {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        .empty-campaigns-state p {
-            color: #666;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-campaigns-state span {
-            font-size: 0.9rem;
-        }
-
-        /* Table actions */
-        .transactions-table td:last-child {
-            white-space: nowrap;
-        }
-
-        .view-btn {
-            padding: 0.375rem 0.75rem;
-            background-color: var(--primary-dark);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-right: 0.25rem;
-        }
-
-        .view-btn:hover {
-            background-color: #1a2540;
-        }
-
-        .retry-btn {
-            padding: 0.375rem 0.75rem;
-            background-color: #fff3e0;
-            color: #f57c00;
-            border: 1px solid #ffb74d;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-right: 0.25rem;
-        }
-
-        .retry-btn:hover {
-            background-color: #ffe0b2;
-        }
-
-        .duplicate-btn {
-            padding: 0.375rem 0.75rem;
-            background-color: #e3f2fd;
-            color: #1976d2;
-            border: 1px solid #90caf9;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .duplicate-btn:hover {
-            background-color: #bbdefb;
-        }
-
-        .btn-warning {
-            padding: 0.375rem 0.75rem;
-            background-color: #fff3e0;
-            color: #f57c00;
-            border: 1px solid #ffb74d;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .btn-info {
-            padding: 0.375rem 0.75rem;
-            background-color: #e3f2fd;
-            color: #1976d2;
-            border: 1px solid #90caf9;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        /* Campaign details modal */
-        .campaign-details-info {
-            margin-bottom: 1rem;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .detail-row:last-child {
-            border-bottom: none;
-        }
-
-        .detail-label {
-            font-weight: 600;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .detail-value {
-            color: var(--primary-dark);
-            font-weight: 500;
-        }
-
-        .detail-row.message-row {
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .message-text {
-            background-color: #f5f5f5;
-            padding: 0.75rem;
-            border-radius: 8px;
-            white-space: pre-wrap;
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-
-        /* Char counter info */
-        .char-counter-info {
-            display: flex;
-            gap: 1rem;
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .char-counter-info strong {
-            color: var(--primary-dark);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .campaigns-header {
-                justify-content: stretch;
-            }
-
-            .campaigns-header .btn-primary {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .transactions-table th,
-            .transactions-table td {
-                padding: 0.75rem 1rem;
-                font-size: 0.85rem;
-            }
-
-            .view-btn,
-            .retry-btn,
-            .duplicate-btn {
-                padding: 0.25rem 0.5rem;
-                font-size: 0.7rem;
-            }
-        }
-    </style>
 </body>
 </html>
