@@ -181,7 +181,9 @@
   position: sticky;
   top: 0;
   height: 64px;
-  padding-top: env(safe-area-inset-top);
+  margin: 0;
+  flex-shrink: 0;
+  padding-top: env(safe-area-inset-top, 0px);
   background: #ffffff;
   border-bottom: 1px solid var(--color-gray-200, #E2E7EE);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(15, 23, 42, 0.08));
@@ -248,6 +250,7 @@
   .nhs-sidebar { transform: translateX(-100%); width: min(86vw, 300px); }
   .nhs-sidebar.is-open { transform: translateX(0); }
   body.nhs-drawer-open { overflow: hidden; }
+  body.nhs-drawer-open .main-content { overflow: hidden; }
   .nhs-overlay { display: block; }
 }
 @media (min-width: 1024px) {
@@ -258,7 +261,22 @@
 @media (prefers-reduced-motion: reduce) {
   .nhs-sidebar, .nhs-overlay { transition: none; }
 }
-body.nhs-has-shell .main-content { margin-left: 260px; min-width: 0; }
+body.nhs-has-shell .main-content { margin-left: 260px; margin-top: 0; min-height: 100vh; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; min-width: 0; position: relative; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+body.nhs-has-shell .dashboard-content { margin-top: 16px; padding-top: 0; min-height: auto; flex: 0 0 auto; }
+
+body.nhs-has-shell .chart-container { height: 300px; position: relative; }
 @media (max-width: 1023px) {
   body.nhs-has-shell .main-content { margin-left: 0; }
+}
+
+body.nhs-has-shell #nhs-topbar-mount {
+  display: contents;
+}
+
+html.nhs-has-shell,
+body.nhs-has-shell {
+  overflow-x: visible;
+  overflow-y: visible;
+  margin: 0;
 }

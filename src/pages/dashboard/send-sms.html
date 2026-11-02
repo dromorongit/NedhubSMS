@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -3882,7 +3882,8 @@ if (result.error) {
                 previewNaturalTop = null;
                 return;
             }
-            const y = window.pageYOffset || document.documentElement.scrollTop || 0;
+            const scroller = (window.NhShell && window.NhShell.scroller) ? window.NhShell.scroller() : document.querySelector('.main-content');
+            const y = scroller ? scroller.scrollTop : (window.pageYOffset || document.documentElement.scrollTop || 0);
             if (previewNaturalTop === null) previewNaturalTop = column.getBoundingClientRect().top + y;
             const shouldFix = y > previewNaturalTop - 24;
             if (shouldFix) {
@@ -4237,7 +4238,8 @@ if (result.error) {
                     syncPreviewStickyPosition();
                 }, 100);
             });
-            window.addEventListener('scroll', function() {
+            const scrollTarget = (window.NhShell && window.NhShell.scroller) ? window.NhShell.scroller() : window;
+            if (scrollTarget) scrollTarget.addEventListener('scroll', function() {
                 clearTimeout(previewScrollTimer);
                 previewScrollTimer = setTimeout(syncPreviewStickyPosition, 50);
             }, { passive: true });
@@ -4846,6 +4848,8 @@ async function openConfirmationModal(sendMode, recipients, scheduledAt = null, t
     if (modal) {
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
+        const sc = (window.NhShell && window.NhShell.scroller) ? window.NhShell.scroller() : document.querySelector('.main-content');
+        if (sc) sc.style.overflow = 'hidden';
     }
 }
 
@@ -5119,6 +5123,8 @@ function closeConfirmationModal() {
         modal.classList.remove('active');
     }
     document.body.style.overflow = '';
+    const sc2 = (window.NhShell && window.NhShell.scroller) ? window.NhShell.scroller() : document.querySelector('.main-content');
+    if (sc2) sc2.style.overflow = '';
     window.confirmationModalData = null;
     confirmationModalOpen = false;
     // Return focus to the triggering button

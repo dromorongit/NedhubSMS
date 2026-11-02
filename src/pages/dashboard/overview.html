@@ -1008,6 +1008,8 @@
             if (cur && balEl) cur.textContent = balEl.textContent;
             topupModal.classList.add('active');
             document.body.style.overflow = 'hidden';
+            const sc = (window.NhShell && window.NhShell.scroller) ? window.NhShell.scroller() : document.querySelector('.main-content');
+            if (sc) sc.style.overflow = 'hidden';
             setTimeout(() => {
                 const input = document.getElementById('topupAmount');
                 if (input) input.focus();
@@ -1017,6 +1019,8 @@
         function closeTopupModalFn() {
             topupModal.classList.remove('active');
             document.body.style.overflow = '';
+            const sc2 = (window.NhShell && window.NhShell.scroller) ? window.NhShell.scroller() : document.querySelector('.main-content');
+            if (sc2) sc2.style.overflow = '';
             if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
         }
 
@@ -1086,9 +1090,11 @@
                 } else if (response.data && response.data.checkoutUrl) {
                     window.location.href = response.data.checkoutUrl;
                 } else if (response.data && response.data.clientReference) {
-                    showToast('Payment initiated successfully', 'success');
-                    topupModal.classList.remove('active');
-                    document.body.style.overflow = '';
+                        showToast('Payment initiated successfully', 'success');
+                        topupModal.classList.remove('active');
+                        document.body.style.overflow = '';
+                        const sc3 = (window.NhShell && window.NhShell.scroller) ? window.NhShell.scroller() : document.querySelector('.main-content');
+                        if (sc3) sc3.style.overflow = '';
                 } else {
                     errorDiv.textContent = 'An unexpected error occurred. Please try again.';
                     errorDiv.style.display = 'block';

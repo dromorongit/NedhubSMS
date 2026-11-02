@@ -30,6 +30,7 @@
   if (!sidebarMount || !topbarMount) return;
 
   document.body.classList.add('nhs-has-shell');
+  document.documentElement.classList.add('nhs-has-shell');
 
   // Sidebar markup
   const navItemsHtml = NAV.map(function (item) {
@@ -163,6 +164,23 @@
   }
 
   window.NhShell = {
+    scroller: function () {
+      return document.querySelector('.main-content');
+    },
+    scrollToTop: function (smooth) {
+      const el = document.querySelector('.main-content');
+      if (!el) return;
+      if (smooth) { try { el.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { el.scrollTop = 0; } }
+      else { el.scrollTop = 0; }
+    },
+    scrollTo: function (el) {
+      const sc = document.querySelector('.main-content');
+      if (!sc || !el) return;
+      try {
+        const top = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop;
+        sc.scrollTo({ top: top, behavior: 'auto' });
+      } catch (e) { try { el.scrollIntoView({ block: 'nearest' }); } catch (e2) {} }
+    },
     setUser: function (opts) {
       opts = opts || {};
       if (opts.name !== undefined) {

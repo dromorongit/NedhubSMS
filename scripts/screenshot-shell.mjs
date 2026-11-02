@@ -71,6 +71,7 @@ const viewports = [
   { width: 1366, height: 768, name: '1366x768' },
   { width: 1280, height: 720, name: '1280x720' },
   { width: 390, height: 844, name: '390x844' },
+  { width: 390, height: 664, name: '390x664' },
 ];
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -399,15 +400,57 @@ for (const pageName of PAGES) {
 
       const sidebarWidthOkFinal = (vp.width < 1024) || (sidebarWidthOk);
 
+      // ---- scroll container assertions ----
+      const scroller = document.querySelector('.main-content');
+      const topbarEl = scroller ? scroller.querySelector('.nhs-topbar') : null;
+      const vvH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+      const scrollBottomOk = !!scroller && Math.abs(scroller.getBoundingClientRect().bottom - vvH) <= 2;
+
+      let lastContentBottomOk = true;
+      if (scroller) {
+        let prev = -1;
+        for (let i = 0; i < 10 && scroller.scrollTop !== prev; i++) {
+          prev = scroller.scrollTop;
+          scroller.scrollTop = 1e9;
+          await new Promise(r => setTimeout(r, 500));
+        }
+        const candidates = Array.from(scroller.querySelectorAll('*')).filter(e => e.getBoundingClientRect().height > 0);
+        const lastEl = candidates.length ? candidates[candidates.length - 1] : null;
+        if (lastEl) {
+          lastContentBottomOk = lastEl.getBoundingClientRect().bottom <= window.innerHeight + 2;
+        }
+      }
+
+      const oneScrollbarOk = document.documentElement.scrollHeight <= document.documentElement.clientHeight + 1;
+
+      let scrollToTopOk = true;
+      if (scroller && window.NhShell && typeof window.NhShell.scrollToTop === 'function') {
+        window.NhShell.scrollToTop();
+        await new Promise(r => setTimeout(r, 50));
+        scrollToTopOk = scroller.scrollTop === 0;
+      }
+
+      let gapVal = NaN;
+      let gapOk = false;
+      if (topbarEl && scroller) {
+        const content = scroller.querySelector('.dashboard-content') || topbarEl.nextElementSibling;
+        if (content) {
+          gapVal = content.getBoundingClientRect().top - topbarEl.getBoundingClientRect().bottom;
+          gapOk = Math.abs(gapVal - 16) <= 1;
+        }
+      }
+
+      const earlierShellOk = orderOk && activeOk && desktopOk && pinnedOk && logoutOk && noHScroll && !mojibake && sidebarLumOk && contrastOk && logoOk && sidebarPixelOk && activePillOk && avatarOk && sidebarWidthOkFinal;
+
       return {
         order, orderOk, activeHref, activeOk, desktopOk,
         cardsNotMoved, cardsInsideViewport, cardsAtBottom, pinnedOk,
         logoutInNav, lastIsLogout, logoutOk,
         noHScroll, mojibake, topbarHeight, topbarHtml,
         consoleErrors: [],
-        // color
         sidebarLumOk, contrastOk, logoOk, sidebarPixelOk, activePillOk, avatarOk, sidebarWidthOk: sidebarWidthOkFinal,
-        colorFailures
+        colorFailures,
+        scrollBottomOk, lastContentBottomOk, oneScrollbarOk, scrollToTopOk, gapOk, gapVal, earlierShellOk
       };
     }, { REQUIRED_ORDER, vp, pageName, vpDataUrl });
 
@@ -462,10 +505,20 @@ for (const pageName of PAGES) {
     // sidebar width at >=1024 already cOk; expose as q maybe
     const qOk = asserts.sidebarWidthOk;
 
+    // scroll flags
+    const rOk = asserts.scrollBottomOk;
+    const sOk = asserts.lastContentBottomOk;
+    const tOk = asserts.oneScrollbarOk;
+    const uOk = asserts.scrollToTopOk;
+    const vOk = asserts.gapOk;
+    const wOk = asserts.earlierShellOk;
+
     const pageResult = {
       page: pageName, vp: vp.name,
       a: aOk, b: bOk, c: cOk, d: dOk, e: eOk, f: fOk, g: null, h: hOk, i: iOk, j: jOk,
       k: kOk, l: lOk, m: mOk, n: nOk, o: oOk, p: pOk, q: qOk,
+      r: rOk, s: sOk, t: tOk, u: uOk, v: vOk, w: wOk,
+      gapVal: asserts.gapVal,
       mobileOk, consoleErrors: asserts.consoleErrors,
       topbarHeight: asserts.topbarHeight,
       topbarHtml: asserts.topbarHtml,
@@ -510,14 +563,14 @@ if (allResults.length) {
 }
 
 console.log('\n=== ASSERTION SUMMARY ===');
-const header = 'page'.padEnd(22) + 'vp'.padEnd(12) + 'a b c d e f g h i j k l m n o p q';
+const header = 'page'.padEnd(22) + 'vp'.padEnd(12) + 'a b c d e f g h i j k l m n o p q r s t u v w';
 console.log(header);
 for (const r of allResults) {
-  const flags = [r.a,r.b,r.c,r.d,r.e,r.f,r.g,r.h,r.i,r.j,r.k,r.l,r.m,r.n,r.o,r.p,r.q].map(x=>x?'P':'F').join(' ');
-  console.log(r.page.padEnd(22) + r.vp.padEnd(12) + flags + (r.consoleErrors.length? '  ERR:'+r.consoleErrors.join('; '):''));
+  const flags = [r.a,r.b,r.c,r.d,r.e,r.f,r.g,r.h,r.i,r.j,r.k,r.l,r.m,r.n,r.o,r.p,r.q,r.r,r.s,r.t,r.u,r.v,r.w].map(x=>x?'P':'F').join(' ');
+  console.log(r.page.padEnd(22) + r.vp.padEnd(12) + flags + (r.consoleErrors.length? '  ERR:'+r.consoleErrors.join('; '):'') + ' gap=' + (r.gapVal!==undefined?r.gapVal.toFixed(1):'na'));
 }
 
-const fails = allResults.filter(r => [r.a,r.b,r.c,r.d,r.e,r.f,r.g,r.h,r.i,r.j,r.k,r.l,r.m,r.n,r.o,r.p,r.q].some(x=>!x));
+const fails = allResults.filter(r => [r.a,r.b,r.c,r.d,r.e,r.f,r.g,r.h,r.i,r.j,r.k,r.l,r.m,r.n,r.o,r.p,r.q,r.r,r.s,r.t,r.u,r.v,r.w].some(x=>!x));
 console.log('\nTotal runs:', allResults.length, 'Failures:', fails.length);
 if (fails.length) {
   console.log('Failed runs:', fails.map(f=>f.page+'@'+f.vp).join(', '));
