@@ -19,7 +19,13 @@ class HubtelPaymentService {
     // Hubtel API endpoints
     this.initiateEndpoint = process.env.HUBTEL_INITIATE_ENDPOINT || 'https://payproxyapi.hubtel.com/items/initiate';
     this.statusEndpoint = process.env.HUBTEL_STATUS_ENDPOINT || 'https://api-txnstatus.hubtel.com/transactions';
-    
+
+    // URL form: 'client_ref_in_path' (default, current behaviour) or
+    // 'merchant_in_path_with_query' (merchant account number in path,
+    // clientReference as a query parameter). Read-only flag; never changes
+    // crediting behaviour. Set HUBTEL_STATUS_URL_FORM for Railway.
+    this.statusUrlForm = String(process.env.HUBTEL_STATUS_URL_FORM || 'client_ref_in_path').toLowerCase();
+
     // Basic Auth header value (computed once)
     this.basicAuthHeader = this._computeBasicAuthHeader();
 
@@ -235,6 +241,98 @@ class HubtelPaymentService {
   }
 
   /**
+   * Build the transaction status check URL from the configured form.
+   * Form A 'client_ref_in_path' (default): {statusEndpoint}/{clientReference}/status
+   * Form B 'merchant_in_path_with_query': {statusEndpoint}/{merchantAccountNumber}/status?clientReference={ref}
+   * Form B is only available when HUBTEL_MERCHANT_ACCOUNT_NUMBER is configured.
+   * @param {string} clientReference - The unique transaction reference
+   * @returns {string} - The full status-check URL
+   */
+  _buildStatusUrl(clientReference) {
+    if (this.statusUrlForm === 'merchant_in_path_with_query') {
+      const merchant = this.merchantAccountNumber || '';
+      if (merchant) {
+        return `${this.statusEndpoint}/${merchant}/status?clientReference=${clientReference}`;
+      }
+    }
+    // Form A (default, and fallback when form B has no merchant account number)
+    return `${this.statusEndpoint}/${clientReference}/status`;
+  }
+
+  /**
+   * Perform a read-only status check returning raw response info. Never writes
+   * to the database and never credits anything. The `urlForm` override lets
+   * callers probe a specific URL form independently of this instance's default.
+   * @param {string} clientReference - The unique transaction reference
+   * @param {string} urlForm - override: 'client_ref_in_path' or 'merchant_in_path_with_query'
+   * @returns {Object} - { httpStatus, code, message, hasStatus, hasAmount }
+   */
+  async checkStatusRaw(clientReference, urlForm) {
+    if (!this.basicAuthHeader) {
+      throw new Error('Hubtel credentials not configured');
+    }
+    if (!clientReference) {
+      throw new Error('Client reference is required');
+    }
+
+    const form = urlForm || this.statusUrlForm;
+    let statusUrl;
+    if (form === 'merchant_in_path_with_query') {
+      const merchant = this.merchantAccountNumber || '';
+      if (!merchant) {
+        throw new Error('Merchant account number not configured for form B');
+      }
+      statusUrl = `${this.statusEndpoint}/${merchant}/status?clientReference=${clientReference}`;
+    } else {
+      statusUrl = `${this.statusEndpoint}/${clientReference}/status`;
+    }
+
+    const response = await this.httpClient.get(statusUrl, {
+      headers: {
+        'Authorization': this.basicAuthHeader,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const body = response.data && typeof response.data === 'object' ? response.data : {};
+    const top = response.data;
+    const hasStatus = Boolean(
+      (top && (typeof top.status !== 'undefined' || typeof top.transactionStatus !== 'undefined')) ||
+      (body.data && (typeof body.data.status !== 'undefined' || typeof body.data.transactionStatus !== 'undefined'))
+    );
+    const hasAmount = Boolean(
+      (top && (typeof top.amount !== 'undefined' || typeof top.totalAmount !== 'undefined')) ||
+      (body.data && (typeof body.data.amount !== 'undefined' || typeof body.data.totalAmount !== 'undefined'))
+    );
+
+    const code = body.responseCode || body.response_code || body.code || body.Status || body.status;
+    const message = HubtelPaymentService.sanitizeShortMessage(
+      body.statusDescription || body.message || body.responseDescription || ''
+    );
+
+    return {
+      httpStatus: response.status,
+      code,
+      message,
+      hasStatus,
+      hasAmount
+    };
+  }
+
+  /**
+   * Sanitize a short user-facing message: truncate to 160 chars and strip
+   * anything resembling a key/token. Never returns secrets.
+   */
+  static sanitizeShortMessage(message) {
+    let m = String(message || '');
+    // Remove anything resembling a key/token/secret (alphanumeric runs with
+    // dashes/underscores longer than 12 chars).
+    m = m.replace(/[A-Za-z0-9_-]{13,}/g, '<redacted>');
+    if (m.length > 160) m = m.slice(0, 160) + '…';
+    return m;
+  }
+
+  /**
    * Check the status of a transaction using clientReference
    * This is used as a fallback when callback is not received
    * @param {string} clientReference - The unique transaction reference
@@ -259,8 +357,8 @@ class HubtelPaymentService {
         checkingStatus: true
       }, null, 2));
 
-      // Hubtel status endpoint format
-      const statusUrl = `${this.statusEndpoint}/${clientReference}/status`;
+      // Hubtel status endpoint URL built from the configured form.
+      const statusUrl = this._buildStatusUrl(clientReference);
 
       const response = await this.httpClient.get(statusUrl, {
         headers: {

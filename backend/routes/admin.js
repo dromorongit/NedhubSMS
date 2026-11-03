@@ -1045,19 +1045,45 @@ router.get('/nalo/balance', authorize(['admin', 'super_admin']), async (req, res
 
 // ==================== Hubtel status access diagnostic ====================
 
+// Reference validation: only allow references that look like our generated
+// client references (NH- followed by 8-64 alphanumeric/dash chars).
+const REFERENCE_RE = /^NH-[A-Z0-9-]{8,64}$/;
+
 // Diagnostic: checks whether the server can reach Hubtel's transaction status
-// endpoint and classifies the access result. Uses a reference that cannot exist
-// (NH-DIAGNOSTIC-0000). No credentials or secret-bearing bodies are logged or
-// returned.
+// endpoint and classifies the access result. Without ?reference it probes a
+// reference that cannot exist (NH-DIAGNOSTIC-0000) and labels the result weak.
+// With ?reference it performs read-only GETs for that reference against both
+// URL forms (form A: clientReference in path; form B: merchant account number
+// in path when configured) and returns a verdict. Never writes to the database,
+// never credits anything, never returns secrets.
 /**
  * Build the Hubtel status access diagnostic handler with injectable
  * dependencies so it can be tested with fakes (no real provider, no network).
  */
 function buildHubtelStatusAccessDiagnostic(opts = {}) {
-  const { checkTransactionStatus = defaultCheckTransactionStatus, getOutboundIpv4 } = opts;
+  const {
+    checkTransactionStatus = defaultCheckTransactionStatus,
+    checkStatusRaw = defaultCheckStatusRaw,
+    getOutboundIpv4
+  } = opts;
 
   return async (req, res) => {
     try {
+      const reference = req.query.reference;
+
+      // When a reference is supplied, validate it strictly.
+      if (reference !== undefined) {
+        if (!REFERENCE_RE.test(reference)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid reference',
+            error: { code: 'VALIDATION_ERROR' }
+          });
+        }
+        return handleReferenceDiagnostic(res, reference, checkStatusRaw, getOutboundIpv4);
+      }
+
+      // No reference: weak probe with a reference that cannot exist.
       let classification;
       let httpStatus;
       let code;
@@ -1073,7 +1099,6 @@ function buildHubtelStatusAccessDiagnostic(opts = {}) {
         if (err.httpStatus === 401 || err.httpStatus === 403) {
           classification = 'BLOCKED';
         } else if (err.httpStatus === 404) {
-          // A well-formed "not found" response from Hubtel means access works.
           classification = 'ALLOWED';
         } else if (err.httpStatus == null || err.httpStatus >= 500 || err.isNetwork || err.isUnparseable) {
           classification = 'UNREACHABLE';
@@ -1082,7 +1107,6 @@ function buildHubtelStatusAccessDiagnostic(opts = {}) {
         }
       }
 
-      // The outbound-IP lookup is best-effort: it must never fail the diagnostic.
       let outboundIpv4 = null;
       try {
         outboundIpv4 = await getOutboundIpv4();
@@ -1092,6 +1116,7 @@ function buildHubtelStatusAccessDiagnostic(opts = {}) {
 
       res.json({
         success: true,
+        weak: 'cannot prove the URL form is right',
         classification,
         httpStatus,
         code,
@@ -1109,6 +1134,114 @@ function buildHubtelStatusAccessDiagnostic(opts = {}) {
   };
 }
 
+/**
+ * Handle the diagnostic when a reference is supplied. Probes form A (always)
+ * and form B (only when a merchant account number is configured), then returns
+ * per-form results and an overall verdict.
+ */
+async function handleReferenceDiagnostic(res, reference, checkStatusRaw, getOutboundIpv4) {
+  const merchantConfigured = Boolean(process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER);
+
+  // Probe form A (clientReference in path) - always.
+  let formA;
+  try {
+    formA = await checkStatusRaw(reference, 'client_ref_in_path');
+  } catch (err) {
+    formA = errorToFormResult(err);
+  }
+
+  // Probe form B (merchant account number in path) - only if configured.
+  let formB = null;
+  if (merchantConfigured) {
+    try {
+      formB = await checkStatusRaw(reference, 'merchant_in_path_with_query');
+    } catch (err) {
+      formB = errorToFormResult(err);
+    }
+  }
+
+  const verdict = computeVerdict(formA, formB);
+
+  let outboundIpv4 = null;
+  try {
+    outboundIpv4 = await getOutboundIpv4();
+  } catch {
+    outboundIpv4 = null;
+  }
+
+  res.json({
+    success: true,
+    reference,
+    weak: null,
+    formA: { urlForm: 'client_ref_in_path', ...formA },
+    formB: formB ? { urlForm: 'merchant_in_path_with_query', ...formB } : null,
+    verdict,
+    outboundIpv4,
+    checkedAt: new Date().toISOString()
+  });
+}
+
+/**
+ * Convert a thrown error from checkStatusRaw into a per-form result shape.
+ */
+function errorToFormResult(err) {
+  const httpStatus = err.httpStatus;
+  const code = err.code;
+  const message = HubtelPaymentService.sanitizeShortMessage(err.message || '');
+  return {
+    httpStatus,
+    code,
+    message,
+    hasStatus: false,
+    hasAmount: false,
+    error: err.isNetwork ? 'network_error' : err.isUnparseable ? 'unparseable' : undefined
+  };
+}
+
+/**
+ * Compute the overall verdict from per-form results.
+ * Priority: BLOCKED > NOT_FOUND > UNREACHABLE (all forms unreachable) >
+ * CONFIRMED_A > CONFIRMED_B > UNKNOWN.
+ */
+function computeVerdict(formA, formB) {
+  const forms = [formA, formB].filter(Boolean);
+
+  // BLOCKED: any form rejected by auth/IP or Hubtel response code.
+  for (const f of forms) {
+    if (f.httpStatus === 401 || f.httpStatus === 403 || f.code === '4101' || f.code === '4103') {
+      return 'BLOCKED';
+    }
+  }
+
+  // NOT_FOUND: any form got a well-formed not-found (access works, no such txn).
+  for (const f of forms) {
+    if (f.httpStatus === 404) return 'NOT_FOUND';
+  }
+
+  // UNREACHABLE: ALL forms unreachable (can't reach the provider at all).
+  if (forms.length > 0 && forms.every(
+    f => f.httpStatus == null || f.httpStatus >= 500 || f.error === 'network_error' || f.error === 'unparseable'
+  )) {
+    return 'UNREACHABLE';
+  }
+
+  // CONFIRMED_A: form A confirms the transaction exists with status+amount.
+  if (formA && formA.httpStatus >= 200 && formA.httpStatus < 300 && formA.hasStatus && formA.hasAmount) {
+    return 'CONFIRMED_A';
+  }
+
+  // CONFIRMED_B: form B confirms the transaction exists with status+amount.
+  if (formB && formB.httpStatus >= 200 && formB.httpStatus < 300 && formB.hasStatus && formB.hasAmount) {
+    return 'CONFIRMED_B';
+  }
+
+  return 'UNKNOWN';
+}
+
+function defaultCheckStatusRaw(clientReference, urlForm) {
+  return new HubtelPaymentService().checkStatusRaw(clientReference, urlForm);
+}
+
 function defaultCheckTransactionStatus(clientReference) {
   return new HubtelPaymentService().checkTransactionStatus(clientReference);
 }
@@ -1123,3 +1256,4 @@ router.get(
 
 module.exports = router;
 module.exports.buildHubtelStatusAccessDiagnostic = buildHubtelStatusAccessDiagnostic;
+module.exports.computeVerdict = computeVerdict;
