@@ -399,11 +399,12 @@
                 window.location.href = '../auth/login.html';
                 return;
             }
-            await loadUserProfile();
+             await loadUserProfile();
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('reference')) {
                 handlePaymentReturn();
             } else {
+                await reconcilePendingPaymentsSilently();
                 loadDashboard();
             }
         }
@@ -489,6 +490,17 @@
                 }
             }
             window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        async function reconcilePendingPaymentsSilently() {
+            try {
+                const response = await window.apiClient.reconcileWallet();
+                if (response && !response.error && response.data && response.data.credited > 0) {
+                    // refreshed by loadDashboard
+                }
+            } catch (e) {
+                // silent
+            }
         }
 
         async function loadDashboard() {

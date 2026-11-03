@@ -55,6 +55,9 @@ const paymentSchema = new mongoose.Schema({
   customerPhone: {
     type: String
   },
+  returnOrigin: {
+    type: String
+  },
   callbackVerified: {
     type: Boolean,
     default: false

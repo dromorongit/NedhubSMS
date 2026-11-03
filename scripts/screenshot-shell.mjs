@@ -12,7 +12,7 @@ const OUT_DIR = process.argv[2] || path.join(ROOT, 'docs', 'screenshots', 'shell
 const REQUIRED_ORDER = ['Overview','Send SMS','Campaigns','Contacts','Message History','Blacklist','Transactions','Buy Airtime','Buy Data','Utility Payments','Reports','Templates','Analytics','Settings','Logout'];
 
 const PAGES = process.argv[3] ? [process.argv[3]] : [
-  'analytics','blacklist','buy-airtime','buy-data','campaigns','contacts','history','overview','payment-cancelled','payment-error','payment-success','reports','send-sms','settings','templates','transactions','utility-payments'
+  'analytics','blacklist','buy-airtime','buy-data','campaigns','contacts','history','overview','payment-cancelled','payment-error','payment-pending','payment-success','reports','send-sms','settings','templates','transactions','utility-payments'
 ].map(p=>p+'.html');
 
 const MIME = {

@@ -38,22 +38,39 @@ const base = `http://localhost:${PORT}`;
 const REF = 'NH-TEST-REF-12345';
 const results = [];
 
-async function runSequence(name, viewport, routeSetup, assertions) {
+async function runSequence(name, viewport, routeSetup, assertions, session = true) {
   const browser = await chromium.launch();
   const context = await browser.newContext();
-  await context.addInitScript(() => {
-    window.navigator.clipboard = { writeText: async () => {} };
-  });
   const page = await context.newPage();
   const consoleErrors = [];
   page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
   page.on('pageerror', (err) => { consoleErrors.push(err.message); });
-  await page.setViewportSize(viewport);
   await page.route('**/api/payments/status/*', routeSetup.status);
-  await page.route('**/auth/me', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { user: { name: 'Test User', email: 't@example.com', role: 'user' } } }) });
-  });
-  await page.goto(`${base}/src/pages/dashboard/payment-pending.html?reference=${encodeURIComponent(REF)}`, { waitUntil: 'domcontentloaded' });
+  if (session) {
+    await page.route('**/auth/me', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { user: { name: 'Test User', email: 't@example.com', role: 'user' } } }) });
+    });
+  } else {
+    await page.route('**/auth/me', async (route) => {
+      await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false, message: 'Token is not valid' }) });
+    });
+  }
+  const url = `${base}/src/pages/dashboard/payment-pending.html?reference=${encodeURIComponent(REF)}`;
+  // Load once to initialise the page (no token -> no-session card), then set the
+  // auth token on the origin's storage and reload so initPaymentPending runs
+  // with a session. addInitScript localStorage is not visible to the main page
+  // world here, so set the token via page.evaluate on the real origin instead.
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await page.evaluate((s) => {
+    if (s) {
+      try { window.localStorage.setItem('authToken', 'test-token'); } catch (e) {}
+      try { window.sessionStorage.setItem('authToken', 'test-token'); } catch (e) {}
+    } else {
+      try { window.localStorage.removeItem('authToken'); } catch (e) {}
+      try { window.sessionStorage.removeItem('authToken'); } catch (e) {}
+    }
+  }, session);
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1500);
   const result = await page.evaluate((ref) => {
     const refEl = document.getElementById('ref');
@@ -90,6 +107,7 @@ async function runSequence(name, viewport, routeSetup, assertions) {
   await context.close();
   await browser.close();
   results.push(result);
+  console.log(`[RUN] ${name} @ ${viewport.width}x${viewport.height} passed=${result.assertionsPassed} err=${result.assertionError || '-'} ref=${JSON.stringify(result.refText)} loc=${result.location || '-'}`);
 }
 
 const viewports = [
@@ -208,6 +226,40 @@ for (const vp of viewports) {
   });
 }
 
+// 7. no session -> calm card, no polling, no redirect, sign-in to app origin login
+for (const vp of viewports) {
+  await runSequence('no-session', vp, {
+    status: async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { status: 'paid', amount: 10, currency: 'GHS' } }) });
+    }
+  }, async (page, r) => {
+    await page.waitForTimeout(2000);
+    const state = await page.evaluate((ref) => {
+      const card = document.getElementById('card');
+      const noSessionCard = document.getElementById('noSessionCard');
+      const noSessionRef = document.getElementById('noSessionRef');
+      const signInBtn = document.getElementById('signInBtn');
+      const copyBtn = document.getElementById('copyNoSessionRef');
+      return {
+        cardDisplay: card ? getComputedStyle(card).display : null,
+        noSessionDisplay: noSessionCard ? getComputedStyle(noSessionCard).display : null,
+        noSessionRefText: noSessionRef ? noSessionRef.textContent : null,
+        signInHref: signInBtn ? signInBtn.href : null,
+        copyBtnExists: !!copyBtn,
+        location: window.location.href
+      };
+    }, REF);
+    if (state.cardDisplay !== 'none') throw new Error('main card should be hidden without session, got ' + state.cardDisplay);
+    if (state.noSessionDisplay !== 'block') throw new Error('no-session card should be shown, got ' + state.noSessionDisplay);
+    if (state.noSessionRefText !== REF) throw new Error('reference not shown in no-session card, got ' + state.noSessionRefText);
+    if (!state.signInHref || !state.signInHref.startsWith('https://app.nedhubgh.com/auth/login.html')) throw new Error('sign-in button must point to app origin login, got ' + state.signInHref);
+    if (!state.signInHref.includes('reference=' + encodeURIComponent(REF))) throw new Error('reference not in sign-in URL, got ' + state.signInHref);
+    if (!state.copyBtnExists) throw new Error('Copy reference button missing in no-session card');
+    r.noSessionShown = true;
+    r.noSessionSignInHref = state.signInHref;
+  }, false);
+}
+
 await server.close();
 
 console.log('=== PAYMENT-PENDING RENDER RESULTS ===');
@@ -217,6 +269,7 @@ for (const r of results) {
   console.log(`       refText=${JSON.stringify(r.refText)} longRefText=${JSON.stringify(r.longRefText)}`);
   console.log(`       longPendingExists=${r.longPendingExists} hasDoNotPayAgain=${r.hasDoNotPayAgain} copyRefExists=${r.copyRefExists} copyRefClicked=${r.copyRefClicked} delayedShown=${r.delayedShown}`);
   console.log(`       networkMsgDisplay=${r.networkMsgDisplay} hScroll=${r.hScroll} consoleErrors=${r.consoleErrors.length}`);
+  if (r.noSessionShown) console.log(`       noSessionShown=${r.noSessionShown} signInHref=${r.noSessionSignInHref}`);
   if (r.finalUrl) console.log(`       finalUrl=${r.finalUrl}`);
   if (r.assertionError) console.log(`       ASSERTION ERROR: ${r.assertionError}`);
   const unexpected = r.consoleErrors.filter((e) => !e.includes('ERR_FAILED') && !e.includes('ERR_CONNECTION_REFUSED'));

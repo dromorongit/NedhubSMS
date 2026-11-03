@@ -38,7 +38,8 @@ function collectRoutes(layer, prefix, out) {
     const methods = Object.keys(layer.route.methods).map((m) => m.toUpperCase());
     out.push({ path, methods, layer });
   } else if (layer.handle && Array.isArray(layer.handle.stack)) {
-    const mount = mountPrefix(layer.handle.regexp.source || '');
+    const reg = layer.handle.regexp;
+    const mount = reg ? mountPrefix(reg.source || '') : '';
     for (const sub of layer.handle.stack) {
       collectRoutes(sub, prefix + mount, out);
     }
@@ -59,7 +60,7 @@ function registeredRoutes() {
   app.use('/api/analytics', require('../backend/routes/analytics'));
   app.use('/api/reports', require('../backend/routes/reports'));
   app.use('/api/wallet', require('../backend/routes/wallet'));
-  app.use('/api/transfer', require('../backend/routes/transfer'));
+  app.use('/api/transfer', require('../backend/routes/transfers'));
   app.use('/api/utility', require('../backend/routes/utility'));
   app.use('/api/sender-ids', require('../backend/routes/senderIds'));
   app.use('/api/templates', require('../backend/routes/templates'));

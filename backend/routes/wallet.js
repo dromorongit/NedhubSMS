@@ -2,9 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const Wallet = require('../models/Wallet');
+const Payment = require('../models/Payment');
 const SmsMessage = require('../models/SmsMessage');
 const Transaction = require('../models/Transaction');
 const WalletService = require('../services/WalletService');
+const CallbackVerificationService = require('../services/callbackVerificationService');
+const logger = require('../utils/logger');
 
 // Get wallet balance with SMS balance
 router.get('/', authenticate, async (req, res) => {
@@ -199,6 +202,46 @@ router.get('/transactions', authenticate, async (req, res) => {
         }
       });
     }
+});
+
+// Reconcile pending top-up payments for the calling user (last 24h, max 10)
+router.post('/reconcile', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const verificationService = new CallbackVerificationService();
+
+    const pendingPayments = await Payment.find({
+      userId,
+      status: { $in: ['pending', 'processing'] },
+      createdAt: { $gte: cutoff }
+    })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    let credited = 0;
+    for (const payment of pendingPayments) {
+      try {
+        const result = await verificationService.processPaymentCallback(payment.clientReference);
+        if (result && result.action === 'credit' && result.applied) {
+          credited += 1;
+        }
+      } catch (err) {
+        logger.warn('[Wallet] Reconcile payment failed', { clientReference: payment.clientReference, error: err.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        checked: pendingPayments.length,
+        credited
+      }
+    });
+  } catch (error) {
+    logger.error('[Wallet] Reconcile error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to reconcile payments' });
+  }
 });
 
 module.exports = router;

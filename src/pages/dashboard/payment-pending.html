@@ -85,6 +85,24 @@
                         <a href="#" class="btn-primary" id="dashboardBtn">Go to Dashboard</a>
                     </div>
                 </div>
+
+            <div class="payment-result-card" id="noSessionCard" style="display: none;">
+                <div class="result-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </div>
+                <h3 id="noSessionTitle">Your payment was received</h3>
+                <p id="noSessionSubtitle">Sign in to app.nedhubgh.com to see your wallet.</p>
+                <div class="result-details" id="noSessionDetails" style="display: block;">
+                    <div class="detail-row">
+                        <span class="detail-label">Reference:</span>
+                        <span class="detail-value" id="noSessionRef">---</span>
+                    </div>
+                </div>
+                <div class="result-actions" id="noSessionActions">
+                    <button type="button" class="btn-secondary" id="copyNoSessionRef">Copy reference</button>
+                    <a href="https://app.nedhubgh.com/auth/login.html" class="btn-primary" id="signInBtn">Sign in</a>
+                </div>
+            </div>
             </div>
         </main>
     </div>
@@ -101,6 +119,32 @@
             if (!reference) {
                 document.getElementById('title').textContent = 'Missing payment reference';
                 document.getElementById('subtitle').textContent = 'We could not find a payment reference to confirm.';
+                return;
+            }
+
+            const storage = window.getStorage ? window.getStorage() : localStorage;
+            const storedToken = storage ? storage.getItem('authToken') : null;
+            const hasToken = Boolean(storedToken || localStorage.getItem('authToken') || sessionStorage.getItem('authToken'));
+            if (!hasToken) {
+                document.getElementById('card').style.display = 'none';
+                document.getElementById('noSessionCard').style.display = '';
+                const noSessionRef = document.getElementById('noSessionRef');
+                if (noSessionRef) noSessionRef.textContent = reference;
+                const signInBtn = document.getElementById('signInBtn');
+                if (signInBtn) {
+                  signInBtn.href = 'https://app.nedhubgh.com/auth/login.html?reference=' + encodeURIComponent(reference);
+                }
+                const copyNoSessionRef = document.getElementById('copyNoSessionRef');
+                if (copyNoSessionRef) {
+                  copyNoSessionRef.addEventListener('click', async () => {
+                    try {
+                      await navigator.clipboard.writeText(reference);
+                      if (window.showToast) window.showToast('Reference copied', 'success');
+                    } catch (e) {
+                      if (window.showToast) window.showToast('Could not copy reference', 'error');
+                    }
+                  });
+                }
                 return;
             }
 

@@ -14,6 +14,7 @@ const Payment = require('../models/Payment');
 const FinancialSummary = require('../models/FinancialSummary');
 const CostCalculatorService = require('../services/CostCalculatorService');
 const WalletService = require('../services/WalletService');
+const CallbackVerificationService = require('../services/callbackVerificationService');
 const HubtelPaymentService = require('../services/HubtelPaymentService');
 const { logAction } = require('../utils/audit');
 const HubtelAuthAuditService = require('../services/HubtelAuthAuditService');
@@ -956,6 +957,113 @@ router.post('/payments/fix-credited', authorize(['admin', 'super_admin']), async
   }
 });
 
+// Rate limit for payment re-verification: 20 requests per hour per client IP.
+const paymentReverifyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const resetTime = new Date(Date.now() + 60 * 60 * 1000);
+    res.status(429).json({
+      success: false,
+      message: 'Too many requests. Please try again later.',
+      error: { code: 'RATE_LIMIT_EXCEEDED', retryAfter: 3600, resetTime: resetTime.toISOString() }
+    });
+  }
+});
+
+// Admin: list pending or processing payments older than olderThanMinutes
+// (default 5). Newest first, up to 100. Masks the user email. No secrets.
+router.get('/payments/pending', authenticate, authorize(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const olderThanMinutes = parseInt(req.query.olderThanMinutes, 10) || 5;
+    const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
+    const payments = await Payment.find({
+      status: { $in: ['pending', 'processing'] },
+      createdAt: { $lt: cutoff }
+    })
+      .populate('userId', 'email')
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    const results = payments.map((p) => {
+      const user = (p.userId && p.userId.email) ? p.userId.email : (p.customerEmail || '');
+      return {
+        reference: p.clientReference,
+        amount: p.amount,
+        createdAt: p.createdAt,
+        status: p.status,
+        verificationFailures: p.verificationFailures || 0,
+        lastVerificationError: p.lastVerificationError || null,
+        userEmail: maskEmail(user)
+      };
+    });
+
+    res.json({ success: true, payments: results, count: results.length });
+  } catch (error) {
+    logger.error('[Admin] List pending payments error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to list pending payments', error: { code: 'INTERNAL_SERVER_ERROR' } });
+  }
+});
+
+// Admin: re-verify a stuck payment. Runs the same assess + apply path as the
+// webhook and verify endpoint. Works for any user's payment, no 24-hour limit,
+// fully idempotent. Never credits unless the provider reports paid and the
+// amount matches.
+router.post('/payments/:reference/reverify', authenticate, authorize(['admin', 'super_admin']), paymentReverifyLimiter, async (req, res) => {
+  const { reference } = req.params;
+  if (!REFERENCE_RE.test(reference)) {
+    return res.status(400).json({ success: false, message: 'Invalid reference', error: { code: 'VALIDATION_ERROR' } });
+  }
+
+  const verificationService = new CallbackVerificationService();
+  let assessment;
+  try {
+    assessment = await verificationService.assessPayment(reference);
+  } catch (error) {
+    logger.error('[Admin] Re-verify assessment error', { reference, error: error.message });
+    return res.status(500).json({ success: false, message: 'Re-verification failed', error: { code: 'INTERNAL_SERVER_ERROR' } });
+  }
+
+  let result;
+  if (assessment.action === 'credit' || assessment.action === 'mark_failed') {
+    result = await verificationService.applyPaymentAssessment(assessment);
+  } else {
+    result = { ...assessment, applied: false };
+  }
+
+  await logAction(req.user.id, 'reverify_payment', 'payment', reference, {
+    outcome: result.action,
+    httpStatus: result.httpStatus,
+    code: result.code
+  });
+
+  let outcome = result.action;
+  let httpStatus = result.httpStatus || null;
+  let code = result.code || null;
+  let credited = false;
+
+  if (assessment.action === 'credit' && result.applied === true) {
+    outcome = 'paid';
+    credited = true;
+  } else if (assessment.action === 'mark_failed' && result.applied === true) {
+    outcome = 'failed';
+  } else if (assessment.action === 'already_terminal') {
+    outcome = assessment.status === 'paid' ? 'paid' : assessment.status === 'failed' ? 'failed' : 'pending';
+  } else if (assessment.action === 'verification_unavailable') {
+    outcome = 'verification_unavailable';
+  } else if (assessment.action === 'provider_unavailable') {
+    outcome = 'pending';
+  } else if (assessment.action === 'leave_pending') {
+    outcome = 'pending';
+  } else if (assessment.action === 'not_found') {
+    outcome = 'not_found';
+  }
+
+  return res.json({ outcome, httpStatus, code, credited });
+});
+
 // Hubtel Authorization Audit Endpoint
 router.get('/hubtel/auth-audit', authorize(['admin', 'super_admin']), async (req, res) => {
   try {
@@ -1048,6 +1156,16 @@ router.get('/nalo/balance', authorize(['admin', 'super_admin']), async (req, res
 // Reference validation: only allow references that look like our generated
 // client references (NH- followed by 8-64 alphanumeric/dash chars).
 const REFERENCE_RE = /^NH-[A-Z0-9-]{8,64}$/;
+
+function maskEmail(email) {
+  if (!email || typeof email !== 'string' || !email.includes('@')) return '';
+  const at = email.indexOf('@');
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  const visible = local.slice(0, 2);
+  const masked = local.length > 2 ? '*'.repeat(local.length - 2) : '';
+  return `${visible}${masked}@${domain}`;
+}
 
 // Diagnostic: checks whether the server can reach Hubtel's transaction status
 // endpoint and classifies the access result. Without ?reference it probes a
