@@ -117,7 +117,19 @@ for (const pageName of PAGES) {
       const activeHref = active ? (active.getAttribute('href') || '') : '';
       const navHrefs = ['overview.html','send-sms.html','campaigns.html','contacts.html','history.html','blacklist.html','transactions.html','buy-airtime.html','buy-data.html','utility-payments.html','reports.html','templates.html','analytics.html','settings.html'];
       const pageInNav = navHrefs.includes(pageName.toLowerCase());
+      const isPaymentPage = /^payment-(pending|success|error|cancelled)\.html$/.test(pageName.toLowerCase());
+      const expectedOrder = isPaymentPage ? REQUIRED_ORDER.concat(['Payment', 'Payment', 'Payment', 'Payment']) : REQUIRED_ORDER;
+      const orderOk = JSON.stringify(order) === JSON.stringify(expectedOrder);
       const activeOk = pageInNav ? activeHref.toLowerCase().endsWith(pageName.toLowerCase()) : (active === null);
+
+      const titleEl = document.getElementById('nhsPageTitle');
+      let expectedTitle = 'Overview';
+      if (isPaymentPage) { expectedTitle = 'Payment'; }
+      else if (pageInNav) {
+        const matched = links.find(function (a) { return (a.getAttribute('href') || '').toLowerCase().endsWith(pageName.toLowerCase()); });
+        if (matched) { const sp = matched.querySelector('span'); expectedTitle = sp ? sp.textContent.trim() : matched.textContent.trim(); }
+      }
+      const titleOk = !!titleEl && titleEl.textContent.trim() === expectedTitle;
 
       const main = document.querySelector('.main-content');
       const sRect = sidebar ? sidebar.getBoundingClientRect() : null;
@@ -440,7 +452,7 @@ for (const pageName of PAGES) {
         }
       }
 
-      const earlierShellOk = orderOk && activeOk && desktopOk && pinnedOk && logoutOk && noHScroll && !mojibake && sidebarLumOk && contrastOk && logoOk && sidebarPixelOk && activePillOk && avatarOk && sidebarWidthOkFinal;
+      const earlierShellOk = orderOk && activeOk && desktopOk && pinnedOk && logoutOk && noHScroll && !mojibake && sidebarLumOk && contrastOk && logoOk && sidebarPixelOk && activePillOk && avatarOk && sidebarWidthOkFinal && titleOk;
 
       return {
         order, orderOk, activeHref, activeOk, desktopOk,
