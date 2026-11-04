@@ -7,7 +7,7 @@
 const path = require('path');
 const http = require('node:http');
 const express = require('express');
-const { describe, it, before, after } = require('node:test');
+const { describe, it, before, after, afterEach } = require('node:test');
 const assert = require('node:assert');
 
 const BACKEND = path.resolve('backend');
@@ -471,5 +471,100 @@ describe('payment routes smoke tests (real handlers, stubbed models/auth/provide
     res = await request('GET', '/api/admin/diagnostics/hubtel-status-access');
     console.log('(f) admin hubtel-status-access (non-admin): status', res.statusCode);
     assert.strictEqual(res.statusCode, 403);
+  });
+});
+
+describe('top-up kill switch (TOPUP_ENABLED)', () => {
+  afterEach(() => {
+    // Reset env so subsequent suites see the default (enabled).
+    delete process.env.TOPUP_ENABLED;
+    payments.length = 0;
+    transactions.length = 0;
+    wallets.clear();
+    provider('paid');
+  });
+
+  it('(g) POST initiate returns 503 TOPUPS_PAUSED and creates NO Payment when disabled', async () => {
+    process.env.TOPUP_ENABLED = 'false';
+    setRole('user');
+    provider('paid');
+    payments.length = 0;
+    const res = await request('POST', '/api/payments/initiate', { origin: 'https://app.nedhubgh.com' }, { amount: 10, description: 'Wallet top-up' });
+    console.log('(g) initiate disabled: status', res.statusCode, 'body:', res.body);
+    assert.strictEqual(res.statusCode, 503);
+    const body = JSON.parse(res.body);
+    assert.strictEqual(body.success, false);
+    assert.strictEqual(body.error, 'TOPUPS_PAUSED');
+    assert.strictEqual(body.message, 'Top-ups are temporarily unavailable while we upgrade our payment system. Your wallet and messages are not affected.');
+    assert.strictEqual(payments.length, 0, 'no Payment record created when paused');
+  });
+
+  it('(g) POST initiate works when enabled', async () => {
+    delete process.env.TOPUP_ENABLED;
+    setRole('user');
+    provider('paid');
+    payments.length = 0;
+    const res = await request('POST', '/api/payments/initiate', { origin: 'https://app.nedhubgh.com' }, { amount: 10, description: 'Wallet top-up' });
+    console.log('(g) initiate enabled: status', res.statusCode);
+    assert.strictEqual(res.statusCode, 200);
+    const body = JSON.parse(res.body);
+    assert.strictEqual(body.success, true);
+    assert.ok(body.checkoutUrl, 'checkoutUrl present');
+    assert.strictEqual(payments.length, 1, 'Payment record created when enabled');
+  });
+
+  it('(g) GET /api/wallet/topup-status returns enabled boolean', async () => {
+    setRole('user');
+    let res = await request('GET', '/api/wallet/topup-status');
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(JSON.parse(res.body).enabled, true);
+
+    process.env.TOPUP_ENABLED = 'off';
+    res = await request('GET', '/api/wallet/topup-status');
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(JSON.parse(res.body).enabled, false);
+  });
+
+  it('(h) payment status still returns 200 when disabled', async () => {
+    process.env.TOPUP_ENABLED = '0';
+    setRole('user');
+    provider('paid');
+    plantPayment({ clientReference: 'NH-KS-STATUS', status: 'paid', userId: 'smoke_user_1', amount: 10, currency: 'GHS', description: 'x', customerEmail: 'a@b.com' });
+    const res = await request('GET', '/api/payments/status/NH-KS-STATUS');
+    console.log('(h) status disabled: status', res.statusCode);
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(JSON.parse(res.body).status, 'paid');
+  });
+
+  it('(h) wallet reconcile still returns 200 when disabled', async () => {
+    process.env.TOPUP_ENABLED = 'false';
+    setRole('user');
+    provider('paid');
+    payments.length = 0; transactions.length = 0; wallets.clear();
+    plantPayment({ clientReference: 'NH-KS-REC', status: 'pending', userId: 'smoke_user_1', amount: 10, currency: 'GHS', description: 'x', customerEmail: 'a@b.com', createdAt: new Date() });
+    const res = await request('POST', '/api/wallet/reconcile', {}, {});
+    console.log('(h) reconcile disabled: status', res.statusCode);
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(JSON.parse(res.body).success, true);
+  });
+
+  it('(h) admin re-verify still returns 200 when disabled', async () => {
+    process.env.TOPUP_ENABLED = 'false';
+    setRole('admin');
+    provider('paid');
+    plantPayment({ clientReference: 'NH-KS-REVERIFY', status: 'pending', userId: 'smoke_user_1', amount: 10, currency: 'GHS', description: 'x', customerEmail: 'a@b.com', returnOrigin: 'https://app.nedhubgh.com' });
+    const res = await request('POST', '/api/admin/payments/NH-KS-REVERIFY/reverify');
+    console.log('(h) reverify disabled: status', res.statusCode);
+    assert.strictEqual(res.statusCode, 200);
+  });
+
+  it('(h) payment return still works when disabled', async () => {
+    process.env.TOPUP_ENABLED = 'false';
+    setRole('user');
+    plantPayment({ clientReference: 'NH-KS-RETURN', status: 'paid', userId: 'smoke_user_1', amount: 10, currency: 'GHS', description: 'x', customerEmail: 'a@b.com', returnOrigin: 'https://app.nedhubgh.com' });
+    const res = await request('GET', '/api/payments/return?clientReference=NH-KS-RETURN');
+    console.log('(h) return disabled: status', res.statusCode, 'Location:', res.headers.location || '-');
+    assert.strictEqual(res.statusCode, 302);
+    assert.ok(res.headers.location.includes('/src/pages/dashboard/payment-success.html'), 'still redirects to success page');
   });
 });

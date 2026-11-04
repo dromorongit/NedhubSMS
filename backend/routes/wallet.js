@@ -9,6 +9,22 @@ const WalletService = require('../services/WalletService');
 const CallbackVerificationService = require('../services/callbackVerificationService');
 const logger = require('../utils/logger');
 
+/**
+ * Read the TOPUP_ENABLED kill switch. Defaults to enabled (true). The values
+ * false, 0 and off (case-insensitive) disable top-ups.
+ */
+function isTopupEnabled() {
+  const raw = process.env.TOPUP_ENABLED;
+  if (raw === undefined || raw === null) return true;
+  const v = String(raw).trim().toLowerCase();
+  return v !== 'false' && v !== '0' && v !== 'off';
+}
+
+// Get wallet top-up status (kill switch) - authenticated
+router.get('/topup-status', authenticate, (req, res) => {
+  res.json({ enabled: isTopupEnabled() });
+});
+
 // Get wallet balance with SMS balance
 router.get('/', authenticate, async (req, res) => {
   try {

@@ -101,6 +101,14 @@
 
                 <!-- Row 3: Wallet + Quick Actions -->
                 <div class="ov-row3">
+                    <div id="topupsPausedNotice" class="ov-topups-paused-banner ov-topups-paused-banner--hidden" aria-live="polite">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <path d="M13 16h-1v-4h-1v1h-2v2a2 2 0 002 2h6a2 2 0 002-2v-2h-2v1h-1v-4zm-3-8h-6V2l6 6zM5 14v2a2 2 0 002 2h6a2 2 0 002-2v-2H5z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12" y2="17"></line>
+                        </svg>
+                        <span id="topupsPausedNoticeText">Top-ups are temporarily paused while we upgrade our payment system. Your wallet and messages are not affected.</span>
+                    </div>
                     <div class="ov-wallet-card">
                         <div class="ov-wallet-glow" aria-hidden="true"></div>
                         <div class="ov-wallet-top">
@@ -1013,7 +1021,52 @@
         const topupBackdrop = document.getElementById('topupBackdrop');
         let lastFocused = null;
 
+        // Top-up kill switch state. Loaded without blocking the page; defaults
+        // to enabled so the UI only changes when the server explicitly pauses.
+        let topupsPaused = false;
+        const topupButtonOriginalHTML = topupButton ? topupButton.innerHTML : '';
+        const TOPUPS_PAUSED_TEXT = 'Top-ups paused';
+        const TOPUPS_PAUSED_MESSAGE = 'Top-ups are temporarily paused while we upgrade our payment system. Your wallet and messages are not affected.';
+
+        function applyTopupPauseState(paused) {
+            topupsPaused = paused;
+            const notice = document.getElementById('topupsPausedNotice');
+            const noticeText = document.getElementById('topupsPausedNoticeText');
+            const btn = document.getElementById('topupButton');
+            if (paused) {
+                if (notice) notice.classList.remove('ov-topups-paused-banner--hidden');
+                if (noticeText) noticeText.textContent = TOPUPS_PAUSED_MESSAGE;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.setAttribute('aria-disabled', 'true');
+                    btn.textContent = TOPUPS_PAUSED_TEXT;
+                }
+            } else {
+                if (notice) notice.classList.add('ov-topups-paused-banner--hidden');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.removeAttribute('aria-disabled');
+                    btn.innerHTML = topupButtonOriginalHTML;
+                }
+            }
+        }
+
+        async function loadTopupStatus() {
+            try {
+                const res = await window.apiClient.getTopupStatus();
+                if (!res.error && res.data && typeof res.data.enabled === 'boolean') {
+                    applyTopupPauseState(!res.data.enabled);
+                }
+            } catch (e) {
+                // Fail silently: never block the page; buttons stay enabled.
+            }
+        }
+
+        // Fire and forget: do not block page render on the status request.
+        loadTopupStatus();
+
         function openTopupModal() {
+            if (topupsPaused) return;
             lastFocused = document.activeElement;
             const balEl = document.getElementById('walletBalanceAmount');
             const cur = document.getElementById('topupCurrentBalance');
@@ -1097,7 +1150,13 @@
                 const frontendOrigin = window.location.origin;
                 const response = await window.apiClient.initiatePayment(amount, description, frontendOrigin);
                 if (response.error) {
-                    errorDiv.textContent = 'Unable to start payment. Please try again.';
+                    if (response.status === 503) {
+                        // Top-ups paused: show the server's friendly message,
+                        // never a raw error.
+                        errorDiv.textContent = response.error || TOPUPS_PAUSED_MESSAGE;
+                    } else {
+                        errorDiv.textContent = 'Unable to start payment. Please try again.';
+                    }
                     errorDiv.style.display = 'block';
                 } else if (response.data && response.data.checkoutUrl) {
                     window.location.href = response.data.checkoutUrl;

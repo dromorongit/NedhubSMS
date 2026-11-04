@@ -438,6 +438,45 @@ body.page-overview .ov-btn-topup {
 
 body.page-overview .ov-btn-topup:hover { transform: translateY(-2px); }
 
+body.page-overview .ov-btn-topup:disabled,
+body.page-overview .ov-btn-topup.ov-btn-topup--disabled {
+    background: #94A3B8;
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.85;
+}
+body.page-overview .ov-btn-topup:disabled:hover,
+body.page-overview .ov-btn-topup.ov-btn-topup--disabled:hover {
+    transform: none;
+}
+
+body.page-overview .ov-topups-paused-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--ov-space-sm);
+    padding: var(--ov-space-sm) var(--ov-space-md);
+    border: 1px solid var(--ov-amber-border);
+    border-radius: var(--ov-radius-sm);
+    background: var(--ov-amber-bg);
+    color: var(--ov-amber-text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: var(--ov-space-md);
+    box-shadow: var(--ov-shadow-sm);
+    flex-wrap: wrap;
+}
+
+body.page-overview .ov-topups-paused-banner svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    stroke: var(--ov-amber-text);
+}
+
+body.page-overview .ov-topups-paused-banner--hidden {
+    display: none;
+}
+
 body.page-overview .ov-btn-topup svg {
     width: 18px;
     height: 18px;
