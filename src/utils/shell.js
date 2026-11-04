@@ -37,7 +37,7 @@
   document.documentElement.classList.add('nhs-has-shell');
 
   // Sidebar markup
-  const navItemsHtml = NAV.map(function (item) {
+  const navItemsHtml = NAV.filter(function (item) { return !item.titleOnly; }).map(function (item) {
     const active = item.href.toLowerCase() === current && !item.titleOnly;
     return '<li><a class="nhs-link' + (active ? ' is-active' : '') + '" href="' + item.href + '"' + (active ? ' aria-current="page"' : '') + '>' + item.icon + '<span>' + item.label + '</span></a></li>';
   }).join('');
