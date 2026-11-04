@@ -11,6 +11,7 @@ const SmsCampaign = require('../models/SmsCampaign');
 const Transaction = require('../models/Transaction');
 const SmsMessage = require('../models/SmsMessage');
 const Payment = require('../models/Payment');
+const Campaign = require('../models/Campaign');
 const FinancialSummary = require('../models/FinancialSummary');
 const CostCalculatorService = require('../services/CostCalculatorService');
 const WalletService = require('../services/WalletService');

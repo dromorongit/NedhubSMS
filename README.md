@@ -73,6 +73,22 @@ Deploy separately to a Node.js hosting service:
 - Requires MongoDB database connection
 - Environment variables for API keys and configuration
 
+### Pre-deploy checklist (run before every deploy)
+From the project root, run:
+
+```bash
+node scripts/predeploy-check.mjs
+```
+
+This checks syntax (`node --check`) on every backend/server `.js` file, runs an
+undefined-identifier audit (eslint `no-undef`, skipped with a message when there
+is no network), and executes the route-level smoke tests in
+`tests/payment-routes-smoke.test.js`, which mount the real payment, wallet and
+admin routers with stubbed models/auth/Hubtel provider and exercise every
+handler end to end. The script exits non-zero on any failure; do not deploy
+until it passes.
+
+
 ## 🔧 Setup & Installation
 
 ### Prerequisites

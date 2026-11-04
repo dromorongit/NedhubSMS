@@ -47,7 +47,7 @@ function getAppBaseUrl() {
   return getPrimaryAppOrigin();
 }
 
-module.exports = { getAppBaseUrl, getPrimaryAppOrigin, isAllowedOrigin, getAllowedOrigins };
+module.exports = { getAppBaseUrl, getPrimaryAppOrigin, isAllowedOrigin, getAllowedOrigins, normalizeOrigin };
 module.exports.getAppBaseUrl = getAppBaseUrl;
 module.exports.getPrimaryAppOrigin = getPrimaryAppOrigin;
 module.exports.isAllowedOrigin = isAllowedOrigin;
