@@ -552,6 +552,10 @@ class ApiClient {
     return this.request('GET', '/wallet');
   }
 
+  async getTopupStatus() {
+    return this.request('GET', '/wallet/topup-status');
+  }
+
   async reconcileWallet() {
     return this.request('POST', '/wallet/reconcile', {});
   }

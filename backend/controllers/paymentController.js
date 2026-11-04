@@ -8,12 +8,39 @@ const logger = require('../utils/logger');
 
 const verificationService = new CallbackVerificationService();
 
+const TOPUPS_PAUSED_MESSAGE = 'Top-ups are temporarily unavailable while we upgrade our payment system. Your wallet and messages are not affected.';
+
+/**
+ * Read the TOPUP_ENABLED kill switch. Defaults to enabled (true). The values
+ * false, 0 and off (case-insensitive) disable top-ups.
+ */
+function isTopupEnabled() {
+  const raw = process.env.TOPUP_ENABLED;
+  if (raw === undefined || raw === null) return true;
+  const v = String(raw).trim().toLowerCase();
+  return v !== 'false' && v !== '0' && v !== 'off';
+}
+
+function topupsPausedResponse() {
+  return {
+    success: false,
+    error: 'TOPUPS_PAUSED',
+    message: TOPUPS_PAUSED_MESSAGE
+  };
+}
+
 /**
  * Initiate a payment for wallet top-up
  * POST /api/payments/initiate
  */
 const initiatePayment = async (req, res) => {
   try {
+    // Kill switch: reject before creating any Payment record or contacting
+    // the provider so customers are never charged while confirmation is failing.
+    if (!isTopupEnabled()) {
+      return res.status(503).json(topupsPausedResponse());
+    }
+
     const { amount, description, frontendOrigin } = req.body;
     const userId = req.user.userId;
 
