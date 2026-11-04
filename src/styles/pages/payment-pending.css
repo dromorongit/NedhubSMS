@@ -84,22 +84,23 @@ body.page-payment-pending .detail-label {
 body.page-payment-pending .detail-value {
     color: var(--primary-dark, #1a1a2e);
     font-weight: 600;
-    word-break: break-all;
+    overflow-wrap: anywhere;
+    padding: 12px;
 }
 
 body.page-payment-pending .info-box {
     background-color: #fff8e1;
     border-radius: 12px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
+    padding: 16px 18px;
+    margin-bottom: 16px;
     color: #666;
     font-size: 0.95rem;
 }
 
 body.page-payment-pending .result-actions {
-    margin-bottom: 1.5rem;
+    margin-bottom: 16px;
     display: flex;
-    gap: 0.75rem;
+    gap: 12px;
     justify-content: center;
     flex-wrap: wrap;
 }
@@ -109,6 +110,7 @@ body.page-payment-pending .btn-secondary {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    height: 44px;
     padding: 0.875rem 2rem;
     border: none;
     border-radius: 10px;

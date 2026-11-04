@@ -65,7 +65,7 @@
                                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                                 <polyline points="9 22 9 12 15 12 15 22"></polyline>
                             </svg>
-                            Go to Dashboard
+                            Go to Overview now
                         </a>
                     </div>
                     
@@ -137,28 +137,13 @@
             let countdown = 10;
             const countdownEl = document.getElementById('countdown');
             
-            // Get the base URL dynamically
-            const getBaseUrl = () => {
-                const { protocol, hostname, port } = window.location;
-                if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                    return `${protocol}//${hostname}:${port || '3000'}`;
-                }
-                // Check for Railway domain
-                if (hostname === 'nedhubsms-production.up.railway.app') {
-                    return 'https://nedhubsms-production.up.railway.app';
-                }
-                // Default to custom domain (use the same origin)
-                return `${protocol}//${hostname}`;
-            };
-            
             const interval = setInterval(() => {
                 countdown--;
                 countdownEl.textContent = countdown;
                 
                 if (countdown <= 0) {
                     clearInterval(interval);
-                    const baseUrl = getBaseUrl();
-                    window.location.href = `${baseUrl}/src/pages/dashboard/overview.html`;
+                    window.location.href = 'overview.html';
                 }
             }, 1000);
             
@@ -166,8 +151,7 @@
             document.getElementById('dashboardBtn').addEventListener('click', (e) => {
                 e.preventDefault();
                 clearInterval(interval);
-                const baseUrl = getBaseUrl();
-                window.location.href = `${baseUrl}/src/pages/dashboard/overview.html`;
+                window.location.href = 'overview.html';
             });
         }
 
