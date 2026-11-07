@@ -168,6 +168,7 @@ select:focus-visible,
 .stat-tint-green { background: var(--color-green-tint); color: var(--color-green-text); }
 .stat-tint-orange { background: var(--color-amber-tint); color: var(--color-orange-text); }
 .stat-tint-purple { background: var(--color-purple-tint); color: var(--color-purple-text); }
+.stat-tint-red { background: var(--color-danger-tint); color: var(--color-danger); }
 
 /* Trend text */
 .trend-up { color: var(--color-success); font-size: var(--text-xs); font-weight: var(--fw-semibold); }
