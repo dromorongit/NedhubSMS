@@ -26,14 +26,14 @@
 
                 <!-- Page header -->
                 <header class="nhs-page-header" id="pageHeader" aria-label="Blacklist">
-                    <div class="header-text">
-                        <div class="page-logo" aria-hidden="true">
+                    <div class="header-text" style="display:flex;align-items:center;gap:1rem;">
+                        <div class="page-logo" aria-hidden="true" style="flex:0 0 auto;">
                             <svg viewBox="0 0 24 24" class="page-logo-icon">
-                                <path d="M12 1c-3.9 0-7 2.2-7 6v5h14V7c0-3.8-3.1-6-7-6z" fill="#F77F00"></path>
+                                <path d="M12 2c-4.4 0-8 2.6-8 6v2c0 4.4 3.6 8 8 8s8-3.6 8-8V8c0-3.4-3.6-6-8-6z" fill="#F77F00"></path>
                                 <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"></path>
                             </svg>
                         </div>
-                        <div>
+                        <div style="flex:1;min-width:0;">
                             <h1 id="pageTitle">Blacklist</h1>
                             <p class="subtitle">Manage phone numbers that should not receive SMS messages</p>
                         </div>
@@ -91,15 +91,20 @@
                     <div class="settings-grid">
                         <div class="nh-field">
                             <label class="nh-field-label" for="blacklistReason">Reason</label>
-                            <select id="blacklistReason" name="reason" class="nh-input" required>
-                                <option value="">Select reason</option>
-                                <option value="User requested opt-out">User requested opt-out</option>
-                                <option value="Invalid number">Invalid number</option>
-                                <option value="Spam complaint">Spam complaint</option>
-                                <option value="Bounce/failure">Bounce/failure</option>
-                                <option value="Duplicate contact">Duplicate contact</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            <div class="select-wrapper">
+                                <select id="blacklistReason" name="reason" class="nh-input" required>
+                                    <option value="">Select reason</option>
+                                    <option value="User requested opt-out">User requested opt-out</option>
+                                    <option value="Invalid number">Invalid number</option>
+                                    <option value="Spam complaint">Spam complaint</option>
+                                    <option value="Bounce/failure">Bounce/failure</option>
+                                    <option value="Duplicate contact">Duplicate contact</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="select-chevron" aria-hidden="true">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
                         </div>
                         <div class="nh-field">
                             <label class="nh-field-label" for="customReason">Custom Reason (Optional)</label>
@@ -250,7 +255,7 @@
                 <div class="nh-field">
                     <p class="nh-field-hint">How it works</p>
                     <ul style="margin:0 0 0 1rem;color:var(--color-muted);font-size:0.875rem;">
-                        <li>Added numbers are normalized (e.g. 0241234567 &rarr; +233 24 123 4567) so they match regardless of format.</li>
+                        <li>Added numbers are normalized (e.g. 0241234567 becomes +233 24 123 4567) so they match regardless of format.</li>
                         <li>Blacklisted numbers are excluded from all SMS campaigns and message sends.</li>
                         <li>Use a reason when adding a number, and an optional custom reason for extra detail.</li>
                         <li>Remove a number at any time to allow messages to it again.</li>
@@ -702,8 +707,50 @@
         .page-blacklist .dashboard-content {
             padding: 0 1rem 3rem;
             max-width: 1200px;
+            width: 100%;
             margin: 0 auto;
+            box-sizing: border-box;
+            min-width: 0;
         }
+        /* Root cause of horizontal overflow: body has overflow-x: visible (shell.css) and
+           fixed/min-width children can exceed the container. Constrain flex/grid children
+           and cap the wrapper so nothing forces a scrollbar. */
+        .page-blacklist .nhs-page-header,
+        .page-blacklist .card,
+        .page-blacklist .input-row,
+        .page-blacklist .settings-grid,
+        .page-blacklist .table-toolbar,
+        .page-blacklist .table-footer,
+        .page-blacklist .table-scroll {
+            min-width: 0;
+        }
+        .page-blacklist .card { max-width: 100%; }
+        .page-blacklist .contacts-table { max-width: 100%; }
+
+        /* Decorative curved shapes (top right, behind header) */
+        .page-blacklist::before,
+        .page-blacklist::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 0;
+            pointer-events: none;
+            border-radius: 50%;
+        }
+        .page-blacklist::before {
+            width: 560px;
+            height: 560px;
+            background: radial-gradient(circle at top right, rgba(167, 243, 208, 0.35), transparent 60%);
+            transform: translate(18%, -12%);
+        }
+        .page-blacklist::after {
+            width: 440px;
+            height: 440px;
+            background: radial-gradient(circle at top right, rgba(187, 247, 250, 0.30), transparent 55%);
+            transform: translate(12%, -6%);
+        }
+        .page-blacklist .dashboard-content { position: relative; z-index: 1; }
         .page-blacklist .nhs-page-header {
             margin-bottom: 1.5rem;
         }
@@ -716,20 +763,37 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            flex: 0 0 auto;
         }
-        .page-logo-icon { width: 34px; height: 34px; }
+        .page-logo-icon { width: 32px; height: 32px; }
         .page-blacklist .nhs-page-header h1 {
             font-size: 2.5rem;
             font-weight: 800;
             color: #0B132B;
             margin: 0 0 0.25rem 0;
             letter-spacing: -0.5px;
+            line-height: 1.1;
         }
         .page-blacklist .nhs-page-header .subtitle {
             color: #6B7794;
             font-size: 0.875rem;
             margin: 0;
+        }
+
+        @media (max-width: 700px) {
+            .page-logo { width: 56px; height: 56px; }
+            .page-logo-icon { width: 24px; height: 24px; }
+            .page-blacklist .nhs-page-header h1 { font-size: 1.75rem; }
+            .page-blacklist .nhs-page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+            .page-blacklist .nhs-page-header .btn-help {
+                align-self: flex-start;
+                width: 100%;
+                justify-content: center;
+            }
         }
         .btn-help {
             display: inline-flex;
@@ -747,6 +811,8 @@
         }
         .btn-help:hover { background: #f4f7fd; border-color: var(--color-primary-orange, #F57C1F); }
         .btn-help svg { width: 16px; height: 16px; }
+        /* Topbar page title duplicates the H1 on this page — hide it, keep bell/user menu. */
+        #nhsTopbarTitle { display: none; }
 
         /* ── Cards ── */
         .page-blacklist .card {
@@ -910,11 +976,33 @@
         .page-blacklist .settings-grid .nh-field { margin-bottom: 0; }
         .page-blacklist .settings-grid .nh-input {
             min-height: 44px;
+            font-family: var(--font, Inter, system-ui, sans-serif);
         }
         .page-blacklist .settings-grid textarea.nh-input {
             resize: vertical;
             min-height: 96px;
             padding-top: 0.75rem;
+            font-family: var(--font, Inter, system-ui, sans-serif);
+        }
+        .select-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .select-wrapper select {
+            appearance: none;
+            padding-right: 2.25rem;
+            background: #fbfcfd;
+            cursor: pointer;
+        }
+        .select-wrapper select::-ms-expand { display: none; }
+        .select-wrapper .select-chevron {
+            position: absolute;
+            right: 10px;
+            width: 16px;
+            height: 16px;
+            color: #6B7794;
+            pointer-events: none;
         }
 
         /* ── Blocked numbers ── */
