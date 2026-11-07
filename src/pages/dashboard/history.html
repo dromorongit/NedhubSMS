@@ -33,21 +33,37 @@
                         <p class="subtitle">View all your sent messages and track their delivery status</p>
                     </div>
                     <div class="date-range-picker">
-                        <button type="button" class="btn-secondary" id="dateRangeBtn" aria-haspopup="listbox" aria-expanded="false">
-                            Last 30 days <span class="caret">▼</span>
-                        </button>
-                        <div class="date-menu" id="dateMenu" role="listbox" style="display: none;">
-                            <button type="button" class="menu-item" role="option" data-range="today">Today</button>
-                            <button type="button" class="menu-item" role="option" data-range="7d">Last 7 days</button>
-                            <button type="button" class="menu-item" role="option" data-range="30d">Last 30 days</button>
-                            <button type="button" class="menu-item" role="option" data-range="month">This month</button>
-                            <button type="button" class="menu-item" role="option" data-range="custom">Custom range</button>
-                        </div>
-                        <div class="custom-range" id="customRange" style="display: none;">
-                            <input type="date" id="rangeStart" placeholder="Start">
-                            <input type="date" id="rangeEnd" placeholder="End">
-                            <button type="button" class="btn-primary" id="applyCustomRange">Apply</button>
-                        </div>
+                            <button type="button" class="btn-secondary" id="dateRangeBtn" aria-haspopup="listbox" aria-expanded="false">
+                                Last 30 days <span class="caret">▼</span>
+                            </button>
+                            <div class="date-menu" id="dateMenu" role="listbox" style="display: none;">
+                                <button type="button" class="menu-item" role="option" data-range="today">Today</button>
+                                <button type="button" class="menu-item" role="option" data-range="7d">Last 7 days</button>
+                                <button type="button" class="menu-item" role="option" data-range="30d">Last 30 days</button>
+                                <button type="button" class="menu-item" role="option" data-range="month">This month</button>
+                                <button type="button" class="menu-item" role="option" data-range="all">All time</button>
+                                <button type="button" class="menu-item" role="option" data-range="custom">Custom range</button>
+                            </div>
+                            <div class="custom-range-popover" id="customRangePopover" role="dialog" aria-modal="true" aria-labelledby="customRangeTitle" style="display: none;">
+                                <div class="crp-header">
+                                    <span id="customRangeTitle">Custom range</span>
+                                </div>
+                                <div class="crp-body">
+                                    <label class="crp-field">
+                                        <span>From</span>
+                                        <input type="date" id="customFrom">
+                                    </label>
+                                    <label class="crp-field">
+                                        <span>To</span>
+                                        <input type="date" id="customTo">
+                                    </label>
+                                    <div class="crp-error" id="customRangeError" role="alert" style="display:none;"></div>
+                                </div>
+                                <div class="crp-footer">
+                                    <button type="button" class="btn-secondary" id="customRangeCancel">Cancel</button>
+                                    <button type="button" class="btn-primary" id="customRangeApply">Apply</button>
+                                </div>
+                            </div>
                     </div>
                 </div>
 
@@ -108,16 +124,6 @@
                             <div class="table-search">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                                 <input type="text" id="searchInput" placeholder="Search by recipient, message, or status...">
-                            </div>
-                            <button type="button" class="btn-secondary" id="filterToggle">Filter</button>
-                            <div class="table-filter">
-                                <select id="timeFilter">
-                                    <option value="30d">Last 30 days</option>
-                                    <option value="today">Today</option>
-                                    <option value="7d">Last 7 days</option>
-                                    <option value="month">This month</option>
-                                    <option value="custom">Custom range</option>
-                                </select>
                             </div>
                         </div>
                     </div>
@@ -249,6 +255,9 @@
         let paginationTotal = 0;
         let paginationTotalPages = 0;
         let detailMessage = null;
+        let customPopoverOpen = false;
+        let customPrevRange = null;
+        let customJustOpened = false;
 
         // ---- Phone formatting (readable Ghana format) ----
         function formatPhone(raw) {
@@ -265,7 +274,7 @@
         }
 
         // ---- Date range bounds (shared with the stats previous-period call) ----
-        function rangeBounds(range, start, end) {
+         function rangeBounds(range, start, end) {
             const now = new Date();
             let s = null, e = now;
             if (range === 'today') {
@@ -276,6 +285,9 @@
                 s = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             } else if (range === 'month') {
                 s = new Date(now.getFullYear(), now.getMonth(), 1);
+            } else if (range === 'all') {
+                s = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                e = now;
             } else if (range === 'custom' && start && end) {
                 s = new Date(start + 'T00:00:00');
                 e = new Date(end + 'T23:59:59.999');
@@ -293,9 +305,21 @@
             return { start: prevStart, end: prevEnd };
         }
 
-        function rangeLabel(range) {
-            const labels = { today: 'Today', '7d': 'Last 7 days', '30d': 'Last 30 days', month: 'This month', custom: 'Custom range' };
+         function rangeLabel(range) {
+            const labels = { today: 'Today', '7d': 'Last 7 days', '30d': 'Last 30 days', month: 'This month', all: 'All time', custom: 'Custom range' };
             return labels[range] || 'Last 30 days';
+        }
+
+        function formatCustomRangeLabel(start, end) {
+            const s = new Date(start + 'T00:00:00');
+            const e = new Date(end + 'T00:00:00');
+            const opts = { month: 'short', day: 'numeric' };
+            const sLabel = s.toLocaleDateString('en-US', opts);
+            const eLabel = e.toLocaleDateString('en-US', opts);
+            if (s.getFullYear() === e.getFullYear()) {
+                return sLabel + ' - ' + eLabel + ', ' + s.getFullYear();
+            }
+            return sLabel + ', ' + s.getFullYear() + ' - ' + eLabel + ', ' + e.getFullYear();
         }
 
         function hasActiveFilters() {
@@ -303,20 +327,24 @@
         }
 
         // ---- UI sync (top-right dropdown + Time select share ONE state) ----
-        function syncDateRangeUI() {
+         function syncDateRangeUI() {
             const btn = el('dateRangeBtn');
             const menu = el('dateMenu');
-            const custom = el('customRange');
-            const timeSelect = el('timeFilter');
-            const startIn = el('rangeStart');
-            const endIn = el('rangeEnd');
-            if (btn) btn.innerHTML = rangeLabel(dateRange) + ' <span class="caret">▼</span>';
+            const custom = el('customRangePopover');
+            const startIn = el('customFrom');
+            const endIn = el('customTo');
+            if (btn) {
+                let label = rangeLabel(dateRange);
+                if (dateRange === 'custom' && rangeStart && rangeEnd) {
+                    label = formatCustomRangeLabel(rangeStart, rangeEnd);
+                }
+                btn.innerHTML = label + ' <span class="caret">▼</span>';
+            }
             if (btn) btn.setAttribute('aria-expanded', menu && menu.style.display === 'block' ? 'true' : 'false');
             if (menu) menu.style.display = 'none';
-            if (custom) custom.style.display = (dateRange === 'custom') ? 'block' : 'none';
-            if (timeSelect) timeSelect.value = dateRange;
-            if (startIn) startIn.value = rangeStart || '';
-            if (endIn) endIn.value = rangeEnd || '';
+            if (custom && !customPopoverOpen) custom.style.display = 'none';
+            if (startIn && dateRange === 'custom') startIn.value = rangeStart || '';
+            if (endIn && dateRange === 'custom') endIn.value = rangeEnd || '';
         }
 
         // ---- Auth / profile ----
@@ -418,10 +446,15 @@
 
                 let stats = null;
                 try {
-                    const [curr, prev] = await Promise.all([
-                        window.apiClient.getMessageStats(dateRange, rangeStart, rangeEnd),
-                        window.apiClient.getMessageStats('custom', prevStartIso(), prevEndIso())
-                    ]);
+                    const curr = await window.apiClient.getMessageStats(dateRange, rangeStart, rangeEnd);
+                    let prev = null;
+                    if (dateRange !== 'all') {
+                        try {
+                            prev = await window.apiClient.getMessageStats('custom', prevStartIso(), prevEndIso());
+                        } catch (e2) {
+                            console.warn('[MessageStats] prev fetch failed', e2.message);
+                        }
+                    }
                     stats = { curr, prev };
                 } catch (e) {
                     console.warn('[MessageStats] API failed, falling back to zeros', e.message);
@@ -454,9 +487,9 @@
         }
 
         // ---- Stats with trend vs previous equal period ----
-        function renderStats(curr, prev, fallback, total) {
-            let c = curr;
-            let p = prev;
+         function renderStats(curr, prev, fallback, total) {
+            let c = (curr && curr.data) ? curr.data : curr;
+            let p = (prev && prev.data) ? prev.data : prev;
             if (fallback || !c) {
                 c = {
                     total: total != null ? total : 0,
@@ -613,27 +646,24 @@
                 });
             }
 
-            const timeSelect = el('timeFilter');
-            if (timeSelect) timeSelect.addEventListener('change', function() {
-                dateRange = this.value;
-                rangeStart = '';
-                rangeEnd = '';
-                currentPage = 1;
-                syncDateRangeUI();
-                loadData();
-            });
-
             const dateRangeBtn = el('dateRangeBtn');
             const dateMenu = el('dateMenu');
             if (dateRangeBtn) dateRangeBtn.addEventListener('click', function() {
-                const open = dateMenu.style.display === 'block';
-                dateMenu.style.display = open ? 'none' : 'block';
+                const open = dateMenu && dateMenu.style.display === 'block';
+                if (dateMenu) dateMenu.style.display = open ? 'none' : 'block';
                 dateRangeBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
             });
             if (dateMenu) {
                 dateMenu.querySelectorAll('.menu-item').forEach(item => {
                     item.addEventListener('click', function() {
-                        dateRange = this.dataset.range;
+                        const selected = this.dataset.range;
+                        if (dateMenu) dateMenu.style.display = 'none';
+                        if (dateRangeBtn) dateRangeBtn.setAttribute('aria-expanded', 'false');
+                        if (selected === 'custom') {
+                            openCustomRangePopover();
+                            return;
+                        }
+                        dateRange = selected;
                         rangeStart = '';
                         rangeEnd = '';
                         currentPage = 1;
@@ -643,24 +673,44 @@
                 });
             }
 
-            const startIn = el('rangeStart');
-            const endIn = el('rangeEnd');
-            const applyBtn = el('applyCustomRange');
-            if (startIn) startIn.addEventListener('change', function() { rangeStart = this.value; });
-            if (endIn) endIn.addEventListener('change', function() { rangeEnd = this.value; });
-            if (applyBtn) applyBtn.addEventListener('click', function() {
+            const fromIn = el('customFrom');
+            const toIn = el('customTo');
+            if (fromIn) fromIn.addEventListener('input', validateCustomRange);
+            if (toIn) toIn.addEventListener('input', validateCustomRange);
+
+            const applyCustomBtn = el('customRangeApply');
+            if (applyCustomBtn) applyCustomBtn.addEventListener('click', function() {
+                const f = el('customFrom');
+                const t = el('customTo');
+                if (!f || !t) return;
                 dateRange = 'custom';
+                rangeStart = f.value;
+                rangeEnd = t.value;
+                customPrevRange = null;
+                closeCustomRangePopover(false);
                 currentPage = 1;
                 syncDateRangeUI();
                 loadData();
             });
 
-            const filterToggle = el('filterToggle');
-            if (filterToggle) filterToggle.addEventListener('click', function() {
-                const timeWrap = el('timeFilter') ? el('timeFilter').parentElement : null;
-                const custom = el('customRange');
-                if (timeWrap) timeWrap.style.display = (timeWrap.style.display === 'none') ? 'block' : 'none';
-                if (custom) custom.style.display = (dateRange === 'custom' && timeWrap.style.display === 'none') ? 'block' : custom.style.display;
+            const cancelCustomBtn = el('customRangeCancel');
+            if (cancelCustomBtn) cancelCustomBtn.addEventListener('click', function() {
+                closeCustomRangePopover(true);
+            });
+
+            const popover = el('customRangePopover');
+            document.addEventListener('click', function(e) {
+                if (!customPopoverOpen) return;
+                if (customJustOpened) return;
+                if (popover && popover.contains(e.target)) return;
+                if (dateRangeBtn && dateRangeBtn.contains(e.target)) return;
+                closeCustomRangePopover(true);
+            });
+            document.addEventListener('keydown', function(e) {
+                if (!customPopoverOpen) return;
+                if (e.key === 'Escape') {
+                    closeCustomRangePopover(true);
+                }
             });
 
             const closeModal = () => { const m = el('messageModal'); if (m) m.style.display = 'none'; };
@@ -750,6 +800,64 @@
                 const indicator = th.querySelector('.sort-indicator');
                 if (indicator) indicator.textContent = active ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
             });
+        }
+
+        // ---- Custom range popover ----
+        function openCustomRangePopover() {
+            const popover = el('customRangePopover');
+            const menu = el('dateMenu');
+            const btn = el('dateRangeBtn');
+            const fromIn = el('customFrom');
+            const toIn = el('customTo');
+            if (menu) menu.style.display = 'none';
+            customPrevRange = { dateRange: dateRange, rangeStart: rangeStart, rangeEnd: rangeEnd };
+            const bounds = rangeBounds(dateRange, rangeStart, rangeEnd);
+            const fromVal = (dateRange === 'custom' && rangeStart) ? rangeStart : fmtDate(bounds.start || new Date());
+            const toVal = (dateRange === 'custom' && rangeEnd) ? rangeEnd : fmtDate(bounds.end || new Date());
+            if (fromIn) fromIn.value = fromVal;
+            if (toIn) toIn.value = toVal;
+            customPopoverOpen = true;
+            customJustOpened = true;
+            if (popover) popover.style.display = 'block';
+            validateCustomRange();
+            setTimeout(() => { customJustOpened = false; }, 0);
+            if (fromIn) fromIn.focus();
+        }
+
+        function closeCustomRangePopover(restore) {
+            const popover = el('customRangePopover');
+            if (restore && customPrevRange) {
+                dateRange = customPrevRange.dateRange;
+                rangeStart = customPrevRange.rangeStart;
+                rangeEnd = customPrevRange.rangeEnd;
+                syncDateRangeUI();
+            }
+            customPrevRange = null;
+            customPopoverOpen = false;
+            if (popover) popover.style.display = 'none';
+        }
+
+        function validateCustomRange() {
+            const fromIn = el('customFrom');
+            const toIn = el('customTo');
+            const errEl = el('customRangeError');
+            const applyBtn = el('customRangeApply');
+            const from = fromIn ? fromIn.value : '';
+            const to = toIn ? toIn.value : '';
+            const today = fmtDate(new Date());
+            let error = '';
+            if (!from || !to) {
+                error = 'Please select both dates.';
+            } else if (from > to) {
+                error = '"To" cannot be before "From".';
+            } else if (from > today || to > today) {
+                error = 'Dates cannot be in the future.';
+            }
+            if (errEl) {
+                errEl.textContent = error;
+                errEl.style.display = error ? 'block' : 'none';
+            }
+            if (applyBtn) applyBtn.disabled = !!error;
         }
 
         // ---- View details modal ----
@@ -854,8 +962,24 @@
         th.sortable[aria-sort="ascending"] .sort-indicator,
         th.sortable[aria-sort="descending"] .sort-indicator { opacity: 1; }
 
-        /* Mobile: hide time select + custom range behind Filter toggle; stack stat cards */
+        /* Custom range popover */
+        .custom-range-popover {
+            position: absolute; right: 0; top: calc(100% + 6px);
+            width: 280px; background: var(--color-card-bg); border: 1px solid var(--color-border);
+            border-radius: var(--radius-button); box-shadow: var(--shadow); z-index: 20; padding: 1rem;
+        }
+        .crp-header { font-weight: 600; margin-bottom: 0.75rem; color: var(--color-text); }
+        .crp-body { display: flex; flex-direction: column; gap: 0.625rem; }
+        .crp-field { display: flex; flex-direction: column; gap: 0.25rem; font-size: var(--text-sm); color: var(--color-muted); }
+        .crp-field input[type="date"] { padding: 0.5rem 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-button); background: #fbfcfd; font-size: var(--text-sm); color: var(--color-text); }
+        .crp-error { color: var(--color-danger); font-size: var(--text-sm); min-height: 1.25rem; }
+        .crp-footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.75rem; }
         @media (max-width: 600px) {
+            .custom-range-popover {
+                position: fixed; left: 0; right: 0; bottom: 0; top: auto;
+                width: 100%; border-radius: 12px 12px 0 0;
+            }
+        }
             .stat-grid { grid-template-columns: 1fr !important; gap: 0.75rem !important; }
             .table-filter, #customRange, #filterToggle { display: none !important; }
         }

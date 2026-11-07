@@ -775,6 +775,9 @@ router.get('/logs', authenticate, async (req, res) => {
       s = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     } else if (range === 'month') {
       s = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (range === 'all') {
+      s = null;
+      e = null;
     } else if (range === 'custom' && start && end) {
       s = new Date(start + 'T00:00:00');
       e = new Date(end + 'T23:59:59.999');
@@ -978,6 +981,9 @@ router.get('/messages/stats', authenticate, async (req, res) => {
       start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     } else if (range === 'month') {
       start = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (range === 'all') {
+      start = null;
+      end = null;
     } else if (range === 'custom' && req.query.start && req.query.end) {
       start = new Date(req.query.start + 'T00:00:00');
       end = new Date(req.query.end + 'T23:59:59.999');
