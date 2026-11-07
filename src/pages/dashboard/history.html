@@ -237,14 +237,17 @@
         let allMessages = [];
         let currentPage = 1;
         const PAGE_SIZE = 10;
-        const LIMIT = 200;
         let sortKey = null;
-        let sortDir = 'asc';
+        let sortDir = 'desc';
         let searchTerm = '';
         let statusFilter = '';
         let dateRange = '30d';
         let rangeStart = '';
         let rangeEnd = '';
+        let latestRequestId = 0;
+        let searchDebounceTimer = null;
+        let paginationTotal = 0;
+        let paginationTotalPages = 0;
         let detailMessage = null;
 
         // ---- Phone formatting (readable Ghana format) ----
@@ -261,7 +264,7 @@
             return escapeHtml(raw);
         }
 
-        // ---- Date range bounds ----
+        // ---- Date range bounds (shared with the stats previous-period call) ----
         function rangeBounds(range, start, end) {
             const now = new Date();
             let s = null, e = now;
@@ -290,17 +293,13 @@
             return { start: prevStart, end: prevEnd };
         }
 
-        function inRange(msg, range, start, end) {
-            if (!msg.createdAt) return false;
-            const d = new Date(msg.createdAt);
-            if (isNaN(d.getTime())) return false;
-            const b = rangeBounds(range, start, end);
-            return d >= b.start && d <= b.end;
-        }
-
         function rangeLabel(range) {
             const labels = { today: 'Today', '7d': 'Last 7 days', '30d': 'Last 30 days', month: 'This month', custom: 'Custom range' };
             return labels[range] || 'Last 30 days';
+        }
+
+        function hasActiveFilters() {
+            return !!searchTerm || !!statusFilter || dateRange !== '30d' || !!rangeStart || !!rangeEnd;
         }
 
         // ---- UI sync (top-right dropdown + Time select share ONE state) ----
@@ -374,17 +373,48 @@
             if (userAvatarEl) userAvatarEl.textContent = (window.NhShell && typeof window.NhShell.initials === 'function') ? window.NhShell.initials(firstName) : (firstName.charAt(0) + (firstName.charAt(1) || '')).toUpperCase();
         }
 
+        function showSkeleton(show) {
+            const skeleton = el('skeletonLoader');
+            const tableScroll = el('tableScroll');
+            if (skeleton) skeleton.style.display = show ? 'block' : 'none';
+            if (tableScroll) tableScroll.style.display = show ? 'none' : 'block';
+        }
+
+        function showError(show, message) {
+            const errorState = el('errorState');
+            const errorTitle = el('errorTitle');
+            const errorMessage = el('errorMessage');
+            if (!errorState) return;
+            errorState.style.display = show ? 'block' : 'none';
+            if (show) {
+                if (errorTitle) errorTitle.textContent = 'Failed to load messages';
+                if (errorMessage) errorMessage.textContent = message || 'Something went wrong while loading your message history.';
+            }
+        }
+
         // ---- Data loading (messages + stats) ----
         async function loadData() {
             showSkeleton(true);
             showError(false);
+            const requestId = ++latestRequestId;
             try {
-                const msgResult = await window.apiClient.getMessageHistory(1, LIMIT);
+                const msgResult = await window.apiClient.getMessageHistory(currentPage, PAGE_SIZE, {
+                    search: searchTerm,
+                    status: statusFilter,
+                    range: dateRange,
+                    start: rangeStart,
+                    end: rangeEnd,
+                    sort: sortKey,
+                    order: sortDir
+                });
                 if (msgResult.error) throw new Error(msgResult.error || 'Failed to load messages');
-                allMessages = msgResult.data && msgResult.data.messages ? msgResult.data.messages : [];
-                currentPage = 1;
-                sortKey = null;
-                sortDir = 'asc';
+                // Ignore stale responses: latest request wins.
+                if (requestId !== latestRequestId) return;
+
+                allMessages = Array.isArray(msgResult.data) ? msgResult.data : [];
+                const pagination = msgResult.pagination || {};
+                paginationTotal = pagination.total != null ? pagination.total : 0;
+                paginationTotalPages = pagination.totalPages != null ? pagination.totalPages : 0;
 
                 let stats = null;
                 try {
@@ -394,12 +424,14 @@
                     ]);
                     stats = { curr, prev };
                 } catch (e) {
-                    console.warn('[MessageStats] API failed, falling back to computed values', e.message);
+                    console.warn('[MessageStats] API failed, falling back to zeros', e.message);
                 }
+                if (requestId !== latestRequestId) return;
 
-                renderStats(stats ? stats.curr : null, stats ? stats.prev : null, !stats);
+                renderStats(stats ? stats.curr : null, stats ? stats.prev : null, !stats, paginationTotal);
                 renderMessages();
             } catch (error) {
+                if (requestId !== latestRequestId) return;
                 console.error('[MessageHistory] Error loading data:', error);
                 showSkeleton(false);
                 showError(true, error.message || 'Failed to load message history');
@@ -422,17 +454,19 @@
         }
 
         // ---- Stats with trend vs previous equal period ----
-        function renderStats(curr, prev, fallback) {
+        function renderStats(curr, prev, fallback, total) {
             let c = curr;
             let p = prev;
             if (fallback || !c) {
                 c = {
-                    total: allMessages.length,
-                    delivered: allMessages.filter(m => m.status === 'delivered').length,
-                    queued: allMessages.filter(m => m.status === 'queued').length,
-                    failed: allMessages.filter(m => m.status === 'failed').length
+                    total: total != null ? total : 0,
+                    delivered: 0,
+                    queued: 0,
+                    failed: 0
                 };
-                p = null; // cannot compute previous period from client fallback
+                p = null;
+            } else if (total != null) {
+                c.total = total;
             }
             const rows = [
                 { id: 'statTotal', trendId: 'trendTotal', value: c.total != null ? c.total : 0, prev: p && p.total != null ? p.total : 0 },
@@ -453,61 +487,10 @@
                     trendEl.classList.add(cls);
                     trendEl.textContent = (pct === 0 ? '— 0%' : sign + Math.abs(pct) + '%') + ' vs prev. period';
                 }
-                // if prev === 0, trend omitted per spec
             });
         }
 
-        // ---- Filtering / sorting / pagination ----
-        function getFilteredSorted() {
-            let list = allMessages.filter(msg => inRange(msg, dateRange, rangeStart, rangeEnd));
-            if (searchTerm) {
-                const s = searchTerm.toLowerCase();
-                list = list.filter(msg =>
-                    (msg.recipient && msg.recipient.toLowerCase().includes(s)) ||
-                    (msg.message && msg.message.toLowerCase().includes(s)) ||
-                    (msg.status && msg.status.toLowerCase().includes(s))
-                );
-            }
-            if (statusFilter) {
-                list = list.filter(msg => msg.status && msg.status.toLowerCase() === statusFilter);
-            }
-            if (sortKey) {
-                list = [...list].sort((a, b) => {
-                    let av = a[sortKey], bv = b[sortKey];
-                    if (sortKey === 'createdAt') {
-                        av = av ? new Date(av).getTime() : 0;
-                        bv = bv ? new Date(bv).getTime() : 0;
-                    } else {
-                        av = String(av || '').toLowerCase();
-                        bv = String(bv || '').toLowerCase();
-                    }
-                    if (av < bv) return sortDir === 'asc' ? -1 : 1;
-                    if (av > bv) return sortDir === 'asc' ? 1 : -1;
-                    return 0;
-                });
-            }
-            return list;
-        }
-
-        function showSkeleton(show) {
-            const skeleton = el('skeletonLoader');
-            const tableScroll = el('tableScroll');
-            if (skeleton) skeleton.style.display = show ? 'block' : 'none';
-            if (tableScroll) tableScroll.style.display = show ? 'none' : 'block';
-        }
-
-        function showError(show, message) {
-            const errorState = el('errorState');
-            const errorTitle = el('errorTitle');
-            const errorMessage = el('errorMessage');
-            if (!errorState) return;
-            errorState.style.display = show ? 'block' : 'none';
-            if (show) {
-                if (errorTitle) errorTitle.textContent = 'Failed to load messages';
-                if (errorMessage) errorMessage.textContent = message || 'Something went wrong while loading your message history.';
-            }
-        }
-
+        // ---- Render table from server page (no client-side filter/sort) ----
         function renderMessages() {
             const tbody = el('messagesBody');
             const emptyState = el('emptyState');
@@ -516,34 +499,27 @@
             const pagination = el('pagination');
             if (!tbody) return;
 
-            const list = getFilteredSorted();
-            const total = list.length;
-            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            showSkeleton(false);
+
+            const total = paginationTotal;
+            const totalPages = paginationTotalPages > 0 ? paginationTotalPages : Math.max(1, Math.ceil(total / PAGE_SIZE));
             if (currentPage > totalPages) currentPage = totalPages;
             if (currentPage < 1) currentPage = 1;
+
+            if (total === 0) {
+                const emptyTitle = el('emptyTitle');
+                const emptyMessage = el('emptyMessage');
+                if (emptyTitle) emptyTitle.textContent = hasActiveFilters() ? 'No messages match your filters' : 'No messages yet';
+                if (emptyMessage) emptyMessage.textContent = hasActiveFilters() ? 'Try adjusting your search, status, or date range.' : 'Your sent messages will appear here.';
+                if (emptyState) emptyState.style.display = 'flex';
+                if (footer) footer.style.display = 'none';
+                return;
+            }
+
             const start = (currentPage - 1) * PAGE_SIZE;
             const end = Math.min(start + PAGE_SIZE, total);
-            const pageItems = list.slice(start, end);
 
-            tbody.innerHTML = '';
-
-            if (allMessages.length === 0) {
-                $text('emptyTitle', 'No messages yet');
-                $text('emptyMessage', 'Your sent messages will appear here.');
-                emptyState.style.display = 'flex';
-                if (footer) footer.style.display = 'none';
-                return;
-            }
-
-            if (pageItems.length === 0) {
-                $text('emptyTitle', 'No messages match your filters');
-                $text('emptyMessage', 'Try adjusting your search, status, or date range.');
-                emptyState.style.display = 'flex';
-                if (footer) footer.style.display = 'none';
-                return;
-            }
-
-            emptyState.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'none';
             if (footer) {
                 footer.style.display = 'flex';
                 if (pageInfo) {
@@ -554,7 +530,8 @@
                 renderPagination(total, totalPages);
             }
 
-            pageItems.forEach(msg => {
+            tbody.innerHTML = '';
+            allMessages.forEach(msg => {
                 const row = document.createElement('tr');
                 const date = msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '-';
                 const messagePreview = msg.message ? (msg.message.substring(0, 60) + (msg.message.length > 60 ? '...' : '')) : '-';
@@ -597,7 +574,7 @@
             prevBtn.className = 'pagination-btn';
             prevBtn.disabled = currentPage <= 1;
             prevBtn.textContent = 'Prev';
-            prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderMessages(); } });
+            prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadData(); } });
             pagination.appendChild(prevBtn);
 
             const maxButtons = 5;
@@ -609,7 +586,7 @@
                 btn.type = 'button';
                 btn.className = 'pagination-btn' + (p === currentPage ? ' is-active' : '');
                 btn.textContent = p;
-                btn.addEventListener('click', () => { currentPage = p; renderMessages(); });
+                btn.addEventListener('click', () => { currentPage = p; loadData(); });
                 pagination.appendChild(btn);
             }
 
@@ -618,18 +595,23 @@
             nextBtn.className = 'pagination-btn';
             nextBtn.disabled = currentPage >= totalPages;
             nextBtn.textContent = 'Next';
-            nextBtn.addEventListener('click', () => { if (currentPage < totalPages) { currentPage++; renderMessages(); } });
+            nextBtn.addEventListener('click', () => { if (currentPage < totalPages) { currentPage++; loadData(); } });
             pagination.appendChild(nextBtn);
         }
 
         // ---- Event handlers ----
         function initEventHandlers() {
             const searchInput = el('searchInput');
-            if (searchInput) searchInput.addEventListener('input', function() {
-                searchTerm = this.value;
-                currentPage = 1;
-                renderMessages();
-            });
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    searchTerm = this.value;
+                    currentPage = 1;
+                    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+                    searchDebounceTimer = setTimeout(() => {
+                        loadData();
+                    }, 300);
+                });
+            }
 
             const timeSelect = el('timeFilter');
             if (timeSelect) timeSelect.addEventListener('change', function() {
@@ -753,7 +735,7 @@
                     }
                     updateSortUI();
                     currentPage = 1;
-                    renderMessages();
+                    loadData();
                 });
             });
         }

@@ -132,6 +132,7 @@ smsRecipientSchema.index({ campaignId: 1, status: 1 });
 smsRecipientSchema.index({ userId: 1, status: 1 });
 smsRecipientSchema.index({ userId: 1, normalizedPhoneNumber: 1 });
 smsRecipientSchema.index({ createdAt: 1 });
+smsRecipientSchema.index({ userId: 1, createdAt: -1 });
 
 // Update updatedAt before saving
 smsRecipientSchema.pre('save', function(next) {

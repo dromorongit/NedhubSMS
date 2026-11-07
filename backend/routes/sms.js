@@ -740,40 +740,111 @@ router.post('/send', authenticate, async (req, res) => {
     }
   });
 
-// Get message history - fetch from ALL three models: Message, SmsMessage, and SmsRecipient
+// Get message history - server-side search, status filter, date range and sort
+// so results work across ALL messages, not just the fetched page.
+// Scope: logged-in user only. Data is read from Message, SmsMessage and
+// SmsRecipient, combined, sorted and paginated in memory because records live
+// across three collections.
+// Query params: page, limit, search, status, range (today|7d|30d|month) or
+// start/end, sort (createdAt|recipient|status), order (asc|desc).
 router.get('/logs', authenticate, async (req, res) => {
   const logger = require('../utils/logger');
+  const mongoose = require('mongoose');
   const startTime = Date.now();
-  
+
+  const SORTABLE_FIELDS = ['createdAt', 'recipient', 'status'];
+  const QUEUED_STATUSES = ['queued', 'processing', 'scheduled'];
+  const DEFAULT_LIMIT = 50;
+  const MAX_LIMIT = 100;
+
+  // Escapes regex special characters so user input is matched literally.
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  // Date range bounds (same semantics as /api/sms/messages/stats).
+  function dateBounds(range, start, end) {
+    const now = new Date();
+    let s = null;
+    let e = now;
+    if (range === 'today') {
+      s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (range === '7d') {
+      s = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (range === '30d') {
+      s = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (range === 'month') {
+      s = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (range === 'custom' && start && end) {
+      s = new Date(start + 'T00:00:00');
+      e = new Date(end + 'T23:59:59.999');
+    } else {
+      s = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+    return { start: s, end: e };
+  }
+
+  // Status filter mapping, shared with /api/sms/messages/stats.
+  // 'queued' matches queued, processing and scheduled. Every other status
+  // (incl. 'sent') matches exactly and is its own bucket.
+  function statusMatchValue(status) {
+    if (!status) return null;
+    const s = String(status).toLowerCase();
+    if (s === 'queued') return QUEUED_STATUSES;
+    return s;
+  }
+
   try {
     const userId = req.user.userId;
-    const mongoose = require('mongoose');
     const userIdObj = new mongoose.Types.ObjectId(userId);
-    
+
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
-    
-    logger.info('[MessageHistory] Fetching message history', { userId, page, limit });
-    
-    // Fetch from all three models with per-source limit/skip (interim approximation:
-    // exact combined pagination across three collections is not feasible with simple skip/limit)
-    const [legacyMessages, newMessages, recipients, totalLegacy, totalNew, totalRecipients] = await Promise.all([
-      Message.findByUserId(userId).skip((page - 1) * limit).limit(limit),
-      SmsMessage.find({ userId: userIdObj }).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
-      require('../models/SmsRecipient').find({ userId: userIdObj }).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
-      Message.countDocuments({ userId: userIdObj }),
-      SmsMessage.countDocuments({ userId: userIdObj }),
-      require('../models/SmsRecipient').countDocuments({ userId: userIdObj })
+    const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(req.query.limit) || DEFAULT_LIMIT));
+    const search = req.query.search ? String(req.query.search).trim() : '';
+    const status = req.query.status ? String(req.query.status).trim() : '';
+    const range = req.query.range || '30d';
+    const startParam = req.query.start;
+    const endParam = req.query.end;
+    const sortField = req.query.sort;
+    const sortOrder = req.query.order && String(req.query.order).toLowerCase() === 'asc' ? 1 : -1;
+    const sortKey = SORTABLE_FIELDS.includes(sortField) ? sortField : 'createdAt';
+
+    const { start: rangeStart, end: rangeEnd } = dateBounds(range, startParam, endParam);
+
+    const baseMatch = { userId: userIdObj };
+    if (rangeStart) {
+      baseMatch.createdAt = { $gte: rangeStart, $lte: rangeEnd };
+    }
+
+    const statusValue = statusMatchValue(status);
+    const searchRegex = search ? new RegExp(escapeRegExp(search), 'i') : null;
+
+    // Build the per-model match criteria. Search covers recipient + message text.
+    function modelMatch(modelName) {
+      const m = { ...baseMatch };
+      if (statusValue) {
+        m.status = Array.isArray(statusValue) ? { $in: statusValue } : statusValue;
+      }
+      if (searchRegex) {
+        const recipientField = modelName === 'Message' ? 'recipients' : 'phoneNumber';
+        const messageField = modelName === 'Message' ? 'messageBody' : (modelName === 'SmsMessage' ? 'message' : 'personalizedMessage');
+        m.$or = [
+          { [recipientField]: { $regex: searchRegex } },
+          { [messageField]: { $regex: searchRegex } }
+        ];
+      }
+      return m;
+    }
+
+    const SmsRecipient = require('../models/SmsRecipient');
+
+    const [legacyMessages, newMessages, recipients] = await Promise.all([
+      Message.find(modelMatch('Message')).sort({ createdAt: -1 }),
+      SmsMessage.find(modelMatch('SmsMessage')).sort({ createdAt: -1 }),
+      SmsRecipient.find(modelMatch('SmsRecipient')).sort({ createdAt: -1 })
     ]);
-    
-    logger.info('[MessageHistory] Data fetched', {
-      userId,
-      legacyCount: legacyMessages.length,
-      newCount: newMessages.length,
-      recipientCount: recipients.length
-    });
-    
-    // Transform messages to have consistent format
+
+    // Transform messages to a consistent format.
     const transformMessage = (msg, source) => {
       if (source === 'legacy') {
         return {
@@ -801,65 +872,73 @@ router.get('/logs', authenticate, async (req, res) => {
           totalChargedToUser: msg.totalChargedToUser,
           source: 'new'
         };
-      } else {
-        // SmsRecipient
-        return {
-          _id: msg._id,
-          senderId: msg.campaignId ? 'Campaign' : 'N/A',
-          recipient: msg.phoneNumber,
-          recipientName: msg.recipientName,
-          message: msg.personalizedMessage,
-          status: msg.status,
-          createdAt: msg.createdAt,
-          errorCode: msg.errorCode,
-          errorMessage: msg.errorMessage,
-          source: 'recipient'
-        };
       }
+      // SmsRecipient
+      return {
+        _id: msg._id,
+        senderId: msg.campaignId ? 'Campaign' : 'N/A',
+        recipient: msg.phoneNumber,
+        recipientName: msg.recipientName,
+        message: msg.personalizedMessage,
+        status: msg.status,
+        createdAt: msg.createdAt,
+        errorCode: msg.errorCode,
+        errorMessage: msg.errorMessage,
+        source: 'recipient'
+      };
     };
-    
-    // Combine all three sources and sort by date
+
     const allMessages = [
       ...legacyMessages.map(msg => transformMessage(msg, 'legacy')),
       ...newMessages.map(msg => transformMessage(msg, 'new')),
       ...recipients.map(msg => transformMessage(msg, 'recipient'))
-    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    // Slice to requested page after combine-sort (interim approximation)
-    const startIdx = (page - 1) * limit;
+    ];
+
+    // Global sort across all sources (applied in memory since recipient is a
+    // different field per model).
+    allMessages.sort((a, b) => {
+      let av, bv;
+      if (sortKey === 'createdAt') {
+        av = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        bv = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      } else {
+        av = String(a[sortKey] || '').toLowerCase();
+        bv = String(b[sortKey] || '').toLowerCase();
+      }
+      if (av < bv) return sortOrder === 1 ? -1 : 1;
+      if (av > bv) return sortOrder === 1 ? 1 : -1;
+      return 0;
+    });
+
+    const total = allMessages.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const safePage = Math.min(Math.max(page, 1), totalPages);
+    const startIdx = (safePage - 1) * limit;
     const paginatedMessages = allMessages.slice(startIdx, startIdx + limit);
-    
-    // Calculate summary over the current page (approximation behavior)
-    const summary = {
-      total: totalLegacy + totalNew + totalRecipients,
-      sent: paginatedMessages.filter(m => m.status === 'sent').length,
-      delivered: paginatedMessages.filter(m => m.status === 'delivered').length,
-      failed: paginatedMessages.filter(m => m.status === 'failed').length,
-      scheduled: paginatedMessages.filter(m => m.status === 'scheduled').length,
-      queued: paginatedMessages.filter(m => m.status === 'queued').length
-    };
-    
+
     logger.info('[MessageHistory] History retrieved', {
       userId,
-      total: summary.total,
-      sent: summary.sent,
-      delivered: summary.delivered,
-      failed: summary.failed,
-      scheduled: summary.scheduled,
+      page: safePage,
+      limit,
+      total,
+      totalPages,
+      search: !!search,
+      status: statusValue,
+      range,
+      sortKey,
+      sortOrder,
       durationMs: Date.now() - startTime
     });
-    
+
     res.json({
       success: true,
       message: 'Messages fetched successfully',
-      data: {
-        messages: paginatedMessages,
-        summary,
-        pagination: {
-          page,
-          limit,
-          hasMore: paginatedMessages.length === limit
-        }
+      data: paginatedMessages,
+      pagination: {
+        page: safePage,
+        limit,
+        total,
+        totalPages
       }
     });
   } catch (error) {
@@ -900,9 +979,8 @@ router.get('/messages/stats', authenticate, async (req, res) => {
     } else if (range === 'month') {
       start = new Date(now.getFullYear(), now.getMonth(), 1);
     } else if (range === 'custom' && req.query.start && req.query.end) {
-      start = new Date(req.query.start);
-      end = new Date(req.query.end);
-      end.setHours(23, 59, 59, 999);
+      start = new Date(req.query.start + 'T00:00:00');
+      end = new Date(req.query.end + 'T23:59:59.999');
     } else {
       start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
@@ -932,17 +1010,23 @@ router.get('/messages/stats', authenticate, async (req, res) => {
       }
     }
 
+    // Status bucket mapping (shared with /api/sms/logs list filter).
+    // 'queued' bucket = queued + processing + scheduled.
+    // 'sent' is its own bucket (NOT rolled into queued/delivered/failed), so
+    // Total = Delivered + Failed + Queued + Sent + any other bucket shown (e.g. Cancelled).
+    const queued = (totals.queued || 0) + (totals.processing || 0) + (totals.scheduled || 0);
+
     res.json({
       success: true,
       range,
       total: legacyCount + smsCount + recipCount,
       delivered: totals.delivered || 0,
       failed: totals.failed || 0,
-      queued: totals.queued || 0,
+      queued,
       sent: totals.sent || 0,
-      scheduled: totals.scheduled || 0,
       cancelled: totals.cancelled || 0,
-      processing: totals.processing || 0
+      processing: totals.processing || 0,
+      scheduled: totals.scheduled || 0
     });
   } catch (error) {
     logger.error('[MessageStats] Error', { userId, error: error.message });

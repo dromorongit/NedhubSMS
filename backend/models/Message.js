@@ -29,6 +29,11 @@ const messageSchema = new mongoose.Schema({
   }
 });
 
+// Compound indexes to support user-scoped message history queries
+// (userId + createdAt for date-range/sort, userId + status for status filter)
+messageSchema.index({ userId: 1, createdAt: -1 });
+messageSchema.index({ userId: 1, status: 1 });
+
 // Static method to find messages by user ID
 messageSchema.statics.findByUserId = function(userId) {
   return this.find({ userId: userId }).sort({ createdAt: -1 });

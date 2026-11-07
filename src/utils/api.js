@@ -197,11 +197,16 @@ class ApiClient {
 
       // Unwrap the response: if the JSON has a 'data' property, use that as the payload; otherwise use the whole response
       const dataPayload = result.data !== undefined ? result.data : result;
-      return { 
+      const unwrapped = {
         data: dataPayload,
         message: result.message,
         contentType: 'application/json'
       };
+      // Pass through pagination metadata when the server includes it (e.g. /sms/logs).
+      if (result.pagination !== undefined) {
+        unwrapped.pagination = result.pagination;
+      }
+      return unwrapped;
     } catch (error) {
       console.error('[API] Request error:', error);
       // Handle abort signals gracefully
@@ -489,9 +494,16 @@ class ApiClient {
     });
   }
 
-  async getMessageHistory(page = 1, limit = 50) {
-    const qs = new URLSearchParams({ page, limit }).toString();
-    return this.request('GET', `/sms/logs?${qs}`);
+  async getMessageHistory(page = 1, limit = 50, filters = {}) {
+    const qs = new URLSearchParams({ page, limit });
+    if (filters.search) qs.set('search', filters.search);
+    if (filters.status) qs.set('status', filters.status);
+    if (filters.range) qs.set('range', filters.range);
+    if (filters.start) qs.set('start', filters.start);
+    if (filters.end) qs.set('end', filters.end);
+    if (filters.sort) qs.set('sort', filters.sort);
+    if (filters.order) qs.set('order', filters.order);
+    return this.request('GET', `/sms/logs?${qs.toString()}`);
   }
 
   async getMessageStats(range, start, end) {

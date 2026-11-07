@@ -62,6 +62,18 @@ const disconnectDB = async () => {
 const ensureModelIndexes = async () => {
   const Transaction = require('../models/Transaction');
   await Transaction.init();
+  // Ensure message history indexes (userId + createdAt, userId + status) exist
+  // across all three message stores so user-scoped filtered/sorted queries are indexed.
+  try {
+    const Message = require('../models/Message');
+    const SmsMessage = require('../models/SmsMessage');
+    const SmsRecipient = require('../models/SmsRecipient');
+    await Message.init();
+    await SmsMessage.init();
+    await SmsRecipient.init();
+  } catch (indexErr) {
+    logger.error('Failed to ensure message history indexes (continuing without them): ' + indexErr.message);
+  }
 };
 
 module.exports = {
