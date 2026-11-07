@@ -27,7 +27,7 @@
 
   const current = (location.pathname.split('/').pop() || 'overview.html').toLowerCase();
 
-  function isMobile() { return window.innerWidth < 1024; }
+  function isMobile() { return window.innerWidth < 900; }
 
   const sidebarMount = document.getElementById('nhs-sidebar-mount');
   const topbarMount = document.getElementById('nhs-topbar-mount');
@@ -44,7 +44,7 @@
   const logoutIcon = ico('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>');
   const sidebarHtml =
     '<aside class="nhs-sidebar" id="nhsSidebar" aria-label="Main navigation">' +
-      '<div class="nhs-sidebar-header"><img src="../../assets/images/Nedhublogo.PNG" alt="Nedhub Logo" class="nhs-logo"></div>' +
+      '<div class="nhs-sidebar-header"><img src="../../../Nedhublogo.PNG" alt="Nedhub Logo" class="nhs-logo"></div>' +
       '<nav class="nhs-nav" aria-label="Primary"><ul class="nhs-nav-list">' + navItemsHtml +
         '<li><a class="nhs-link nhs-link--logout" href="#" data-logout="1">' + logoutIcon + '<span>Logout</span></a></li>' +
       '</ul></nav>' +
@@ -59,7 +59,7 @@
           '<div class="nhs-user-avatar" id="sidebarUserAvatar">U</div>' +
           '<div class="nhs-user-meta">' +
             '<div class="nhs-user-name" id="sidebarUserName">User</div>' +
-            '<div class="nhs-user-account" id="sidebarAccountLabel">Personal Account</div>' +
+            '<div class="nhs-user-account" id="sidebarAccountLabel">Premium Account</div>' +
           '</div>' +
           '<svg class="nhs-user-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
         '</a>' +
@@ -74,13 +74,23 @@
     '<header class="nhs-topbar">' +
       '<div class="nhs-topbar-left">' +
         '<button class="nhs-burger" id="nhsBurger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nhsSidebar"><span></span><span></span><span></span></button>' +
+        '<div class="nhs-topbar-search">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>' +
+          '<input type="search" class="nhs-topbar-search-input" placeholder="Search contacts, campaigns..." aria-label="Search">' +
+        '</div>' +
         '<h1 class="nhs-page-title" id="nhsPageTitle">' + activeItem.label + '</h1>' +
       '</div>' +
-      '<a class="nhs-topbar-user" href="settings.html">' +
+      '<div class="nhs-topbar-right">' +
+        '<button class="nhs-icon-btn" id="nhsNotifBtn" type="button" aria-label="Notifications" aria-haspopup="true" aria-controls="nhsNotifBadge">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>' +
+          '<span class="nhs-badge" id="nhsNotifBadge" aria-label="3 new notifications">3</span>' +
+        '</button>' +
+        '<a class="nhs-topbar-user" href="settings.html">' +
         '<div class="nhs-topbar-avatar" id="nhsTopbarAvatar">U</div>' +
         '<span class="nhs-topbar-name" id="nhsTopbarName">User</span>' +
         '<svg class="nhs-topbar-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
-      '</a>' +
+        '</a>' +
+      '</div>' +
     '</header>';
   topbarMount.innerHTML = topbarHtml;
 

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/dashboard.css">
     <link rel="stylesheet" href="../../styles/responsive.css">
+    <link rel="stylesheet" href="../../styles/theme.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
@@ -23,101 +24,258 @@
     <script src="../../utils/shell.js?v=2"></script>
             <!-- Sidebar Overlay -->
             <div class="dashboard-content">
-                <div class="welcome-section">
-                    <h2 id="pageTitle">Contacts</h2>
-                    <p class="welcome-subtitle">Manage your contact list for bulk SMS campaigns</p>
-                </div>
 
-                <!-- Stats Row -->
-                <div class="contacts-stats">
-                    <div class="stat-mini">
-                        <div class="stat-mini-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="stat-mini-content">
-                            <span class="stat-mini-value" id="totalContacts">0</span>
-                            <span class="stat-mini-label">Total Contacts</span>
-                        </div>
+                <!-- Page header -->
+                <header class="nhs-page-header" id="pageHeader">
+                    <div class="header-text">
+                        <h1 id="pageTitle">Contacts</h1>
+                        <p class="subtitle">Manage your contacts and grow your audience.</p>
                     </div>
-                    <div class="stat-mini">
-                        <div class="stat-mini-icon groups">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                            </svg>
-                        </div>
-                        <div class="stat-mini-content">
-                            <span class="stat-mini-value" id="totalGroups">0</span>
-                            <span class="stat-mini-label">Groups</span>
-                        </div>
+                    <div class="illustration" aria-hidden="true">
+                        <svg viewBox="0 0 160 100" fill="none" role="img" aria-label="People illustration">
+                            <circle cx="44" cy="62" r="14" stroke="#0F1B3D" stroke-width="2.5"></circle>
+                            <path d="M30 76 Q44 70 44 62 Q44 70 58 76" stroke="#0F1B3D" stroke-width="2.5" stroke-linecap="round"></path>
+                            <circle cx="88" cy="56" r="14" stroke="#0F1B3D" stroke-width="2.5"></circle>
+                            <path d="M74 70 Q88 64 88 56 Q88 64 102 70" stroke="#0F1B3D" stroke-width="2.5" stroke-linecap="round"></path>
+                            <circle cx="122" cy="66" r="14" stroke="#0F1B3D" stroke-width="2.5"></circle>
+                            <path d="M108 80 Q122 74 122 66 Q122 74 136 80" stroke="#0F1B3D" stroke-width="2.5" stroke-linecap="round"></path>
+                            <path d="M144 30 L152 22 L160 30" stroke="#F57C1F" stroke-width="3" stroke-linecap="round"></path>
+                            <path d="M152 22 L152 40" stroke="#F57C1F" stroke-width="3" stroke-linecap="round"></path>
+                        </svg>
                     </div>
-                </div>
+                </header>
 
-                <!-- Contacts Actions Bar -->
-                <div class="actions-bar">
-                    <div class="search-wrapper">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                        <input type="text" id="searchInput" placeholder="Search contacts by name, phone, or group...">
+                <!-- Upload banner -->
+                <div class="upload-banner" role="region" aria-label="Upload your contacts">
+                    <svg class="database-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <path d="M2 12h20M2 8l0.5 2M17.5 8l0.5 2M2 16l0.5 2M17.5 16l0.5 2"></path>
+                        <ellipse cx="12" cy="6" rx="10" ry="2" stroke="currentColor" stroke-width="2"></ellipse>
+                        <ellipse cx="12" cy="12" rx="10" ry="2" stroke="currentColor" stroke-width="2"></ellipse>
+                        <ellipse cx="12" cy="18" rx="10" ry="2" stroke="currentColor" stroke-width="2"></ellipse>
+                    </svg>
+                    <div class="banner-body">
+                        <h3>Upload Your Contacts</h3>
+                        <p>Add contacts easily via CSV, Excel or manual entry.</p>
                     </div>
-                    <div class="filter-wrapper">
-                        <select id="groupFilter">
-                            <option value="">All Groups</option>
-                        </select>
-                    </div>
-                    <button class="btn-primary" id="addContactBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Add Contact
-                    </button>
-                    <button class="btn-secondary" id="importContactsBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button class="btn-upload" id="btnUploadContacts" type="button" aria-label="Upload contacts file">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="17 8 12 3 7 8"></polyline>
                             <line x1="12" y1="3" x2="12" y2="15"></line>
                         </svg>
-                        Import Contacts
+                        Upload Contacts
                     </button>
                 </div>
 
-                <!-- Contacts Table Card -->
-                <div class="contacts-card">
-                    <div class="table-container">
-                        <table class="contacts-table">
+                <!-- Stat cards -->
+                <div class="stat-grid">
+                    <article class="stat-card">
+                        <div class="stat-icon stat-tint-blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                        <div class="stat-body">
+                            <span class="stat-value" id="totalContacts">0</span>
+                            <span class="stat-label">Total Contacts</span>
+                        </div>
+                        <svg class="stat-sparkline" viewBox="0 0 96 32" preserveAspectRatio="none" role="img" aria-label="Total contacts trend">
+                            <defs>
+                                <linearGradient id="grad-total" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#1976D2"/>
+                                    <stop offset="100%" stop-color="#90CAF9"/>
+                                </linearGradient>
+                            </defs>
+                            <polyline points="2,24 14,20 28,26 42,16 56,22 70,18 84,26 96,22" fill="url(#grad-total)" opacity="0.18" stroke="url(#grad-total)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        </svg>
+                        <span class="trend-none">All contacts</span>
+                    </article>
+                    <article class="stat-card">
+                        <div class="stat-icon stat-tint-green">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M8 12l1.5 1.5L13 10"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-body">
+                            <span class="stat-value" id="activeContacts">0</span>
+                            <span class="stat-label">Active Contacts</span>
+                        </div>
+                        <svg class="stat-sparkline" viewBox="0 0 96 32" preserveAspectRatio="none" role="img" aria-label="Active contacts trend">
+                            <defs>
+                                <linearGradient id="grad-active" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#16A34A"/>
+                                    <stop offset="100%" stop-color="#86EFAC"/>
+                                </linearGradient>
+                            </defs>
+                            <polyline points="2,22 14,18 28,24 42,14 56,20 70,12 84,18 96,14" fill="url(#grad-active)" opacity="0.18" stroke="url(#grad-active)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        </svg>
+                        <span class="trend-up">&#8593; active</span>
+                    </article>
+                    <article class="stat-card">
+                        <div class="stat-icon stat-tint-orange">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <path d="M21 10c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-body">
+                            <span class="stat-value" id="blacklistedCount">0</span>
+                            <span class="stat-label">Blacklisted</span>
+                        </div>
+                        <svg class="stat-sparkline" viewBox="0 0 96 32" preserveAspectRatio="none" role="img" aria-label="Blacklisted contacts trend">
+                            <defs>
+                                <linearGradient id="grad-blacklisted" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#F57C1F"/>
+                                    <stop offset="100%" stop-color="#F89A3C"/>
+                                </linearGradient>
+                            </defs>
+                            <polyline points="2,10 14,14 28,8 42,18 56,10 70,20 84,12 96,16" fill="url(#grad-blacklisted)" opacity="0.18" stroke="url(#grad-blacklisted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        </svg>
+                        <span class="trend-down">&#8593; none</span>
+                    </article>
+                    <article class="stat-card">
+                        <div class="stat-icon stat-tint-purple">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-body">
+                            <span class="stat-value" id="totalGroups">0</span>
+                            <span class="stat-label">Contact Lists</span>
+                        </div>
+                        <svg class="stat-sparkline" viewBox="0 0 96 32" preserveAspectRatio="none" role="img" aria-label="Contact lists trend">
+                            <defs>
+                                <linearGradient id="grad-lists" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#7C3AED"/>
+                                    <stop offset="100%" stop-color="#C084FC"/>
+                                </linearGradient>
+                            </defs>
+                            <polyline points="2,18 14,22 28,16 42,20 56,14 70,24 84,18 96,22" fill="url(#grad-lists)" opacity="0.18" stroke="url(#grad-lists)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        </svg>
+                        <span class="trend-none">&#8212;</span>
+                    </article>
+                </div>
+
+                <!-- Contacts table card -->
+                <div class="contacts-table-card">
+                    <div class="table-card-header">
+                        <div class="table-title-group">
+                            <div class="table-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                </svg>
+                            </div>
+                            <h2 id="contactsSectionTitle">Your Contacts</h2>
+                        </div>
+                        <div class="table-toolbar">
+                            <div class="table-search">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input type="search" id="searchInput" placeholder="Search by name or phone..." aria-label="Search contacts by name or phone">
+                            </div>
+                            <div class="table-filter">
+                                <select id="groupFilter" aria-label="Filter by contact list">
+                                    <option value="">All Lists</option>
+                                </select>
+                            </div>
+                            <button class="btn-add-contact" id="addContactBtn" type="button" aria-label="Add a new contact">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Contact
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bulk action bar (shown when rows are selected) -->
+                    <div class="bulk-bar" id="bulkBar" aria-hidden="true">
+                        <span class="bulk-count"><span id="bulkCount">0</span> selected</span>
+                        <div class="bulk-actions">
+                            <select id="bulkListSelect" aria-label="Add selected contacts to list">
+                                <option value="">Add to list</option>
+                                <option value="Customers">Customers</option>
+                                <option value="Subscribers">Subscribers</option>
+                                <option value="Staff">Staff</option>
+                            </select>
+                            <button class="btn-bulk-delete" id="btnBulkDelete" type="button" aria-label="Delete selected contacts">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                Delete selected
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-scroll">
+                        <table class="contacts-table" role="grid" aria-label="Contacts list">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Phone Number</th>
-                                    <th>Group</th>
-                                    <th>Added Date</th>
-                                    <th>Actions</th>
+                                    <th scope="col" class="col-select">
+                                        <input type="checkbox" id="selectAll" class="row-select" aria-label="Select all contacts">
+                                    </th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Phone Number</th>
+                                    <th scope="col">List</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Added On</th>
+                                    <th scope="col" class="col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="contactsBody">
                                 <!-- Contacts will be loaded here -->
                             </tbody>
                         </table>
-                        <div class="loading-spinner" id="loadingSpinner">
-                            <div class="spinner"></div>
-                            <p>Loading contacts...</p>
+                    </div>
+
+                    <div class="table-footer">
+                        <span class="page-info" id="pageInfo">Showing <span id="rangeStart">1</span>-<span id="rangeEnd">5</span> of <span id="totalCount">0</span> contacts</span>
+                        <div class="pagination" role="navigation" aria-label="Contacts pagination">
+                            <button class="pagination-btn" id="btnPrevPage" type="button" aria-label="Previous page" aria-disabled="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                            <span id="pageNumbers"></span>
+                            <button class="pagination-btn" id="btnNextPage" type="button" aria-label="Next page" aria-disabled="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
                         </div>
-                        <div class="empty-state" id="emptyState" style="display: none;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
-                            </svg>
-                            <p>No contacts yet</p>
-                            <span>Add your first contact to get started</span>
+                    </div>
+
+                    <div class="empty-state" id="emptyState" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <h3>No contacts yet.</h3>
+                        <p>Upload a file or add one manually.</p>
+                        <div class="empty-actions">
+                            <button class="btn-primary" id="emptyUploadBtn" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                Upload Contacts
+                            </button>
+                            <button class="btn-secondary" id="emptyAddBtn" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Contact
+                            </button>
                         </div>
                     </div>
                 </div>
+
             </div>
         </main>
     </div>
@@ -251,6 +409,9 @@
         let filteredContacts = [];
         let editingContactId = null;
         let deletingContactId = null;
+        let currentPage = 1;
+        const pageSize = 5;
+        const selectedIds = new Set();
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthAndLoad();
@@ -310,13 +471,43 @@
             if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
         }
 
+        function avatarClassFor(name) {
+            if (!name) return 'pastel-indigo';
+            let code = 0;
+            for (let i = 0; i < name.length; i++) {
+                code = (code * 31 + name.charCodeAt(i)) % 7;
+            }
+            const classes = ['pastel-blue', 'pastel-green', 'pastel-purple', 'pastel-orange', 'pastel-red', 'pastel-indigo', 'pastel-blue'];
+            return classes[code];
+        }
+
+        function statusPillClass(status) {
+            switch (status) {
+                case 'Active': return 'status-pill active';
+                case 'Blacklisted': return 'status-pill blacklisted';
+                default: return 'status-pill default';
+            }
+        }
+
+        function listPillClass(list) {
+            switch (list) {
+                case 'Customers': return 'list-pill customers';
+                case 'Subscribers': return 'list-pill subscribers';
+                case 'Staff': return 'list-pill staff';
+                default: return 'list-pill default';
+            }
+        }
+
         async function loadContacts() {
             const spinner = document.getElementById('loadingSpinner');
             const emptyState = document.getElementById('emptyState');
             const tbody = document.getElementById('contactsBody');
             const totalContactsEl = document.getElementById('totalContacts');
+            const activeContactsEl = document.getElementById('activeContacts');
+            const blacklistedCountEl = document.getElementById('blacklistedCount');
             const totalGroupsEl = document.getElementById('totalGroups');
             const groupFilter = document.getElementById('groupFilter');
+            const tableCard = document.querySelector('.contacts-table-card');
             
             if (!tbody) return;
             
@@ -330,22 +521,28 @@
                 
                 if (result.error) {
                     console.error(result.error);
-                    tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load contacts</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="error">Failed to load contacts</td></tr>';
                     return;
                 }
                 
                 contacts = result.data || [];
                 filteredContacts = [...contacts];
+                currentPage = 1;
+                selectedIds.clear();
                 
                 // Update stats
                 if (totalContactsEl) totalContactsEl.textContent = contacts.length;
+                const activeCount = contacts.filter(c => (c.status || 'Active') === 'Active').length;
+                const blacklistedCount = contacts.filter(c => c.status === 'Blacklisted').length;
+                if (activeContactsEl) activeContactsEl.textContent = activeCount;
+                if (blacklistedCountEl) blacklistedCountEl.textContent = blacklistedCount;
                 
                 // Get unique groups
                 const groups = [...new Set(contacts.map(c => c.groupName).filter(g => g))];
                 if (totalGroupsEl) totalGroupsEl.textContent = groups.length;
                 
                 // Update group filter
-                groupFilter.innerHTML = '<option value="">All Groups</option>';
+                groupFilter.innerHTML = '<option value="">All Lists</option>';
                 groups.forEach(group => {
                     const option = document.createElement('option');
                     option.value = group;
@@ -353,67 +550,189 @@
                     groupFilter.appendChild(option);
                 });
                 
-                if (contacts.length > 0) {
-                    renderContacts(contacts);
+                if (filteredContacts.length > 0) {
+                    if (emptyState) emptyState.style.display = 'none';
+                    if (tableCard) tableCard.style.display = '';
+                    renderContacts(filteredContacts);
                 } else {
+                    if (tableCard) tableCard.style.display = 'none';
                     emptyState.style.display = 'flex';
                 }
             } catch (error) {
                 spinner.style.display = 'none';
                 console.error('Error loading contacts:', error);
-                tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load contacts</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="error">Failed to load contacts</td></tr>';
+            }
+        }
+
+        function pageRange() {
+            const total = filteredContacts.length;
+            if (total === 0) return '0-0 of 0';
+            const start = (currentPage - 1) * pageSize + 1;
+            const end = Math.min(currentPage * pageSize, total);
+            return `${start}-${end} of ${total}`;
+        }
+
+        function totalPages() {
+            return Math.max(1, Math.ceil(filteredContacts.length / pageSize));
+        }
+
+        function renderPagination() {
+            const pageInfoEl = document.getElementById('pageInfo');
+            const rangeStartEl = document.getElementById('rangeStart');
+            const rangeEndEl = document.getElementById('rangeEnd');
+            const totalCountEl = document.getElementById('totalCount');
+            const prevBtn = document.getElementById('btnPrevPage');
+            const nextBtn = document.getElementById('btnNextPage');
+            const pageNumbersEl = document.getElementById('pageNumbers');
+            const total = filteredContacts.length;
+            const pages = totalPages();
+
+            if (rangeStartEl) {
+                const start = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+                rangeStartEl.textContent = start;
+            }
+            if (rangeEndEl) rangeEndEl.textContent = total === 0 ? 0 : Math.min(currentPage * pageSize, total);
+            if (totalCountEl) totalCountEl.textContent = total;
+            if (pageInfoEl) pageInfoEl.textContent = `Showing ${pageRange()}`;
+
+            if (prevBtn) {
+                prevBtn.disabled = currentPage <= 1;
+                prevBtn.setAttribute('aria-disabled', currentPage <= 1);
+            }
+            if (nextBtn) {
+                nextBtn.disabled = currentPage >= pages;
+                nextBtn.setAttribute('aria-disabled', currentPage >= pages);
+            }
+
+            if (!pageNumbersEl) return;
+            pageNumbersEl.innerHTML = '';
+            const maxVisible = 3;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(pages, startPage + maxVisible - 1);
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+
+            const addPageBtn = (page, label, active) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `pagination-btn ${active ? 'is-active' : ''}`;
+                btn.textContent = label;
+                btn.setAttribute('aria-label', `Page ${page}`);
+                if (active) btn.setAttribute('aria-current', 'page');
+                btn.addEventListener('click', () => {
+                    currentPage = page;
+                    renderContacts(filteredContacts);
+                });
+                pageNumbersEl.appendChild(btn);
+            };
+
+            if (pages > 1) {
+                if (startPage > 1) {
+                    addPageBtn(1, '1');
+                    if (startPage > 2) {
+                        const gap = document.createElement('span');
+                        gap.className = 'pagination-ellipsis';
+                        gap.textContent = '&#8230;';
+                        pageNumbersEl.appendChild(gap);
+                    }
+                }
+                for (let p = startPage; p <= endPage; p++) {
+                    addPageBtn(p, String(p), p === currentPage);
+                }
+                if (endPage < pages) {
+                    if (endPage < pages - 1) {
+                        const gap = document.createElement('span');
+                        gap.className = 'pagination-ellipsis';
+                        gap.textContent = '&#8230;';
+                        pageNumbersEl.appendChild(gap);
+                    }
+                    addPageBtn(pages, String(pages));
+                }
             }
         }
 
         function renderContacts(contactsToRender) {
             const tbody = document.getElementById('contactsBody');
             const emptyState = document.getElementById('emptyState');
+            const tableCard = document.querySelector('.contacts-table-card');
+            const bulkBar = document.getElementById('bulkBar');
             
             if (!tbody) return;
             
             tbody.innerHTML = '';
+            selectedIds.clear();
+            if (bulkBar) bulkBar.setAttribute('aria-hidden', 'true');
             
             if (contactsToRender.length === 0) {
+                if (tableCard) tableCard.style.display = 'none';
                 emptyState.style.display = 'flex';
+                renderPagination();
                 return;
             }
             
+            if (tableCard) tableCard.style.display = '';
             emptyState.style.display = 'none';
             
-            contactsToRender.forEach(contact => {
-                const row = document.createElement('tr');
+            const start = (currentPage - 1) * pageSize;
+            const pageItems = contactsToRender.slice(start, start + pageSize);
+            
+            pageItems.forEach(contact => {
+                const id = contact._id || contact.id;
                 const date = contact.createdAt ? new Date(contact.createdAt).toLocaleDateString() : '-';
                 const recipientName = contact.recipientName || 'Unknown';
-                const displayName = recipientName.charAt(0).toUpperCase();
+                const displayName = (recipientName.charAt(0) || 'U').toUpperCase();
+                const status = contact.status || 'Active';
+                const listName = contact.groupName || 'General';
+                const isSelected = selectedIds.has(id);
                 
+                const row = document.createElement('tr');
+                row.className = 'contact-row' + (isSelected ? ' selected' : '');
+                row.setAttribute('data-id', escapeAttr(id));
                 row.innerHTML = `
-                    <td class="contact-name">
-                        <div class="contact-avatar">${escapeHtml(displayName)}</div>
-                        <span>${escapeHtml(recipientName)}</span>
+                    <td class="col-select">
+                        <input type="checkbox" class="row-select" data-id="${escapeAttr(id)}" ${isSelected ? 'checked' : ''} aria-label="Select ${escapeHtml(recipientName)}">
+                    </td>
+                    <td>
+                        <div class="contact-row-name">
+                            <div class="contact-avatar ${avatarClassFor(recipientName)}">${escapeHtml(displayName)}</div>
+                            <span class="contact-name-text">${escapeHtml(recipientName)}</span>
+                        </div>
                     </td>
                     <td class="contact-phone">${escapeHtml(contact.phoneNumber)}</td>
-                    <td><span class="group-badge">${escapeHtml(contact.groupName || 'General')}</span></td>
+                    <td><span class="${listPillClass(listName)}">${escapeHtml(listName)}</span></td>
+                    <td><span class="${statusPillClass(status)}">${escapeHtml(status)}</span></td>
                     <td class="contact-date">${date}</td>
                     <td class="contact-actions">
-                        <button class="action-btn edit-btn" data-id="${escapeAttr(contact._id)}" title="Edit">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                        <button class="action-btn delete-btn" data-id="${escapeAttr(contact._id)}" title="Delete">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
+                        <div class="action-toolbar">
+                            <button class="action-btn view-btn" data-id="${escapeAttr(id)}" title="View contact" aria-label="View contact ${escapeHtml(recipientName)}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                            <button class="action-btn edit-btn" data-id="${escapeAttr(id)}" title="Edit contact" aria-label="Edit contact ${escapeHtml(recipientName)}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <button class="action-btn delete-btn" data-id="${escapeAttr(id)}" title="Delete contact" aria-label="Delete contact ${escapeHtml(recipientName)}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
             
-            // Attach event listeners
+            renderPagination();
             attachActionListeners();
+            attachRowSelectionListeners();
         }
 
         function attachActionListeners() {
@@ -430,10 +749,121 @@
                     openDeleteModal(id);
                 });
             });
+
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    const contact = contacts.find(c => (c._id || c.id) === id);
+                    if (contact) {
+                        showToast(`Viewing ${escapeHtml(contact.recipientName || 'Unknown')}`, 'info');
+                    }
+                });
+            });
+        }
+
+        function attachRowSelectionListeners() {
+            const selectAll = document.getElementById('selectAll');
+            const rowCheckboxes = document.querySelectorAll('.contact-row .row-select');
+
+            const updateSelectAll = () => {
+                if (!selectAll) return;
+                const total = rowCheckboxes.length;
+                const checked = document.querySelectorAll('.contact-row .row-select:checked').length;
+                selectAll.checked = total > 0 && checked === total;
+                selectAll.indeterminate = total > 0 && checked > 0 && checked < total;
+            };
+
+            const updateBulkBar = () => {
+                const count = selectedIds.size;
+                const bulkBar = document.getElementById('bulkBar');
+                const bulkCountEl = document.getElementById('bulkCount');
+                if (bulkCountEl) bulkCountEl.textContent = count;
+                if (bulkBar) {
+                    if (count > 0) {
+                        bulkBar.classList.add('is-visible');
+                        bulkBar.setAttribute('aria-hidden', 'false');
+                    } else {
+                        bulkBar.classList.remove('is-visible');
+                        bulkBar.setAttribute('aria-hidden', 'true');
+                    }
+                }
+            };
+
+            selectAll.addEventListener('change', () => {
+                const check = selectAll.checked;
+                rowCheckboxes.forEach(cb => { cb.checked = check; });
+                if (check) {
+                    rowCheckboxes.forEach(cb => selectedIds.add(cb.getAttribute('data-id')));
+                } else {
+                    selectedIds.clear();
+                }
+                updateBulkBar();
+            });
+
+            rowCheckboxes.forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    const id = cb.getAttribute('data-id');
+                    if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+                    updateSelectAll();
+                    updateBulkBar();
+                });
+            });
+
+            updateSelectAll();
+            updateBulkBar();
+
+            // Bulk add to list
+            const bulkListSelect = document.getElementById('bulkListSelect');
+            if (bulkListSelect) {
+                bulkListSelect.addEventListener('change', async () => {
+                    const list = bulkListSelect.value;
+                    if (!list || selectedIds.size === 0) return;
+                    if (!confirm(`Add ${selectedIds.size} selected contact(s) to "${list}"?`)) return;
+                    bulkListSelect.disabled = true;
+                    try {
+                        for (const id of selectedIds) {
+                            const contact = contacts.find(c => (c._id || c.id) === id);
+                            if (contact) {
+                                await window.apiClient.updateContact(id, contact.recipientName, contact.phoneNumber, list);
+                            }
+                        }
+                        showToast(`${selectedIds.size} contact(s) added to ${list}`, 'success');
+                        bulkListSelect.value = '';
+                        await loadContacts();
+                    } catch (error) {
+                        console.error('Bulk add to list error:', error);
+                        showToast('Failed to add contacts to list', 'error');
+                    } finally {
+                        bulkListSelect.disabled = false;
+                    }
+                });
+            }
+
+            // Bulk delete
+            const btnBulkDelete = document.getElementById('btnBulkDelete');
+            if (btnBulkDelete) {
+                btnBulkDelete.addEventListener('click', async () => {
+                    if (selectedIds.size === 0) return;
+                    if (!confirm(`Delete ${selectedIds.size} selected contact(s)? This cannot be undone.`)) return;
+                    btnBulkDelete.disabled = true;
+                    try {
+                        for (const id of selectedIds) {
+                            await window.apiClient.deleteContact(id);
+                        }
+                        showToast(`${selectedIds.size} contact(s) deleted`, 'success');
+                        await loadContacts();
+                    } catch (error) {
+                        console.error('Bulk delete error:', error);
+                        showToast('Failed to delete contacts', 'error');
+                    } finally {
+                        btnBulkDelete.disabled = false;
+                    }
+                });
+            }
         }
 
         function openEditModal(contactId) {
-            const contact = contacts.find(c => c._id === contactId);
+            const contact = contacts.find(c => (c._id || c.id) === contactId);
             if (!contact) return;
             
             editingContactId = contactId;
@@ -567,6 +997,19 @@
             document.getElementById('importError').style.display = 'none';
         });
 
+        // Upload banner button opens the same import flow
+        document.getElementById('btnUploadContacts').addEventListener('click', () => {
+            document.getElementById('importContactsBtn').click();
+        });
+
+        document.getElementById('emptyUploadBtn').addEventListener('click', () => {
+            document.getElementById('importContactsBtn').click();
+        });
+
+        document.getElementById('emptyAddBtn').addEventListener('click', () => {
+            document.getElementById('addContactBtn').click();
+        });
+
         document.getElementById('closeImportModal').addEventListener('click', () => {
             document.getElementById('importModal').style.display = 'none';
         });
@@ -656,12 +1099,29 @@
 
         // Search functionality
         document.getElementById('searchInput').addEventListener('input', function() {
+            currentPage = 1;
             filterContacts();
         });
 
         // Group filter functionality
         document.getElementById('groupFilter').addEventListener('change', function() {
+            currentPage = 1;
             filterContacts();
+        });
+
+        // Pagination
+        document.getElementById('btnPrevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderContacts(filteredContacts);
+            }
+        });
+
+        document.getElementById('btnNextPage').addEventListener('click', () => {
+            if (currentPage < totalPages()) {
+                currentPage++;
+                renderContacts(filteredContacts);
+            }
         });
 
         function filterContacts() {
@@ -679,6 +1139,7 @@
                 return matchesSearch && matchesGroup;
             });
             
+            currentPage = 1;
             renderContacts(filteredContacts);
         }
 
@@ -692,491 +1153,5 @@
         }
 
     </script>
-
-    <style>
-        /* Additional styles for Contacts page */
-        .contacts-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .stat-mini {
-            background-color: var(--neutral-white);
-            padding: 1.25rem;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            border: 1px solid rgba(0, 0, 0, 0.04);
-        }
-
-        .stat-mini-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .stat-mini-icon svg {
-            width: 24px;
-            height: 24px;
-            color: #1976d2;
-        }
-
-        .stat-mini-icon.groups {
-            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-        }
-
-        .stat-mini-icon.groups svg {
-            color: #f57c00;
-        }
-
-        .stat-mini-content {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .stat-mini-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary-dark);
-        }
-
-        .stat-mini-label {
-            font-size: 0.85rem;
-            color: #999;
-        }
-
-        .actions-bar {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .search-wrapper {
-            flex: 1;
-            min-width: 250px;
-            position: relative;
-        }
-
-        .search-wrapper svg {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 18px;
-            height: 18px;
-            color: #999;
-        }
-
-        .search-wrapper input {
-            width: 100%;
-            padding: 0.875rem 1rem 0.875rem 2.75rem;
-            border: 2px solid #e8e8e8;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            background-color: var(--neutral-white);
-            transition: all 0.3s ease;
-        }
-
-        .search-wrapper input:focus {
-            outline: none;
-            border-color: var(--accent-orange);
-            box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.1);
-        }
-
-        .filter-wrapper select {
-            padding: 0.875rem 1rem;
-            border: 2px solid #e8e8e8;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            background-color: var(--neutral-white);
-            min-width: 150px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .filter-wrapper select:focus {
-            outline: none;
-            border-color: var(--accent-orange);
-        }
-
-        .contacts-card {
-            background-color: var(--neutral-white);
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            overflow: hidden;
-            border: 1px solid rgba(0, 0, 0, 0.04);
-        }
-
-        .contacts-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .contacts-table th {
-            padding: 1rem 1.5rem;
-            text-align: left;
-            background-color: #fafafa;
-            color: #666;
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .contacts-table td {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #f8f8f8;
-            color: #444;
-            font-size: 0.95rem;
-        }
-
-        .contacts-table tbody tr {
-            transition: background-color 0.3s ease;
-        }
-
-        .contacts-table tbody tr:hover {
-            background-color: #fafafa;
-        }
-
-        .contact-name {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .contact-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent-orange) 0%, #e56a00 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .contact-phone {
-            font-family: monospace;
-            font-size: 0.9rem;
-        }
-
-        .group-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            background-color: #e3f2fd;
-            color: #1976d2;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .contact-date {
-            color: #999;
-            font-size: 0.9rem;
-        }
-
-        .contact-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .action-btn {
-            width: 34px;
-            height: 34px;
-            border: none;
-            border-radius: 8px;
-            background-color: #f5f5f5;
-            color: #666;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .action-btn svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .action-btn:hover {
-            background-color: #eee;
-            color: var(--primary-dark);
-        }
-
-        .action-btn.delete-btn:hover {
-            background-color: #ffebee;
-            color: #c62828;
-        }
-
-        /* Modal styles */
-        .modal-small {
-            max-width: 380px;
-            text-align: center;
-        }
-
-        .modal-small h3 {
-            margin-bottom: 0.75rem;
-            color: var(--primary-dark);
-        }
-
-        .modal-small p {
-            color: #666;
-            font-size: 0.95rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-icon.delete-icon {
-            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-            margin: 0 auto 1rem;
-        }
-
-        .modal-icon.delete-icon svg {
-            color: #c62828;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        .btn-danger {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(198, 40, 40, 0.3);
-        }
-
-        .btn-danger:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .btn-danger svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        @media (max-width: 768px) {
-            .actions-bar {
-                flex-direction: column;
-            }
-
-            .search-wrapper {
-                min-width: 100%;
-            }
-
-            .filter-wrapper {
-                width: 100%;
-            }
-
-            .filter-wrapper select {
-                width: 100%;
-            }
-
-            .btn-primary, .btn-secondary {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .contacts-table {
-                display: block;
-                overflow-x: auto;
-            }
-        }
-
-        /* File Upload Styles */
-        .btn-secondary {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.25rem;
-            background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
-            color: var(--primary-dark);
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover {
-            background: linear-gradient(135deg, #d0d0d0 0%, #b8b8b8 100%);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .file-upload-wrapper {
-            position: relative;
-            border: 2px dashed #ccc;
-            border-radius: 12px;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background-color: #fafafa;
-        }
-
-        .file-upload-wrapper:hover {
-            border-color: var(--accent-orange);
-            background-color: #fff5f0;
-        }
-
-        .file-upload-wrapper input[type="file"] {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        .file-upload-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .file-upload-content svg {
-            width: 48px;
-            height: 48px;
-            color: #999;
-        }
-
-        .file-upload-content span {
-            color: #666;
-            font-size: 0.95rem;
-        }
-
-        .file-upload-content small {
-            color: #999;
-            font-size: 0.85rem;
-        }
-
-        .file-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem;
-            background-color: #e8f5e9;
-            border-radius: 8px;
-            border: 1px solid #c8e6c9;
-        }
-
-        .file-info svg {
-            width: 24px;
-            height: 24px;
-            color: #4caf50;
-        }
-
-        .file-info span {
-            flex: 1;
-            color: #2e7d32;
-            font-weight: 500;
-        }
-
-        .remove-file {
-            width: 24px;
-            height: 24px;
-            border: none;
-            background: #ffebee;
-            color: #c62828;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-        }
-
-        .remove-file:hover {
-            background: #ffcdd2;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background-color: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 1rem;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-orange) 0%, #ff9800 100%);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
-
-        #importProgress p {
-            text-align: center;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .success-message {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background-color: #e8f5e9;
-            border-radius: 8px;
-            border: 1px solid #c8e6c9;
-        }
-
-        .success-message svg {
-            width: 40px;
-            height: 40px;
-            color: #4caf50;
-            flex-shrink: 0;
-        }
-
-        .success-message strong {
-            color: #2e7d32;
-            display: block;
-            margin-bottom: 0.25rem;
-        }
-
-        .success-message p {
-            color: #666;
-            font-size: 0.9rem;
-            margin: 0;
-        }
-    </style>
 </body>
 </html>

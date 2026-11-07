@@ -246,14 +246,14 @@
 @media (max-width: 480px) {
   .nhs-topbar-name { display: none; }
 }
-@media (max-width: 1023px) {
+@media (max-width: 899px) {
   .nhs-sidebar { transform: translateX(-100%); width: min(86vw, 300px); }
   .nhs-sidebar.is-open { transform: translateX(0); }
   body.nhs-drawer-open { overflow: hidden; }
   body.nhs-drawer-open .main-content { overflow: hidden; }
   .nhs-overlay { display: block; }
 }
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   .nhs-overlay { display: none; }
   .nhs-burger { display: none; }
   .nhs-sidebar { transform: none; }
@@ -266,7 +266,7 @@ body.nhs-has-shell .main-content { margin-left: 260px; margin-top: 0; min-height
 body.nhs-has-shell .dashboard-content { margin-top: 16px; padding-top: 0; min-height: auto; flex: 0 0 auto; }
 
 body.nhs-has-shell .chart-container { height: 300px; position: relative; }
-@media (max-width: 1023px) {
+@media (max-width: 899px) {
   body.nhs-has-shell .main-content { margin-left: 0; }
 }
 
