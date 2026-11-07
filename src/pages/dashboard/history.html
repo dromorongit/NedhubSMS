@@ -35,7 +35,7 @@
                     <div class="date-range-picker">
                             <button type="button" class="date-range-btn" id="dateRangeBtn" aria-haspopup="listbox" aria-expanded="false">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                                <span class="date-range-label">Last 30 days</span>
+                                <span class="date-range-label">All time</span>
                                 <span class="caret">▼</span>
                             </button>
                             <div class="date-menu" id="dateMenu" role="listbox" style="display: none;">
@@ -119,26 +119,20 @@
 
                 <!-- Table toolbar (search + Filter toggle + Time select, synced with top-right date range) -->
                 <div class="contacts-table-card">
-                    <div class="table-card-header">
-                        <div class="table-title-group">
-                            <div class="table-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
-                            </div>
-                            <h2>Messages</h2>
+                    <!-- Search row: search pill takes all remaining width, Filter pill sits to its right -->
+                    <div class="table-search-row">
+                        <div class="table-search">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" id="searchInput" placeholder="Search by recipient, message, or status...">
                         </div>
-                        <div class="table-toolbar">
-                            <div class="table-search">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                                <input type="text" id="searchInput" placeholder="Search by recipient, message, or status...">
-                            </div>
-                            <button type="button" class="table-filter-btn" id="filterBtn" aria-haspopup="listbox" aria-expanded="false">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                <span>Filter</span>
-                                <span class="caret">▼</span>
-                            </button>
-                        </div>
+                        <button type="button" class="table-filter-btn" id="filterBtn" aria-haspopup="listbox" aria-expanded="false">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <span>Filter</span>
+                            <span class="caret">▼</span>
+                        </button>
+                    </div>
 
-                    <!-- Filter pills (Status + Time; Time mirrors the top-right date range state) -->
+                    <!-- Filter row: Status + Time pills (Time mirrors the top-right date range state) -->
                     <div class="table-filters">
                         <div class="filter-pill" id="filterStatusBtn" role="button" aria-haspopup="listbox" aria-expanded="false">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path d="M10 21h6a2 2 0 002-2V9.414a2 2 0 00-.586-1.414L14.414 6H14a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002 2v11a2 2 0 002 2z"></path></svg>
@@ -629,12 +623,17 @@
                 if (total === 0) {
                 const emptyTitle = el('emptyTitle');
                 const emptyMessage = el('emptyMessage');
+                const tableScroll = el('tableScroll');
                 if (emptyTitle) emptyTitle.textContent = hasActiveFilters() ? 'No messages match your filters' : 'No messages found';
                 if (emptyMessage) emptyMessage.textContent = hasActiveFilters() ? 'Try adjusting your search, status, or date range.' : 'Your message history will appear here once you send a message.';
                 if (emptyState) emptyState.style.display = 'flex';
+                if (tableScroll) tableScroll.style.display = 'none';
                 if (footer) footer.style.display = 'none';
                 return;
             }
+
+            const tableScroll = el('tableScroll');
+            if (tableScroll) tableScroll.style.display = 'block';
 
             const start = (currentPage - 1) * PAGE_SIZE;
             const end = Math.min(start + PAGE_SIZE, total);
@@ -1111,14 +1110,13 @@
         #statGrid .stat-badge-total, #statGrid .stat-badge-delivered { background: var(--color-success-tint); color: var(--color-success); }
         #statGrid .stat-badge-failed { background: var(--color-danger); color: #ffffff; }
         #statGrid .stat-badge-queued { background: var(--color-blue-tint); color: var(--color-blue-text); }
-        #statGrid .stat-body { min-width: 0; padding-right: 150px; }
-        #statGrid .stat-value { font-size: 32px; font-weight: 800; color: var(--color-text); line-height: 1.15; letter-spacing: -0.5px; }
-        #statGrid .stat-label { font-size: 16px; color: var(--color-muted); font-weight: var(--fw-medium); }
-        #statGrid .stat-spark { position: absolute; bottom: 8px; right: 8px; width: 128px; height: 70px; pointer-events: none; }
+        #statGrid .stat-body { min-width: 0; }
+        #statGrid .stat-value { font-size: 28px; font-weight: 800; color: var(--color-text); line-height: 1.15; letter-spacing: -0.5px; white-space: nowrap; }
+        #statGrid .stat-label { font-size: 13px; color: var(--color-muted); font-weight: var(--fw-medium); white-space: nowrap; }
+        #statGrid .stat-spark { position: absolute; bottom: 10px; right: 10px; width: 100px; height: 52px; pointer-events: none; }
         #statGrid .stat-spark svg { width: 100%; height: 100%; display: block; }
         @media (max-width: 600px) {
-            #statGrid .stat-spark { width: 96px; height: 52px; }
-            #statGrid .stat-body { padding-right: 110px; }
+            #statGrid .stat-spark { width: 84px; height: 44px; }
         }
 
         /* Table header: uppercase navy headers */
@@ -1169,11 +1167,11 @@
         th.sortable[aria-sort="ascending"] .sort-indicator .sort-up { opacity: 1; color: var(--color-primary-orange); }
         th.sortable[aria-sort="descending"] .sort-indicator .sort-down { opacity: 1; color: var(--color-primary-orange); }
 
-        /* Search row: white pill search + white Filter pill */
-        .table-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+        /* Search row: white pill search (flex: 1, takes all remaining width) + white Filter pill to the right */
+        .table-search-row { display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 1rem 1.5rem; border-bottom: 1px solid var(--color-border); }
         .table-search { flex: 1; min-width: 0; }
         .table-search input { width: 100%; background: #ffffff; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 0.625rem 1rem 0.625rem 2.75rem; font-size: var(--text-sm); color: var(--color-text); box-shadow: var(--shadow); }
-        .table-filter-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text); font-size: var(--text-sm); font-weight: var(--fw-medium); cursor: pointer; box-shadow: var(--shadow); }
+        .table-filter-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text); font-size: var(--text-sm); font-weight: var(--fw-medium); cursor: pointer; box-shadow: var(--shadow); white-space: nowrap; flex-shrink: 0; }
         .table-filter-btn svg { width: 16px; height: 16px; color: var(--color-muted); flex-shrink: 0; }
         .table-filter-btn:hover { background: #f4f7fd; border-color: var(--color-primary-orange); }
 
