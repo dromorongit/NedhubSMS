@@ -522,9 +522,9 @@ function normalizePhone(value) {
             if (!tbody) return;
 
             const showError = (message) => {
-                spinner.style.display = 'none';
-                tableCard.style.display = 'none';
-                emptyState.style.display = 'none';
+                if (spinner) spinner.style.display = 'none';
+                if (tableCard) tableCard.style.display = 'none';
+                if (emptyState) emptyState.style.display = 'none';
                 if (errorState) errorState.style.display = 'flex';
                 const titleEl = document.getElementById('contactsErrorTitle');
                 const msgEl = document.getElementById('contactsErrorMessage');
@@ -535,11 +535,11 @@ function normalizePhone(value) {
 
             const showLoaded = () => {
                 if (errorState) errorState.style.display = 'none';
-                spinner.style.display = 'none';
+                if (spinner) spinner.style.display = 'none';
             };
 
             try {
-                spinner.style.display = 'flex';
+                if (spinner) spinner.style.display = 'flex';
                 tbody.innerHTML = '';
 
                 const [contactsResult, blacklistResult, statsResult] = await Promise.allSettled([
@@ -613,23 +613,24 @@ function normalizePhone(value) {
                 const groups = [...new Set(contacts.map(c => c.groupName).filter(g => g))];
 
                 // Update group filter
-                groupFilter.innerHTML = '<option value="">All Lists</option>';
+                if (groupFilter) groupFilter.innerHTML = '<option value="">All Lists</option>';
                 groups.forEach(group => {
                     const option = document.createElement('option');
                     option.value = group;
                     option.textContent = group;
-                    groupFilter.appendChild(option);
+                    if (groupFilter) groupFilter.appendChild(option);
                 });
 
                 if (filteredContacts.length > 0) {
-                    emptyState.style.display = 'none';
-                    tableCard.style.display = '';
+                    if (emptyState) emptyState.style.display = 'none';
+                    if (tableCard) tableCard.style.display = '';
                     renderContacts(filteredContacts);
                 } else {
-                    tableCard.style.display = 'none';
-                    emptyState.style.display = 'flex';
+                    if (tableCard) tableCard.style.display = 'none';
+                    if (emptyState) emptyState.style.display = 'flex';
                 }
             } catch (error) {
+                console.error('loadContacts failed:', error);
                 showError('Network error: ' + extractErrorMessage(error));
             }
         }
