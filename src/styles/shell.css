@@ -626,9 +626,10 @@
 @media (prefers-reduced-motion: reduce) {
   .nhs-sidebar, .nhs-overlay { transition: none; }
 }
-body.nhs-has-shell .main-content { margin-left: 260px; margin-top: 0; min-height: 100vh; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; min-width: 0; position: relative; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom, 0px); }
+body.nhs-has-shell .main-content { margin-left: 260px; margin-top: 0; min-height: 100vh; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; min-width: 0; max-width: 100%; display: flex; flex-direction: column; flex: 1 1 0%; position: relative; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom, 0px); }
 
-body.nhs-has-shell .dashboard-content { margin-top: 16px; padding-top: 0; min-height: auto; flex: 0 0 auto; }
+body.nhs-has-shell .dashboard-layout { display: flex; min-height: 100vh; }
+body.nhs-has-shell .dashboard-content { margin-top: 16px; padding-top: 0; min-height: auto; flex: 0 0 auto; min-width: 0; max-width: 100%; overflow-x: hidden; }
 
 body.nhs-has-shell .chart-container { height: 300px; position: relative; }
 @media (max-width: 899px) {
@@ -641,7 +642,7 @@ body.nhs-has-shell #nhs-topbar-mount {
 
 html.nhs-has-shell,
 body.nhs-has-shell {
-  overflow-x: visible;
+  overflow-x: hidden;
   overflow-y: visible;
   margin: 0;
 }
