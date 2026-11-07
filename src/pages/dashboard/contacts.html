@@ -45,28 +45,6 @@
                     </div>
                 </header>
 
-                <!-- Upload banner -->
-                <div class="upload-banner" role="region" aria-label="Upload your contacts">
-                    <svg class="database-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-                        <path d="M2 12h20M2 8l0.5 2M17.5 8l0.5 2M2 16l0.5 2M17.5 16l0.5 2"></path>
-                        <ellipse cx="12" cy="6" rx="10" ry="2" stroke="currentColor" stroke-width="2"></ellipse>
-                        <ellipse cx="12" cy="12" rx="10" ry="2" stroke="currentColor" stroke-width="2"></ellipse>
-                        <ellipse cx="12" cy="18" rx="10" ry="2" stroke="currentColor" stroke-width="2"></ellipse>
-                    </svg>
-                    <div class="banner-body">
-                        <h3>Upload Your Contacts</h3>
-                        <p>Add contacts easily via CSV, Excel or manual entry.</p>
-                    </div>
-                    <button class="btn-upload" id="btnUploadContacts" type="button" aria-label="Upload contacts file">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        Upload Contacts
-                    </button>
-                </div>
-
                 <!-- Stat cards -->
                 <div class="stat-grid">
                     <article class="stat-card">
@@ -89,7 +67,6 @@
                             </defs>
                             <polyline points="2,24 14,20 28,26 42,16 56,22 70,18 84,26 96,22" fill="url(#grad-total)" opacity="0.18" stroke="url(#grad-total)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
                         </svg>
-                        <span class="trend-none">All contacts</span>
                     </article>
                     <article class="stat-card">
                         <div class="stat-icon stat-tint-green">
@@ -111,13 +88,12 @@
                             </defs>
                             <polyline points="2,22 14,18 28,24 42,14 56,20 70,12 84,18 96,14" fill="url(#grad-active)" opacity="0.18" stroke="url(#grad-active)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
                         </svg>
-                        <span class="trend-up">&#8593; active</span>
                     </article>
                     <article class="stat-card">
                         <div class="stat-icon stat-tint-orange">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-                                <path d="M21 10c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 2a10 10 0 1 0 0 20zM12 22c5.523 0 10-4.477 10-10S17.523 2 12 2"></path>
                             </svg>
                         </div>
                         <div class="stat-body">
@@ -133,13 +109,13 @@
                             </defs>
                             <polyline points="2,10 14,14 28,8 42,18 56,10 70,20 84,12 96,16" fill="url(#grad-blacklisted)" opacity="0.18" stroke="url(#grad-blacklisted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
                         </svg>
-                        <span class="trend-down">&#8593; none</span>
                     </article>
                     <article class="stat-card">
                         <div class="stat-icon stat-tint-purple">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <path d="M18 10h-6.5c0-2.48-2.22-4.5-5-4.5S3.5 7.52 3.5 10v2c0 1.39 1.02 2.6 2.5 2.91L5 15v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2z"></path>
+                                <path d="M7 10l5-5 5 5"></path>
+                                <path d="M12 15V5"></path>
                             </svg>
                         </div>
                         <div class="stat-body">
@@ -155,8 +131,30 @@
                             </defs>
                             <polyline points="2,18 14,22 28,16 42,20 56,14 70,24 84,18 96,22" fill="url(#grad-lists)" opacity="0.18" stroke="url(#grad-lists)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
                         </svg>
-                        <span class="trend-none">&#8212;</span>
                     </article>
+                </div>
+
+                <!-- Upload banner -->
+                <div class="upload-banner" role="region" aria-label="Upload your contacts">
+                    <svg class="database-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <ellipse cx="12" cy="7" rx="10" ry="2.5" fill="#0A1A3F" stroke="#F57C1F" stroke-width="2"></ellipse>
+                        <ellipse cx="12" cy="12" rx="10" ry="2.5" fill="#0E1A3A" stroke="#F57C1F" stroke-width="2"></ellipse>
+                        <ellipse cx="12" cy="17" rx="10" ry="2.5" fill="#0A1A3F" stroke="#F57C1F" stroke-width="2"></ellipse>
+                        <path d="M2 12h20M2 17h20" stroke="#F57C1F" stroke-width="2" stroke-linecap="round"></path>
+                    </svg>
+                    <div class="banner-body">
+                        <h3>Upload Your Contacts</h3>
+                        <p>Add contacts easily via CSV, Excel or manual entry.</p>
+                    </div>
+                    <button class="btn-upload" id="btnUploadContacts" type="button" aria-label="Upload contacts file">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Upload Contacts
+                        <span class="btn-upload-arrow">&#8594;</span>
+                    </button>
                 </div>
 
                 <!-- Contacts table card -->
@@ -440,9 +438,9 @@
                 
                 if (response.data && response.data.user) {
                     const user = response.data.user;
-                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
-                    updateUserDisplay(firstName);
+                    updateUserDisplay(user.name);
                     storage.setItem('userName', user.name);
+                    window.NhShell?.setUser({ name: user.name });
                 } else {
                     useStoredUserName();
                 }
@@ -456,19 +454,35 @@
             const storage = window.getStorage ? window.getStorage() : localStorage;
             const storedName = storage.getItem('userName');
             if (storedName) {
-                const firstName = storedName.split(' ')[0];
-                updateUserDisplay(firstName);
+                updateUserDisplay(storedName);
             } else {
                 updateUserDisplay('User');
             }
         }
 
-        function updateUserDisplay(firstName) {
+        function initials(name) {
+            const parts = String(name || 'User').trim().split(/\s+/).filter(Boolean);
+            if (parts.length === 0) return 'UU';
+            if (parts.length === 1) return (parts[0].charAt(0) + (parts[0].charAt(1) || '')).toUpperCase();
+            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '-';
+            const day = d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const time = d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            return day + ' \u2022 ' + time;
+        }
+
+        function updateUserDisplay(fullName) {
             const userNameEl = document.getElementById('userName');
             const userAvatarEl = document.getElementById('userAvatar');
+            const first = String(fullName || 'User').trim().split(/\s+/)[0] || 'User';
             
-            if (userNameEl) userNameEl.textContent = firstName;
-            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+            if (userNameEl) userNameEl.textContent = first;
+            if (userAvatarEl) userAvatarEl.textContent = initials(fullName);
         }
 
         function avatarClassFor(name) {
@@ -525,7 +539,11 @@
                     return;
                 }
                 
-                contacts = result.data || [];
+                let raw = result.data;
+                if (raw && !Array.isArray(raw)) {
+                    raw = raw.contacts || raw.data || [];
+                }
+                contacts = Array.isArray(raw) ? raw : [];
                 filteredContacts = [...contacts];
                 currentPage = 1;
                 selectedIds.clear();
@@ -594,7 +612,7 @@
             }
             if (rangeEndEl) rangeEndEl.textContent = total === 0 ? 0 : Math.min(currentPage * pageSize, total);
             if (totalCountEl) totalCountEl.textContent = total;
-            if (pageInfoEl) pageInfoEl.textContent = `Showing ${pageRange()}`;
+            if (pageInfoEl) pageInfoEl.textContent = `Showing ${pageRange()} contacts`;
 
             if (prevBtn) {
                 prevBtn.disabled = currentPage <= 1;
@@ -680,9 +698,9 @@
             
             pageItems.forEach(contact => {
                 const id = contact._id || contact.id;
-                const date = contact.createdAt ? new Date(contact.createdAt).toLocaleDateString() : '-';
+                const date = formatDate(contact.createdAt);
                 const recipientName = contact.recipientName || 'Unknown';
-                const displayName = (recipientName.charAt(0) || 'U').toUpperCase();
+                const displayName = initials(recipientName);
                 const status = contact.status || 'Active';
                 const listName = contact.groupName || 'General';
                 const isSelected = selectedIds.has(id);

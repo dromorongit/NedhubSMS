@@ -29,6 +29,28 @@
 
   function isMobile() { return window.innerWidth < 900; }
 
+  function initials(name) {
+    const parts = String(name || 'User').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'UU';
+    if (parts.length === 1) return (parts[0].charAt(0) + (parts[0].charAt(1) || '')).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+  function getRoleFromToken() {
+    try {
+      const storage = window.getStorage ? window.getStorage() : localStorage;
+      const token = storage.getItem('authToken');
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      return payload && payload.role ? String(payload.role) : null;
+    } catch (e) { return null; }
+  }
+  function accountLabelFor(role) {
+    const r = (role || 'user').toLowerCase();
+    return (r === 'admin' || r === 'super_admin') ? 'Admin Account' : 'Personal Account';
+  }
+
   const sidebarMount = document.getElementById('nhs-sidebar-mount');
   const topbarMount = document.getElementById('nhs-topbar-mount');
   if (!sidebarMount || !topbarMount) return;
@@ -53,13 +75,13 @@
           '<svg class="nhs-help-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>' +
           '<p class="nhs-help-title">Need Help?</p>' +
           '<p class="nhs-help-text">Our support team is here for you.</p>' +
-          '<a href="settings.html" class="nhs-help-btn">Contact Support</a>' +
+          '<a href="settings.html" class="nhs-help-btn">Contact Support<span class="nhs-help-arrow">&#8594;</span></a>' +
         '</div>' +
         '<a class="nhs-user" href="settings.html">' +
           '<div class="nhs-user-avatar" id="sidebarUserAvatar">U</div>' +
           '<div class="nhs-user-meta">' +
             '<div class="nhs-user-name" id="sidebarUserName">User</div>' +
-            '<div class="nhs-user-account" id="sidebarAccountLabel">Premium Account</div>' +
+            '<div class="nhs-user-account" id="sidebarAccountLabel">Personal Account</div>' +
           '</div>' +
           '<svg class="nhs-user-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
         '</a>' +
@@ -76,11 +98,9 @@
         '<button class="nhs-burger" id="nhsBurger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nhsSidebar"><span></span><span></span><span></span></button>' +
         '<div class="nhs-topbar-search">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>' +
-          '<input type="search" class="nhs-topbar-search-input" placeholder="Search contacts, campaigns..." aria-label="Search">' +
-        '</div>' +
-        '<h1 class="nhs-page-title" id="nhsPageTitle">' + activeItem.label + '</h1>' +
-      '</div>' +
-      '<div class="nhs-topbar-right">' +
+          '<input type="search" class="nhs-topbar-search-input" placeholder="Search contacts..." aria-label="Search contacts">' +
+          '</div>' +
+          '<div class="nhs-topbar-right">' +
         '<button class="nhs-icon-btn" id="nhsNotifBtn" type="button" aria-label="Notifications" aria-haspopup="true" aria-controls="nhsNotifBadge">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>' +
           '<span class="nhs-badge" id="nhsNotifBadge" aria-label="3 new notifications">3</span>' +
@@ -203,15 +223,18 @@
         const ids = ['userName', 'sidebarUserName'];
         ids.forEach(function (id) { const el = document.getElementById(id); if (el) el.textContent = (id === 'sidebarUserName' ? name : first); });
         const avIds = ['userAvatar', 'sidebarUserAvatar'];
-        avIds.forEach(function (id) { const el = document.getElementById(id); if (el) el.textContent = (first.charAt(0) || 'U').toUpperCase(); });
+        avIds.forEach(function (id) { const el = document.getElementById(id); if (el) el.textContent = initials(name); });
         const tn = document.getElementById('nhsTopbarName');
         if (tn) tn.textContent = first;
         const ta = document.getElementById('nhsTopbarAvatar');
-        if (ta) ta.textContent = (first.charAt(0) || 'U').toUpperCase();
+        if (ta) ta.textContent = initials(name);
       }
       if (opts.accountLabel !== undefined) {
         const al = document.getElementById('sidebarAccountLabel');
         if (al) al.textContent = opts.accountLabel;
+      } else {
+        const al = document.getElementById('sidebarAccountLabel');
+        if (al) al.textContent = accountLabelFor(getRoleFromToken());
       }
     },
     openDrawer: openDrawer,
