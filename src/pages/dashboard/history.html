@@ -116,14 +116,14 @@
                 <!-- Messages Table Card -->
                 <div class="history-card">
                     <div class="table-container">
-                        <table class="history-table">
+                        <table class="history-table" id="messagesTable">
                             <thead>
                                 <tr>
-                                    <th>Date & Time</th>
+                                    <th class="sortable" data-sort="createdAt" aria-sort="none">Date & Time <span class="sort-indicator" aria-hidden="true"></span></th>
                                     <th>Sender ID</th>
-                                    <th>Recipient</th>
+                                    <th class="sortable" data-sort="recipient" aria-sort="none">Recipient <span class="sort-indicator" aria-hidden="true"></span></th>
                                     <th>Message</th>
-                                    <th>Status</th>
+                                    <th class="sortable" data-sort="status" aria-sort="none">Status <span class="sort-indicator" aria-hidden="true"></span></th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -141,6 +141,14 @@
                             </svg>
                             <p>No messages yet</p>
                             <span>Your sent messages will appear here</span>
+                        </div>
+                        <div class="history-pagination" id="historyPagination" style="display: none;">
+                            <div class="pagination-info" id="paginationInfo">Showing 0–0 of 0 messages</div>
+                            <div class="pagination-controls">
+                                <button type="button" class="pagination-btn pagination-prev" id="paginationPrev" disabled>Prev</button>
+                                <div class="pagination-numbers" id="paginationNumbers"></div>
+                                <button type="button" class="pagination-btn pagination-next" id="paginationNext" disabled>Next</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -167,8 +175,13 @@
     </div>
 
     <script>
+        const el = (id) => document.getElementById(id);
+
         let messages = [];
-        let filteredMessages = [];
+        let currentPage = 1;
+        const PAGE_SIZE = 10;
+        let sortKey = null;
+        let sortDir = 'asc';
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthAndLoad();
@@ -184,6 +197,7 @@
 
             await loadUserProfile();
             await loadMessageHistory();
+            initSortHandlers();
         }
 
         async function loadUserProfile() {
@@ -194,7 +208,7 @@
                     useStoredUserName();
                     return;
                 }
-                
+
                 if (response.data && response.data.user) {
                     const user = response.data.user;
                     const firstName = user.name ? user.name.split(' ')[0] : 'User';
@@ -223,85 +237,221 @@
         function updateUserDisplay(firstName) {
             const userNameEl = document.getElementById('userName');
             const userAvatarEl = document.getElementById('userAvatar');
-            
+
             if (userNameEl) userNameEl.textContent = firstName;
             if (userAvatarEl) userAvatarEl.textContent = (window.NhShell && typeof window.NhShell.initials === 'function') ? window.NhShell.initials(firstName) : (firstName.charAt(0) + (firstName.charAt(1) || '')).toUpperCase();
         }
 
+        function formatPhone(raw) {
+            if (!raw) return '-';
+            let s = String(raw).trim().replace(/[\s\-\(\)]/g, '');
+            let n = s;
+            if (n.startsWith('+233')) n = n.slice(1);
+            if (n.startsWith('0')) n = '233' + n.slice(1);
+            if (/^233\d{9}$/.test(n)) {
+                const rest = n.slice(3);
+                return '+233 ' + rest.slice(0, 2) + ' ' + rest.slice(2, 5) + ' ' + rest.slice(5, 9);
+            }
+            return escapeHtml(raw);
+        }
+
         async function loadMessageHistory() {
-            const spinner = document.getElementById('loadingSpinner');
-            const emptyState = document.getElementById('emptyState');
-            const tbody = document.getElementById('messagesBody');
-            const totalMessagesEl = document.getElementById('totalMessages');
-            const deliveredCountEl = document.getElementById('deliveredCount');
-            const queuedCountEl = document.getElementById('queuedCount');
-            const failedCountEl = document.getElementById('failedCount');
-            
+            const spinner = el('loadingSpinner');
+            const emptyState = el('emptyState');
+            const tbody = el('messagesBody');
+            const totalMessagesEl = el('totalMessages');
+            const deliveredCountEl = el('deliveredCount');
+            const queuedCountEl = el('queuedCount');
+            const failedCountEl = el('failedCount');
+
             if (!tbody) return;
-            
+
             try {
                 spinner.style.display = 'flex';
                 tbody.innerHTML = '';
-                
+
                 const result = await window.apiClient.getMessageHistory();
-                
+
                 spinner.style.display = 'none';
-                
+
                 if (result.error) {
                     console.error('[MessageHistory] Error:', result.error);
-                    tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load message history</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="error">Failed to load message history</td></tr>';
                     return;
                 }
-                
+
                 const responseData = result.data;
                 messages = responseData.messages || [];
-                filteredMessages = [...messages];
-                
-                // Use summary from API for accurate counts
-                const summary = responseData.summary || {};
-                
-                // Update stats with canonical status counts
-                if (totalMessagesEl) totalMessagesEl.textContent = summary.total || messages.length;
-                if (deliveredCountEl) deliveredCountEl.textContent = summary.delivered || 0;
-                if (queuedCountEl) queuedCountEl.textContent = summary.queued || messages.filter(m => m.status === 'queued').length;
-                if (failedCountEl) failedCountEl.textContent = summary.failed || 0;
-                
-                if (messages.length > 0) {
-                    renderMessages(messages);
-                } else {
-                    emptyState.style.display = 'flex';
-                }
+                currentPage = 1;
+                sortKey = null;
+                sortDir = 'asc';
+                renderMessages();
             } catch (error) {
                 spinner.style.display = 'none';
                 console.error('[MessageHistory] Error loading history:', error);
-                tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load message history</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="error">Failed to load message history</td></tr>';
             }
         }
 
-        function renderMessages(messagesToRender) {
-            const tbody = document.getElementById('messagesBody');
-            const emptyState = document.getElementById('emptyState');
-            
+        function getDateFiltered() {
+            const dateFilter = el('dateFilter').value;
+            if (!dateFilter) return messages.slice();
+            const now = new Date();
+            return messages.filter(msg => {
+                if (!msg.createdAt) return false;
+                const d = new Date(msg.createdAt);
+                if (dateFilter === 'today') return d.toDateString() === now.toDateString();
+                if (dateFilter === 'week') return d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                if (dateFilter === 'month') return d >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                return true;
+            });
+        }
+
+        function applySearchStatus(list) {
+            const searchTerm = el('searchInput').value.toLowerCase();
+            const statusFilter = el('statusFilter').value;
+            return list.filter(msg => {
+                const matchesSearch = !searchTerm || (
+                    (msg.recipient && msg.recipient.toLowerCase().includes(searchTerm)) ||
+                    (msg.message && msg.message.toLowerCase().includes(searchTerm)) ||
+                    (msg.senderId && msg.senderId.toLowerCase().includes(searchTerm)) ||
+                    (msg.status && msg.status.toLowerCase().includes(searchTerm))
+                );
+                const matchesStatus = !statusFilter || msg.status?.toLowerCase() === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+        }
+
+        function sortList(list) {
+            if (!sortKey) return list.slice();
+            return [...list].sort((a, b) => {
+                let av = a[sortKey];
+                let bv = b[sortKey];
+                if (sortKey === 'createdAt') {
+                    av = av ? new Date(av).getTime() : 0;
+                    bv = bv ? new Date(bv).getTime() : 0;
+                } else {
+                    av = String(av || '').toLowerCase();
+                    bv = String(bv || '').toLowerCase();
+                }
+                if (av < bv) return sortDir === 'asc' ? -1 : 1;
+                if (av > bv) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        function updateStats(list) {
+            const totalMessagesEl = el('totalMessages');
+            const deliveredCountEl = el('deliveredCount');
+            const queuedCountEl = el('queuedCount');
+            const failedCountEl = el('failedCount');
+
+            const total = list.length;
+            const delivered = list.filter(m => m.status === 'delivered').length;
+            const queued = list.filter(m => m.status === 'queued').length;
+            const failed = list.filter(m => m.status === 'failed').length;
+
+            if (totalMessagesEl) totalMessagesEl.textContent = total.toLocaleString();
+            if (deliveredCountEl) deliveredCountEl.textContent = delivered.toLocaleString();
+            if (queuedCountEl) queuedCountEl.textContent = queued.toLocaleString();
+            if (failedCountEl) failedCountEl.textContent = failed.toLocaleString();
+        }
+
+        function updateEmptyText(hasMessages, hasMatches) {
+            const emptyState = el('emptyState');
+            const title = emptyState.querySelector('p');
+            const desc = emptyState.querySelector('span');
+            if (!hasMessages) {
+                if (title) title.textContent = 'No messages yet';
+                if (desc) desc.textContent = 'Your sent messages will appear here';
+            } else if (!hasMatches) {
+                if (title) title.textContent = 'No messages match your filters';
+                if (desc) desc.textContent = 'Try adjusting your search, status, or date range';
+            } else {
+                if (title) title.textContent = 'No messages yet';
+                if (desc) desc.textContent = 'Your sent messages will appear here';
+            }
+        }
+
+        function renderPagination(total, totalPages) {
+            const pagination = el('historyPagination');
+            const info = el('paginationInfo');
+            const prevBtn = el('paginationPrev');
+            const nextBtn = el('paginationNext');
+            const numbers = el('paginationNumbers');
+            if (!pagination) return;
+
+            const start = (currentPage - 1) * PAGE_SIZE + 1;
+            const end = Math.min(currentPage * PAGE_SIZE, total);
+            if (info) info.textContent = 'Showing ' + start + '–' + end + ' of ' + total + ' messages';
+            if (prevBtn) prevBtn.disabled = currentPage <= 1;
+            if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+
+            pagination.style.display = total > 0 ? 'flex' : 'none';
+            if (!numbers) return;
+            numbers.innerHTML = '';
+            const maxButtons = 5;
+            let first = Math.max(1, currentPage - 2);
+            let last = Math.min(totalPages, first + maxButtons - 1);
+            if (last - first < maxButtons - 1) first = Math.max(1, last - maxButtons + 1);
+            for (let p = first; p <= last; p++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'pagination-num' + (p === currentPage ? ' active' : '');
+                btn.textContent = p;
+                btn.addEventListener('click', () => { currentPage = p; renderMessages(); });
+                numbers.appendChild(btn);
+            }
+        }
+
+        function renderMessages() {
+            const tbody = el('messagesBody');
+            const emptyState = el('emptyState');
+            const pagination = el('historyPagination');
             if (!tbody) return;
-            
+
+            const dateFiltered = getDateFiltered();
+            updateStats(dateFiltered);
+
+            const tableList = applySearchStatus(dateFiltered);
+            const sorted = sortList(tableList);
+            const total = sorted.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const end = Math.min(start + PAGE_SIZE, total);
+            const pageItems = sorted.slice(start, end);
+
             tbody.innerHTML = '';
-            
-            if (messagesToRender.length === 0) {
+
+            if (messages.length === 0) {
+                updateEmptyText(false, false);
                 emptyState.style.display = 'flex';
+                if (pagination) pagination.style.display = 'none';
                 return;
             }
-            
+
+            if (pageItems.length === 0) {
+                updateEmptyText(true, false);
+                emptyState.style.display = 'flex';
+                if (pagination) pagination.style.display = 'none';
+                return;
+            }
+
+            updateEmptyText(true, true);
             emptyState.style.display = 'none';
-            
-            messagesToRender.forEach(msg => {
+            if (pagination) pagination.style.display = 'flex';
+
+            pageItems.forEach(msg => {
                 const row = document.createElement('tr');
                 const date = msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '-';
                 const messagePreview = msg.message ? msg.message.substring(0, 60) + (msg.message.length > 60 ? '...' : '') : '-';
-                
+
                 row.innerHTML = `
                     <td class="message-date">${date}</td>
                     <td class="message-sender">${escapeHtml(msg.senderId || '-')}</td>
-                    <td class="message-recipient">${escapeHtml(msg.recipient || '-')}</td>
+                    <td class="message-recipient">${formatPhone(msg.recipient)}</td>
                     <td class="message-text">${escapeHtml(messagePreview)}</td>
                     <td><span class="status-badge ${getStatusClass(msg.status)}">${escapeHtml(formatStatus(msg.status))}</span></td>
                     <td class="message-actions">
@@ -310,6 +460,8 @@
                 `;
                 tbody.appendChild(row);
             });
+
+            renderPagination(total, totalPages);
         }
 
         function getStatusClass(status) {
@@ -329,7 +481,7 @@
             case 'cancelled':
               return 'cancelled';
             default:
-              return 'queued'; // Safe default to avoid false failed
+              return 'queued';
           }
         }
 
@@ -338,55 +490,64 @@
             return status.charAt(0).toUpperCase() + status.slice(1);
         }
 
-        // Search and filter functionality
-        document.getElementById('searchInput').addEventListener('input', function() {
-            filterMessages();
+        // Search and filter functionality - all combine and reset to page 1 on change
+        el('searchInput').addEventListener('input', function() {
+            currentPage = 1;
+            renderMessages();
         });
 
-        document.getElementById('statusFilter').addEventListener('change', function() {
-            filterMessages();
+        el('statusFilter').addEventListener('change', function() {
+            currentPage = 1;
+            renderMessages();
         });
 
-        document.getElementById('dateFilter').addEventListener('change', function() {
-            filterMessages();
+        el('dateFilter').addEventListener('change', function() {
+            currentPage = 1;
+            renderMessages();
         });
 
-        function filterMessages() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
-            const dateFilter = document.getElementById('dateFilter').value;
-            const now = new Date();
-            
-            filteredMessages = messages.filter(msg => {
-                // Search filter
-                const matchesSearch = 
-                    (msg.recipient && msg.recipient.toLowerCase().includes(searchTerm)) ||
-                    (msg.message && msg.message.toLowerCase().includes(searchTerm)) ||
-                    (msg.senderId && msg.senderId.toLowerCase().includes(searchTerm)) ||
-                    (msg.status && msg.status.toLowerCase().includes(searchTerm));
-                
-                // Status filter
-                const matchesStatus = !statusFilter || msg.status?.toLowerCase() === statusFilter;
-                
-                // Date filter
-                let matchesDate = true;
-                if (dateFilter && msg.createdAt) {
-                    const msgDate = new Date(msg.createdAt);
-                    if (dateFilter === 'today') {
-                        matchesDate = msgDate.toDateString() === now.toDateString();
-                    } else if (dateFilter === 'week') {
-                        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                        matchesDate = msgDate >= weekAgo;
-                    } else if (dateFilter === 'month') {
-                        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                        matchesDate = msgDate >= monthAgo;
+        // Pagination controls
+        el('paginationPrev').addEventListener('click', function() {
+            if (currentPage > 1) { currentPage--; renderMessages(); }
+        });
+        el('paginationNext').addEventListener('click', function() {
+            const total = applySearchStatus(getDateFiltered()).length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            if (currentPage < totalPages) { currentPage++; renderMessages(); }
+        });
+
+        // Sorting
+        function initSortHandlers() {
+            const table = el('messagesTable');
+            if (!table) return;
+            table.querySelectorAll('th.sortable').forEach(th => {
+                th.addEventListener('click', function() {
+                    const key = this.dataset.sort;
+                    if (sortKey === key) {
+                        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortKey = key;
+                        sortDir = 'asc';
                     }
-                }
-                
-                return matchesSearch && matchesStatus && matchesDate;
+                    updateSortUI();
+                    currentPage = 1;
+                    renderMessages();
+                });
             });
-            
-            renderMessages(filteredMessages);
+        }
+
+        function updateSortUI() {
+            const table = el('messagesTable');
+            if (!table) return;
+            table.querySelectorAll('th.sortable').forEach(th => {
+                const key = th.dataset.sort;
+                const active = sortKey === key;
+                th.setAttribute('aria-sort', active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
+                const indicator = th.querySelector('.sort-indicator');
+                if (indicator) {
+                    indicator.textContent = active ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+                }
+            });
         }
 
         // Modal handlers
@@ -404,30 +565,28 @@
         document.getElementById('messagesBody').addEventListener('click', async (e) => {
             if (e.target.classList.contains('resend-btn')) {
                 const messageId = e.target.dataset.messageId;
-                
+
                 if (!confirm('Are you sure you want to resend this message?')) {
                     return;
                 }
 
-                // Show loading state
                 e.target.disabled = true;
                 e.target.textContent = 'Sending...';
 
                 try {
                     const response = await window.apiClient.resendSms(messageId);
-                    
+
                     if (response.error) {
                         showToast('Failed to resend message: ' + extractErrorMessage(response.error), 'error');
                         e.target.disabled = false;
                         e.target.textContent = 'Resend';
                     } else {
                         showToast('Message resent successfully!', 'success');
-                        // Refresh message history
                         loadMessageHistory();
                     }
                 } catch (error) {
                     console.error('Resend error:', error);
-                     showToast('Failed to resend message: ' + extractErrorMessage(error), 'error');
+                    showToast('Failed to resend message: ' + extractErrorMessage(error), 'error');
                     e.target.disabled = false;
                     e.target.textContent = 'Resend';
                 }
@@ -788,6 +947,162 @@
             .detail-label {
                 width: 100%;
                 margin-bottom: 0.5rem;
+            }
+        }
+
+        /* Sortable column headers */
+        .history-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 1.5rem;
+        }
+
+        .history-table th.sortable:hover {
+            background-color: #f5f5f5;
+            color: var(--primary-dark);
+        }
+
+        .history-table th.sortable[aria-sort="ascending"],
+        .history-table th.sortable[aria-sort="descending"] {
+            color: var(--accent-orange);
+        }
+
+        .sort-indicator {
+            margin-left: 0.35rem;
+            font-size: 0.7rem;
+            opacity: 0.5;
+        }
+
+        .history-table th.sortable[aria-sort="ascending"] .sort-indicator,
+        .history-table th.sortable[aria-sort="descending"] .sort-indicator {
+            opacity: 1;
+        }
+
+        /* Pagination */
+        .history-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f0f0f0;
+            flex-wrap: wrap;
+        }
+
+        .pagination-info {
+            font-size: 0.875rem;
+            color: #666;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pagination-btn {
+            padding: 0.5rem 0.875rem;
+            border: 1px solid #d1d5db;
+            background: var(--neutral-white);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--primary-dark);
+            cursor: pointer;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-btn:not(:disabled):hover {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+        }
+
+        .pagination-num {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            background: var(--neutral-white);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--primary-dark);
+            cursor: pointer;
+        }
+
+        .pagination-num:hover:not(.active) {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+        }
+
+        .pagination-num.active {
+            background: var(--accent-orange);
+            border-color: var(--accent-orange);
+            color: #fff;
+        }
+
+        /* Mobile 390px: filters stack, table scrollable in its own container */
+        @media (max-width: 390px) {
+            .actions-bar {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+
+            .search-wrapper {
+                min-width: 100% !important;
+                width: 100% !important;
+            }
+
+            .filter-wrapper {
+                min-width: 100% !important;
+                width: 100% !important;
+            }
+
+            .filter-wrapper select {
+                width: 100% !important;
+            }
+
+            .table-container {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .history-table {
+                min-width: 620px !important;
+            }
+
+            .history-stats {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+
+            .stat-mini {
+                padding: 1rem !important;
+                gap: 0.75rem !important;
+            }
+
+            .stat-mini-value {
+                font-size: 1.25rem !important;
+            }
+
+            .history-pagination {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 0.75rem !important;
+            }
+
+            .pagination-controls {
+                flex-direction: row !important;
+                justify-content: center !important;
+                flex-wrap: wrap !important;
+            }
+
+            .pagination-info {
+                order: -1;
+                text-align: center;
+                width: 100%;
             }
         }
     </style>
