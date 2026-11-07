@@ -753,7 +753,8 @@ router.get('/logs', authenticate, async (req, res) => {
   const startTime = Date.now();
 
   const SORTABLE_FIELDS = ['createdAt', 'recipient', 'status'];
-  const QUEUED_STATUSES = ['queued', 'processing', 'scheduled'];
+  const statusBuckets = require('../utils/sms-status-buckets');
+  const QUEUED_STATUSES = statusBuckets.QUEUED_STATUSES;
   const DEFAULT_LIMIT = 50;
   const MAX_LIMIT = 100;
 
@@ -787,14 +788,9 @@ router.get('/logs', authenticate, async (req, res) => {
     return { start: s, end: e };
   }
 
-  // Status filter mapping, shared with /api/sms/messages/stats.
-  // 'queued' matches queued, processing and scheduled. Every other status
-  // (incl. 'sent') matches exactly and is its own bucket.
+  // Status filter mapping, shared with /api/sms/messages/stats via statusBuckets.
   function statusMatchValue(status) {
-    if (!status) return null;
-    const s = String(status).toLowerCase();
-    if (s === 'queued') return QUEUED_STATUSES;
-    return s;
+    return statusBuckets.statusesForFilter(status);
   }
 
   try {
@@ -1009,6 +1005,8 @@ router.get('/messages/stats', authenticate, async (req, res) => {
       require('../models/SmsRecipient').aggregate([{ $match: statusMatch }, { $group: { _id: '$status', count: { $sum: 1 } } }])
     ]);
 
+    const statusBuckets = require('../utils/sms-status-buckets');
+
     const totals = {};
     for (const arr of [legacyByStatus, smsByStatus, recipByStatus]) {
       for (const { _id, count } of arr) {
@@ -1017,9 +1015,10 @@ router.get('/messages/stats', authenticate, async (req, res) => {
     }
 
     // Status bucket mapping (shared with /api/sms/logs list filter).
-    // 'queued' bucket = queued + processing + scheduled.
-    // 'sent' is its own bucket (NOT rolled into queued/delivered/failed), so
-    // Total = Delivered + Failed + Queued + Sent + any other bucket shown (e.g. Cancelled).
+    // Delivered = sent + delivered. Failed = failed. Queued = queued + processing + scheduled.
+    // Cancelled (and any other status) is not in a card bucket; it still counts in Total.
+    const delivered = (totals.delivered || 0) + (totals.sent || 0);
+    const failed = totals.failed || 0;
     const queued = (totals.queued || 0) + (totals.processing || 0) + (totals.scheduled || 0);
 
     // Mini area chart series: message counts per time bucket, per metric.
@@ -1031,7 +1030,7 @@ router.get('/messages/stats', authenticate, async (req, res) => {
     const seriesGroup = {
       _id: bucketSpec,
       total: { $sum: 1 },
-      delivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+      delivered: { $sum: { $cond: [{ $in: ['$status', ['sent', 'delivered']] }, 1, 0] } },
       failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
       queued: { $sum: { $cond: [{ $in: ['$status', ['queued', 'processing', 'scheduled']] }, 1, 0] } }
     };
@@ -1081,8 +1080,8 @@ router.get('/messages/stats', authenticate, async (req, res) => {
       range,
       series,
       total: legacyCount + smsCount + recipCount,
-      delivered: totals.delivered || 0,
-      failed: totals.failed || 0,
+      delivered,
+      failed,
       queued,
       sent: totals.sent || 0,
       cancelled: totals.cancelled || 0,

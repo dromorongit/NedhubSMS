@@ -147,11 +147,9 @@
                     </div>
                     <div class="status-menu" id="statusMenu" role="listbox" style="display: none;">
                         <button type="button" class="menu-item" role="option" data-status="">All Status<span class="item-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span></button>
-                        <button type="button" class="menu-item" role="option" data-status="delivered">Delivered<span class="item-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span></button>
+                        <button type="button" class="menu-item" role="option" data-status="delivered">Delivered / Sent<span class="item-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span></button>
                         <button type="button" class="menu-item" role="option" data-status="failed">Failed<span class="item-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span></button>
                         <button type="button" class="menu-item" role="option" data-status="queued">Queued<span class="item-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span></button>
-                        <button type="button" class="menu-item" role="option" data-status="sent">Sent<span class="item-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span></button>
-                        <button type="button" class="menu-item" role="option" data-status="cancelled">Cancelled<span class="item-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span></button>
                     </div>
 
                     <!-- Skeleton loading -->
@@ -295,7 +293,15 @@
         let customPrevRange = null;
         let customJustOpened = false;
 
-        // ---- Phone formatting (readable Ghana format) ----
+        // ---- Date formatting ----
+        function formatDateTime(value) {
+            if (!value || value === '-') return '-';
+            const d = new Date(value);
+            if (isNaN(d.getTime())) return '-';
+            const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const timePart = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            return datePart + ' · ' + timePart;
+        }
         function formatPhone(raw) {
             if (!raw) return '-';
             let s = String(raw).trim().replace(/[\s\-\(\)]/g, '');
@@ -562,7 +568,7 @@
                 trendEl.className = 'trend-text';
                 trendEl.textContent = '';
                 const isFailed = r.trendId === 'trendFailed';
-                if (r.prev > 0 && r.value > 0) {
+                if (r.prev > 0) {
                     const pct = Math.round(((r.value - r.prev) / r.prev) * 100);
                     let cls;
                     if (isFailed) {
@@ -573,11 +579,8 @@
                     const sign = pct > 0 ? '+' : (pct < 0 ? '-' : '');
                     trendEl.classList.add(cls);
                     trendEl.textContent = (pct === 0 ? '— 0%' : sign + Math.abs(pct) + '%') + ' vs prev. period';
-                } else if (r.value === 0 && (r.prev == null || r.prev === 0) && (r.trendId === 'trendDelivered' || r.trendId === 'trendQueued')) {
-                    trendEl.textContent = '- 0%';
-                    trendEl.className = 'trend-text trend-none';
                 } else {
-                    trendEl.textContent = '-';
+                    trendEl.textContent = '';
                 }
                 const spark = el('spark' + r.id.slice(4));
                 if (spark) renderSpark(spark, r.series, r.color);
@@ -653,10 +656,11 @@
             allMessages.forEach(msg => {
                 const row = document.createElement('tr');
                 row.className = 'message-row';
-                const date = msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '-';
+                const date = formatDateTime(msg.createdAt);
                 const messagePreview = msg.message ? (msg.message.substring(0, 60) + (msg.message.length > 60 ? '...' : '')) : '-';
                 const statusPill = `<span class="status-pill ${getStatusPillClass(msg.status)}">${escapeHtml(formatStatus(msg.status))}</span>`;
-                const viewBtn = `<button class="action-btn view-btn" type="button" data-message-id="${escapeAttr(msg._id || '')}" title="View details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></button>`;
+                const viewBtn = `<button class="action-btn view-btn" type="button" data-message-id="${escapeAttr(msg._id || '')}" title="View details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`;
+                const cancelBtn = msg.status === 'scheduled' ? `<button type="button" class="cancel-btn" title="Cancel scheduled message" aria-label="Cancel scheduled message"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></button>` : '';
 
                 row.innerHTML = `
                     <td><input type="checkbox" class="row-select" data-id="${escapeAttr(msg._id || '')}" aria-label="Select message"></td>
@@ -664,7 +668,7 @@
                     <td class="recipient-cell">${formatPhone(msg.recipient)}</td>
                     <td class="message-cell">${escapeHtml(messagePreview)}</td>
                     <td>${statusPill}</td>
-                    <td class="actions-cell">${viewBtn}</td>
+                    <td class="actions-cell">${viewBtn}${cancelBtn}</td>
                 `;
                 tbody.appendChild(row);
             });
@@ -673,11 +677,12 @@
 
         function getStatusPillClass(status) {
             switch (status?.toLowerCase()) {
-                case 'delivered': return 'status-pill status-pill-delivered';
+                case 'delivered':
+                case 'sent': return 'status-pill status-pill-delivered';
                 case 'failed': return 'status-pill status-pill-failed';
                 case 'scheduled': return 'status-pill status-pill-scheduled';
                 case 'cancelled': return 'status-pill status-pill-cancelled';
-                case 'queued': case 'processing': case 'sent': return 'status-pill status-pill-queued';
+                case 'queued': case 'processing': return 'status-pill status-pill-queued';
                 default: return 'status-pill';
             }
         }
@@ -701,32 +706,75 @@
             const pagination = el('pagination');
             if (!pagination) return;
             pagination.innerHTML = '';
+            if (totalPages <= 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.type = 'button';
+                prevBtn.className = 'pagination-btn';
+                prevBtn.disabled = true;
+                prevBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+                pagination.appendChild(prevBtn);
+                const nextBtn = document.createElement('button');
+                nextBtn.type = 'button';
+                nextBtn.className = 'pagination-btn';
+                nextBtn.disabled = true;
+                nextBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+                pagination.appendChild(nextBtn);
+                return;
+            }
+
             const prevBtn = document.createElement('button');
             prevBtn.type = 'button';
             prevBtn.className = 'pagination-btn';
             prevBtn.disabled = currentPage <= 1;
-            prevBtn.textContent = 'Prev';
+            prevBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>';
             prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadData(); } });
             pagination.appendChild(prevBtn);
 
-            const maxButtons = 5;
-            let first = Math.max(1, currentPage - 2);
-            let last = Math.min(totalPages, first + maxButtons - 1);
-            if (last - first < maxButtons - 1) first = Math.max(1, last - maxButtons + 1);
-            for (let p = first; p <= last; p++) {
+            const maxVisible = 3;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+
+            const addPageBtn = (page, label, active) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'pagination-btn' + (p === currentPage ? ' is-active' : '');
-                btn.textContent = p;
-                btn.addEventListener('click', () => { currentPage = p; loadData(); });
+                btn.className = 'pagination-btn' + (active ? ' is-active' : '');
+                btn.textContent = label;
+                btn.setAttribute('aria-label', 'Page ' + page);
+                if (active) btn.setAttribute('aria-current', 'page');
+                btn.addEventListener('click', () => { currentPage = page; loadData(); });
                 pagination.appendChild(btn);
+            };
+
+            if (startPage > 1) {
+                addPageBtn(1, '1', false);
+                if (startPage > 2) {
+                    const gap = document.createElement('span');
+                    gap.className = 'pagination-ellipsis';
+                    gap.textContent = '\u2026';
+                    pagination.appendChild(gap);
+                }
+            }
+            for (let p = startPage; p <= endPage; p++) {
+                addPageBtn(p, String(p), p === currentPage);
+            }
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const gap = document.createElement('span');
+                    gap.className = 'pagination-ellipsis';
+                    gap.textContent = '\u2026';
+                    pagination.appendChild(gap);
+                }
+                addPageBtn(totalPages, String(totalPages), false);
             }
 
             const nextBtn = document.createElement('button');
             nextBtn.type = 'button';
             nextBtn.className = 'pagination-btn';
             nextBtn.disabled = currentPage >= totalPages;
-            nextBtn.textContent = 'Next';
+            nextBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>';
             nextBtn.addEventListener('click', () => { if (currentPage < totalPages) { currentPage++; loadData(); } });
             pagination.appendChild(nextBtn);
         }
@@ -895,10 +943,14 @@
                 });
             }
 
-            const sendSmsBtn = el('sendSmsBtn');
-            if (sendSmsBtn) sendSmsBtn.addEventListener('click', function() {
-                window.location.href = 'send-sms.html';
-            });
+            const topbar = document.querySelector('.nhs-topbar');
+            if (topbar) {
+                const onScroll = () => {
+                    topbar.classList.toggle('is-scrolled', (window.scrollY || document.documentElement.scrollTop || 0) > 0);
+                };
+                window.addEventListener('scroll', onScroll, { passive: true });
+                onScroll();
+            }
 
             syncStatusLabel();
 
@@ -949,7 +1001,7 @@
         function syncStatusLabel() {
             var lbl = el('filterStatusLabel');
             if (!lbl) return;
-            lbl.textContent = statusFilter ? statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1) : 'All Status';
+            lbl.textContent = statusFilter ? (statusFilter === 'delivered' ? 'Delivered / Sent' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)) : 'All Status';
         }
 
         function initSortHandlers() {
@@ -1062,8 +1114,8 @@
             if (recipientEl) recipientEl.textContent = formatPhone(m.recipient);
             if (senderEl) senderEl.textContent = escapeHtml(m.senderId || '-');
             if (messageEl) messageEl.textContent = m.message ? escapeHtml(m.message) : '-';
-            if (sentEl) sentEl.textContent = m.createdAt ? new Date(m.createdAt).toLocaleString() : '-';
-            if (deliveredEl) deliveredEl.textContent = m.deliveredAt ? new Date(m.deliveredAt).toLocaleString() : '-';
+            if (sentEl) sentEl.textContent = formatDateTime(m.createdAt);
+            if (deliveredEl) deliveredEl.textContent = formatDateTime(m.deliveredAt);
             if (segmentsEl) segmentsEl.textContent = m.segments != null ? m.segments : '-';
             if (costEl) costEl.textContent = m.totalChargedToUser != null ? ('GHS ' + Number(m.totalChargedToUser).toFixed(2)) : '-';
             if (failureRow && failureEl) {
@@ -1141,10 +1193,10 @@
         #statGrid .stat-badge-total, #statGrid .stat-badge-delivered { background: var(--color-success-tint); color: var(--color-success); }
         #statGrid .stat-badge-failed { background: var(--color-danger-tint); color: var(--color-danger); }
         #statGrid .stat-badge-queued { background: var(--color-blue-tint); color: var(--color-blue-text); }
-        #statGrid .stat-body { min-width: 0; padding-right: 150px; }
-        #statGrid .stat-value { font-size: 32px; font-weight: 800; color: var(--color-text); line-height: 1.15; letter-spacing: -0.5px; }
-        #statGrid .stat-label { font-size: 16px; color: var(--color-muted); font-weight: var(--fw-medium); }
-        #statGrid .stat-spark { position: absolute; bottom: 8px; right: 8px; width: 128px; height: 70px; pointer-events: none; }
+        #statGrid .stat-body { min-width: 0; padding-right: 150px; position: relative; z-index: 1; }
+        #statGrid .stat-value { font-size: 32px; font-weight: 800; color: var(--color-text); line-height: 1.15; letter-spacing: -0.5px; white-space: nowrap; }
+        #statGrid .stat-label { font-size: 16px; color: var(--color-muted); font-weight: var(--fw-medium); white-space: nowrap; }
+        #statGrid .stat-spark { position: absolute; bottom: 8px; right: 8px; width: 128px; height: 70px; pointer-events: none; z-index: 0; max-width: 40%; }
         #statGrid .stat-spark svg { width: 100%; height: 100%; display: block; }
         @media (max-width: 600px) {
             #statGrid .stat-spark { width: 96px; height: 52px; }
@@ -1156,8 +1208,8 @@
         #messagesTable th.checkbox-col { width: 44px; padding: 16px 0.75rem; }
 
         /* Message status pill color variants (extend shared .status-pill) */
-        .status-pill.status-pill-delivered { background: var(--color-success-tint); color: var(--color-green-text); }
-        .status-pill.status-pill-failed { background: var(--color-danger-tint); color: var(--color-danger); }
+        .status-pill.status-pill-delivered { background: #E6F6EC; color: #15803D; }
+        .status-pill.status-pill-failed { background: #FDE8E8; color: #B42318; }
         .status-pill.status-pill-scheduled { background: var(--color-blue-tint); color: var(--color-blue-text); }
         .status-pill.status-pill-cancelled { background: #eef0f7; color: var(--color-muted); }
         .status-pill.status-pill-queued { background: var(--color-blue-tint); color: var(--color-blue-text); }
@@ -1182,15 +1234,17 @@
         .skeleton-cell { background: linear-gradient(90deg, #e4edfa 25%, #f4f7fd 50%, #e4edfa 75%); background-size: 200% 100%; }
 
         /* Message status pill color variants (extend shared .status-pill) */
-        .status-pill.status-pill-delivered { background: var(--color-success-tint); color: var(--color-green-text); }
-        .status-pill.status-pill-failed { background: var(--color-danger-tint); color: var(--color-danger); }
+        .status-pill.status-pill-delivered { background: #E6F6EC; color: #15803D; }
+        .status-pill.status-pill-failed { background: #FDE8E8; color: #B42318; }
         .status-pill.status-pill-scheduled { background: var(--color-blue-tint); color: var(--color-blue-text); }
         .status-pill.status-pill-cancelled { background: #eef0f7; color: var(--color-muted); }
-        .status-pill.status-pill-queued { background: var(--color-amber-tint); color: var(--color-orange-text); }
+        .status-pill.status-pill-queued { background: var(--color-blue-tint); color: var(--color-blue-text); }
 
-        .recipient-cell { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.9rem; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+        .recipient-cell { font-family: inherit; font-size: var(--text-sm); color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
         .message-cell { color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
-        .actions-cell { white-space: nowrap; }
+        .cancel-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--color-border); border-radius: var(--radius-button); background: #ffffff; color: var(--color-danger); cursor: pointer; margin-left: 0.25rem; }
+        .cancel-btn svg { width: 16px; height: 16px; }
+        .cancel-btn:hover { background: #fde8e8; border-color: var(--color-danger); }
 
         /* Sortable header hint (inline SVG up/down chevrons; active via CSS) */
         th.sortable { cursor: pointer; user-select: none; position: relative; }
@@ -1231,8 +1285,9 @@
         #sendSmsBtn { border-radius: 999px !important; padding: 0.625rem 1.25rem !important; min-height: auto !important; font-size: var(--text-sm) !important; font-weight: 700 !important; display: inline-flex; align-items: center; gap: 0.5rem; }
         #sendSmsBtn svg { width: 16px; height: 16px; }
 
-        /* Topbar sits directly on page background */
-        .nhs-topbar { background: transparent; border-bottom: none; box-shadow: none; }
+        /* Topbar sticky solid background matching page */
+        .nhs-topbar { position: sticky; top: 0; background: #F7F9FD; border-bottom: none; box-shadow: none; z-index: 100; }
+        .nhs-topbar.is-scrolled { box-shadow: 0 2px 8px rgba(15, 27, 61, 0.08); }
 
         /* Page background: very light with two faint pale-blue curved shapes top right */
         body { background: #F7F9FD; }
