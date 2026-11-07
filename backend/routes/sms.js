@@ -968,7 +968,7 @@ router.get('/messages/stats', authenticate, async (req, res) => {
   const userIdObj = new mongoose.Types.ObjectId(userId);
 
   try {
-    const range = req.query.range || '30d';
+    const range = req.query.range || 'all';
     const now = new Date();
     let start = null;
     let end = now;
@@ -1022,9 +1022,64 @@ router.get('/messages/stats', authenticate, async (req, res) => {
     // Total = Delivered + Failed + Queued + Sent + any other bucket shown (e.g. Cancelled).
     const queued = (totals.queued || 0) + (totals.processing || 0) + (totals.scheduled || 0);
 
+    // Mini area chart series: message counts per time bucket, per metric.
+    // Day buckets for ranged views; month buckets for All time; max ~14 points.
+    const MAX_SERIES_POINTS = 14;
+    const bucketSpec = range === 'all'
+      ? { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }
+      : { y: { $year: '$createdAt' }, m: { $month: '$createdAt' }, d: { $dayOfMonth: '$createdAt' } };
+    const seriesGroup = {
+      _id: bucketSpec,
+      total: { $sum: 1 },
+      delivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+      failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
+      queued: { $sum: { $cond: [{ $in: ['$status', ['queued', 'processing', 'scheduled']] }, 1, 0] } }
+    };
+    const seriesMatch = { ...match };
+    const SmsRecipient = require('../models/SmsRecipient');
+    const [mRows, sRows, rRows] = await Promise.all([
+      Message.aggregate([{ $match: seriesMatch }, { $group: seriesGroup }]),
+      SmsMessage.aggregate([{ $match: seriesMatch }, { $group: seriesGroup }]),
+      SmsRecipient.aggregate([{ $match: seriesMatch }, { $group: seriesGroup }])
+    ]);
+    const merged = {};
+    function seriesKey(row) {
+      if (range === 'all') {
+        return String(row._id.y) + '-' + String(row._id.m).padStart(2, '0');
+      }
+      return String(row._id.y) + '-' + String(row._id.m).padStart(2, '0') + '-' + String(row._id.d).padStart(2, '0');
+    }
+    function addSeriesRows(rows) {
+      for (const row of rows || []) {
+        const key = seriesKey(row);
+        if (!merged[key]) {
+          merged[key] = { date: key + (range === 'all' ? '-01' : ''), total: 0, delivered: 0, failed: 0, queued: 0 };
+        }
+        merged[key].total += row.total;
+        merged[key].delivered += row.delivered;
+        merged[key].failed += row.failed;
+        merged[key].queued += row.queued;
+      }
+    }
+    addSeriesRows(mRows);
+    addSeriesRows(sRows);
+    addSeriesRows(rRows);
+    let points = Object.keys(merged).sort().map(d => merged[d]);
+    if (points.length > MAX_SERIES_POINTS) {
+      const step = (points.length - 1) / (MAX_SERIES_POINTS - 1);
+      points = Array.from({ length: MAX_SERIES_POINTS }, (_, i) => points[Math.round(i * step)]);
+    }
+    const series = {
+      total: points.map(p => ({ date: p.date, count: p.total })),
+      delivered: points.map(p => ({ date: p.date, count: p.delivered })),
+      failed: points.map(p => ({ date: p.date, count: p.failed })),
+      queued: points.map(p => ({ date: p.date, count: p.queued }))
+    };
+
     res.json({
       success: true,
       range,
+      series,
       total: legacyCount + smsCount + recipCount,
       delivered: totals.delivered || 0,
       failed: totals.failed || 0,

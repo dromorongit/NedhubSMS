@@ -39,12 +39,12 @@
                                 <span class="caret">▼</span>
                             </button>
                             <div class="date-menu" id="dateMenu" role="listbox" style="display: none;">
-                                <button type="button" class="menu-item" role="option" data-range="today">Today</button>
-                                <button type="button" class="menu-item" role="option" data-range="7d">Last 7 days</button>
-                                <button type="button" class="menu-item" role="option" data-range="30d">Last 30 days</button>
-                                <button type="button" class="menu-item" role="option" data-range="month">This month</button>
-                                <button type="button" class="menu-item" role="option" data-range="all">All time</button>
-                                <button type="button" class="menu-item" role="option" data-range="custom">Custom range</button>
+                                <button type="button" class="menu-item" role="option" data-range="all">All time<span class="item-check" aria-hidden="true">✓</span></button>
+                                <button type="button" class="menu-item" role="option" data-range="today">Today<span class="item-check" aria-hidden="true">✓</span></button>
+                                <button type="button" class="menu-item" role="option" data-range="7d">Last 7 days<span class="item-check" aria-hidden="true">✓</span></button>
+                                <button type="button" class="menu-item" role="option" data-range="30d">Last 30 days<span class="item-check" aria-hidden="true">✓</span></button>
+                                <button type="button" class="menu-item" role="option" data-range="month">This month<span class="item-check" aria-hidden="true">✓</span></button>
+                                <button type="button" class="menu-item" role="option" data-range="custom">Custom range<span class="item-check" aria-hidden="true">✓</span></button>
                             </div>
                             <div class="custom-range-popover" id="customRangePopover" role="dialog" aria-modal="true" aria-labelledby="customRangeTitle" style="display: none;">
                                 <div class="crp-header">
@@ -69,47 +69,51 @@
                     </div>
                 </div>
 
-                <!-- Stat cards (shared .stat-grid / .stat-card; DB counts via /api/sms/messages/stats) -->
+                <!-- Stat cards (DB counts + mini area charts via /api/sms/messages/stats series) -->
                 <div class="stat-grid" id="statGrid">
                     <div class="stat-card">
-                        <div class="stat-icon stat-tint-green" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+                        <div class="stat-icon stat-badge-total" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
                         </div>
                         <div class="stat-body">
                             <span class="stat-value" id="statTotal">0</span>
                             <span class="stat-label">Total Messages</span>
                             <span class="trend-text" id="trendTotal"></span>
                         </div>
+                        <div class="stat-spark" id="sparkTotal" aria-hidden="true"></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon stat-tint-green" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        <div class="stat-icon stat-badge-delivered" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                         </div>
                         <div class="stat-body">
                             <span class="stat-value" id="statDelivered">0</span>
                             <span class="stat-label">Delivered</span>
                             <span class="trend-text" id="trendDelivered"></span>
                         </div>
+                        <div class="stat-spark" id="sparkDelivered" aria-hidden="true"></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon stat-tint-red" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                        <div class="stat-icon stat-badge-failed" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M10 10l4 4M14 10l-4 4" stroke="#ffffff" stroke-width="3" stroke-linecap="round"></path></svg>
                         </div>
                         <div class="stat-body">
                             <span class="stat-value" id="statFailed">0</span>
                             <span class="stat-label">Failed</span>
                             <span class="trend-text" id="trendFailed"></span>
                         </div>
+                        <div class="stat-spark" id="sparkFailed" aria-hidden="true"></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon stat-tint-blue" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <div class="stat-icon stat-badge-queued" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                         </div>
                         <div class="stat-body">
                             <span class="stat-value" id="statQueued">0</span>
                             <span class="stat-label">Queued</span>
                             <span class="trend-text" id="trendQueued"></span>
                         </div>
+                        <div class="stat-spark" id="sparkQueued" aria-hidden="true"></div>
                     </div>
                 </div>
 
@@ -127,16 +131,42 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                                 <input type="text" id="searchInput" placeholder="Search by recipient, message, or status...">
                             </div>
+                            <button type="button" class="table-filter-btn" id="filterBtn" aria-haspopup="listbox" aria-expanded="false">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                <span>Filter</span>
+                                <span class="caret">▼</span>
+                            </button>
                         </div>
+
+                    <!-- Filter pills (Status + Time; Time mirrors the top-right date range state) -->
+                    <div class="table-filters">
+                        <div class="filter-pill" id="filterStatusBtn" role="button" aria-haspopup="listbox" aria-expanded="false">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path d="M10 21h6a2 2 0 002-2V9.414a2 2 0 00-.586-1.414L14.414 6H14a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002 2v11a2 2 0 002 2z"></path></svg>
+                            <span class="filter-label" id="filterStatusLabel">All Status</span>
+                            <span class="filter-caret">▼</span>
+                        </div>
+                        <div class="filter-pill" id="filterTimeBtn" role="button" aria-haspopup="listbox" aria-expanded="false">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            <span class="filter-label" id="timeFilterLabel">All time</span>
+                            <span class="filter-caret">▼</span>
+                        </div>
+                    </div>
+                    <div class="status-menu" id="statusMenu" role="listbox" style="display: none;">
+                        <button type="button" class="menu-item" role="option" data-status="">All Status<span class="item-check" aria-hidden="true">✓</span></button>
+                        <button type="button" class="menu-item" role="option" data-status="delivered">Delivered<span class="item-check" aria-hidden="true">✓</span></button>
+                        <button type="button" class="menu-item" role="option" data-status="failed">Failed<span class="item-check" aria-hidden="true">✓</span></button>
+                        <button type="button" class="menu-item" role="option" data-status="queued">Queued<span class="item-check" aria-hidden="true">✓</span></button>
+                        <button type="button" class="menu-item" role="option" data-status="sent">Sent<span class="item-check" aria-hidden="true">✓</span></button>
+                        <button type="button" class="menu-item" role="option" data-status="cancelled">Cancelled<span class="item-check" aria-hidden="true">✓</span></button>
                     </div>
 
                     <!-- Skeleton loading -->
                     <div id="skeletonLoader" class="table-scroll" style="display: none;">
                         <table class="contacts-table">
                             <tbody>
-                                <tr class="skeleton-row"><td class="skeleton-cell"></td><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
-                                <tr class="skeleton-row"><td class="skeleton-cell"></td><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
-                                <tr class="skeleton-row"><td class="skeleton-cell"></td><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
+                                <tr class="skeleton-row"><td class="skeleton-cell" style="width: 44px;"></td><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
+                                <tr class="skeleton-row"><td class="skeleton-cell" style="width: 44px;"></td><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
+                                <tr class="skeleton-row"><td class="skeleton-cell" style="width: 44px;"></td><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -153,6 +183,7 @@
                         <table class="contacts-table" id="messagesTable">
                             <thead>
                                 <tr>
+                                    <th scope="col" class="select-col" style="width: 44px; text-align: center;"><input type="checkbox" id="selectAllMessages" class="row-select" aria-label="Select all messages"></th>
                                     <th scope="col" class="sortable" data-sort="createdAt" aria-sort="none">Date & time <span class="sort-indicator" aria-hidden="true"></span></th>
                                     <th scope="col" class="sortable" data-sort="recipient" aria-sort="none">Recipient <span class="sort-indicator" aria-hidden="true"></span></th>
                                     <th scope="col">Message</th>
@@ -164,11 +195,20 @@
                         </table>
                     </div>
 
-                    <!-- Empty state (shared .empty-state) -->
-                    <div id="emptyState" class="empty-state" style="display: none; padding: 3rem 1.5rem;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:64px;height:64px;margin-bottom:1rem;opacity:0.5;"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
-                        <h3 id="emptyTitle" style="margin:0 0 0.5rem 0;font-size:var(--text-xl);font-weight:var(--fw-bold);color:var(--color-text);">No messages yet</h3>
-                        <p id="emptyMessage" style="margin:0 0 1.5rem 0;font-size:var(--text-sm);">Your sent messages will appear here.</p>
+                    <!-- Empty state -->
+                    <div id="emptyState" class="empty-state empty-history" style="display: none;">
+                        <div class="eh-wrap">
+                            <div class="eh-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><polyline points="22 6 12 13 2 6"></polyline></svg>
+                                <div class="eh-spark eh-spark-1"></div>
+                                <div class="eh-spark eh-spark-2"></div>
+                                <div class="eh-spark eh-spark-3"></div>
+                            </div>
+                            <h3 id="emptyTitle">No messages found</h3>
+                            <p id="emptyMessage">Your message history will appear here once you send a message.</p>
+                            <button type="button" class="btn-primary" id="sendSmsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg> Send a Message</button>
+                            <div class="eh-curve" aria-hidden="true"></div>
+                        </div>
                     </div>
 
                     <!-- Pagination (shared .table-footer / .pagination) -->
@@ -249,7 +289,7 @@
         let sortDir = 'desc';
         let searchTerm = '';
         let statusFilter = '';
-        let dateRange = '30d';
+        let dateRange = 'all';
         let rangeStart = '';
         let rangeEnd = '';
         let latestRequestId = 0;
@@ -288,8 +328,8 @@
             } else if (range === 'month') {
                 s = new Date(now.getFullYear(), now.getMonth(), 1);
             } else if (range === 'all') {
-                s = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                e = now;
+                s = null;
+                e = null;
             } else if (range === 'custom' && start && end) {
                 s = new Date(start + 'T00:00:00');
                 e = new Date(end + 'T23:59:59.999');
@@ -325,7 +365,7 @@
         }
 
         function hasActiveFilters() {
-            return !!searchTerm || !!statusFilter || dateRange !== '30d' || !!rangeStart || !!rangeEnd;
+            return !!searchTerm || !!statusFilter || dateRange !== 'all' || !!rangeStart || !!rangeEnd;
         }
 
         // ---- UI sync (top-right dropdown + Time select share ONE state) ----
@@ -335,18 +375,31 @@
             const custom = el('customRangePopover');
             const startIn = el('customFrom');
             const endIn = el('customTo');
+            let label = rangeLabel(dateRange);
+            if (dateRange === 'custom' && rangeStart && rangeEnd) {
+                label = formatCustomRangeLabel(rangeStart, rangeEnd);
+            }
             if (btn) {
-                let label = rangeLabel(dateRange);
-                if (dateRange === 'custom' && rangeStart && rangeEnd) {
-                    label = formatCustomRangeLabel(rangeStart, rangeEnd);
-                }
                 btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg><span class="date-range-label">' + label + '</span> <span class="caret">▼</span>';
+            }
             }
             if (btn) btn.setAttribute('aria-expanded', menu && menu.style.display === 'block' ? 'true' : 'false');
             if (menu) menu.style.display = 'none';
             if (custom && !customPopoverOpen) custom.style.display = 'none';
             if (startIn && dateRange === 'custom') startIn.value = rangeStart || '';
             if (endIn && dateRange === 'custom') endIn.value = rangeEnd || '';
+            const timeLabel = el('timeFilterLabel');
+            if (timeLabel) timeLabel.textContent = label;
+            syncDateRangeChecks();
+        }
+
+        function syncDateRangeChecks() {
+            var menu = el('dateMenu');
+            if (!menu) return;
+            menu.querySelectorAll('.menu-item').forEach(function(item) {
+                var isActive = dateRange === 'custom' ? item.dataset.range === 'custom' : item.dataset.range === dateRange;
+                item.classList.toggle('menu-active', isActive);
+            });
         }
 
         // ---- Auth / profile ----
@@ -489,7 +542,7 @@
         }
 
         // ---- Stats with trend vs previous equal period ----
-         function renderStats(curr, prev, fallback, total) {
+        function renderStats(curr, prev, fallback, total) {
             let c = (curr && curr.data) ? curr.data : curr;
             let p = (prev && prev.data) ? prev.data : prev;
             if (fallback || !c) {
@@ -504,10 +557,10 @@
                 c.total = total;
             }
             const rows = [
-                { id: 'statTotal', trendId: 'trendTotal', value: c.total != null ? c.total : 0, prev: p && p.total != null ? p.total : 0 },
-                { id: 'statDelivered', trendId: 'trendDelivered', value: c.delivered != null ? c.delivered : 0, prev: p && p.delivered != null ? p.delivered : 0 },
-                { id: 'statQueued', trendId: 'trendQueued', value: c.queued != null ? c.queued : 0, prev: p && p.queued != null ? p.queued : 0 },
-                { id: 'statFailed', trendId: 'trendFailed', value: c.failed != null ? c.failed : 0, prev: p && p.failed != null ? p.failed : 0 }
+                { id: 'statTotal', trendId: 'trendTotal', value: c.total != null ? c.total : 0, prev: p && p.total != null ? p.total : 0, color: '#16A34A', series: c && c.series ? c.series.total : null },
+                { id: 'statDelivered', trendId: 'trendDelivered', value: c.delivered != null ? c.delivered : 0, prev: p && p.delivered != null ? p.delivered : 0, color: '#16A34A', series: c && c.series ? c.series.delivered : null },
+                { id: 'statQueued', trendId: 'trendQueued', value: c.queued != null ? c.queued : 0, prev: p && p.queued != null ? p.queued : 0, color: '#1976D2', series: c && c.series ? c.series.queued : null },
+                { id: 'statFailed', trendId: 'trendFailed', value: c.failed != null ? c.failed : 0, prev: p && p.failed != null ? p.failed : 0, color: '#E5484D', series: c && c.series ? c.series.failed : null }
             ];
             rows.forEach(r => {
                 $text(r.id, r.value.toLocaleString());
@@ -527,10 +580,35 @@
                     const sign = pct > 0 ? '+' : (pct < 0 ? '-' : '');
                     trendEl.classList.add(cls);
                     trendEl.textContent = (pct === 0 ? '— 0%' : sign + Math.abs(pct) + '%') + ' vs prev. period';
+                } else if (r.value === 0 && (r.prev == null || r.prev === 0) && (r.trendId === 'trendDelivered' || r.trendId === 'trendQueued')) {
+                    trendEl.textContent = '- 0%';
+                    trendEl.className = 'trend-text trend-none';
                 } else {
                     trendEl.textContent = '-';
                 }
+                const spark = el('spark' + r.id.slice(4));
+                if (spark) renderSpark(spark, r.series, r.color);
             });
+        }
+
+        function renderSpark(el, points, color) {
+            if (!el) return;
+            const c = color || '#6B7794';
+            const pts = Array.isArray(points) ? points.filter(function(p) { return p && typeof p.count === 'number'; }) : [];
+            if (pts.length < 2) {
+                el.innerHTML = '<svg width="128" height="70" viewBox="0 0 128 70" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><line x1="0" y1="35" x2="128" y2="35" stroke="' + c + '" stroke-opacity="0.35" stroke-width="1.5" stroke-linecap="round"/></svg>';
+                return;
+            }
+            const max = Math.max.apply(null, pts.map(function(p) { return p.count; })) || 1;
+            const n = pts.length;
+            let d = 'M';
+            for (let i = 0; i < n; i++) {
+                let x = (i / (n - 1)) * 128;
+                let y = 70 - (pts[i].count / max) * 70;
+                d += (i === 0 ? '' : ' L') + x + ' ' + y;
+            }
+            d += ' L128 70 L0 70 Z';
+            el.innerHTML = '<svg width="128" height="70" viewBox="0 0 128 70" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true"><defs><linearGradient id="sparkgrad-' + el.id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + c + '" stop-opacity="0.55"/><stop offset="100%" stop-color="' + c + '" stop-opacity="0"/></linearGradient></defs><path d="' + d + '" fill="url(#sparkgrad-' + el.id + ')" /></svg>';
         }
 
         // ---- Render table from server page (no client-side filter/sort) ----
@@ -549,11 +627,11 @@
             if (currentPage > totalPages) currentPage = totalPages;
             if (currentPage < 1) currentPage = 1;
 
-            if (total === 0) {
+                if (total === 0) {
                 const emptyTitle = el('emptyTitle');
                 const emptyMessage = el('emptyMessage');
-                if (emptyTitle) emptyTitle.textContent = hasActiveFilters() ? 'No messages match your filters' : 'No messages yet';
-                if (emptyMessage) emptyMessage.textContent = hasActiveFilters() ? 'Try adjusting your search, status, or date range.' : 'Your sent messages will appear here.';
+                if (emptyTitle) emptyTitle.textContent = hasActiveFilters() ? 'No messages match your filters' : 'No messages found';
+                if (emptyMessage) emptyMessage.textContent = hasActiveFilters() ? 'Try adjusting your search, status, or date range.' : 'Your message history will appear here once you send a message.';
                 if (emptyState) emptyState.style.display = 'flex';
                 if (footer) footer.style.display = 'none';
                 return;
@@ -582,6 +660,7 @@
                 const viewBtn = `<button class="action-btn view-btn" type="button" data-message-id="${escapeAttr(msg._id || '')}" title="View details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></button>`;
 
                 row.innerHTML = `
+                    <td class="select-cell" style="width: 44px; text-align: center;"><input type="checkbox" class="row-select" data-message-id="${escapeAttr(msg._id || '')}" aria-label="Select message"></td>
                     <td>${date}</td>
                     <td class="recipient-cell">${formatPhone(msg.recipient)}</td>
                     <td class="message-cell">${escapeHtml(messagePreview)}</td>
@@ -679,9 +758,49 @@
                         currentPage = 1;
                         syncDateRangeUI();
                         loadData();
+                        syncDateRangeChecks();
                     });
                 });
             }
+
+            const timeBtn = el('filterTimeBtn');
+            if (timeBtn) timeBtn.addEventListener('click', function() {
+                var menu = el('dateMenu');
+                var open = menu && menu.style.display === 'block';
+                if (menu) menu.style.display = open ? 'none' : 'block';
+                if (dateRangeBtn) dateRangeBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
+            });
+
+            var statusBtn = el('filterStatusBtn');
+            var filterBtn = el('filterBtn');
+            var statusMenu = el('statusMenu');
+            function positionStatusMenu(anchor) {
+                if (!anchor || !statusMenu) return;
+                var rect = anchor.getBoundingClientRect();
+                statusMenu.style.position = 'fixed';
+                statusMenu.style.left = rect.left + 'px';
+                statusMenu.style.top = (rect.bottom + 8) + 'px';
+                statusMenu.style.minWidth = Math.max(rect.width, 170) + 'px';
+            }
+            if (statusBtn) statusBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                positionStatusMenu(statusBtn);
+                statusMenu.style.display = statusMenu.style.display === 'block' ? 'none' : 'block';
+            });
+            if (filterBtn) filterBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                positionStatusMenu(filterBtn);
+                statusMenu.style.display = statusMenu.style.display === 'block' ? 'none' : 'block';
+            });
+            statusMenu.querySelectorAll('.menu-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                    statusFilter = this.dataset.status || '';
+                    currentPage = 1;
+                    statusMenu.style.display = 'none';
+                    syncStatusLabel();
+                    loadData();
+                });
+            });
 
             const fromIn = el('customFrom');
             const toIn = el('customTo');
@@ -717,9 +836,15 @@
                 closeCustomRangePopover(true);
             });
             document.addEventListener('keydown', function(e) {
-                if (!customPopoverOpen) return;
                 if (e.key === 'Escape') {
-                    closeCustomRangePopover(true);
+                    var menu = el('dateMenu');
+                    if (menu && menu.style.display === 'block') {
+                        menu.style.display = 'none';
+                        if (dateRangeBtn) dateRangeBtn.setAttribute('aria-expanded', 'false');
+                    }
+                    var sm = el('statusMenu');
+                    if (sm && sm.style.display === 'block') sm.style.display = 'none';
+                    if (customPopoverOpen) closeCustomRangePopover(true);
                 }
             });
 
@@ -741,6 +866,28 @@
                     openDetail(messageId);
                 });
             }
+
+            const sendSmsBtn = el('sendSmsBtn');
+            if (sendSmsBtn) sendSmsBtn.addEventListener('click', function() {
+                window.location.href = 'send-sms.html';
+            });
+
+            var selectAll = el('selectAllMessages');
+            const tbodyEl = el('messagesBody');
+            if (selectAll && tbodyEl) {
+                selectAll.addEventListener('change', function() {
+                    var checked = this.checked;
+                    tbodyEl.querySelectorAll('.row-select').forEach(function(cb) { cb.checked = checked; });
+                });
+                tbodyEl.addEventListener('change', function(e) {
+                    var cb = e.target;
+                    if (!cb || !cb.classList || !cb.classList.contains('row-select')) return;
+                    var all = tbodyEl.querySelectorAll('.row-select');
+                    selectAll.checked = all.length > 0 && Array.prototype.every.call(all, function(x) { return x.checked; });
+                });
+            }
+
+            syncStatusLabel();
 
             const retryBtn = el('retryBtn');
             if (retryBtn) retryBtn.addEventListener('click', function() {
@@ -774,11 +921,22 @@
             document.addEventListener('click', (e) => {
                 const menu = el('dateMenu');
                 const btn = el('dateRangeBtn');
-                if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+                const sm = el('statusMenu');
+                const timeBtn = el('filterTimeBtn');
+                if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target) && e.target !== timeBtn) {
                     menu.style.display = 'none';
                     btn.setAttribute('aria-expanded', 'false');
                 }
+                if (sm && !sm.contains(e.target) && e.target !== statusBtn && e.target !== filterBtn) {
+                    sm.style.display = 'none';
+                }
             });
+        }
+
+        function syncStatusLabel() {
+            var lbl = el('filterStatusLabel');
+            if (!lbl) return;
+            lbl.textContent = statusFilter ? statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1) : 'All Status';
         }
 
         function initSortHandlers() {
@@ -808,7 +966,7 @@
                 const active = sortKey === key;
                 th.setAttribute('aria-sort', active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
                 const indicator = th.querySelector('.sort-indicator');
-                if (indicator) indicator.textContent = active ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+                if (indicator) indicator.textContent = active ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕';
             });
         }
 
@@ -928,16 +1086,20 @@
            .status-pill base, .btn-*, .table-*) come from theme.css / shell.css. */
 
         .caret { margin-left: 0.35rem; font-size: 0.7rem; opacity: 0.6; }
+        .date-range-picker { position: relative; }
         .date-menu {
-            position: absolute; right: 0; top: calc(100% + 6px);
-            min-width: 170px; background: var(--color-card-bg);
+            position: absolute; right: 0; top: calc(100% + 8px);
+            min-width: 200px; background: var(--color-card-bg);
             border: 1px solid var(--color-border); border-radius: var(--radius-button);
-            box-shadow: var(--shadow); z-index: 10; display: flex; flex-direction: column;
+            box-shadow: var(--shadow); z-index: 60; display: flex; flex-direction: column;
         }
         .menu-item {
             width: 100%; padding: 0.625rem 1rem; border: none; background: transparent;
             color: var(--color-text); font-size: var(--text-sm); cursor: pointer; text-align: left;
         }
+        .item-check { opacity: 0; margin-left: auto; font-size: 0.7rem; line-height: 1; }
+        .menu-item.menu-active { background: #f4f7fd; color: var(--color-primary-orange); font-weight: var(--fw-semibold); }
+        .menu-item.menu-active .item-check { opacity: 1; }
         .menu-item:hover { background: #f4f7fd; color: var(--color-primary-orange); }
         .custom-range { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
         .custom-range input[type="date"] { padding: 0.5rem 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-button); background: #fbfcfd; font-size: var(--text-sm); }
@@ -960,7 +1122,39 @@
         .date-range-btn:hover { background: #f4f7fd; }
         .date-range-btn svg { width: 18px; height: 18px; color: var(--color-muted); flex-shrink: 0; }
 
-        /* Topbar: hide duplicated page title (the H1 is the page title); keep bell + user menu */
+        /* Stat cards: 64px filled icon badges, navy values, real-data sparklines on the right */
+        #statGrid .stat-card { position: relative; box-shadow: 0 2px 12px rgba(15, 27, 61, 0.07); }
+        #statGrid .stat-icon { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+        #statGrid .stat-icon svg { width: 30px; height: 30px; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        #statGrid .stat-badge-total, #statGrid .stat-badge-delivered { background: var(--color-success-tint); color: var(--color-success); }
+        #statGrid .stat-badge-failed { background: var(--color-danger); color: #ffffff; }
+        #statGrid .stat-badge-queued { background: var(--color-blue-tint); color: var(--color-blue-text); }
+        #statGrid .stat-body { min-width: 0; padding-right: 150px; }
+        #statGrid .stat-value { font-size: 32px; font-weight: 800; color: var(--color-text); line-height: 1.15; letter-spacing: -0.5px; }
+        #statGrid .stat-label { font-size: 16px; color: var(--color-muted); font-weight: var(--fw-medium); }
+        #statGrid .stat-spark { position: absolute; bottom: 8px; right: 8px; width: 128px; height: 70px; pointer-events: none; }
+        #statGrid .stat-spark svg { width: 100%; height: 100%; display: block; }
+        @media (max-width: 600px) {
+            #statGrid .stat-spark { width: 96px; height: 52px; }
+            #statGrid .stat-body { padding-right: 110px; }
+        }
+
+        /* Table header: uppercase navy headers, checkbox column */
+        #messagesTable th { text-transform: uppercase; font-size: 13px; font-weight: 700; color: var(--color-text); letter-spacing: 0.3px; }
+        #messagesTable th.select-col { padding: 0 0.5rem; text-align: center; }
+
+        /* Message status pill color variants (extend shared .status-pill) */
+        .status-pill.status-pill-delivered { background: var(--color-success-tint); color: var(--color-green-text); }
+        .status-pill.status-pill-failed { background: var(--color-danger-tint); color: var(--color-danger); }
+        .status-pill.status-pill-scheduled { background: var(--color-blue-tint); color: var(--color-blue-text); }
+        .status-pill.status-pill-cancelled { background: #eef0f7; color: var(--color-muted); }
+        .status-pill.status-pill-queued { background: var(--color-blue-tint); color: var(--color-blue-text); }
+        .status-pill.status-pill-delivered::before,
+        .status-pill.status-pill-failed::before,
+        .status-pill.status-pill-queued::before {
+            content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+            display: inline-flex; margin-right: 0.375rem; flex-shrink: 0;
+        }
         #nhsTopbarTitle { display: none; }
 
         /* Skeleton loading */
@@ -993,11 +1187,53 @@
         th.sortable[aria-sort="ascending"] .sort-indicator,
         th.sortable[aria-sort="descending"] .sort-indicator { opacity: 1; }
 
+        /* Search row: white pill search + white Filter pill */
+        .table-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+        .table-search { flex: 1; min-width: 0; }
+        .table-search input { width: 100%; background: #ffffff; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 0.625rem 1rem 0.625rem 2.75rem; font-size: var(--text-sm); color: var(--color-text); box-shadow: var(--shadow); }
+        .table-filter-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text); font-size: var(--text-sm); font-weight: var(--fw-medium); cursor: pointer; box-shadow: var(--shadow); }
+        .table-filter-btn svg { width: 16px; height: 16px; color: var(--color-muted); flex-shrink: 0; }
+        .table-filter-btn:hover { background: #f4f7fd; border-color: var(--color-primary-orange); }
+
+        /* Filter row: two equal-width pill selects sharing state with the top-right pill */
+        .table-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; width: 100%; padding: 0 1.5rem 1rem; }
+        @media (max-width: 600px) { .table-filters { grid-template-columns: 1fr; } }
+        .filter-pill { display: inline-flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.625rem 1rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: 14px; box-shadow: var(--shadow); color: var(--color-text); font-size: var(--text-sm); font-weight: var(--fw-medium); cursor: pointer; justify-content: space-between; }
+        .filter-pill svg { width: 16px; height: 16px; color: var(--color-muted); flex-shrink: 0; }
+        .filter-pill .filter-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+        .filter-pill .filter-caret { font-size: 0.65rem; opacity: 0.6; flex-shrink: 0; }
+        .filter-pill:hover { background: #f4f7fd; border-color: var(--color-primary-orange); }
+        .status-menu { position: fixed; min-width: 170px; background: var(--color-card-bg); border: 1px solid var(--color-border); border-radius: var(--radius-button); box-shadow: var(--shadow); z-index: 60; display: flex; flex-direction: column; }
+
+        /* Empty state: green circle, envelope, sparkles, orange send pill, faint curve */
+        .empty-history { padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .eh-wrap { max-width: 420px; width: 100%; position: relative; margin: 0 auto; }
+        .eh-icon { width: 96px; height: 96px; border-radius: 50%; background: var(--color-success-tint); display: grid; place-items: center; margin: 0 auto 1.25rem; position: relative; }
+        .eh-icon svg { width: 34px; height: 34px; color: var(--color-success); flex-shrink: 0; }
+        .eh-spark { position: absolute; border-radius: 2px; opacity: 0.9; }
+        .eh-spark-1 { top: 10px; left: 62px; width: 10px; height: 2px; background: var(--color-primary-orange); transform: rotate(18deg); }
+        .eh-spark-2 { top: 6px; right: 10px; width: 6px; height: 6px; background: var(--color-success); transform: rotate(45deg); }
+        .eh-spark-3 { bottom: 10px; left: 12px; width: 10px; height: 2px; background: var(--color-primary-orange); transform: rotate(-18deg); opacity: 0.85; }
+        .eh-curve { position: absolute; right: -14px; bottom: -14px; width: 170px; height: 150px; border-radius: 50%; background: radial-gradient(circle at bottom right, rgba(22, 163, 74, 0.10), transparent 70%); pointer-events: none; }
+        #sendSmsBtn { border-radius: 999px !important; padding: 0.625rem 1.25rem !important; min-height: auto !important; font-size: var(--text-sm) !important; font-weight: 700 !important; display: inline-flex; align-items: center; gap: 0.5rem; }
+        #sendSmsBtn svg { width: 16px; height: 16px; }
+
+        /* Page background: soft pale-blue curves top right */
+        .dashboard-content { position: relative; }
+        .dashboard-content::before {
+            content: ''; position: absolute; top: -70px; right: -50px; width: 520px; height: 400px;
+            background: radial-gradient(640px 380px at 92% 6%, rgba(128, 176, 238, 0.13), transparent 60%);
+            z-index: -1; pointer-events: none; filter: blur(32px);
+        }
+
+        /* Custom cancel button must not render as solid navy (shared .btn-secondary fix) */
+        #customRangeCancel { background: #ffffff !important; color: var(--color-text) !important; border: 1px solid var(--color-border) !important; box-shadow: var(--shadow); }
+
         /* Custom range popover */
         .custom-range-popover {
-            position: absolute; right: 0; top: calc(100% + 6px);
+            position: absolute; right: 0; top: calc(100% + 8px);
             width: 280px; background: var(--color-card-bg); border: 1px solid var(--color-border);
-            border-radius: var(--radius-button); box-shadow: var(--shadow); z-index: 20; padding: 1rem;
+            border-radius: var(--radius-button); box-shadow: var(--shadow); z-index: 60; padding: 1rem;
         }
         .crp-header { font-weight: 600; margin-bottom: 0.75rem; color: var(--color-text); }
         .crp-body { display: flex; flex-direction: column; gap: 0.625rem; }
