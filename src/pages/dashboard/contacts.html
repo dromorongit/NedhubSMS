@@ -259,45 +259,126 @@
     </div>
 
     <!-- Add/Edit Contact Modal -->
-    <div class="modal" id="contactModal">
-        <div class="modal-content">
-            <button class="modal-close" id="closeContactModal">&times;</button>
-            <div class="modal-header">
-                <div class="modal-icon">
+    <div class="nh-modal" id="contactModal" role="dialog" aria-modal="true" aria-labelledby="contactModalTitle">
+        <div class="nh-backdrop" data-close="contactModal"></div>
+        <div class="nh-modal-panel">
+            <div class="nh-modal-header">
+                <div class="nh-modal-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                 </div>
-                <h3 id="contactModalTitle">Add Contact</h3>
-                <p id="contactModalSubtitle">Enter contact details below</p>
+                <div class="nh-modal-header-text">
+                    <h3 id="contactModalTitle">Add Contact</h3>
+                    <p id="contactModalSubtitle">Save a new contact to your audience.</p>
+                </div>
+                <button class="nh-modal-close" id="closeContactModal" type="button" aria-label="Close">&times;</button>
             </div>
             <form id="contactForm">
                 <input type="hidden" id="contactId">
-                <div class="form-group">
-                    <label for="contactName">Full Name</label>
-                    <input type="text" id="contactName" name="name" required placeholder="e.g., John Doe">
+                <input type="hidden" id="contactGroup" name="groupName">
+                <div class="nh-modal-body">
+                    <div class="nh-field">
+                        <label class="nh-field-label" for="contactName">Full name (optional)</label>
+                        <input type="text" id="contactName" name="name" placeholder="e.g., John Doe" class="nh-input">
+                    </div>
+                    <div class="nh-field">
+                        <label class="nh-field-label" for="contactPhone">Phone number (required)</label>
+                        <div style="position:relative;">
+                            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#6B7794;font-weight:600;font-size:.875rem;pointer-events:none;">+233</span>
+                            <input type="text" id="contactPhone" name="phoneNumber" required placeholder="0XXXXXXXXX" class="nh-input" style="padding-left:56px;">
+                        </div>
+                        <span class="nh-field-hint">Ghana format: 0XXXXXXXXX, 233XXXXXXXXX, or +233XXXXXXXXX</span>
+                        <span class="nh-field-error" id="contactPhoneError"></span>
+                    </div>
+                    <div class="nh-field">
+                        <label class="nh-field-label" for="contactListSelect">List</label>
+                        <select id="contactListSelect" class="nh-input">
+                            <option value="">General</option>
+                            <option value="__new__">Create new list</option>
+                        </select>
+                        <input type="text" id="contactNewList" class="nh-input" placeholder="New list name" style="display:none;margin-top:8px;">
+                    </div>
+                    <span class="nh-field-error" id="contactError" style="display:none;"></span>
                 </div>
-                <div class="form-group">
-                    <label for="contactPhone">Phone Number</label>
-                    <input type="text" id="contactPhone" name="phoneNumber" required placeholder="e.g., 0241234567">
+                <div class="nh-modal-footer">
+                    <button type="button" class="nh-btn nh-btn-secondary" id="cancelContactBtn">Cancel</button>
+                    <button type="submit" class="nh-btn nh-btn-primary" id="contactSubmitBtn">
+                        <span>Save contact</span>
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label for="contactGroup">Group</label>
-                    <input type="text" id="contactGroup" name="groupName" placeholder="e.g., Customers, Family">
-                </div>
-                <button type="submit" class="btn-primary" id="contactSubmitBtn">
-                    <span>Save Contact</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                </button>
             </form>
-            <div id="contactError" class="error-message" style="display: none;"></div>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
+    <!-- Upload Contacts Modal -->
+    <div class="nh-modal" id="importModal" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
+        <div class="nh-backdrop" data-close="importModal"></div>
+        <div class="nh-modal-panel">
+            <div class="nh-modal-header">
+                <div class="nh-modal-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <div class="nh-modal-header-text">
+                    <h3 id="importModalTitle">Upload Contacts</h3>
+                    <p>Add many contacts at once from a CSV or Excel file.</p>
+                </div>
+                <button class="nh-modal-close" id="closeImportModal" type="button" aria-label="Close">&times;</button>
+            </div>
+            <form id="importForm">
+                <div class="nh-modal-body">
+                    <div id="dropZone" style="border:2px dashed #E6EBF5;border-radius:12px;padding:28px;text-align:center;background:#fbfcfd;cursor:pointer;transition:border-color .2s,background .2s;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:40px;height:40px;color:#6B7794;margin:0 auto 8px;display:block;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p style="margin:0;font-weight:600;color:#0F1B3D;">Drag and drop your file here or browse</p>
+                        <small style="color:#6B7794;">Accepts .csv, .xlsx, .xls</small>
+                        <input type="file" id="contactFile" name="file" accept=".csv,.xlsx,.xls" style="display:none;">
+                    </div>
+                    <div id="fileInfo" style="display:none;">
+                        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ECFDF3;border:1px solid #86efac;border-radius:12px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:#16A34A;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            <span id="fileName" style="flex:1;color:#16A34A;font-weight:600;font-size:.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                            <span id="fileSize" style="color:#16A34A;font-size:.75rem;"></span>
+                            <button type="button" id="removeFile" style="width:24px;height:24px;border:none;background:#fecaca;color:#E5484D;border-radius:50%;cursor:pointer;font-size:1.1rem;line-height:1;">&times;</button>
+                        </div>
+                        <div id="filePreview" style="margin-top:10px;max-height:140px;overflow:auto;border:1px solid #E6EBF5;border-radius:8px;font-size:.75rem;"></div>
+                    </div>
+                    <div class="nh-field">
+                        <label class="nh-field-label" for="importListSelect">Assign to list</label>
+                        <select id="importListSelect" class="nh-input">
+                            <option value="">General</option>
+                            <option value="__new__">Create new list</option>
+                        </select>
+                        <input type="text" id="importNewList" class="nh-input" placeholder="New list name" style="display:none;margin-top:8px;">
+                        <input type="hidden" id="importGroupName" name="groupName">
+                    </div>
+                    <a href="#" id="downloadSampleCsv" style="font-size:.8rem;color:#F77F00;text-decoration:underline;">Download sample CSV</a>
+                    <div id="importError" class="nh-field-error" style="display:none;"></div>
+                    <div id="importProgress" style="display:none;">
+                        <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin-bottom:8px;"><div id="progressFill" style="height:100%;background:linear-gradient(90deg,#F26A10,#F89A3C);width:0%;transition:width .3s;"></div></div>
+                        <p id="importStatus" style="font-size:.8rem;color:#6B7794;margin:0;">Processing...</p>
+                    </div>
+                    <div id="importResult" style="display:none;"></div>
+                </div>
+                <div class="nh-modal-footer">
+                    <button type="button" class="nh-btn nh-btn-secondary" id="cancelImportBtn">Cancel</button>
+                    <button type="submit" class="nh-btn nh-btn-primary" id="importSubmitBtn" disabled>
+                        <span id="importSubmitLabel">Upload contacts</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal (unchanged) -->
     <div class="modal" id="deleteModal">
         <div class="modal-content modal-small">
             <div class="modal-icon delete-icon">
@@ -318,67 +399,6 @@
                     Delete
                 </button>
             </div>
-        </div>
-    </div>
-
-    <!-- Import Contacts Modal -->
-    <div class="modal" id="importModal">
-        <div class="modal-content">
-            <button class="modal-close" id="closeImportModal">&times;</button>
-            <div class="modal-header">
-                <div class="modal-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                </div>
-                <h3>Import Contacts</h3>
-                <p>Upload a file to import contacts. Supported formats: CSV, XLS, XLSX, VCF, TXT</p>
-            </div>
-            <form id="importForm">
-                <div class="form-group">
-                    <label>Select File</label>
-                    <div class="file-upload-wrapper" id="fileUploadWrapper">
-                        <input type="file" id="contactFile" name="file" accept=".csv,.xls,.xlsx,.vcf,.txt" required>
-                        <div class="file-upload-content" id="fileUploadContent">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            <span>Click to browse or drag and drop</span>
-                            <small>Supported: CSV, XLS, XLSX, VCF, TXT</small>
-                        </div>
-                        <div class="file-info" id="fileInfo" style="display: none;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                            </svg>
-                            <span id="fileName"></span>
-                            <button type="button" class="remove-file" id="removeFile">&times;</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="importGroupName">Group Name (optional)</label>
-                    <input type="text" id="importGroupName" name="groupName" placeholder="e.g., Imported Contacts">
-                </div>
-                <button type="submit" class="btn-primary" id="importSubmitBtn">
-                    <span>Import Contacts</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                </button>
-            </form>
-            <div id="importProgress" style="display: none;">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <p id="importStatus">Processing...</p>
-            </div>
-            <div id="importResult" style="display: none;"></div>
-            <div id="importError" class="error-message" style="display: none;"></div>
         </div>
     </div>
 
@@ -619,6 +639,23 @@ function normalizePhone(value) {
                     option.value = group;
                     option.textContent = group;
                     if (groupFilter) groupFilter.appendChild(option);
+                });
+
+                // Populate list selects in modals
+                ['contactListSelect', 'importListSelect'].forEach(selId => {
+                    const sel = document.getElementById(selId);
+                    if (!sel) return;
+                    sel.innerHTML = '<option value="">General</option>';
+                    groups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group;
+                        option.textContent = group;
+                        sel.appendChild(option);
+                    });
+                    const newOpt = document.createElement('option');
+                    newOpt.value = '__new__';
+                    newOpt.textContent = 'Create new list';
+                    sel.appendChild(newOpt);
                 });
 
                 if (filteredContacts.length > 0) {
@@ -942,11 +979,25 @@ function normalizePhone(value) {
             document.getElementById('contactName').value = contact.recipientName || '';
             document.getElementById('contactPhone').value = contact.phoneNumber || '';
             document.getElementById('contactGroup').value = contact.groupName || '';
+            const listSel = document.getElementById('contactListSelect');
+            if (listSel) {
+                const g = contact.groupName || '';
+                let found = false;
+                Array.from(listSel.options).forEach(o => { if (o.value === g) found = true; });
+                if (!found && g) {
+                    const opt = document.createElement('option'); opt.value = g; opt.textContent = g; listSel.appendChild(opt);
+                }
+                listSel.value = g;
+            }
+            const newListInput = document.getElementById('contactNewList');
+            if (newListInput) newListInput.style.display = 'none';
             document.getElementById('contactModalTitle').textContent = 'Edit Contact';
             document.getElementById('contactModalSubtitle').textContent = 'Update contact information';
-            document.getElementById('contactSubmitBtn').innerHTML = '<span>Update Contact</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            document.getElementById('contactSubmitBtn').innerHTML = '<span>Update Contact</span>';
+            const phoneErr = document.getElementById('contactPhoneError'); if (phoneErr) { phoneErr.textContent=''; phoneErr.classList.remove('is-visible'); }
             document.getElementById('contactError').style.display = 'none';
             document.getElementById('contactModal').style.display = 'flex';
+            setTimeout(() => { const f = document.getElementById('contactName'); if (f) f.focus(); }, 50);
         }
 
         function openDeleteModal(contactId) {
@@ -959,19 +1010,41 @@ function normalizePhone(value) {
             editingContactId = null;
             document.getElementById('contactForm').reset();
             document.getElementById('contactId').value = '';
+            const listSel = document.getElementById('contactListSelect');
+            if (listSel) listSel.value = '';
+            const newListInput = document.getElementById('contactNewList');
+            if (newListInput) { newListInput.value = ''; newListInput.style.display = 'none'; }
             document.getElementById('contactModalTitle').textContent = 'Add Contact';
-            document.getElementById('contactModalSubtitle').textContent = 'Enter contact details below';
-            document.getElementById('contactSubmitBtn').innerHTML = '<span>Save Contact</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            document.getElementById('contactModalSubtitle').textContent = 'Save a new contact to your audience.';
+            document.getElementById('contactSubmitBtn').innerHTML = '<span>Save contact</span>';
+            const phoneErr = document.getElementById('contactPhoneError'); if (phoneErr) { phoneErr.textContent=''; phoneErr.classList.remove('is-visible'); }
             document.getElementById('contactError').style.display = 'none';
             document.getElementById('contactModal').style.display = 'flex';
+            setTimeout(() => { const f = document.getElementById('contactName'); if (f) f.focus(); }, 50);
         });
 
         document.getElementById('closeContactModal').addEventListener('click', () => {
             document.getElementById('contactModal').style.display = 'none';
         });
+        const cancelContactBtn = document.getElementById('cancelContactBtn');
+        if (cancelContactBtn) cancelContactBtn.addEventListener('click', () => {
+            document.getElementById('contactModal').style.display = 'none';
+        });
 
-        document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
-            document.getElementById('deleteModal').style.display = 'none';
+        // list select toggle create-new
+        const contactListSelect = document.getElementById('contactListSelect');
+        if (contactListSelect) contactListSelect.addEventListener('change', () => {
+            const v = contactListSelect.value;
+            const inp = document.getElementById('contactNewList');
+            if (inp) inp.style.display = (v === '__new__') ? '' : 'none';
+        });
+
+        document.querySelectorAll('.nh-backdrop').forEach(b => {
+            b.addEventListener('click', () => {
+                const id = b.getAttribute('data-close');
+                const m = document.getElementById(id);
+                if (m) m.style.display = 'none';
+            });
         });
 
         document.getElementById('contactModal').addEventListener('click', (e) => {
@@ -989,18 +1062,40 @@ function normalizePhone(value) {
         // Form submission
         document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const contactId = document.getElementById('contactId').value;
             const recipientName = document.getElementById('contactName').value;
             const phoneNumber = document.getElementById('contactPhone').value;
-            const groupName = document.getElementById('contactGroup').value;
+            const phoneErr = document.getElementById('contactPhoneError');
+            // Ghana validation
+            const digits = String(phoneNumber).replace(/\D/g, '');
+            let valid = false;
+            if (digits.startsWith('0') && digits.length === 10) valid = true;
+            else if (digits.startsWith('233') && digits.length === 12) valid = true;
+            else if (digits.length === 9) valid = true;
+            if (!valid) {
+                if (phoneErr) { phoneErr.textContent = 'Enter a valid Ghana number (0XXXXXXXXX, 233XXXXXXXXX, or +233XXXXXXXXX).'; phoneErr.classList.add('is-visible'); }
+                return;
+            }
+            if (phoneErr) { phoneErr.textContent = ''; phoneErr.classList.remove('is-visible'); }
+
+            // resolve list
+            const listSel = document.getElementById('contactListSelect');
+            let groupName = '';
+            if (listSel && listSel.value === '__new__') {
+                groupName = (document.getElementById('contactNewList')?.value || '').trim();
+            } else if (listSel) {
+                groupName = listSel.value;
+            }
+            document.getElementById('contactGroup').value = groupName;
+
             const submitBtn = document.getElementById('contactSubmitBtn');
             const errorDiv = document.getElementById('contactError');
-            
+
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span>Saving...</span>';
+            submitBtn.innerHTML = '<span class="nh-spinner"></span> Saving...';
             errorDiv.style.display = 'none';
-            
+
             try {
                 let result;
                 if (contactId) {
@@ -1008,7 +1103,7 @@ function normalizePhone(value) {
                 } else {
                     result = await window.apiClient.createContact(recipientName, phoneNumber, groupName);
                 }
-                
+
                 if (result.error) {
                     errorDiv.textContent = result.error;
                     errorDiv.style.display = 'block';
@@ -1023,11 +1118,7 @@ function normalizePhone(value) {
                 errorDiv.style.display = 'block';
             } finally {
                 submitBtn.disabled = false;
-                if (contactId) {
-                    submitBtn.innerHTML = '<span>Update Contact</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-                } else {
-                    submitBtn.innerHTML = '<span>Save Contact</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-                }
+                submitBtn.innerHTML = contactId ? '<span>Update Contact</span>' : '<span>Save contact</span>';
             }
         });
 
@@ -1064,14 +1155,23 @@ function normalizePhone(value) {
             if (form) form.reset();
             const fileInfo = document.getElementById('fileInfo');
             if (fileInfo) fileInfo.style.display = 'none';
-            const fileUploadContent = document.getElementById('fileUploadContent');
-            if (fileUploadContent) fileUploadContent.style.display = 'flex';
+            const dropZone = document.getElementById('dropZone');
+            if (dropZone) dropZone.style.display = '';
+            const filePreview = document.getElementById('filePreview');
+            if (filePreview) filePreview.innerHTML = '';
             const progress = document.getElementById('importProgress');
             if (progress) progress.style.display = 'none';
             const result = document.getElementById('importResult');
-            if (result) result.style.display = 'none';
+            if (result) { result.style.display = 'none'; result.innerHTML = ''; }
             const error = document.getElementById('importError');
-            if (error) error.style.display = 'none';
+            if (error) { error.textContent = ''; error.style.display = 'none'; }
+            const submitBtn = document.getElementById('importSubmitBtn');
+            if (submitBtn) submitBtn.disabled = true;
+            const listSel = document.getElementById('importListSelect');
+            if (listSel) listSel.value = '';
+            const newList = document.getElementById('importNewList');
+            if (newList) { newList.value = ''; newList.style.display = 'none'; }
+            setTimeout(() => { const dz = document.getElementById('dropZone'); if (dz) dz.focus(); }, 50);
         }
 
         const importContactsBtn = document.getElementById('importContactsBtn');
@@ -1091,6 +1191,11 @@ function normalizePhone(value) {
             });
         }
 
+        const cancelImportBtn = document.getElementById('cancelImportBtn');
+        if (cancelImportBtn) cancelImportBtn.addEventListener('click', () => {
+            document.getElementById('importModal').style.display = 'none';
+        });
+
         document.getElementById('closeImportModal').addEventListener('click', () => {
             document.getElementById('importModal').style.display = 'none';
         });
@@ -1101,71 +1206,179 @@ function normalizePhone(value) {
             }
         });
 
+        const importListSelect = document.getElementById('importListSelect');
+        if (importListSelect) importListSelect.addEventListener('change', () => {
+            const inp = document.getElementById('importNewList');
+            if (inp) inp.style.display = (importListSelect.value === '__new__') ? '' : 'none';
+        });
+
+        // Drop zone interactions
+        const dropZone = document.getElementById('dropZone');
+        const contactFileInput = document.getElementById('contactFile');
+        if (dropZone && contactFileInput) {
+            dropZone.addEventListener('click', () => contactFileInput.click());
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#F77F00'; dropZone.style.background = '#FFF7EC'; });
+            dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#E6EBF5'; dropZone.style.background = '#fbfcfd'; });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '#E6EBF5';
+                dropZone.style.background = '#fbfcfd';
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    contactFileInput.files = e.dataTransfer.files;
+                    contactFileInput.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+
+        // Download sample CSV
+        const downloadSample = document.getElementById('downloadSampleCsv');
+        if (downloadSample) {
+            downloadSample.addEventListener('click', (e) => {
+                e.preventDefault();
+                const csv = 'name,phone\nJohn Doe,0241234567\nJane Smith,0551234567\n';
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'sample-contacts.csv';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        function formatBytes(b) {
+            if (!b) return '';
+            if (b < 1024) return b + ' B';
+            if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+            return (b / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
         // File input change
-        document.getElementById('contactFile').addEventListener('change', function(e) {
+        if (contactFileInput) contactFileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                document.getElementById('fileUploadContent').style.display = 'none';
-                document.getElementById('fileInfo').style.display = 'flex';
-                document.getElementById('fileName').textContent = file.name;
+                const fileInfo = document.getElementById('fileInfo');
+                if (fileInfo) fileInfo.style.display = 'block';
+                const dz = document.getElementById('dropZone');
+                if (dz) dz.style.display = 'none';
+                const fileName = document.getElementById('fileName');
+                if (fileName) fileName.textContent = file.name;
+                const fileSize = document.getElementById('fileSize');
+                if (fileSize) fileSize.textContent = formatBytes(file.size);
+                const preview = document.getElementById('filePreview');
+                if (preview) {
+                    preview.innerHTML = '';
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (ext === 'csv' || ext === 'txt') {
+                        const reader = new FileReader();
+                        reader.onload = function(ev) {
+                            const text = String(ev.target.result || '');
+                            const lines = text.split(/\r?\n/).filter(l => l.trim()).slice(0, 6);
+                            if (lines.length === 0) return;
+                            const table = document.createElement('table');
+                            table.style.cssText = 'width:100%;border-collapse:collapse;';
+                            lines.forEach((line, idx) => {
+                                const cols = line.split(',');
+                                const tr = document.createElement('tr');
+                                cols.forEach(c => {
+                                    const cell = document.createElement(idx === 0 ? 'th' : 'td');
+                                    cell.textContent = c.trim();
+                                    cell.style.cssText = 'padding:4px 6px;border-bottom:1px solid #E6EBF5;text-align:left;';
+                                    if (idx === 0) cell.style.fontWeight = '700';
+                                    tr.appendChild(cell);
+                                });
+                                table.appendChild(tr);
+                            });
+                            preview.appendChild(table);
+                        };
+                        reader.readAsText(file);
+                    } else {
+                        preview.innerHTML = '<p style="padding:8px;color:#6B7794;margin:0;">Preview available after upload.</p>';
+                    }
+                }
+                const submitBtn = document.getElementById('importSubmitBtn');
+                if (submitBtn) submitBtn.disabled = false;
+            } else {
+                const fileInfo = document.getElementById('fileInfo');
+                if (fileInfo) fileInfo.style.display = 'none';
+                const dz = document.getElementById('dropZone');
+                if (dz) dz.style.display = '';
+                const submitBtn = document.getElementById('importSubmitBtn');
+                if (submitBtn) submitBtn.disabled = true;
             }
         });
 
         // Remove file
-        document.getElementById('removeFile').addEventListener('click', function() {
-            document.getElementById('contactFile').value = '';
-            document.getElementById('fileInfo').style.display = 'none';
-            document.getElementById('fileUploadContent').style.display = 'flex';
+        const removeFileBtn = document.getElementById('removeFile');
+        if (removeFileBtn) removeFileBtn.addEventListener('click', function() {
+            const ci = document.getElementById('contactFile');
+            if (ci) ci.value = '';
+            const fileInfo = document.getElementById('fileInfo');
+            if (fileInfo) fileInfo.style.display = 'none';
+            const dz = document.getElementById('dropZone');
+            if (dz) dz.style.display = '';
+            const preview = document.getElementById('filePreview');
+            if (preview) preview.innerHTML = '';
+            const submitBtn = document.getElementById('importSubmitBtn');
+            if (submitBtn) submitBtn.disabled = true;
         });
 
         // Import form submission
         document.getElementById('importForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const fileInput = document.getElementById('contactFile');
-            const groupName = document.getElementById('importGroupName').value;
+            const listSel = document.getElementById('importListSelect');
+            let groupName = '';
+            if (listSel && listSel.value === '__new__') {
+                groupName = (document.getElementById('importNewList')?.value || '').trim();
+            } else if (listSel) {
+                groupName = listSel.value;
+            }
+            const hidden = document.getElementById('importGroupName');
+            if (hidden) hidden.value = groupName;
+
             const submitBtn = document.getElementById('importSubmitBtn');
             const errorDiv = document.getElementById('importError');
             const progressDiv = document.getElementById('importProgress');
             const resultDiv = document.getElementById('importResult');
-            
+
             if (!fileInput.files[0]) {
                 errorDiv.textContent = 'Please select a file';
                 errorDiv.style.display = 'block';
                 return;
             }
-            
+
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span>Importing...</span>';
+            submitBtn.innerHTML = '<span class="nh-spinner"></span> Uploading...';
             errorDiv.style.display = 'none';
             resultDiv.style.display = 'none';
             progressDiv.style.display = 'block';
-            
+
             try {
                 const result = await window.apiClient.importContacts(fileInput.files[0], groupName);
-                
+
                 progressDiv.style.display = 'none';
-                
+
                 if (result.error) {
                     errorDiv.textContent = result.error;
                     errorDiv.style.display = 'block';
                 } else {
+                    const imported = result.data?.imported ?? result.data?.added ?? 0;
+                    const duplicates = result.data?.duplicates ?? 0;
+                    const invalid = result.data?.invalid ?? 0;
                     resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = `<div class="success-message">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                        </svg>
-                        <div>
-                            <strong>Import Successful!</strong>
-                            <p>${result.data.imported} contacts imported successfully${result.data.duplicates > 0 ? ', ' + result.data.duplicates + ' duplicates skipped' : ''}</p>
-                        </div>
-                    </div>`;
-                    showToast(result.data.imported + ' contacts imported successfully!', 'success');
-                    setTimeout(() => {
+                    resultDiv.innerHTML = `
+                        <div style="padding:12px;border:1px solid #86efac;background:#ECFDF3;border-radius:12px;">
+                            <strong style="color:#15803D;">Import complete</strong>
+                            <p style="margin:6px 0 0;font-size:.875rem;color:#0F1B3D;">Added: ${imported} &bull; Duplicates skipped: ${duplicates} &bull; Invalid numbers: ${invalid}</p>
+                            <button type="button" id="importDoneBtn" class="nh-btn nh-btn-primary" style="margin-top:10px;height:40px;">Done</button>
+                        </div>`;
+                    showToast(imported + ' contacts imported successfully!', 'success');
+                    const doneBtn = document.getElementById('importDoneBtn');
+                    if (doneBtn) doneBtn.addEventListener('click', () => {
                         document.getElementById('importModal').style.display = 'none';
                         loadContacts();
-                    }, 2000);
+                    });
                 }
             } catch (error) {
                 console.error('Import error:', error);
@@ -1174,7 +1387,7 @@ function normalizePhone(value) {
                 errorDiv.style.display = 'block';
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>Import Contacts</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                submitBtn.innerHTML = '<span>Upload contacts</span>';
             }
         });
 
@@ -1223,6 +1436,31 @@ function normalizePhone(value) {
             currentPage = 1;
             renderContacts(filteredContacts);
         }
+
+        // Esc key + focus trap for modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            ['contactModal', 'importModal'].forEach(id => {
+                const m = document.getElementById(id);
+                if (m && m.style.display === 'flex') m.style.display = 'none';
+            });
+        });
+
+        function trapFocus(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            modal.addEventListener('keydown', (e) => {
+                if (e.key !== 'Tab') return;
+                const focusables = modal.querySelectorAll('button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])');
+                if (!focusables.length) return;
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            });
+        }
+        trapFocus('contactModal');
+        trapFocus('importModal');
 
         // Logout function
         function logout() {

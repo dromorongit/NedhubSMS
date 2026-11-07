@@ -1,4 +1,231 @@
-/* shell.css - shared dashboard shell (nhs- prefix) */
+/* ── Reusable modal shell (.nh-modal) — shared by Overview Top Up and Contacts ── */
+.nh-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(11, 19, 43, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: hidden;
+}
+.nh-modal.active,
+.nh-modal[style*="display: flex"],
+.nh-modal[style*="display:flex"] {
+  display: flex !important;
+}
+.nh-modal .nh-backdrop {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+.nh-modal-panel {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  max-height: calc(100dvh - 32px);
+  background: var(--color-card-bg, #fff);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(11, 19, 43, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: nh-modal-in 0.2s ease;
+}
+@keyframes nh-modal-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nh-modal-panel { animation: none; }
+}
+.nh-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border, #E6EBF5);
+  background: linear-gradient(135deg, #0B132B, #1B2A59);
+  color: #fff;
+  flex: 0 0 auto;
+  margin: 0;
+}
+.nh-modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(247, 127, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.nh-modal-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: #F77F00;
+}
+.nh-modal-header-text { flex: 1; min-width: 0; }
+.nh-modal-header h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+.nh-modal-header p {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+}
+.nh-modal-close {
+  position: static;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.nh-modal-close:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+.nh-modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.nh-modal-footer {
+  padding: 16px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  flex: 0 0 auto;
+  border-top: 1px solid var(--color-border, #E6EBF5);
+  background: var(--color-card-bg, #fff);
+}
+.nh-field { display: flex; flex-direction: column; gap: 6px; }
+.nh-field-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text, #0F1B3D);
+}
+.nh-field-hint {
+  font-size: 0.75rem;
+  color: var(--color-muted, #6B7794);
+}
+.nh-field-error {
+  font-size: 0.75rem;
+  color: var(--color-danger, #E5484D);
+  display: none;
+}
+.nh-field-error.is-visible { display: block; }
+.nh-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border, #E6EBF5);
+  border-radius: 12px;
+  background: #fbfcfd;
+  color: var(--color-text, #0F1B3D);
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+.nh-input:focus {
+  outline: none;
+  border-color: #F77F00;
+  box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.15);
+}
+.nh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  font-family: inherit;
+}
+.nh-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.nh-btn-primary {
+  width: 100%;
+  height: 48px;
+  background: linear-gradient(135deg, #F77F00, #C96A00);
+  color: #fff;
+  font-size: 1rem;
+  box-shadow: 0 6px 16px rgba(247, 127, 0, 0.35);
+}
+.nh-btn-primary:not(:disabled):hover { transform: translateY(-1px); }
+.nh-btn-secondary {
+  background: transparent;
+  border: none;
+  color: var(--color-muted, #6B7794);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+}
+.nh-btn-secondary:hover { color: var(--color-text, #0F1B3D); }
+.nh-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: nh-spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes nh-spin { to { transform: rotate(360deg); } }
+@media (max-width: 639px) {
+  .nh-modal { align-items: flex-end; padding: 0; }
+  .nh-modal-panel {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 92dvh;
+    width: 100%;
+    animation: nh-sheet-up 0.25s ease;
+  }
+  @keyframes nh-sheet-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nh-modal-panel { animation: none; }
+  }
+  .nh-modal-panel::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--color-border, #E6EBF5);
+    margin: 0.5rem auto 0;
+    flex: 0 0 auto;
+  }
+  .nh-modal-header { padding: 12px 20px; }
+  .nh-modal-body { padding: 16px 20px; }
+  .nh-modal-footer { padding: 12px 20px calc(20px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 390px) {
+  .nh-modal-body { max-height: 60vh; }
+  .nh-modal-footer .nh-btn-primary { height: 44px; }
+}
+/* focus trap visible focus */
+.nh-modal :focus-visible { outline: 2px solid #F77F00; outline-offset: 2px; }
 /* Design tokens (self-contained so every page that loads shell.css gets an identical shell) */
 :root {
   --color-sidebar: #0A1A3F;
