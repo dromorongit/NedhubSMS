@@ -392,6 +392,19 @@
         const selectedIds = new Set();
         let blacklistedPhones = new Set();
 
+function normalizePhone(value) {
+    if (!value) return '';
+    let digits = String(value).replace(/\D/g, '');
+    if (digits.startsWith('233') && digits.length === 12) {
+        // already 233 format
+    } else if (digits.startsWith('0') && digits.length === 10) {
+        digits = '233' + digits.substring(1);
+    } else if (digits.length === 9) {
+        digits = '233' + digits;
+    }
+    return digits;
+}
+
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthAndLoad();
         });
@@ -529,9 +542,10 @@
                 spinner.style.display = 'flex';
                 tbody.innerHTML = '';
 
-                const [contactsResult, blacklistResult] = await Promise.allSettled([
+                const [contactsResult, blacklistResult, statsResult] = await Promise.allSettled([
                     window.apiClient.getContacts(),
-                    window.apiClient.getBlacklist({ page: 1, limit: 200 })
+                    window.apiClient.getBlacklist({ page: 1, limit: 10000 }),
+                    window.apiClient.getContactsStats()
                 ]);
 
                 let blacklistedCount = 0;
@@ -543,7 +557,8 @@
                         loadError = res.error;
                     } else {
                         const raw = res.data;
-                        contacts = Array.isArray(raw) ? raw : [];
+                        const list = (raw && (Array.isArray(raw) ? raw : (raw.contacts || raw.data))) || [];
+                        contacts = Array.isArray(list) ? list : [];
                     }
                 } else {
                     loadError = contactsResult.reason ? String(contactsResult.reason) : 'Failed to load contacts';
@@ -552,12 +567,10 @@
                 if (blacklistResult.status === 'fulfilled') {
                     const res = blacklistResult.value;
                     if (!res.error) {
-                        const blData = res.data;
-                        blacklistedCount = blData.pagination?.total
-                            ?? blData.blacklistedNumbers?.length
-                            ?? 0;
-                        (blData.blacklistedNumbers || []).forEach(function (n) {
-                            if (n && n.phoneNumber) blacklistedPhones.add(n.phoneNumber);
+                        const blData = res.data || {};
+                        const numbers = blData.blacklistedNumbers || blData.data?.blacklistedNumbers || [];
+                        (numbers || []).forEach(function (n) {
+                            if (n && n.phoneNumber) blacklistedPhones.add(normalizePhone(n.phoneNumber));
                         });
                     }
                 }
@@ -574,15 +587,30 @@
                 selectedIds.clear();
 
                 // Update stats (real API data)
-                const totalContacts = contacts.length;
-                const activeContacts = Math.max(0, totalContacts - blacklistedCount);
+                let totalContacts = contacts.length;
+                let blacklistedStat = contacts.filter(function (c) {
+                    return blacklistedPhones.has(normalizePhone(c.phoneNumber));
+                }).length;
+                let activeContacts = Math.max(0, totalContacts - blacklistedStat);
+                let listsStat = [...new Set(contacts.map(function (c) { return c.groupName; }).filter(function (g) { return g; }))].length;
+
+                if (statsResult && statsResult.status === 'fulfilled') {
+                    const sres = statsResult.value;
+                    if (!sres.error && sres.data) {
+                        totalContacts = (typeof sres.data.total === 'number') ? sres.data.total : totalContacts;
+                        blacklistedStat = (typeof sres.data.blacklisted === 'number') ? sres.data.blacklisted : blacklistedStat;
+                        activeContacts = (typeof sres.data.active === 'number') ? sres.data.active : Math.max(0, totalContacts - blacklistedStat);
+                        listsStat = (typeof sres.data.lists === 'number') ? sres.data.lists : listsStat;
+                    }
+                }
+
                 if (totalContactsEl) totalContactsEl.textContent = totalContacts;
                 if (activeContactsEl) activeContactsEl.textContent = activeContacts;
-                if (blacklistedCountEl) blacklistedCountEl.textContent = blacklistedCount;
+                if (blacklistedCountEl) blacklistedCountEl.textContent = blacklistedStat;
+                if (totalGroupsEl) totalGroupsEl.textContent = listsStat;
 
                 // Get unique groups (lists)
                 const groups = [...new Set(contacts.map(c => c.groupName).filter(g => g))];
-                if (totalGroupsEl) totalGroupsEl.textContent = groups.length;
 
                 // Update group filter
                 groupFilter.innerHTML = '<option value="">All Lists</option>';
@@ -724,7 +752,7 @@
                 const date = formatDate(contact.createdAt);
                 const recipientName = contact.recipientName || 'Unknown';
                 const displayName = initials(recipientName);
-                const isBlacklisted = blacklistedPhones.has(contact.phoneNumber);
+                const isBlacklisted = blacklistedPhones.has(normalizePhone(contact.phoneNumber));
                 const status = isBlacklisted ? 'Blacklisted' : 'Active';
                 const listName = contact.groupName || 'General';
                 const isSelected = selectedIds.has(id);
@@ -1028,29 +1056,39 @@
             }
         });
 
-        // Import contacts modal
-        document.getElementById('importContactsBtn').addEventListener('click', () => {
-            document.getElementById('importModal').style.display = 'flex';
-            document.getElementById('importForm').reset();
-            document.getElementById('fileInfo').style.display = 'none';
-            document.getElementById('fileUploadContent').style.display = 'flex';
-            document.getElementById('importProgress').style.display = 'none';
-            document.getElementById('importResult').style.display = 'none';
-            document.getElementById('importError').style.display = 'none';
-        });
+        function openImportModal() {
+            const modal = document.getElementById('importModal');
+            if (modal) modal.style.display = 'flex';
+            const form = document.getElementById('importForm');
+            if (form) form.reset();
+            const fileInfo = document.getElementById('fileInfo');
+            if (fileInfo) fileInfo.style.display = 'none';
+            const fileUploadContent = document.getElementById('fileUploadContent');
+            if (fileUploadContent) fileUploadContent.style.display = 'flex';
+            const progress = document.getElementById('importProgress');
+            if (progress) progress.style.display = 'none';
+            const result = document.getElementById('importResult');
+            if (result) result.style.display = 'none';
+            const error = document.getElementById('importError');
+            if (error) error.style.display = 'none';
+        }
 
-        // Upload banner button opens the same import flow
-        document.getElementById('btnUploadContacts').addEventListener('click', () => {
-            document.getElementById('importContactsBtn').click();
-        });
+        const importContactsBtn = document.getElementById('importContactsBtn');
+        if (importContactsBtn) importContactsBtn.addEventListener('click', openImportModal);
 
-        document.getElementById('emptyUploadBtn').addEventListener('click', () => {
-            document.getElementById('importContactsBtn').click();
-        });
+        const btnUploadContacts = document.getElementById('btnUploadContacts');
+        if (btnUploadContacts) btnUploadContacts.addEventListener('click', openImportModal);
 
-        document.getElementById('emptyAddBtn').addEventListener('click', () => {
-            document.getElementById('addContactBtn').click();
-        });
+        const emptyUploadBtn = document.getElementById('emptyUploadBtn');
+        if (emptyUploadBtn) emptyUploadBtn.addEventListener('click', openImportModal);
+
+        const emptyAddBtn = document.getElementById('emptyAddBtn');
+        if (emptyAddBtn) {
+            emptyAddBtn.addEventListener('click', () => {
+                const addBtn = document.getElementById('addContactBtn');
+                if (addBtn) addBtn.click();
+            });
+        }
 
         document.getElementById('closeImportModal').addEventListener('click', () => {
             document.getElementById('importModal').style.display = 'none';

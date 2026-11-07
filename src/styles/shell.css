@@ -288,6 +288,14 @@
 .nhs-topbar-name { white-space: nowrap; }
 .nhs-topbar-chevron { width: 14px; height: 14px; stroke: var(--color-text-muted, #64748B); }
 
+.nhs-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+}
+
 /* ── Topbar extras: pill search, bell/badge, icon constraints ── */
 .nhs-topbar-search {
   position: relative;

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const Contact = require('../models/Contact');
+const BlacklistedNumber = require('../models/BlacklistedNumber');
 const ContactImport = require('../models/ContactImport');
 const ContactImportService = require('../services/ContactImportService');
 const validator = require('validator');
@@ -395,6 +396,46 @@ router.post('/preview', authenticate, async (req, res) => {
   } catch (error) {
     console.error('[Preview] Regenerate error:', error.message);
     res.status(500).json({ error: 'Failed to regenerate preview: ' + error.message });
+  }
+});
+
+// GET /api/contacts/stats - aggregate counts scoped to logged-in user
+router.get('/stats', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const contacts = await Contact.find({ userId }).populate('groupIds', 'name').select('normalizedPhoneNumber groupIds');
+
+    const total = contacts.length;
+
+    const blacklistedNumbers = await BlacklistedNumber.find({ userId }).select('normalizedPhoneNumber');
+    const blacklistedSet = new Set(
+      (blacklistedNumbers || []).map(function (n) { return n.normalizedPhoneNumber; }).filter(Boolean)
+    );
+    const blacklisted = contacts.filter(function (c) {
+      return blacklistedSet.has(c.normalizedPhoneNumber);
+    }).length;
+    const active = Math.max(0, total - blacklisted);
+
+    const groups = new Set();
+    contacts.forEach(function (c) {
+      let hasGroup = false;
+      if (c.groupIds && c.groupIds.length && c.groupIds[0] && c.groupIds[0].name) {
+        c.groupIds.forEach(function (g) {
+          if (g && g.name) groups.add(g.name);
+        });
+        hasGroup = true;
+      }
+      if (!hasGroup) groups.add('General');
+    });
+    const lists = groups.size;
+
+    res.json({
+      success: true,
+      data: { total, blacklisted, active, lists }
+    });
+  } catch (error) {
+    console.error('[Contacts] Error fetching stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

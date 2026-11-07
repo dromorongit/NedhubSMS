@@ -277,6 +277,10 @@ class ApiClient {
     return this.request('GET', '/contacts');
   }
 
+  async getContactsStats() {
+    return this.request('GET', '/contacts/stats');
+  }
+
   async updateContact(id, recipientName, phoneNumber, groupName) {
     return this.request('PUT', `/contacts/${id}`, { recipientName, phoneNumber, groupName });
   }
