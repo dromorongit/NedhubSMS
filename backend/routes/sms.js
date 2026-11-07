@@ -879,6 +879,81 @@ router.get('/logs', authenticate, async (req, res) => {
   }
 });
 
+// Get message stats scoped to the logged-in user, optional range filter
+router.get('/messages/stats', authenticate, async (req, res) => {
+  const mongoose = require('mongoose');
+  const userId = req.user.userId;
+  const userIdObj = new mongoose.Types.ObjectId(userId);
+
+  try {
+    const range = req.query.range || '30d';
+    const now = new Date();
+    let start = null;
+    let end = now;
+
+    if (range === 'today') {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (range === '7d') {
+      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (range === '30d') {
+      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (range === 'month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (range === 'custom' && req.query.start && req.query.end) {
+      start = new Date(req.query.start);
+      end = new Date(req.query.end);
+      end.setHours(23, 59, 59, 999);
+    } else {
+      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    const match = { userId: userIdObj };
+    if (start) {
+      match.createdAt = { $gte: start, $lte: end };
+    }
+
+    const [legacyCount, smsCount, recipCount] = await Promise.all([
+      Message.countDocuments(match),
+      SmsMessage.countDocuments(match),
+      require('../models/SmsRecipient').countDocuments(match)
+    ]);
+
+    const statusMatch = { ...match };
+    const [legacyByStatus, smsByStatus, recipByStatus] = await Promise.all([
+      Message.aggregate([{ $match: statusMatch }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+      SmsMessage.aggregate([{ $match: statusMatch }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+      require('../models/SmsRecipient').aggregate([{ $match: statusMatch }, { $group: { _id: '$status', count: { $sum: 1 } } }])
+    ]);
+
+    const totals = {};
+    for (const arr of [legacyByStatus, smsByStatus, recipByStatus]) {
+      for (const { _id, count } of arr) {
+        totals[_id] = (totals[_id] || 0) + count;
+      }
+    }
+
+    res.json({
+      success: true,
+      range,
+      total: legacyCount + smsCount + recipCount,
+      delivered: totals.delivered || 0,
+      failed: totals.failed || 0,
+      queued: totals.queued || 0,
+      sent: totals.sent || 0,
+      scheduled: totals.scheduled || 0,
+      cancelled: totals.cancelled || 0,
+      processing: totals.processing || 0
+    });
+  } catch (error) {
+    logger.error('[MessageStats] Error', { userId, error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to compute message stats',
+      error: { code: 'INTERNAL_SERVER_ERROR', details: error.message }
+    });
+  }
+});
+
 // Calculate live SMS cost estimation
 router.get('/calculate-cost', authenticate, async (req, res) => {
   try {

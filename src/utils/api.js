@@ -489,8 +489,16 @@ class ApiClient {
     });
   }
 
-  async getMessageHistory() {
-    return this.request('GET', '/sms/logs');
+  async getMessageHistory(page = 1, limit = 50) {
+    const qs = new URLSearchParams({ page, limit }).toString();
+    return this.request('GET', `/sms/logs?${qs}`);
+  }
+
+  async getMessageStats(range, start, end) {
+    const qs = new URLSearchParams({ range });
+    if (start) qs.set('start', start);
+    if (end) qs.set('end', end);
+    return this.request('GET', `/sms/messages/stats?${qs.toString()}`);
   }
 
   async getSmsCost(params, options = {}) {
