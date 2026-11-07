@@ -727,7 +727,10 @@
         .page-blacklist .card { max-width: 100%; }
         .page-blacklist .contacts-table { max-width: 100%; }
 
-        /* Decorative curved shapes (top right, behind header) */
+        /* Decorative curved shapes (top right, behind header). Kept fully on
+           screen horizontally: anchored at the right edge and sized with vw so
+           they never extend past the viewport on narrow screens. Vertical
+           overflow is intentional (shapes bleed past the top edge only). */
         .page-blacklist::before,
         .page-blacklist::after {
             content: '';
@@ -736,21 +739,26 @@
             right: 0;
             z-index: 0;
             pointer-events: none;
-            border-radius: 50%;
         }
         .page-blacklist::before {
-            width: 560px;
-            height: 560px;
+            width: 45vw;
+            height: 45vw;
+            max-width: 560px;
+            max-height: 560px;
             background: radial-gradient(circle at top right, rgba(167, 243, 208, 0.35), transparent 60%);
-            transform: translate(18%, -12%);
         }
         .page-blacklist::after {
-            width: 440px;
-            height: 440px;
+            width: 38vw;
+            height: 38vw;
+            max-width: 440px;
+            max-height: 440px;
             background: radial-gradient(circle at top right, rgba(187, 247, 250, 0.30), transparent 55%);
-            transform: translate(12%, -6%);
+            transform: translateY(-6%);
         }
         .page-blacklist .dashboard-content { position: relative; z-index: 1; }
+        /* Safety net: this page has no horizontal content, so never scroll sideways. */
+        body.nhs-has-shell.page-blacklist,
+        html { overflow-x: hidden; }
         .page-blacklist .nhs-page-header {
             margin-bottom: 1.5rem;
         }
