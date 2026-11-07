@@ -80,13 +80,13 @@ From the project root, run:
 node scripts/predeploy-check.mjs
 ```
 
-This checks syntax (`node --check`) on every backend/server `.js` file, runs an
-undefined-identifier audit (eslint `no-undef`, skipped with a message when there
-is no network), and executes the route-level smoke tests in
-`tests/payment-routes-smoke.test.js`, which mount the real payment, wallet and
-admin routers with stubbed models/auth/Hubtel provider and exercise every
-handler end to end. The script exits non-zero on any failure; do not deploy
-until it passes.
+This runs five checks, exiting non-zero on any failure; do not deploy until all pass:
+
+1. **Syntax check** (`node --check`) on every backend/server `.js` file.
+2. **Undefined-identifier audit** (eslint `no-undef`, skipped with a message when there is no network) on backend/server files changed since `main`.
+3. **Module-load check** (`scripts/module-load-check.mjs`): requires every file under `backend/routes`, `backend/controllers`, `backend/services`, `backend/middleware` and `backend/utils` in a child process with dummy environment variables (no real keys, `MONGODB_URI=mongodb://127.0.0.1:1/none`) and a 10-second timeout. Fails on any throw — this catches the bug class that broke payments (`normalizeOrigin is not a function` from a missing export). Files that open connections/listeners at load time are skipped with a printed reason.
+4. **Destructured-import check** (`scripts/destructured-import-check.mjs`): statically finds every `const { a, b } = require('./path')` and `require('./path').name` across `backend/` and `server/`, loads each target module, and fails if any imported name is not exported.
+5. **Route-level smoke tests** (`tests/payment-routes-smoke.test.js`): mount the real payment, wallet and admin routers with stubbed models/auth/Hubtel provider and exercise every handler end to end.
 
 
 ## 🔧 Setup & Installation

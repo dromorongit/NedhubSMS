@@ -2,10 +2,14 @@
 // Runs before every deploy:
 //   1. `node --check` on every backend/ and server/ .js file (syntax).
 //   2. Undefined-identifier check (eslint no-undef) on the backend/server files
-//      changed since main (the same set as the audit). Skipped with a clear
-//      message when there is no network (npx download).
-//   3. Route-level smoke tests (tests/payment-routes-smoke.test.js) that mount
-//      the real routers with stubs and exercise every changed handler end to end.
+//      changed since main. Skipped with a clear message when there is no network.
+//   3. Module-load check: require every file under backend/routes, controllers,
+//      services, middleware and utils in a child process with dummy env. Fails
+//      on any throw; skips load-time connection/listener files with a reason.
+//   4. Destructured-import check: statically verify every name imported via
+//      `const { a } = require('./path')` or `require('./path').name` is exported
+//      by the target module.
+//   5. Route-level smoke tests (tests/payment-routes-smoke.test.js).
 // Exits non-zero on any failure.
 // No new dependencies; does not edit package.json or lockfiles.
 // Run: node scripts/predeploy-check.mjs
@@ -13,6 +17,8 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { runModuleLoadCheck } from './module-load-check.mjs';
+import { runDestructuredImportCheck } from './destructured-import-check.mjs';
 
 const ROOT = process.cwd();
 const BACKEND = join(ROOT, 'backend');
@@ -107,7 +113,17 @@ if (changedFiles.length) {
 if (eslintRan) log(eslintOk ? `eslint no-undef: OK (${changedFiles.length} changed file(s))` : `eslint no-undef: FAILED`);
 
 // ---------------------------------------------------------------------------
-// 3. Route-level smoke tests.
+// 3. Module-load check.
+// ---------------------------------------------------------------------------
+const moduleLoadResult = runModuleLoadCheck();
+
+// ---------------------------------------------------------------------------
+// 4. Destructured-import check.
+// ---------------------------------------------------------------------------
+const importCheckResult = runDestructuredImportCheck();
+
+// ---------------------------------------------------------------------------
+// 5. Route-level smoke tests.
 // ---------------------------------------------------------------------------
 log('\n== smoke tests: tests/payment-routes-smoke.test.js ==');
 const testResult = spawnSync(process.execPath, [
@@ -119,7 +135,7 @@ const smokeOk = testResult.status === 0;
 log(smokeOk ? 'smoke tests: OK' : `smoke tests: FAILED (exit ${testResult.status})`);
 
 // ---------------------------------------------------------------------------
-const ok = syntaxOk && eslintOk && smokeOk;
+const ok = syntaxOk && eslintOk && moduleLoadResult.ok && importCheckResult.ok && smokeOk;
 log('\n== RESULT ==');
 if (ok) {
   log('PRE-DEPLOY CHECK: ALL PASSED');
