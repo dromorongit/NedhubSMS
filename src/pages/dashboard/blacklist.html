@@ -224,7 +224,7 @@ async function loadUserProfile() {
             const userAvatarEl = document.getElementById('userAvatar');
 
             if (userNameEl) userNameEl.textContent = firstName;
-            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+            if (userAvatarEl) userAvatarEl.textContent = (window.NhShell && typeof window.NhShell.initials === 'function') ? window.NhShell.initials(firstName) : (firstName.charAt(0) + (firstName.charAt(1) || '')).toUpperCase();
         }
 
         // Load blacklist entries

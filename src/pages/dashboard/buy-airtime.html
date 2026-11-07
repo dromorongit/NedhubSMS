@@ -1071,7 +1071,7 @@
                     const user = response.data.user;
                     const firstName = user.name ? user.name.split(' ')[0] : 'User';
                     document.getElementById('userName').textContent = firstName;
-                    document.getElementById('userAvatar').textContent = firstName.charAt(0).toUpperCase();
+                    document.getElementById('userAvatar').textContent = (window.NhShell && typeof window.NhShell.initials === 'function') ? window.NhShell.initials(firstName) : (firstName.charAt(0) + (firstName.charAt(1) || '')).toUpperCase();
                 }
             } catch (error) {
                 console.error('Error loading user profile:', error);

@@ -426,6 +426,18 @@ function normalizePhone(value) {
 }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            if (window.NhShell && typeof window.NhShell.init === 'function') {
+                window.NhShell.init({ search: true, placeholder: 'Search contacts...' });
+            }
+            const ts = document.querySelector('.table-search');
+            if (ts) ts.style.display = 'none';
+            const topbarInput = document.getElementById('nhsTopbarSearchInput');
+            if (topbarInput) {
+                topbarInput.addEventListener('input', (e) => {
+                    const hidden = document.getElementById('searchInput');
+                    if (hidden) { hidden.value = e.target.value; hidden.dispatchEvent(new Event('input')); }
+                });
+            }
             await checkAuthAndLoad();
         });
 

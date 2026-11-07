@@ -92,15 +92,18 @@
 
   // Topbar markup
   const activeItem = NAV.find(function (i) { return i.href.toLowerCase() === current; }) || NAV[0];
+  const pageTitle = (activeItem && activeItem.label) ? activeItem.label : 'Dashboard';
   const topbarHtml =
     '<header class="nhs-topbar">' +
       '<div class="nhs-topbar-left">' +
         '<button class="nhs-burger" id="nhsBurger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nhsSidebar"><span></span><span></span><span></span></button>' +
-        '<div class="nhs-topbar-search">' +
+        '<h1 class="nhs-topbar-title" id="nhsTopbarTitle">' + pageTitle + '</h1>' +
+        '<div class="nhs-topbar-search" id="nhsTopbarSearch" style="display:none;">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>' +
-          '<input type="search" class="nhs-topbar-search-input" placeholder="Search contacts..." aria-label="Search contacts">' +
-          '</div>' +
-          '<div class="nhs-topbar-right">' +
+          '<input type="search" id="nhsTopbarSearchInput" class="nhs-topbar-search-input" placeholder="Search..." aria-label="Search">' +
+        '</div>' +
+      '</div>' +
+      '<div class="nhs-topbar-right">' +
         '<button class="nhs-icon-btn" id="nhsNotifBtn" type="button" aria-label="Notifications" aria-haspopup="true" aria-controls="nhsNotifBadge">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>' +
           '<span class="nhs-badge" id="nhsNotifBadge" aria-label="3 new notifications">3</span>' +
@@ -198,6 +201,20 @@
   }
 
   window.NhShell = {
+    initials: initials,
+    init: function (opts) {
+      opts = opts || {};
+      const search = opts.search === true;
+      const searchEl = document.getElementById('nhsTopbarSearch');
+      const titleEl = document.getElementById('nhsTopbarTitle');
+      if (searchEl) searchEl.style.display = search ? '' : 'none';
+      if (titleEl) titleEl.style.display = search ? 'none' : '';
+      if (search && opts.placeholder) {
+        const input = document.getElementById('nhsTopbarSearchInput');
+        if (input) input.placeholder = opts.placeholder;
+      }
+      try { window.__nhShellSearch = search; } catch (e) {}
+    },
     scroller: function () {
       return document.querySelector('.main-content');
     },
@@ -242,4 +259,5 @@
     logout: doLogout
   };
   try { var st = window.getStorage ? window.getStorage() : localStorage; var sn = st.getItem('userName'); if (sn) window.NhShell.setUser({ name: sn }); } catch (e) {}
+  try { if (window.nhShellOptions) window.NhShell.init(window.nhShellOptions); else window.NhShell.init({ search: false }); } catch (e) {}
 })();

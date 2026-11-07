@@ -428,7 +428,8 @@
                 if (response.data && response.data.user) {
                     const user = response.data.user;
                     const fullName = user.name || 'User';
-                    updateUserDisplay(fullName.split(' ')[0]);
+                    window._ovFullName = fullName;
+                    updateUserDisplay(fullName);
                     const sidebarName = document.getElementById('sidebarUserName');
                     if (sidebarName) sidebarName.textContent = fullName;
                     storage.setItem('userName', fullName);
@@ -465,15 +466,16 @@
             return 'Good evening';
         }
 
-        function updateUserDisplay(firstName) {
+        function updateUserDisplay(fullName) {
             const userNameEl = document.getElementById('userName');
             const welcomeTitleEl = document.getElementById('welcomeTitle');
             const userAvatarEl = document.getElementById('userAvatar');
             const sidebarAvatarEl = document.getElementById('sidebarUserAvatar');
-            if (userNameEl) userNameEl.textContent = firstName;
-            if (welcomeTitleEl) welcomeTitleEl.textContent = getTimeGreeting() + ', ' + firstName + ' 👋';
-            if (userAvatarEl) userAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
-            if (sidebarAvatarEl) sidebarAvatarEl.textContent = (firstName.charAt(0) || 'U').toUpperCase();
+            const first = String(fullName || 'User').trim().split(/\s+/)[0] || 'User';
+            if (userNameEl) userNameEl.textContent = first;
+            if (welcomeTitleEl) welcomeTitleEl.textContent = getTimeGreeting() + ', ' + first + ' 👋';
+            if (userAvatarEl) userAvatarEl.textContent = (window.NhShell && typeof window.NhShell.initials === 'function') ? window.NhShell.initials(fullName) : (first.charAt(0) + (first.charAt(1) || '')).toUpperCase();
+            if (sidebarAvatarEl) sidebarAvatarEl.textContent = (window.NhShell && typeof window.NhShell.initials === 'function') ? window.NhShell.initials(fullName) : (first.charAt(0) + (first.charAt(1) || '')).toUpperCase();
         }
 
         async function handlePaymentReturn() {

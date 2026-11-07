@@ -645,3 +645,15 @@ body.nhs-has-shell {
   overflow-y: visible;
   margin: 0;
 }
+
+
+.nhs-topbar-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0B132B;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 0 auto;
+}
