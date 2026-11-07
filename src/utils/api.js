@@ -683,8 +683,8 @@ class ApiClient {
   }
 
   // Blacklist endpoints
-  async addToBlacklist(phoneNumber, reason) {
-    return this.request('POST', '/blacklist', { phoneNumber, reason });
+  async addToBlacklist(phoneNumber, reason, customReason) {
+    return this.request('POST', '/blacklist', { phoneNumber, reason, customReason });
   }
 
   async getBlacklist(params = {}) {

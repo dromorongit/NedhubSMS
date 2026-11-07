@@ -8,7 +8,7 @@ const AuditLog = require('../models/AuditLog');
 // POST /api/blacklist - Add number to blacklist
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { phoneNumber, reason, source = 'user' } = req.body;
+    const { phoneNumber, reason, customReason, source = 'user' } = req.body;
     const userId = req.user.userId;
 
      if (!phoneNumber || !reason) {
@@ -46,6 +46,7 @@ router.post('/', authenticate, async (req, res) => {
       phoneNumber,
       normalizedPhoneNumber,
       reason,
+      customReason: customReason || undefined,
       source
     });
 

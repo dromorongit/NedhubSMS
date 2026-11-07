@@ -24,6 +24,11 @@ const blacklistedNumberSchema = new mongoose.Schema({
     trim: true,
     maxlength: 500
   },
+  customReason: {
+    type: String,
+    trim: true,
+    maxlength: 500
+  },
   source: {
     type: String,
     required: [true, 'Source of blacklisting is required'],

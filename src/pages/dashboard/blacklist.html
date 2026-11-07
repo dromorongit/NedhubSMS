@@ -6,728 +6,1093 @@
     <title>Blacklist - Nedhub Bulk Messaging</title>
     <link rel="icon" type="image/png" href="../../assets/images/Nedhubsymbol.PNG">
     <link rel="stylesheet" href="../../styles/main.css">
-    <link rel="stylesheet" href="../../styles/dashboard.css">
+    <link rel="stylesheet" href="../../styles/theme.css">
     <link rel="stylesheet" href="../../styles/responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400,500,700,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../styles/nedhub-app.css">
+    <link rel="stylesheet" href="../../styles/shell.css?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="../../utils/authStorage.js"></script>
     <script src="../../utils/api.js" defer></script>
     <script src="../../utils/toast.js" defer></script>
     <script src="../../utils/escape.js"></script>
-    <link rel="stylesheet" href="../../styles/shell.css?v=2">
+    <script src="../../utils/recipientUtils.js" defer></script>
 </head>
-<body class="nhs-has-shell">
+<body class="nhs-has-shell page-blacklist">
     <div class="dashboard-layout">
         <div id="nhs-sidebar-mount"></div>
         <main class="main-content">
             <div id="nhs-topbar-mount"></div>
     <script src="../../utils/shell.js?v=2"></script>
-            <!-- Sidebar Overlay -->
             <div class="dashboard-content">
-                <div class="welcome-section">
-                    <h2 id="pageTitle">SMS Blacklist</h2>
-                    <p class="welcome-subtitle">Manage phone numbers that should not receive SMS messages</p>
-                </div>
 
-                <!-- Add Blacklist Entry Card -->
-                <div class="sms-form-card">
-                    <h3 class="section-title">Add to Blacklist</h3>
-                    <form id="addBlacklistForm">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="blacklistPhone">Phone Number</label>
-                                <input type="tel" id="blacklistPhone" name="phoneNumber" placeholder="0241234567" required>
-                                <small>Enter the phone number to blacklist (with or without country code)</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="blacklistReason">Reason</label>
-                                <select id="blacklistReason" name="reason" required>
-                                    <option value="">Select reason</option>
-                                    <option value="User requested opt-out">User requested opt-out</option>
-                                    <option value="Invalid number">Invalid number</option>
-                                    <option value="Spam complaint">Spam complaint</option>
-                                    <option value="Bounce/failure">Bounce/failure</option>
-                                    <option value="Duplicate contact">Duplicate contact</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
+                <!-- Page header -->
+                <header class="nhs-page-header" id="pageHeader" aria-label="Blacklist">
+                    <div class="header-text">
+                        <div class="page-logo" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" class="page-logo-icon">
+                                <path d="M12 1c-3.9 0-7 2.2-7 6v5h14V7c0-3.8-3.1-6-7-6z" fill="#F77F00"></path>
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"></path>
+                            </svg>
                         </div>
-                        <div class="form-group">
-                            <label for="customReason">Custom Reason (Optional)</label>
-                            <input type="text" id="customReason" name="customReason" placeholder="Additional details..." maxlength="200">
+                        <div>
+                            <h1 id="pageTitle">Blacklist</h1>
+                            <p class="subtitle">Manage phone numbers that should not receive SMS messages</p>
                         </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn-primary" id="addBlacklistBtn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </div>
+                    <button type="button" class="btn-help" id="viewHelpBtn" aria-label="View help">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        </svg>
+                        View Help
+                    </button>
+                </header>
+
+                <!-- Add to Blacklist card -->
+                <div class="card add-card">
+                    <div class="card-head">
+                        <span class="accent-bar" aria-hidden="true"></span>
+                        <div>
+                            <h2>Add to Blacklist</h2>
+                            <p>Enter a phone number to block (with or without country code)</p>
+                        </div>
+                    </div>
+                    <form id="addBlacklistForm" novalidate>
+                        <div class="input-row">
+                            <div class="phone-wrapper">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="phone-icon" aria-hidden="true">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                                 </svg>
-                                Add to Blacklist
+                                <input type="tel" id="blacklistPhone" name="phoneNumber" placeholder="e.g. 0241234567" inputmode="tel" maxlength="20" autocomplete="off">
+                                <span class="input-error" id="phoneError" aria-live="polite"></span>
+                            </div>
+                            <button type="submit" class="btn-add" id="addBlacklistBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="btn-add-icon" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="m5 5 14 14"></path>
+                                </svg>
+                                <span class="btn-add-label">Add to Blacklist</span>
+                                <span class="btn-add-spinner" style="display:none;"></span>
                             </button>
                         </div>
                     </form>
                 </div>
 
-                <!-- Blacklist Table Card -->
-                <div class="data-table-card">
-                    <div class="table-header">
-                        <h3>Blacklisted Numbers</h3>
-                        <div class="table-controls">
-                            <div class="search-box">
-                                <input type="text" id="searchInput" placeholder="Search by phone or reason...">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <path d="M21 21l-4.35-4.35"></path>
-                                </svg>
-                            </div>
+                <!-- Blacklist Settings card -->
+                <div class="card settings-card">
+                    <div class="card-head">
+                        <div class="settings-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
                         </div>
+                        <h2>Blacklist Settings</h2>
                     </div>
-                    <div class="table-container">
-                        <table class="data-table" id="blacklistTable">
-                            <thead>
-                                <tr>
-                                    <th>Phone Number</th>
-                                    <th>Reason</th>
-                                    <th>Source</th>
-                                    <th>Date Added</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="blacklistTableBody">
-                                <!-- Blacklist entries will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="table-pagination" id="pagination" style="display: none;">
-                        <button class="btn-secondary" id="prevPage" disabled>&larr; Previous</button>
-                        <span id="pageInfo">Page 1 of 1</span>
-                        <button class="btn-secondary" id="nextPage" disabled>Next &rarr;</button>
+                    <div class="settings-grid">
+                        <div class="nh-field">
+                            <label class="nh-field-label" for="blacklistReason">Reason</label>
+                            <select id="blacklistReason" name="reason" class="nh-input" required>
+                                <option value="">Select reason</option>
+                                <option value="User requested opt-out">User requested opt-out</option>
+                                <option value="Invalid number">Invalid number</option>
+                                <option value="Spam complaint">Spam complaint</option>
+                                <option value="Bounce/failure">Bounce/failure</option>
+                                <option value="Duplicate contact">Duplicate contact</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="nh-field">
+                            <label class="nh-field-label" for="customReason">Custom Reason (Optional)</label>
+                            <textarea id="customReason" name="customReason" class="nh-input" placeholder="Add more details..." rows="3"></textarea>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Tips Card -->
-                <div class="tips-card">
-                    <div class="tips-header">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        <h3>Important Notes</h3>
+                <!-- Blocked Numbers card -->
+                <div class="card blocked-card">
+                    <div class="card-head">
+                        <div class="title-group">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="card-icon" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="m5 5 14 14"></path>
+                            </svg>
+                            <h2>Blocked Numbers</h2>
+                        </div>
+                        <span class="total-pill" id="totalPill">Total: 0</span>
                     </div>
-                    <ul class="tips-list">
-                        <li>Blacklisted numbers will be automatically excluded from all SMS campaigns</li>
-                        <li>Phone numbers are normalized for consistent matching</li>
-                        <li>All blacklist additions and removals are logged for audit purposes</li>
-                        <li>Users can request to be removed from the blacklist at any time</li>
-                        <li>Ensure compliance with local opt-out regulations</li>
-                    </ul>
+
+                    <!-- Loading skeleton -->
+                    <div class="list-skeleton" id="listSkeleton">
+                        <div class="skeleton-row"><span class="sk sk-text sk-wide"></span><span class="sk sk-text"></span><span class="sk sk-text"></span><span class="sk sk-text sk-short"></span></div>
+                        <div class="skeleton-row"><span class="sk sk-text sk-wide"></span><span class="sk sk-text"></span><span class="sk sk-text"></span><span class="sk sk-text sk-short"></span></div>
+                        <div class="skeleton-row"><span class="sk sk-text sk-wide"></span><span class="sk sk-text"></span><span class="sk sk-text"></span><span class="sk sk-text sk-short"></span></div>
+                    </div>
+
+                    <!-- Error state -->
+                    <div class="contacts-error-state" id="listErrorState" style="display:none;">
+                        <div class="error-card">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <h3 id="listErrorTitle">Unable to load blacklist</h3>
+                            <p id="listErrorMessage">Please check your connection and try again.</p>
+                            <button type="button" class="btn-primary" id="listRetryBtn">Retry</button>
+                        </div>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div class="empty-state" id="emptyState" style="display:none;">
+                        <div class="empty-illustration" aria-hidden="true">
+                            <svg viewBox="0 0 180 120">
+                                <defs>
+                                    <filter id="cloudShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feGaussianBlur in="SourceAlpha" stdDeviation="6"></feGaussianBlur>
+                                        <feOffset dx="0" dy="4" result="offsetblur"></feOffset>
+                                        <feComponentTransfer><feFuncA type="linear" slope="0.25"></feFuncA></feComponentTransfer>
+                                        <feMerge><feMergeNode></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+                                    </filter>
+                                </defs>
+                                <rect x="10" y="40" width="160" height="50" rx="25" fill="#E3F2FD"></rect>
+                                <circle cx="50" cy="60" r="22" fill="#E3F2FD"></circle>
+                                <circle cx="130" cy="55" r="28" fill="#E3F2FD"></circle>
+                                <path d="M40 60h20l-6-14v-6l-8 20z" fill="#0F1B3D"></path>
+                                <path d="M60 46v14h-8V46z" fill="#0F1B3D"></path>
+                                <circle cx="54" cy="56" r="7" fill="#E5484D"></circle>
+                                <path d="M51 54l6 6M57 54l-6 6" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"></path>
+                            </svg>
+                        </div>
+                        <h3>No numbers in blacklist yet</h3>
+                        <p>Blocked phone numbers will appear here once added.</p>
+                    </div>
+
+                    <!-- No search match -->
+                    <div class="empty-state" id="noMatchState" style="display:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="no-match-icon" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="M21 21l-4.35-4.35"></path>
+                        </svg>
+                        <h3>No numbers match your search</h3>
+                        <div class="empty-actions" style="justify-content:center;">
+                            <button type="button" class="btn-secondary" id="clearSearchBtn">Clear</button>
+                        </div>
+                    </div>
+
+                    <!-- Populated table -->
+                    <div class="table-wrap" id="tableWrap" style="display:none;">
+                        <div class="table-toolbar">
+                            <div class="table-search">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="M21 21l-4.35-4.35"></path>
+                                </svg>
+                                <input type="search" id="searchInput" placeholder="Search by phone or reason..." aria-label="Search blocked numbers">
+                            </div>
+                            <button type="button" class="btn-clear" id="clearSearchBtnToolbar" style="display:none;" aria-label="Clear search">Clear</button>
+                        </div>
+                        <div class="table-scroll">
+                            <table class="contacts-table" role="grid" aria-label="Blocked numbers list">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Phone Number</th>
+                                        <th scope="col">Reason</th>
+                                        <th scope="col">Added on</th>
+                                        <th scope="col" class="col-actions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="blacklistTableBody">
+                                    <!-- Blacklist entries will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer">
+                            <span class="page-info" id="pageInfo">Showing <span id="rangeStart">1</span>-<span id="rangeEnd">10</span> of <span id="totalCount">0</span> numbers</span>
+                            <div class="pagination" role="navigation" aria-label="Blacklist pagination">
+                                <button type="button" class="pagination-btn" id="btnPrevPage" aria-label="Previous page" aria-disabled="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                </button>
+                                <span id="pageNumbers"></span>
+                                <button type="button" class="pagination-btn" id="btnNextPage" aria-label="Next page" aria-disabled="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
             </div>
         </main>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal" id="deleteModal">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
-            <div class="modal-header">
-                <div class="modal-icon">
+    <!-- View Help modal -->
+    <div class="nh-modal" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+        <div class="nh-backdrop" data-close="helpModal"></div>
+        <div class="nh-modal-panel">
+            <div class="nh-modal-header">
+                <div class="nh-modal-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                     </svg>
                 </div>
-                <h3>Remove from Blacklist</h3>
-                <p>Are you sure you want to remove this number from the blacklist? The contact will be able to receive SMS messages again.</p>
+                <div class="nh-modal-header-text">
+                    <h3 id="helpModalTitle">About the Blacklist</h3>
+                    <p>Numbers here will never receive SMS messages from your account.</p>
+                </div>
+                <button class="nh-modal-close" id="closeHelpModal" type="button" aria-label="Close">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="delete-details" id="deleteDetails">
-                    <p><strong>Phone:</strong> <span id="deletePhone"></span></p>
-                    <p><strong>Reason:</strong> <span id="deleteReason"></span></p>
-                    <p><strong>Added:</strong> <span id="deleteDate"></span></p>
+            <div class="nh-modal-body">
+                <div class="nh-field">
+                    <p class="nh-field-hint">How it works</p>
+                    <ul style="margin:0 0 0 1rem;color:var(--color-muted);font-size:0.875rem;">
+                        <li>Added numbers are normalized (e.g. 0241234567 &rarr; +233 24 123 4567) so they match regardless of format.</li>
+                        <li>Blacklisted numbers are excluded from all SMS campaigns and message sends.</li>
+                        <li>Use a reason when adding a number, and an optional custom reason for extra detail.</li>
+                        <li>Remove a number at any time to allow messages to it again.</li>
+                    </ul>
+                </div>
+                <div class="nh-field">
+                    <p class="nh-field-hint">Need more help?</p>
+                    <a href="settings.html" class="nhs-help-btn" style="width:auto;">Contact Support</a>
                 </div>
             </div>
-            <div class="modal-actions">
-                <button type="button" class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
-                <button type="button" class="btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">
+            <div class="nh-modal-footer">
+                <button type="button" class="nh-btn nh-btn-secondary" id="closeHelpModalBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove confirmation modal -->
+    <div class="nh-modal" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+        <div class="nh-backdrop" data-close="deleteModal"></div>
+        <div class="nh-modal-panel">
+            <div class="nh-modal-header">
+                <div class="nh-modal-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></svg>
                     </svg>
-                    Remove from Blacklist
+                </div>
+                <div class="nh-modal-header-text">
+                    <h3 id="deleteModalTitle">Remove from Blacklist</h3>
+                    <p id="deleteModalSubtitle">Are you sure you want to remove this number? It will be able to receive SMS messages again.</p>
+                </div>
+                <button class="nh-modal-close" id="closeDeleteModalBtn" type="button" aria-label="Close">&times;</button>
+            </div>
+            <div class="nh-modal-body">
+                <div class="nh-field">
+                    <p class="nh-field-label">Phone number</p>
+                    <p class="nh-field-hint" id="deletePhone">-</p>
+                </div>
+                <div class="nh-field">
+                    <p class="nh-field-label">Reason</p>
+                    <p class="nh-field-hint" id="deleteReason">-</p>
+                </div>
+                <div class="nh-field">
+                    <p class="nh-field-label">Added on</p>
+                    <p class="nh-field-hint" id="deleteDate">-</p>
+                </div>
+            </div>
+            <div class="nh-modal-footer">
+                <button type="button" class="nh-btn nh-btn-secondary" id="cancelDeleteBtn">Cancel</button>
+                <button type="button" class="nh-btn nh-btn-primary" id="confirmDeleteBtn">
+                    <span>Remove from Blacklist</span>
+                    <span class="delete-spinner nh-spinner" style="display:none;"></span>
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        let currentPage = 1;
-        let totalPages = 1;
-        let searchQuery = '';
-        let deleteItemId = null;
+        (function () {
+            'use strict';
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await checkAuthAndLoad();
-            await loadBlacklist();
-        });
-
-        async function checkAuthAndLoad() {
-            const token = window.getStorage ? window.getStorage().getItem('authToken') : localStorage.getItem('authToken');
-            console.log('[AuthBootstrap] [Dashboard] checkAuthAndLoad - token present:', !!token);
-            if (!token) {
-                window.location.href = '../auth/login.html';
-                return;
+            function $id(id) {
+                var el = document.getElementById(id);
+                return el || null;
             }
 
-            await loadUserProfile();
-        }
+            function safeText(text) {
+                return text === null || text === undefined ? '' : String(text);
+            }
 
-async function loadUserProfile() {
-            try {
-                const storage = window.getStorage ? window.getStorage() : localStorage;
-                const response = await window.apiClient.getUserProfile();
-                if (response.error) {
-                    useStoredUserName();
+            // ---------- formatting helpers ----------
+            function formatPhone(number) {
+                var d = safeText(number).replace(/\D/g, '');
+                if (d.startsWith('233') && d.length === 12) {
+                    return '+233 ' + d.substring(3, 5) + ' ' + d.substring(5, 8) + ' ' + d.substring(8);
+                }
+                if (d) {
+                    return '+' + d;
+                }
+                return '-';
+            }
+
+            function formatDate(iso) {
+                if (!iso) return '-';
+                var d = new Date(iso);
+                if (isNaN(d.getTime())) return '-';
+                var day = d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                var time = d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                return day + ' \u2022 ' + time;
+            }
+
+            // ---------- state ----------
+            var currentPage = 1;
+            var totalPages = 1;
+            var searchQuery = '';
+            var deleteItemId = null;
+            var loading = false;
+
+            // ---------- elements (null-safe) ----------
+            var elPhone = $id('blacklistPhone');
+            var elPhoneError = $id('phoneError');
+            var elReason = $id('blacklistReason');
+            var elCustomReason = $id('customReason');
+            var elAddBtn = $id('addBlacklistBtn');
+            var elAddBtnIcon = $id('btnAddIcon') || $id('addBlacklistBtn').querySelector('.btn-add-icon');
+            var elAddBtnLabel = $id('addBlacklistBtn').querySelector('.btn-add-label');
+            var elAddBtnSpinner = $id('addBlacklistBtn').querySelector('.btn-add-spinner');
+            var elTableWrap = $id('tableWrap');
+            var elSkeleton = $id('listSkeleton');
+            var elErrorState = $id('listErrorState');
+            var elErrorTitle = $id('listErrorTitle');
+            var elErrorMessage = $id('listErrorMessage');
+            var elRetryBtn = $id('listRetryBtn');
+            var elEmptyState = $id('emptyState');
+            var elNoMatchState = $id('noMatchState');
+            var elTableBody = $id('blacklistTableBody');
+            var elSearchInput = $id('searchInput');
+            var elClearBtn = $id('clearSearchBtnToolbar');
+            var elClearBtnEmpty = $id('clearSearchBtn');
+            var elPageInfo = $id('pageInfo');
+            var elPageNumbers = $id('pageNumbers');
+            var elBtnPrev = $id('btnPrevPage');
+            var elBtnNext = $id('btnNextPage');
+            var elTotalPill = $id('totalPill');
+            var elRangeStart = $id('rangeStart');
+            var elRangeEnd = $id('rangeEnd');
+            var elTotalCount = $id('totalCount');
+            var elAddForm = $id('addBlacklistForm');
+
+            // ---------- modals ----------
+            function openModal(id) {
+                var m = $id(id);
+                if (!m) return;
+                m.style.display = 'flex';
+                m.setAttribute('aria-hidden', 'false');
+            }
+            function closeModal(id) {
+                var m = $id(id);
+                if (!m) return;
+                m.style.display = 'none';
+                m.setAttribute('aria-hidden', 'true');
+            }
+
+            // backdrop close
+            document.addEventListener('click', function (e) {
+                if (e.target && e.target.getAttribute && e.target.getAttribute('data-close')) {
+                    closeModal(e.target.getAttribute('data-close'));
+                }
+            });
+
+            // ---------- list ----------
+            function setLoading(isLoading) {
+                loading = !!isLoading;
+                if (elSkeleton) elSkeleton.style.display = isLoading ? '' : 'none';
+                if (elTableWrap) elTableWrap.style.display = isLoading ? 'none' : '';
+                if (elEmptyState) elEmptyState.style.display = 'none';
+                if (elNoMatchState) elNoMatchState.style.display = 'none';
+                if (elErrorState) elErrorState.style.display = 'none';
+            }
+
+            function showError(message) {
+                setLoading(false);
+                if (elErrorTitle) elErrorTitle.textContent = 'Unable to load blacklist';
+                if (elErrorMessage) elErrorMessage.textContent = safeText(message);
+                if (elErrorState) elErrorState.style.display = 'flex';
+                if (elRetryBtn) elRetryBtn.onclick = function () { loadBlacklist(1, searchQuery); };
+            }
+
+            function showLoaded() {
+                if (elErrorState) elErrorState.style.display = 'none';
+                setLoading(false);
+            }
+
+            function updateTotal(total) {
+                if (elTotalPill) elTotalPill.textContent = 'Total: ' + (total || 0);
+            }
+
+            function updatePaginationInfo(page, total, totalPages) {
+                if (!elPageInfo) return;
+                var start = ((page - 1) * 50) + 1;
+                var end = Math.min(page * 50, total);
+                if (total === 0) { start = 0; end = 0; }
+                if (elRangeStart) elRangeStart.textContent = start;
+                if (elRangeEnd) elRangeEnd.textContent = end;
+                if (elTotalCount) elTotalCount.textContent = total;
+                elPageInfo.textContent = 'Showing ' + start + '-' + end + ' of ' + total + ' numbers';
+            }
+
+            function renderPagination(page, totalPages) {
+                if (!elBtnPrev || !elBtnNext || !elPageNumbers) return;
+                elBtnPrev.disabled = page <= 1;
+                elBtnNext.disabled = page >= totalPages || totalPages < 1;
+                if (totalPages <= 1) {
+                    elPageNumbers.innerHTML = '';
                     return;
                 }
-                
-                if (response.data && response.data.user) {
-                    const user = response.data.user;
-                    const firstName = user.name ? user.name.split(' ')[0] : 'User';
-                    updateUserDisplay(firstName);
-                    storage.setItem('userName', user.name);
-                } else {
-                    useStoredUserName();
+                var html = '';
+                for (var i = 1; i <= totalPages; i++) {
+                    if (i === page) {
+                        html += '<button type="button" class="pagination-btn is-active" aria-current="page" aria-disabled="true">' + i + '</button>';
+                    } else {
+                        html += '<button type="button" class="pagination-btn" data-page="' + i + '">' + i + '</button>';
+                    }
                 }
-            } catch (error) {
-                console.error('Error loading user profile:', error);
-                useStoredUserName();
+                elPageNumbers.innerHTML = html;
+                elPageNumbers.querySelectorAll('button').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var p = parseInt(this.getAttribute('data-page'), 10);
+                        if (!isNaN(p)) loadBlacklist(p, searchQuery);
+                    });
+                });
             }
-        }
 
-        function useStoredUserName() {
-            const storage = window.getStorage ? window.getStorage() : localStorage;
-            const storedName = storage.getItem('userName');
-            if (storedName) {
-                const firstName = storedName.split(' ')[0];
-                updateUserDisplay(firstName);
-            } else {
-                updateUserDisplay('User');
+            function displayBlacklist(numbers) {
+                if (!elTableBody) return;
+                elTableBody.innerHTML = '';
+                if (!numbers || numbers.length === 0) {
+                    if (searchQuery) {
+                        if (elNoMatchState) elNoMatchState.style.display = 'flex';
+                    } else {
+                        if (elEmptyState) elEmptyState.style.display = 'flex';
+                    }
+                    return;
+                }
+                elTableBody.innerHTML = numbers.map(function (item) {
+                    var id = escapeAttr(safeText(item._id));
+                    var phone = escapeHtml(safeText(item.phoneNumber));
+                    var phoneNorm = safeText(item.normalizedPhoneNumber || item.phoneNumber);
+                    var reason = escapeHtml(safeText(item.reason || item.customReason || '-'));
+                    var date = formatDate(item.createdAt);
+                    var added = escapeAttr(safeText(item.createdAt));
+                    return '<tr>' +
+                        '<td class="contact-phone" title="' + escapeAttr(phone) + '">' + phone + '</td>' +
+                        '<td><span class="reason-pill" title="' + escapeAttr(reason) + '">' + reason + '</span></td>' +
+                        '<td>' + escapeHtml(date) + '</td>' +
+                        '<td class="col-actions">' +
+                        '<button type="button" class="action-btn delete-btn" data-id="' + id + '" data-phone="' + escapeAttr(phone) + '" data-reason="' + escapeAttr(reason) + '" data-date="' + added + '" title="Remove from blacklist" aria-label="Remove ' + escapeAttr(phone) + '">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="m5 5 14 14"></path></svg>' +
+                        '</button>' +
+                        '</td>' +
+                        '</tr>';
+                }).join('');
+                elTableBody.querySelectorAll('.delete-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var d = this.dataset;
+                        openDeleteModal(d.id, d.phone, d.reason, d.date);
+                    });
+                });
             }
-        }
 
-        function updateUserDisplay(firstName) {
-            const userNameEl = document.getElementById('userName');
-            const userAvatarEl = document.getElementById('userAvatar');
+            async function loadBlacklist(page, search) {
+                if (loading) return;
+                currentPage = page || 1;
+                searchQuery = search || '';
+                setLoading(true);
+                try {
+                    var response = await window.apiClient.getBlacklist({ page: currentPage, limit: 50, search: searchQuery });
+                    showLoaded();
+                    if (response.error) {
+                        showError(response.error);
+                        return;
+                    }
+                    var data = response.data || {};
+                    var numbers = data.blacklistedNumbers || data.data || data.numbers || [];
+                    var pagination = response.pagination || data.pagination || {};
+                    var total = typeof pagination.total === 'number' ? pagination.total : (numbers && numbers.length || 0);
+                    var totalPages = typeof pagination.totalPages === 'number' ? pagination.totalPages : 1;
+                    updateTotal(total);
+                    updatePaginationInfo(pagination.page || currentPage, total, totalPages);
+                    renderPagination(pagination.page || currentPage, totalPages);
+                    displayBlacklist(numbers);
+                    if (elTableWrap) elTableWrap.style.display = '';
+                } catch (error) {
+                    showError('Network error: ' + window.extractErrorMessage(error));
+                }
+            }
 
-            if (userNameEl) userNameEl.textContent = firstName;
-            if (userAvatarEl) userAvatarEl.textContent = (window.NhShell && typeof window.NhShell.initials === 'function') ? window.NhShell.initials(firstName) : (firstName.charAt(0) + (firstName.charAt(1) || '')).toUpperCase();
-        }
+            // ---------- add ----------
+            function setAddButtonBusy(busy) {
+                if (!elAddBtn) return;
+                elAddBtn.disabled = busy;
+                if (elAddBtnSpinner) elAddBtnSpinner.style.display = busy ? '' : 'none';
+                if (elAddBtnIcon) elAddBtnIcon.style.display = busy ? 'none' : '';
+                if (elAddBtnLabel) elAddBtnLabel.textContent = busy ? 'Adding...' : 'Add to Blacklist';
+            }
 
-        // Load blacklist entries
-        async function loadBlacklist(page = 1, search = '') {
-            try {
-                const response = await window.apiClient.getBlacklist({ page, limit: 50, search });
-                if (response.error) {
-                    console.error('Error loading blacklist:', response.error);
-                    showToast('Failed to load blacklist', 'error');
+            function showPhoneError(message) {
+                if (!elPhoneError) return;
+                elPhoneError.textContent = safeText(message);
+                elPhoneError.style.display = message ? 'block' : 'none';
+                if (elPhone) elPhone.setAttribute('aria-invalid', message ? 'true' : 'false');
+            }
+
+            elAddForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                showPhoneError('');
+                if (!elPhone || !elReason || !elCustomReason) return;
+
+                var phone = safeText(elPhone.value).trim();
+                var reason = safeText(elReason.value);
+                var customReason = safeText(elCustomReason.value).trim();
+
+                if (!phone) {
+                    showPhoneError('Phone number is required');
+                    elPhone.focus();
                     return;
                 }
 
-                const { blacklistedNumbers, pagination } = response.data;
-                displayBlacklist(blacklistedNumbers);
-                updatePagination(pagination);
-
-            } catch (error) {
-                console.error('Error loading blacklist:', error);
-                showToast('Error loading blacklist', 'error');
-            }
-        }
-
-        function displayBlacklist(blacklistedNumbers) {
-            const tbody = document.getElementById('blacklistTableBody');
-
-            if (!blacklistedNumbers || blacklistedNumbers.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="empty-state">
-                            <div class="empty-state-content">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <h4>No blacklisted numbers</h4>
-                                <p>Add phone numbers to prevent them from receiving SMS messages.</p>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = blacklistedNumbers.map(item => `
-                <tr>
-                    <td class="phone-number">${escapeHtml(item.phoneNumber)}</td>
-                    <td class="reason">${escapeHtml(item.reason)}</td>
-                    <td class="source">
-                        <span class="source-badge source-${escapeAttr(item.source)}">${escapeHtml(item.source)}</span>
-                    </td>
-                    <td class="date">${new Date(item.createdAt).toLocaleDateString()}</td>
-                    <td class="actions">
-                        <button class="btn-icon btn-delete" data-id="${escapeAttr(item._id)}" data-phone="${escapeAttr(item.phoneNumber)}" data-reason="${escapeAttr(item.reason)}" data-date="${escapeAttr(item.createdAt)}" onclick="openDeleteModal(this.dataset.id, this.dataset.phone, this.dataset.reason, this.dataset.date)" title="Remove from blacklist">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function updatePagination(pagination) {
-            const paginationEl = document.getElementById('pagination');
-            const prevBtn = document.getElementById('prevPage');
-            const nextBtn = document.getElementById('nextPage');
-            const pageInfo = document.getElementById('pageInfo');
-
-            if (pagination.totalPages <= 1) {
-                paginationEl.style.display = 'none';
-                return;
-            }
-
-            paginationEl.style.display = 'flex';
-            pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
-
-            prevBtn.disabled = !pagination.hasPrev;
-            nextBtn.disabled = !pagination.hasNext;
-
-            currentPage = pagination.page;
-            totalPages = pagination.totalPages;
-        }
-
-        // Add to blacklist form submission
-        document.getElementById('addBlacklistForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-            const phoneNumber = formData.get('phoneNumber').trim();
-            let reason = formData.get('reason');
-            const customReason = formData.get('customReason').trim();
-
-            if (reason === 'Other' && customReason) {
-                reason = customReason;
-            }
-
-            if (!phoneNumber || !reason) {
-                showToast('Phone number and reason are required', 'error');
-                return;
-            }
-
-            const submitBtn = document.getElementById('addBlacklistBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span>Adding...</span>';
-
-            try {
-                const response = await window.apiClient.addToBlacklist(phoneNumber, reason);
-                if (response.error) {
-                    showToast(extractErrorMessage(response.error), 'error');
-                } else {
-                    showToast('Number added to blacklist successfully', 'success');
-                    this.reset();
-                    await loadBlacklist(currentPage, searchQuery);
+                var validation = window.validatePhoneNumber ? window.validatePhoneNumber(phone) : null;
+                if (!validation || !validation.isValid) {
+                    showPhoneError(validation && validation.error ? validation.error : 'Invalid phone number format');
+                    elPhone.focus();
+                    return;
                 }
-            } catch (error) {
-                console.error('Error adding to blacklist:', error);
-                showToast('Failed to add number to blacklist', 'error');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Add to Blacklist
-                `;
-            }
-        });
 
-        // Search functionality
-        let searchTimeout;
-        document.getElementById('searchInput').addEventListener('input', function() {
-            const query = this.value.trim();
-            searchQuery = query;
-
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                loadBlacklist(1, query);
-            }, 300);
-        });
-
-        // Pagination
-        document.getElementById('prevPage').addEventListener('click', () => {
-            if (currentPage > 1) {
-                loadBlacklist(currentPage - 1, searchQuery);
-            }
-        });
-
-        document.getElementById('nextPage').addEventListener('click', () => {
-            if (currentPage < totalPages) {
-                loadBlacklist(currentPage + 1, searchQuery);
-            }
-        });
-
-        // Delete modal functions
-        function openDeleteModal(id, phone, reason, date) {
-            deleteItemId = id;
-            document.getElementById('deletePhone').textContent = phone;
-            document.getElementById('deleteReason').textContent = reason;
-            document.getElementById('deleteDate').textContent = new Date(date).toLocaleDateString();
-            document.getElementById('deleteModal').style.display = 'block';
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').style.display = 'none';
-            deleteItemId = null;
-        }
-
-        async function confirmDelete() {
-            if (!deleteItemId) return;
-
-            const confirmBtn = document.getElementById('confirmDeleteBtn');
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<span>Removing...</span>';
-
-            try {
-                const response = await window.apiClient.removeFromBlacklist(deleteItemId);
-                if (response.error) {
-                    showToast(extractErrorMessage(response.error), 'error');
-                } else {
-                    showToast('Number removed from blacklist successfully', 'success');
-                    closeDeleteModal();
-                    await loadBlacklist(currentPage, searchQuery);
+                if (!reason) {
+                    showPhoneError('Please select a reason');
+                    if (elReason) elReason.focus();
+                    return;
                 }
-            } catch (error) {
-                console.error('Error removing from blacklist:', error);
-                showToast('Failed to remove number from blacklist', 'error');
-            } finally {
-                confirmBtn.disabled = false;
-                confirmBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    Remove from Blacklist
-                `;
+
+                var normalized = validation.normalizedNumber || (window.normalizePhoneNumber ? window.normalizePhoneNumber(phone) : phone);
+                var effectiveReason = (reason === 'Other' && customReason) ? customReason : reason;
+
+                setAddButtonBusy(true);
+                try {
+                    var response = await window.apiClient.addToBlacklist(normalized, effectiveReason, customReason || null);
+                    if (response.error) {
+                        var msg = String(response.error);
+                        if (/already blacklisted/i.test(msg) || /409/.test(msg)) {
+                            showPhoneError('This number is already blacklisted');
+                        } else {
+                            showPhoneError('Unable to add this number. Please try again.');
+                        }
+                        elPhone.focus();
+                    } else {
+                        window.showToast('Number added to blacklist successfully', 'success');
+                        elAddForm.reset();
+                        if (elReason) elReason.value = '';
+                        if (elCustomReason) elCustomReason.value = '';
+                        showPhoneError('');
+                        loadBlacklist(currentPage, searchQuery);
+                    }
+                } catch (error) {
+                    showPhoneError('Failed to add number to blacklist. Please try again.');
+                    console.error('Error adding to blacklist:', error);
+                } finally {
+                    setAddButtonBusy(false);
+                }
+            });
+
+            // Enter key submits the form (native behavior), keep input clean
+            if (elPhone) {
+                elPhone.addEventListener('input', function () { showPhoneError(''); });
             }
-        }
 
-        // Reason change handler
-        document.getElementById('blacklistReason').addEventListener('change', function() {
-            const customReasonGroup = document.getElementById('customReason').parentElement;
-            if (this.value === 'Other') {
-                customReasonGroup.style.display = 'block';
-                document.getElementById('customReason').required = true;
-            } else {
-                customReasonGroup.style.display = 'none';
-                document.getElementById('customReason').required = false;
+            // ---------- search ----------
+            var searchTimeout;
+            if (elSearchInput) {
+                elSearchInput.addEventListener('input', function () {
+                    var q = this.value.trim();
+                    if (elClearBtn) elClearBtn.style.display = q ? '' : 'none';
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(function () { loadBlacklist(1, q); }, 300);
+                });
             }
-        });
+            function clearSearch() {
+                if (!elSearchInput) return;
+                elSearchInput.value = '';
+                if (elClearBtn) elClearBtn.style.display = 'none';
+                searchQuery = '';
+                loadBlacklist(1, '');
+            }
+            if (elClearBtn) elClearBtn.addEventListener('click', clearSearch);
+            if (elClearBtnEmpty) elClearBtnEmpty.addEventListener('click', clearSearch);
 
-        // Logout function
-        function logout() {
-            const storage = window.getStorage ? window.getStorage() : localStorage;
-            storage.removeItem('authToken');
-            storage.removeItem('userName');
-            storage.removeItem('userEmail');
-            window.location.href = '../auth/login.html';
-        }
+            // ---------- pagination ----------
+            if (elBtnPrev) elBtnPrev.addEventListener('click', function () {
+                if (currentPage > 1) loadBlacklist(currentPage - 1, searchQuery);
+            });
+            if (elBtnNext) elBtnNext.addEventListener('click', function () {
+                if (currentPage < totalPages) loadBlacklist(currentPage + 1, searchQuery);
+            });
 
+            // ---------- delete ----------
+            function openDeleteModal(id, phone, reason, date) {
+                deleteItemId = id;
+                if ($id('deletePhone')) $id('deletePhone').textContent = safeText(phone);
+                if ($id('deleteReason')) $id('deleteReason').textContent = safeText(reason);
+                if ($id('deleteDate')) $id('deleteDate').textContent = formatDate(date);
+                openModal('deleteModal');
+            }
+            function closeDeleteModal() {
+                deleteItemId = null;
+                closeModal('deleteModal');
+            }
+            if ($id('closeDeleteModalBtn')) $id('closeDeleteModalBtn').addEventListener('click', closeDeleteModal);
+            if ($id('cancelDeleteBtn')) $id('cancelDeleteBtn').addEventListener('click', closeDeleteModal);
+
+            async function confirmDelete() {
+                if (!deleteItemId) return;
+                var btn = $id('confirmDeleteBtn');
+                var spinner = btn && btn.querySelector('.delete-spinner');
+                var label = btn && btn.querySelector('span');
+                if (btn) btn.disabled = true;
+                if (spinner) spinner.style.display = '';
+                if (label) label.textContent = 'Removing...';
+                try {
+                    var response = await window.apiClient.removeFromBlacklist(deleteItemId);
+                    if (response.error) {
+                        window.showToast(window.extractErrorMessage(response.error), 'error');
+                    } else {
+                        window.showToast('Number removed from blacklist successfully', 'success');
+                        closeDeleteModal();
+                        loadBlacklist(currentPage, searchQuery);
+                    }
+                } catch (error) {
+                    window.showToast('Failed to remove number from blacklist. Please try again.', 'error');
+                    console.error('Error removing from blacklist:', error);
+                } finally {
+                    if (btn) btn.disabled = false;
+                    if (spinner) spinner.style.display = 'none';
+                    if (label) label.textContent = 'Remove from Blacklist';
+                }
+            }
+            if ($id('confirmDeleteBtn')) $id('confirmDeleteBtn').addEventListener('click', confirmDelete);
+
+            // ---------- help modal ----------
+            if ($id('viewHelpBtn')) $id('viewHelpBtn').addEventListener('click', function () { openModal('helpModal'); });
+            if ($id('closeHelpModal')) $id('closeHelpModal').addEventListener('click', function () { closeModal('helpModal'); });
+            if ($id('closeHelpModalBtn')) $id('closeHelpModalBtn').addEventListener('click', function () { closeModal('helpModal'); });
+
+            // ---------- init ----------
+            document.addEventListener('DOMContentLoaded', async function () {
+                if (window.NhShell && typeof window.NhShell.init === 'function') {
+                    window.NhShell.init({ search: false });
+                }
+                var token = window.getStorage ? window.getStorage().getItem('authToken') : localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = '../auth/login.html';
+                    return;
+                }
+                await loadBlacklist(1, '');
+            });
+        })();
     </script>
 
     <style>
-        /* Additional styles for blacklist page */
-        .data-table-card {
-            background-color: var(--neutral-white);
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(0, 0, 0, 0.04);
+        /* ── Page-specific styles: Blacklist ── */
+        .page-blacklist .dashboard-content {
+            padding: 0 1rem 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
         }
-
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .page-blacklist .nhs-page-header {
             margin-bottom: 1.5rem;
         }
-
-        .table-header h3 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--primary-dark);
-            margin: 0;
-        }
-
-        .table-controls {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .search-box {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .search-box input {
-            padding: 0.75rem 1rem;
-            padding-right: 2.5rem;
-            border: 2px solid #e8e8e8;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            width: 250px;
-        }
-
-        .search-box input:focus {
-            outline: none;
-            border-color: var(--accent-orange);
-        }
-
-        .search-box svg {
-            position: absolute;
-            right: 0.75rem;
-            width: 18px;
-            height: 18px;
-            color: #666;
-            pointer-events: none;
-        }
-
-        .table-container {
-            overflow-x: auto;
-            margin-bottom: 1rem;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid #e8e8e8;
-        }
-
-        .data-table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: var(--primary-dark);
-            font-size: 0.9rem;
-        }
-
-        .data-table tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-
-        .phone-number {
-            font-family: monospace;
-            font-weight: 500;
-        }
-
-        .reason {
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .source-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: capitalize;
-        }
-
-        .source-user {
-            background-color: #e3f2fd;
-            color: #1565c0;
-        }
-
-        .source-system {
-            background-color: #f3e5f5;
-            color: #7b1fa2;
-        }
-
-        .source-complaint {
-            background-color: #fff3e0;
-            color: #e65100;
-        }
-
-        .source-bounce {
-            background-color: #ffebee;
-            color: #c62828;
-        }
-
-        .date {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .actions {
-            text-align: center;
-        }
-
-        .btn-icon {
-            background: none;
-            border: none;
-            padding: 0.5rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-delete {
-            color: #c62828;
-        }
-
-        .btn-delete:hover {
-            background-color: #ffebee;
-        }
-
-        .btn-delete svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-        }
-
-        .empty-state-content {
+        .page-blacklist .nhs-page-header .illustration { display: none; }
+        .page-logo {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: #FDF0E7;
             display: inline-flex;
-            flex-direction: column;
             align-items: center;
-            gap: 1rem;
-        }
-
-        .empty-state-content svg {
-            width: 48px;
-            height: 48px;
-            color: #ccc;
-        }
-
-        .empty-state-content h4 {
-            color: var(--primary-dark);
-            margin: 0;
-        }
-
-        .empty-state-content p {
-            color: #666;
-            margin: 0;
-        }
-
-        .table-pagination {
-            display: flex;
             justify-content: center;
-            align-items: center;
-            gap: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e8e8e8;
+            flex-shrink: 0;
         }
-
-        .table-pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .page-logo-icon { width: 34px; height: 34px; }
+        .page-blacklist .nhs-page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #0B132B;
+            margin: 0 0 0.25rem 0;
+            letter-spacing: -0.5px;
         }
-
-        .modal-content {
-            max-width: 400px;
-            max-height: 85vh;
-            overflow-y: auto;
-            padding: 1.25rem;
+        .page-blacklist .nhs-page-header .subtitle {
+            color: #6B7794;
+            font-size: 0.875rem;
+            margin: 0;
         }
-
-        .delete-details {
-            background-color: #f5f5f5;
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        .delete-details p {
-            margin: 0.5rem 0;
-            font-size: 0.9rem;
-        }
-
-        .delete-details strong {
-            color: var(--primary-dark);
-        }
-
-        .btn-danger {
+        .btn-help {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            background-color: #c62828;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
+            padding: 0.625rem 1.25rem;
+            background: #ffffff;
+            color: #0F1B3D;
+            border: 1px solid var(--color-border, #E6EBF5);
+            border-radius: var(--radius-pill, 999px);
+            font-weight: 700;
+            font-size: 0.875rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            box-shadow: var(--shadow, 0 2px 10px rgba(15, 27, 61, 0.06));
+        }
+        .btn-help:hover { background: #f4f7fd; border-color: var(--color-primary-orange, #F57C1F); }
+        .btn-help svg { width: 16px; height: 16px; }
+
+        /* ── Cards ── */
+        .page-blacklist .card {
+            background: var(--color-card-bg, #FFFFFF);
+            border: 1px solid var(--color-border, #E6EBF5);
+            border-radius: 20px;
+            box-shadow: 0 2px 12px rgba(15, 27, 61, 0.07);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .page-blacklist .card > .card-head {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .accent-bar {
+            width: 4px;
+            height: 24px;
+            border-radius: 2px;
+            background: var(--color-orange-gradient, linear-gradient(90deg, #F26A10, #F89A3C));
+            flex-shrink: 0;
+        }
+        .page-blacklist .card h2 {
+            font-size: 1.375rem;
+            font-weight: 700;
+            color: #0F1B3D;
+            margin: 0;
+            letter-spacing: -0.25px;
+        }
+        .page-blacklist .card p {
+            color: #6B7794;
+            font-size: 0.875rem;
+            margin: 0.125rem 0 0 0;
+        }
+        .settings-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: #f4f7fd;
+            color: var(--color-primary-orange, #F57C1F);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .settings-icon svg { width: 18px; height: 18px; }
+        .card-head .title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+        .card-head .card-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: #f4f7fd;
+            color: var(--color-primary-orange, #F57C1F);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .card-head .card-icon svg { width: 18px; height: 18px; }
+        .total-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-pill, 999px);
+            background: #eef0f7;
+            color: #6B7794;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            margin-left: auto;
         }
 
-        .btn-danger:hover:not(:disabled) {
-            background-color: #b71c1c;
+        /* ── Add card ── */
+        .page-blacklist .add-card .input-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: stretch;
+        }
+        .page-blacklist .phone-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+        }
+        .page-blacklist .phone-icon {
+            position: absolute;
+            left: 16px;
+            width: 20px;
+            height: 20px;
+            color: #6B7794;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .page-blacklist #blacklistPhone {
+            width: 100%;
+            height: 52px;
+            padding: 0 1rem 0 52px;
+            border: 1px solid var(--color-border, #E6EBF5);
+            border-radius: var(--radius-pill, 999px);
+            background: #fbfcfd;
+            color: #0F1B3D;
+            font-size: 0.875rem;
+            box-sizing: border-box;
+        }
+        .page-blacklist #blacklistPhone:focus {
+            outline: none;
+            border-color: var(--color-primary-orange, #F57C1F);
+            box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.15);
+        }
+        .page-blacklist .input-error {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 108%;
+            font-size: 0.7rem;
+            color: #E5484D;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+        .page-blacklist .btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            height: 52px;
+            padding: 0 1.5rem;
+            background: var(--color-orange-gradient, linear-gradient(90deg, #F26A10, #F89A3C));
+            color: #ffffff;
+            border: none;
+            border-radius: var(--radius-pill, 999px);
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(247, 127, 0, 0.35);
+            flex-shrink: 0;
+        }
+        .page-blacklist .btn-add:not(:disabled):hover { filter: brightness(1.05); }
+        .page-blacklist .btn-add:disabled { opacity: 0.75; cursor: not-allowed; filter: none; }
+        .page-blacklist .btn-add svg { width: 20px; height: 20px; }
+        .page-blacklist .btn-add-spinner {
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: nh-spin 0.8s linear infinite;
         }
 
-        .btn-danger:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
+        /* ── Settings card ── */
+        .page-blacklist .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .page-blacklist .settings-grid .nh-field { margin-bottom: 0; }
+        .page-blacklist .settings-grid .nh-input {
+            min-height: 44px;
+        }
+        .page-blacklist .settings-grid textarea.nh-input {
+            resize: vertical;
+            min-height: 96px;
+            padding-top: 0.75rem;
         }
 
-        @media (max-width: 768px) {
-            .table-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: stretch;
-            }
+        /* ── Blocked numbers ── */
+        .page-blacklist .table-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+        .page-blacklist .table-search {
+            position: relative;
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 200px;
+        }
+        .page-blacklist .table-search svg {
+            position: absolute;
+            left: 1rem;
+            width: 18px;
+            height: 18px;
+            color: #6B7794;
+        }
+        .page-blacklist .table-search input {
+            width: 100%;
+            padding: 0.625rem 1rem 0.625rem 2.75rem;
+            border: 1px solid var(--color-border, #E6EBF5);
+            border-radius: var(--radius-pill, 999px);
+            background: #f4f7fd;
+            color: #0F1B3D;
+            font-size: 0.875rem;
+            min-height: 40px;
+            box-sizing: border-box;
+        }
+        .page-blacklist .table-search input:focus {
+            border-color: var(--color-primary-orange, #F57C1F);
+            outline: 2px solid var(--color-primary-orange, #F57C1F);
+            outline-offset: 0;
+            background: var(--color-card-bg, #FFFFFF);
+        }
+        .btn-clear {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #ffffff;
+            color: #0F1B3D;
+            border: 1px solid var(--color-border, #E6EBF5);
+            border-radius: var(--radius-button, 12px);
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        .btn-clear:hover { background: #e4edfa; border-color: var(--color-primary-orange, #F57C1F); }
+        .page-blacklist .table-scroll {
+            overflow-x: auto;
+            width: 100%;
+        }
+        .page-blacklist .contacts-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 720px;
+            font-size: 0.875rem;
+        }
+        .page-blacklist .contacts-table th {
+            padding: 0.875rem 1.25rem;
+            text-align: left;
+            color: #6B7794;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border-bottom: 1px solid var(--color-border, #E6EBF5);
+            background: #fbfcfd;
+            white-space: nowrap;
+        }
+        .page-blacklist .contacts-table td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--color-border, #E6EBF5);
+            color: #0F1B3D;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .page-blacklist .contacts-table tbody tr { transition: background-color 0.15s ease; }
+        .page-blacklist .contacts-table tbody tr:hover { background: #f4f7fd; }
+        .page-blacklist .contact-phone {
+            font-family: ui-monospace, SFMono-Regular, monospace;
+            font-size: 0.9rem;
+            color: #6B7794;
+        }
+        .reason-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-pill, 999px);
+            background: #FBEDEA;
+            color: #C2410C;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .page-blacklist .col-actions { text-align: left; }
+        .page-blacklist .table-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--color-border, #E6EBF5);
+            background: #fbfcfd;
+            border-radius: 0 0 20px 20px;
+            flex-wrap: wrap;
+        }
+        .page-blacklist .page-info {
+            font-size: 0.875rem;
+            color: #6B7794;
+            font-weight: 600;
+        }
+        .page-blacklist .pagination { display: flex; align-items: center; gap: 0.375rem; }
 
-            .search-box input {
-                width: 100%;
-            }
+        /* ── Empty state ── */
+        .page-blacklist .empty-state {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 4rem 1.5rem;
+        }
+        .page-blacklist .empty-state h3 {
+            margin: 1rem 0 0.5rem 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0F1B3D;
+        }
+        .page-blacklist .empty-state p {
+            margin: 0 0 1.5rem 0;
+            font-size: 0.875rem;
+            color: #6B7794;
+        }
+        .page-blacklist .empty-illustration { margin-bottom: 1rem; opacity: 0.6; }
 
-            .data-table th,
-            .data-table td {
-                padding: 0.75rem 0.5rem;
-                font-size: 0.85rem;
-            }
+        /* ── Skeleton ── */
+        .list-skeleton { display: none; }
+        .skeleton-row {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--color-border, #E6EBF5);
+        }
+        .sk {
+            background: #eef0f7;
+            border-radius: 6px;
+            height: 16px;
+            animation: shimmer 1.4s infinite;
+        }
+        .sk-text { width: 100%; }
+        .sk-wide { width: 34%; }
+        .sk-short { width: 14%; }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .sk {
+            background: linear-gradient(90deg, #eef0f7 25%, #f6f8fb 50%, #eef0f7 75%);
+            background-size: 200% 100%;
+        }
 
-            .reason {
-                max-width: 150px;
-            }
-
-            .table-pagination {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .table-pagination button {
-                width: 100%;
-            }
+        @media (max-width: 700px) {
+            .page-blacklist .add-card .input-row { flex-direction: column; }
+            .page-blacklist .phone-wrapper { width: 100%; }
+            .page-blacklist #blacklistPhone { padding: 0 1rem 0 1rem; }
+            .page-blacklist .phone-icon { left: 1rem; }
+            .page-blacklist .btn-add { width: 100%; justify-content: center; }
+        }
+        @media (max-width: 390px) {
+            .page-blacklist .settings-grid { grid-template-columns: 1fr; }
+            .page-blacklist .dashboard-content { padding: 0 0.75rem 2rem; }
+            .page-blacklist .nhs-page-header h1 { font-size: 1.75rem; }
         }
     </style>
 </body>
