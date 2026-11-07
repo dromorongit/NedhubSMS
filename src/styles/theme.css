@@ -734,15 +734,16 @@ select:focus-visible,
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #f4f7fd;
+  background: #ffffff;
   color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-button);
   font-weight: var(--fw-semibold);
   font-size: var(--text-sm);
   cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
-.btn-secondary:hover { background: #e4edfa; }
+.btn-secondary:hover { background: #e4edfa; border-color: var(--color-primary-orange); }
 .btn-danger {
   display: inline-flex;
   align-items: center;

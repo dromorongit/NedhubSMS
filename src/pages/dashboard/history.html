@@ -164,9 +164,9 @@
                     <div id="skeletonLoader" class="table-scroll" style="display: none;">
                         <table class="contacts-table">
                             <tbody>
-                                <tr class="skeleton-row"><td class="skeleton-cell" style="width: 44px;"></td><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
-                                <tr class="skeleton-row"><td class="skeleton-cell" style="width: 44px;"></td><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
-                                <tr class="skeleton-row"><td class="skeleton-cell" style="width: 44px;"></td><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
+                                <tr class="skeleton-row"><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
+                                <tr class="skeleton-row"><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
+                                <tr class="skeleton-row"><td class="skeleton-cell"></td><td class="skeleton-cell skeleton-wide"></td><td class="skeleton-cell"></td><td class="skeleton-cell"></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -183,11 +183,10 @@
                         <table class="contacts-table" id="messagesTable">
                             <thead>
                                 <tr>
-                                    <th scope="col" class="select-col" style="width: 44px; text-align: center;"><input type="checkbox" id="selectAllMessages" class="row-select" aria-label="Select all messages"></th>
-                                    <th scope="col" class="sortable" data-sort="createdAt" aria-sort="none">Date & time <span class="sort-indicator" aria-hidden="true"></span></th>
-                                    <th scope="col" class="sortable" data-sort="recipient" aria-sort="none">Recipient <span class="sort-indicator" aria-hidden="true"></span></th>
+                                    <th scope="col" class="sortable" data-sort="createdAt" aria-sort="none">Date & time <svg class="sort-indicator" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path class="sort-up" d="M7 13l3-3 3 3" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path class="sort-down" d="M7 11l3 3 3-3" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></th>
+                                    <th scope="col" class="sortable" data-sort="recipient" aria-sort="none">Recipient <svg class="sort-indicator" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path class="sort-up" d="M7 13l3-3 3 3" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path class="sort-down" d="M7 11l3 3 3-3" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></th>
                                     <th scope="col">Message</th>
-                                    <th scope="col" class="sortable" data-sort="status" aria-sort="none">Status <span class="sort-indicator" aria-hidden="true"></span></th>
+                                    <th scope="col" class="sortable" data-sort="status" aria-sort="none">Status <svg class="sort-indicator" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path class="sort-up" d="M7 13l3-3 3 3" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path class="sort-down" d="M7 11l3 3 3-3" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></th>
                                     <th scope="col">Actions</th>
                                 </tr>
                             </thead>
@@ -660,7 +659,6 @@
                 const viewBtn = `<button class="action-btn view-btn" type="button" data-message-id="${escapeAttr(msg._id || '')}" title="View details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></button>`;
 
                 row.innerHTML = `
-                    <td class="select-cell" style="width: 44px; text-align: center;"><input type="checkbox" class="row-select" data-message-id="${escapeAttr(msg._id || '')}" aria-label="Select message"></td>
                     <td>${date}</td>
                     <td class="recipient-cell">${formatPhone(msg.recipient)}</td>
                     <td class="message-cell">${escapeHtml(messagePreview)}</td>
@@ -872,21 +870,6 @@
                 window.location.href = 'send-sms.html';
             });
 
-            var selectAll = el('selectAllMessages');
-            const tbodyEl = el('messagesBody');
-            if (selectAll && tbodyEl) {
-                selectAll.addEventListener('change', function() {
-                    var checked = this.checked;
-                    tbodyEl.querySelectorAll('.row-select').forEach(function(cb) { cb.checked = checked; });
-                });
-                tbodyEl.addEventListener('change', function(e) {
-                    var cb = e.target;
-                    if (!cb || !cb.classList || !cb.classList.contains('row-select')) return;
-                    var all = tbodyEl.querySelectorAll('.row-select');
-                    selectAll.checked = all.length > 0 && Array.prototype.every.call(all, function(x) { return x.checked; });
-                });
-            }
-
             syncStatusLabel();
 
             const retryBtn = el('retryBtn');
@@ -965,8 +948,7 @@
                 const key = th.dataset.sort;
                 const active = sortKey === key;
                 th.setAttribute('aria-sort', active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
-                const indicator = th.querySelector('.sort-indicator');
-                if (indicator) indicator.textContent = active ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕';
+                // Sort direction is shown via inline SVG chevrons; active state driven by aria-sort in CSS.
             });
         }
 
@@ -1139,9 +1121,8 @@
             #statGrid .stat-body { padding-right: 110px; }
         }
 
-        /* Table header: uppercase navy headers, checkbox column */
+        /* Table header: uppercase navy headers */
         #messagesTable th { text-transform: uppercase; font-size: 13px; font-weight: 700; color: var(--color-text); letter-spacing: 0.3px; }
-        #messagesTable th.select-col { padding: 0 0.5rem; text-align: center; }
 
         /* Message status pill color variants (extend shared .status-pill) */
         .status-pill.status-pill-delivered { background: var(--color-success-tint); color: var(--color-green-text); }
@@ -1180,12 +1161,13 @@
         .message-cell { color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
         .actions-cell { white-space: nowrap; }
 
-        /* Sortable header hint */
+        /* Sortable header hint (inline SVG up/down chevrons; active via CSS) */
         th.sortable { cursor: pointer; user-select: none; position: relative; padding-right: 1.5rem; }
         th.sortable:hover { background: #f5f5f5 !important; color: var(--color-primary-orange) !important; }
-        .sort-indicator { margin-left: 0.35rem; font-size: 0.7rem; opacity: 0.5; }
-        th.sortable[aria-sort="ascending"] .sort-indicator,
-        th.sortable[aria-sort="descending"] .sort-indicator { opacity: 1; }
+        .sort-indicator { margin-left: 0.35rem; color: var(--color-muted); display: inline-flex; align-items: center; flex-shrink: 0; }
+        .sort-indicator path { stroke: currentColor; opacity: 0.4; }
+        th.sortable[aria-sort="ascending"] .sort-indicator .sort-up { opacity: 1; color: var(--color-primary-orange); }
+        th.sortable[aria-sort="descending"] .sort-indicator .sort-down { opacity: 1; color: var(--color-primary-orange); }
 
         /* Search row: white pill search + white Filter pill */
         .table-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
@@ -1226,8 +1208,7 @@
             z-index: -1; pointer-events: none; filter: blur(32px);
         }
 
-        /* Custom cancel button must not render as solid navy (shared .btn-secondary fix) */
-        #customRangeCancel { background: #ffffff !important; color: var(--color-text) !important; border: 1px solid var(--color-border) !important; box-shadow: var(--shadow); }
+        /* Custom cancel button uses the shared outlined .btn-secondary now */
 
         /* Custom range popover */
         .custom-range-popover {

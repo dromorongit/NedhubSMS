@@ -76,11 +76,11 @@ input, button, select, textarea { font-family: var(--nh-font); }
     box-shadow: none;
 }
 
-/* Filled secondary: navy background, white text. */
+/* Outlined secondary: white background, 1px border, navy text. */
 .btn-secondary {
-    background: var(--nh-navy) !important;
-    color: var(--nh-white) !important;
-    border: none;
+    background: var(--nh-white) !important;
+    color: var(--nh-navy) !important;
+    border: 1px solid var(--nh-navy-2) !important;
     border-radius: var(--nh-radius-btn);
     min-height: 44px;
     padding: 0 1.5rem;
@@ -88,19 +88,21 @@ input, button, select, textarea { font-family: var(--nh-font); }
     font-size: 1rem;
     box-shadow: none;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 .btn-secondary:hover,
 .btn-secondary:focus-visible {
-    background: var(--nh-navy-2) !important;
+    background: var(--nh-navy-tint) !important;
+    border-color: var(--nh-navy) !important;
 }
 .btn-secondary:focus-visible {
     outline: var(--nh-focus-ring);
     outline-offset: 2px;
 }
 .btn-secondary:disabled {
-    background: #3d4a5f !important;
-    color: #fff !important;
+    background: #f4f6f8 !important;
+    color: #9aa3b2 !important;
+    border-color: #d1d5db !important;
     cursor: not-allowed;
 }
 
