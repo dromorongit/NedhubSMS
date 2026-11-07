@@ -381,6 +381,7 @@
   body.nhs-drawer-open { overflow: hidden; }
   body.nhs-drawer-open .main-content { overflow: hidden; }
   .nhs-overlay { display: block; }
+  .illustration { display: none; }
 }
 @media (min-width: 900px) {
   .nhs-overlay { display: none; }

@@ -58,15 +58,6 @@
                             <span class="stat-value" id="totalContacts">0</span>
                             <span class="stat-label">Total Contacts</span>
                         </div>
-                        <svg class="stat-sparkline" viewBox="0 0 96 32" preserveAspectRatio="none" role="img" aria-label="Total contacts trend">
-                            <defs>
-                                <linearGradient id="grad-total" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stop-color="#1976D2"/>
-                                    <stop offset="100%" stop-color="#90CAF9"/>
-                                </linearGradient>
-                            </defs>
-                            <polyline points="2,24 14,20 28,26 42,16 56,22 70,18 84,26 96,22" fill="url(#grad-total)" opacity="0.18" stroke="url(#grad-total)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
-                        </svg>
                     </article>
                     <article class="stat-card">
                         <div class="stat-icon stat-tint-green">
@@ -79,15 +70,6 @@
                             <span class="stat-value" id="activeContacts">0</span>
                             <span class="stat-label">Active Contacts</span>
                         </div>
-                        <svg class="stat-sparkline" viewBox="0 0 96 32" preserveAspectRatio="none" role="img" aria-label="Active contacts trend">
-                            <defs>
-                                <linearGradient id="grad-active" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stop-color="#16A34A"/>
-                                    <stop offset="100%" stop-color="#86EFAC"/>
-                                </linearGradient>
-                            </defs>
-                            <polyline points="2,22 14,18 28,24 42,14 56,20 70,12 84,18 96,14" fill="url(#grad-active)" opacity="0.18" stroke="url(#grad-active)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
-                        </svg>
                     </article>
                     <article class="stat-card">
                         <div class="stat-icon stat-tint-orange">
@@ -100,15 +82,6 @@
                             <span class="stat-value" id="blacklistedCount">0</span>
                             <span class="stat-label">Blacklisted</span>
                         </div>
-                        <svg class="stat-sparkline" viewBox="0 0 96 32" preserveAspectRatio="none" role="img" aria-label="Blacklisted contacts trend">
-                            <defs>
-                                <linearGradient id="grad-blacklisted" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stop-color="#F57C1F"/>
-                                    <stop offset="100%" stop-color="#F89A3C"/>
-                                </linearGradient>
-                            </defs>
-                            <polyline points="2,10 14,14 28,8 42,18 56,10 70,20 84,12 96,16" fill="url(#grad-blacklisted)" opacity="0.18" stroke="url(#grad-blacklisted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
-                        </svg>
                     </article>
                     <article class="stat-card">
                         <div class="stat-icon stat-tint-purple">
@@ -122,15 +95,6 @@
                             <span class="stat-value" id="totalGroups">0</span>
                             <span class="stat-label">Contact Lists</span>
                         </div>
-                        <svg class="stat-sparkline" viewBox="0 0 96 32" preserveAspectRatio="none" role="img" aria-label="Contact lists trend">
-                            <defs>
-                                <linearGradient id="grad-lists" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stop-color="#7C3AED"/>
-                                    <stop offset="100%" stop-color="#C084FC"/>
-                                </linearGradient>
-                            </defs>
-                            <polyline points="2,18 14,22 28,16 42,20 56,14 70,24 84,18 96,22" fill="url(#grad-lists)" opacity="0.18" stroke="url(#grad-lists)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
-                        </svg>
                     </article>
                 </div>
 
@@ -155,6 +119,22 @@
                         Upload Contacts
                         <span class="btn-upload-arrow">&#8594;</span>
                     </button>
+                </div>
+
+                <!-- Error state (shown when data fails to load) -->
+                <div class="contacts-error-state" id="contactsErrorState" style="display: none;">
+                    <div class="error-card">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <h3 id="contactsErrorTitle">Unable to load contacts</h3>
+                        <p id="contactsErrorMessage">Please check your connection and try again.</p>
+                        <button class="btn-primary" id="contactsRetryBtn" type="button">
+                            Retry
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Contacts table card -->
@@ -410,6 +390,7 @@
         let currentPage = 1;
         const pageSize = 5;
         const selectedIds = new Set();
+        let blacklistedPhones = new Set();
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuthAndLoad();
@@ -516,49 +497,93 @@
             const spinner = document.getElementById('loadingSpinner');
             const emptyState = document.getElementById('emptyState');
             const tbody = document.getElementById('contactsBody');
+            const errorState = document.getElementById('contactsErrorState');
             const totalContactsEl = document.getElementById('totalContacts');
             const activeContactsEl = document.getElementById('activeContacts');
             const blacklistedCountEl = document.getElementById('blacklistedCount');
             const totalGroupsEl = document.getElementById('totalGroups');
             const groupFilter = document.getElementById('groupFilter');
             const tableCard = document.querySelector('.contacts-table-card');
-            
+            const retryBtn = document.getElementById('contactsRetryBtn');
+
             if (!tbody) return;
-            
+
+            const showError = (message) => {
+                spinner.style.display = 'none';
+                tableCard.style.display = 'none';
+                emptyState.style.display = 'none';
+                if (errorState) errorState.style.display = 'flex';
+                const titleEl = document.getElementById('contactsErrorTitle');
+                const msgEl = document.getElementById('contactsErrorMessage');
+                if (titleEl) titleEl.textContent = 'Unable to load contacts';
+                if (msgEl) msgEl.textContent = message;
+                if (retryBtn) retryBtn.onclick = loadContacts;
+            };
+
+            const showLoaded = () => {
+                if (errorState) errorState.style.display = 'none';
+                spinner.style.display = 'none';
+            };
+
             try {
                 spinner.style.display = 'flex';
                 tbody.innerHTML = '';
-                
-                const result = await window.apiClient.getContacts();
-                
-                spinner.style.display = 'none';
-                
-                if (result.error) {
-                    console.error(result.error);
-                    tbody.innerHTML = '<tr><td colspan="7" class="error">Failed to load contacts</td></tr>';
+
+                const [contactsResult, blacklistResult] = await Promise.allSettled([
+                    window.apiClient.getContacts(),
+                    window.apiClient.getBlacklist({ page: 1, limit: 200 })
+                ]);
+
+                let blacklistedCount = 0;
+                let loadError = null;
+
+                if (contactsResult.status === 'fulfilled') {
+                    const res = contactsResult.value;
+                    if (res.error) {
+                        loadError = res.error;
+                    } else {
+                        const raw = res.data;
+                        contacts = Array.isArray(raw) ? raw : [];
+                    }
+                } else {
+                    loadError = contactsResult.reason ? String(contactsResult.reason) : 'Failed to load contacts';
+                }
+
+                if (blacklistResult.status === 'fulfilled') {
+                    const res = blacklistResult.value;
+                    if (!res.error) {
+                        const blData = res.data;
+                        blacklistedCount = blData.pagination?.total
+                            ?? blData.blacklistedNumbers?.length
+                            ?? 0;
+                        (blData.blacklistedNumbers || []).forEach(function (n) {
+                            if (n && n.phoneNumber) blacklistedPhones.add(n.phoneNumber);
+                        });
+                    }
+                }
+
+                showLoaded();
+
+                if (loadError) {
+                    showError(loadError);
                     return;
                 }
-                
-                let raw = result.data;
-                if (raw && !Array.isArray(raw)) {
-                    raw = raw.contacts || raw.data || [];
-                }
-                contacts = Array.isArray(raw) ? raw : [];
+
                 filteredContacts = [...contacts];
                 currentPage = 1;
                 selectedIds.clear();
-                
-                // Update stats
-                if (totalContactsEl) totalContactsEl.textContent = contacts.length;
-                const activeCount = contacts.filter(c => (c.status || 'Active') === 'Active').length;
-                const blacklistedCount = contacts.filter(c => c.status === 'Blacklisted').length;
-                if (activeContactsEl) activeContactsEl.textContent = activeCount;
+
+                // Update stats (real API data)
+                const totalContacts = contacts.length;
+                const activeContacts = Math.max(0, totalContacts - blacklistedCount);
+                if (totalContactsEl) totalContactsEl.textContent = totalContacts;
+                if (activeContactsEl) activeContactsEl.textContent = activeContacts;
                 if (blacklistedCountEl) blacklistedCountEl.textContent = blacklistedCount;
-                
-                // Get unique groups
+
+                // Get unique groups (lists)
                 const groups = [...new Set(contacts.map(c => c.groupName).filter(g => g))];
                 if (totalGroupsEl) totalGroupsEl.textContent = groups.length;
-                
+
                 // Update group filter
                 groupFilter.innerHTML = '<option value="">All Lists</option>';
                 groups.forEach(group => {
@@ -567,19 +592,17 @@
                     option.textContent = group;
                     groupFilter.appendChild(option);
                 });
-                
+
                 if (filteredContacts.length > 0) {
-                    if (emptyState) emptyState.style.display = 'none';
-                    if (tableCard) tableCard.style.display = '';
+                    emptyState.style.display = 'none';
+                    tableCard.style.display = '';
                     renderContacts(filteredContacts);
                 } else {
-                    if (tableCard) tableCard.style.display = 'none';
+                    tableCard.style.display = 'none';
                     emptyState.style.display = 'flex';
                 }
             } catch (error) {
-                spinner.style.display = 'none';
-                console.error('Error loading contacts:', error);
-                tbody.innerHTML = '<tr><td colspan="7" class="error">Failed to load contacts</td></tr>';
+                showError('Network error: ' + extractErrorMessage(error));
             }
         }
 
@@ -701,7 +724,8 @@
                 const date = formatDate(contact.createdAt);
                 const recipientName = contact.recipientName || 'Unknown';
                 const displayName = initials(recipientName);
-                const status = contact.status || 'Active';
+                const isBlacklisted = blacklistedPhones.has(contact.phoneNumber);
+                const status = isBlacklisted ? 'Blacklisted' : 'Active';
                 const listName = contact.groupName || 'General';
                 const isSelected = selectedIds.has(id);
                 

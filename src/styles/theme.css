@@ -154,9 +154,6 @@ select:focus-visible,
   color: var(--color-muted);
   font-weight: var(--fw-medium);
   margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: block;
 }
 .stat-sparkline {
@@ -677,6 +674,40 @@ select:focus-visible,
   gap: 0.75rem;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* ── Error state ── */
+.contacts-error-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 4rem 1.5rem;
+  color: var(--color-muted);
+}
+.error-card {
+  max-width: 420px;
+  width: 100%;
+}
+.error-card svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+  color: var(--color-danger);
+}
+.error-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: var(--text-xl);
+  font-weight: var(--fw-bold);
+  color: var(--color-text);
+}
+.error-card p {
+  margin: 0 0 1.5rem 0;
+  font-size: var(--text-sm);
+}
+.error-card .btn-primary {
+  width: 100%;
 }
 
 /* ── Buttons (shared) ── */
