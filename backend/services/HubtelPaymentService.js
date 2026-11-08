@@ -13,6 +13,7 @@ class HubtelPaymentService {
     this.clientSecret = process.env.HUBTEL_CLIENT_SECRET;
     this.merchantAccountNumber = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER;
     this.callbackUrl = process.env.HUBTEL_CALLBACK_URL;
+    this.paymentCallbackUrl = process.env.HUBTEL_PAYMENT_CALLBACK_URL || process.env.HUBTEL_CALLBACK_URL;
     this.returnUrl = process.env.HUBTEL_RETURN_URL;
     this.cancellationUrl = process.env.HUBTEL_CANCELLATION_URL;
     
@@ -81,7 +82,8 @@ class HubtelPaymentService {
       clientReference,
       customerEmail,
       customerPhone,
-      returnUrl
+      returnUrl,
+      callbackUrl
     } = paymentData;
 
     // Validate required fields
@@ -102,7 +104,7 @@ class HubtelPaymentService {
     const payload = {
       totalAmount: parseFloat(amount).toFixed(2),
       description: description.substring(0, 500), // Hubtel limit
-      callbackUrl: this.callbackUrl,
+      callbackUrl: callbackUrl || this.paymentCallbackUrl,
       merchantAccountNumber: this.merchantAccountNumber,
       clientReference: clientReference
     };

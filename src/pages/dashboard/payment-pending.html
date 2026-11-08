@@ -153,16 +153,16 @@
             document.getElementById('longRef').textContent = reference;
             document.getElementById('delayedRef').textContent = reference;
 
-            const MAX_MS = 3 * 60 * 1000;
-            const START_INTERVAL = 3000;
-            const BACKOFF_INTERVAL = 10000;
-            const BACKOFF_AFTER = 30000;
+            const MAX_MS = 2 * 60 * 1000;
+            const POLL_INTERVAL = 3000;
+            const VERIFY_AFTER_MS = 20000;
 
-            let interval = START_INTERVAL;
+            let interval = POLL_INTERVAL;
             let elapsed = 0;
             let timer = null;
             let stopped = false;
             let verificationDelayedAttempts = 0;
+            let hubtelVerificationTriggered = false;
 
             function showConfirming() {
                 document.getElementById('networkMsg').style.display = 'none';
@@ -182,8 +182,8 @@
                 document.getElementById('details').style.display = 'none';
                 document.getElementById('networkMsg').style.display = 'none';
                 document.getElementById('longPending').style.display = 'block';
-                document.getElementById('title').textContent = 'Payment still processing';
-                document.getElementById('subtitle').textContent = 'Your wallet will be credited automatically once it is confirmed.';
+                document.getElementById('title').textContent = 'Payment still being confirmed';
+                document.getElementById('subtitle').textContent = 'Your wallet will be credited automatically once Hubtel confirms the payment.';
             }
 
             function showVerificationDelayed() {
@@ -194,7 +194,7 @@
                 document.getElementById('longPending').style.display = 'none';
                 document.getElementById('verificationDelayedMsg').style.display = 'block';
                 document.getElementById('title').textContent = 'Payment still being confirmed';
-                document.getElementById('subtitle').textContent = 'Your wallet will be credited automatically.';
+                document.getElementById('subtitle').textContent = 'We are verifying your payment with Hubtel. Your wallet will be credited automatically.';
             }
 
             async function poll() {
@@ -230,7 +230,10 @@
 
                     if (data.verificationDelayed) {
                         verificationDelayedAttempts += 1;
-                        if (verificationDelayedAttempts >= 3) {
+                        if (!hubtelVerificationTriggered && elapsed >= VERIFY_AFTER_MS) {
+                            hubtelVerificationTriggered = true;
+                            showVerificationDelayed();
+                        } else if (verificationDelayedAttempts >= 3) {
                             showVerificationDelayed();
                         }
                     } else {
@@ -242,10 +245,6 @@
                 }
 
                 elapsed += interval;
-                if (elapsed >= BACKOFF_AFTER) {
-                    interval = BACKOFF_INTERVAL;
-                }
-
                 if (elapsed >= MAX_MS) {
                     showLongPending();
                     stopped = true;

@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
 const { getAppBaseUrl, getPrimaryAppOrigin, isAllowedOrigin, normalizeOrigin } = require('../utils/appBaseUrl');
 const CallbackVerificationService = require('../services/callbackVerificationService');
@@ -9,6 +11,17 @@ const logger = require('../utils/logger');
 const verificationService = new CallbackVerificationService();
 
 const TOPUPS_PAUSED_MESSAGE = 'Top-ups are temporarily unavailable while we upgrade our payment system. Your wallet and messages are not affected.';
+
+// Callback audit log file (structured JSON lines, append-only)
+const callbackAuditLogPath = path.join(__dirname, '../logs/callback-audit.log');
+function appendCallbackAudit(entry) {
+  try {
+    const line = JSON.stringify({ ...entry, ts: new Date().toISOString() }) + '\n';
+    fs.appendFileSync(callbackAuditLogPath, line, { flag: 'a' });
+  } catch (e) {
+    logger.error('[CallbackAudit] Failed to write audit log', { error: e.message });
+  }
+}
 
 /**
  * Read the TOPUP_ENABLED kill switch. Defaults to enabled (true). The values
@@ -103,6 +116,12 @@ const initiatePayment = async (req, res) => {
       returnUrl += `?frontend=${encodeURIComponent(frontendOrigin)}`;
     }
 
+    // Build callback URL for Hubtel to POST payment status updates to
+    // Uses HUBTEL_PAYMENT_CALLBACK_URL if set, otherwise builds from BACKEND_URL
+    const callbackUrl = process.env.HUBTEL_PAYMENT_CALLBACK_URL
+      || (process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api/payments/hubtel/callback`
+        : `${getPrimaryAppOrigin()}/api/payments/hubtel/callback`);
+
     // Initiate payment with Hubtel
     const hubtelResult = await verificationService.paymentService.initiatePayment({
       amount: payment.amount,
@@ -110,7 +129,8 @@ const initiatePayment = async (req, res) => {
       clientReference: payment.clientReference,
       customerEmail: user.email,
       customerPhone: user.phone,
-      returnUrl: returnUrl
+      returnUrl: returnUrl,
+      callbackUrl
     });
 
     // Update payment with Hubtel checkout ID
@@ -150,8 +170,19 @@ const initiatePayment = async (req, res) => {
  * payment record, never an amount from the callback body.
  */
 const handleHubtelCallback = async (req, res) => {
+  const rawBody = JSON.stringify(req.body || {});
+  const callbackData = req.body || {};
+
+  const logEntry = {
+    event: 'callback_received',
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+    rawBody
+  };
+
   try {
-    const callbackData = req.body || {};
+    appendCallbackAudit({ ...logEntry, stage: 'received' });
 
     logger.info('[Payment] Hubtel callback received', {
       clientReference: extractClientReference(callbackData) || '<missing>'
@@ -161,13 +192,17 @@ const handleHubtelCallback = async (req, res) => {
 
     if (!clientReference) {
       logger.warn('[Payment] Callback missing clientReference');
+      appendCallbackAudit({ ...logEntry, stage: 'rejected', reason: 'missing_clientReference' });
       return res.status(200).json({ received: true });
     }
+
+    logEntry.clientReference = clientReference;
 
     const payment = await Payment.findOne({ clientReference });
 
     if (!payment) {
       logger.warn('[Payment] Payment not found for callback', { clientReference });
+      appendCallbackAudit({ ...logEntry, stage: 'rejected', reason: 'payment_not_found' });
       // Answer 200 so Hubtel stops retrying; nothing to process
       return res.status(200).json({ success: false, message: 'Payment not found' });
     }
@@ -175,10 +210,56 @@ const handleHubtelCallback = async (req, res) => {
     // Already in a terminal state: nothing to do (idempotent)
     if (payment.status === 'paid' || payment.status === 'failed' || payment.status === 'cancelled') {
       logger.info('[Payment] Duplicate callback for already-terminal payment', { clientReference, status: payment.status });
+      appendCallbackAudit({ ...logEntry, stage: 'skipped', reason: 'already_terminal', status: payment.status });
       return res.status(200).json({ success: true, message: 'Already processed', status: payment.status });
     }
 
+    // Validate callback amount if provided - must match our stored amount
+    const callbackAmount = extractCallbackAmount(callbackData);
+    if (callbackAmount != null && Math.round(callbackAmount * 100) !== Math.round(payment.amount * 100)) {
+      logger.warn('[Payment] Callback amount mismatch - marking for manual review', {
+        clientReference, callbackAmount, storedAmount: payment.amount
+      });
+      appendCallbackAudit({
+        ...logEntry,
+        stage: 'amount_mismatch',
+        callbackAmount,
+        storedAmount: payment.amount
+      });
+      await Payment.findOneAndUpdate(
+        { clientReference, status: { $in: ['pending', 'processing'] } },
+        {
+          $set: {
+            status: 'pending',
+            callbackVerified: false,
+            failureReason: `Callback amount mismatch: callback=${callbackAmount}, stored=${payment.amount}`,
+            lastVerificationError: {
+              at: new Date(),
+              httpStatus: null,
+              code: 'AMOUNT_MISMATCH'
+            }
+          },
+          $inc: { verificationFailures: 1 }
+        }
+      );
+      return res.status(200).json({
+        success: false,
+        message: 'Amount mismatch - flagged for manual review',
+        clientReference
+      });
+    }
+
     const result = await verificationService.processPaymentCallback(clientReference);
+
+    appendCallbackAudit({
+      ...logEntry,
+      stage: 'processed',
+      action: result.action,
+      providerStatus: result.providerStatus,
+      providerAmount: result.providerAmount,
+      paymentAmount: result.payment ? result.payment.amount : null,
+      applied: result.applied
+    });
 
     switch (result.action) {
       case 'credit':
@@ -204,7 +285,13 @@ const handleHubtelCallback = async (req, res) => {
     }
 
   } catch (error) {
-    logger.error('[Payment] Callback error', { error: error.message, stack: error.stack });
+    logger.error('[Payment] Callback error', { error: error.message, stack: error.stack, clientReference });
+    appendCallbackAudit({
+      ...logEntry,
+      stage: 'error',
+      error: error.message,
+      stack: error.stack
+    });
     // Always answer 200 so the provider does not retry; the reconcile script
     // picks up any pending payment later.
     return res.status(200).json({ success: false, message: 'Internal server error' });
@@ -227,6 +314,21 @@ function extractClientReference(callbackData) {
     || callbackData.data?.clientReference
     || callbackData.PaymentDetails?.Data?.ClientReference
     || callbackData.paymentDetails?.data?.clientReference;
+}
+
+/**
+ * Extract the amount from a Hubtel callback body if present.
+ * Only used for mismatch detection - the credit decision uses our stored amount.
+ */
+function extractCallbackAmount(callbackData) {
+  const amount =
+    callbackData.amount
+    || callbackData.Amount
+    || callbackData.Data?.Amount
+    || callbackData.data?.amount
+    || callbackData.PaymentDetails?.Data?.Amount
+    || callbackData.paymentDetails?.data?.amount;
+  return amount != null ? parseFloat(amount) : null;
 }
 
 /**
