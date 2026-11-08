@@ -19,7 +19,7 @@ const STATUS_MAP = {
   cancelled: 'Failed',
   rejected: 'Failed'
 };
-function normalizeStatus(raw){ const k=String(raw||'').toLowerCase(); if(!k) return 'Completed'; return STATUS_MAP[k] || 'Completed'; }
+function normalizeStatus(raw){ const k=String(raw||'').toLowerCase(); if(!k) return 'Pending'; return STATUS_MAP[k] || 'Pending'; }
 function isSpent(tx){ return SPENT_TYPES.includes(String(tx.type||'').toLowerCase()); }
 function isReceived(tx){ return RECEIVED_TYPES.includes(String(tx.type||'').toLowerCase()); }
 module.exports = { SPENT_TYPES, RECEIVED_TYPES, STATUS_MAP, normalizeStatus, isSpent, isReceived };
