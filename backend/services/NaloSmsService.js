@@ -178,9 +178,13 @@ class NaloSmsService {
   /**
    * Refund wallet after failed SMS
    */
-  async refundWallet(userId, amount, description) {
+  async refundWallet(userId, amount, description, originalTransaction = null) {
     const logger = require('../utils/logger');
+    const Transaction = require('../models/Transaction');
+    const Wallet = require('../models/Wallet');
     try {
+      const wallet = await Wallet.findOne({ userId });
+      const balanceBefore = wallet ? wallet.balance : 0;
       await Wallet.findOneAndUpdate(
         { userId },
         { 
@@ -188,6 +192,20 @@ class NaloSmsService {
           $set: { updatedAt: new Date() }
         }
       );
+      const refundTx = new Transaction({
+        userId,
+        type: 'credit',
+        amount,
+        description: `${description} (refund)`,
+        reference: `REFUND-SMS-${Date.now()}`,
+        balanceBefore,
+        balanceAfter: balanceBefore + amount,
+        status: 'completed'
+      });
+      await refundTx.save();
+      if (originalTransaction && originalTransaction._id) {
+        await Transaction.updateOne({ _id: originalTransaction._id }, { $set: { status: 'failed' } });
+      }
       logger.debug('[NaloSmsService] Wallet refunded', { amount, userId });
     } catch (error) {
       logger.error('[NaloSmsService] Wallet refund failed', { error: error.message });
@@ -377,22 +395,23 @@ class NaloSmsService {
           skipDeduction
       });
       
-      // Log provider payload with [ProviderPayload] tag
-      const providerPayload = {
-          key: this.apiKey ? '***HIDDEN***' : null, // Hide API key
-          msisdn: formattedPhoneNumber,
-          sender_id: senderId,
-          message: message.trim()
-      };
-      logger.debug('[ProviderPayload]', {
-          ...providerPayload,
-          userId,
-          campaignId,
-          recipientId,
-          timestamp: new Date().toISOString()
-      });
+// Log provider payload with [ProviderPayload] tag
+       const providerPayload = {
+           key: this.apiKey ? '***HIDDEN***' : null, // Hide API key
+           msisdn: formattedPhoneNumber,
+           sender_id: senderId,
+           message: message.trim()
+       };
+       logger.debug('[ProviderPayload]', {
+           ...providerPayload,
+           userId,
+           campaignId,
+           recipientId,
+           timestamp: new Date().toISOString()
+       });
 
-    try {
+     let deductionResult = null;
+     try {
       // Validate phone number
       const formattedPhoneNumber = this.formatPhoneNumber(phoneNumber);
       if (!this.validatePhoneNumber(phoneNumber)) {
@@ -452,8 +471,8 @@ class NaloSmsService {
       });
 
       // Check wallet balance and deduct (skip for reservation-based campaigns)
-      let deductionResult = null;
-      if (!skipDeduction) {
+deductionResult = null;
+       if (!skipDeduction) {
         const hasSufficientBalance = await WalletService.hasSufficientBalance(
           userId,
           financialBreakdown.totalChargedToUser
@@ -669,7 +688,7 @@ class NaloSmsService {
             
             // Refund wallet on failure
             if (!skipDeduction) {
-              await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
+              await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund', deductionResult?.transaction);
             }
           }
         } catch (apiError) {
@@ -731,7 +750,7 @@ class NaloSmsService {
 
            // Refund wallet on API error
            if (!skipDeduction) {
-             await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund');
+             await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund', deductionResult?.transaction);
            }
          }
       }
@@ -898,7 +917,7 @@ class NaloSmsService {
       // but wallet was already deducted. Refund to prevent leak.)
       if (!skipDeduction && typeof financialBreakdown !== 'undefined' && financialBreakdown) {
         try {
-          await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS internal error - refund');
+          await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS internal error - refund', deductionResult?.transaction);
         } catch (refundErr) {
           logger.error('[NaloSmsService] Refund failed in outer catch', { error: refundErr.message });
         }

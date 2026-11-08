@@ -280,17 +280,17 @@ router.get('/transactions/stats', authenticate, async (req, res) => {
     const match = { userId: userIdObj };
     if (startDate || endDate) { match.createdAt = {}; if (startDate) match.createdAt.$gte = startDate; if (endDate) match.createdAt.$lt = endDate; }
 
-    const agg = await Transaction.aggregate([
+const agg = await Transaction.aggregate([
       { $match: match },
-      { $group: { _id: null, totalSpent: { $sum: { $cond: [{ $eq: ['$type','debit'] }, '$amount', 0] } }, totalReceived: { $sum: { $cond: [{ $eq: ['$type','credit'] }, '$amount', 0] } }, count: { $sum: 1 } } }
+      { $group: { _id: null, totalSpent: { $sum: { $cond: [{ $and: [{ $eq: ['$type','debit'] }, { $eq: ['$status','completed'] }] }, '$amount', 0] } }, totalReceived: { $sum: { $cond: [{ $and: [{ $eq: ['$type','credit'] }, { $eq: ['$status','completed'] }] }, '$amount', 0] } }, count: { $sum: { $cond: [{ $ne: ['$status','cancelled'] }, 1, 0] } } } }
     ]);
     const r = agg[0] || { totalSpent: 0, totalReceived: 0, count: 0 };
 
     // series per day
     const bucketFmt = range === 'all' ? '%Y-%m' : '%Y-%m-%d';
-    const seriesAgg = await Transaction.aggregate([
+const seriesAgg = await Transaction.aggregate([
       { $match: match },
-      { $group: { _id: { $dateToString: { format: bucketFmt, date: '$createdAt' } }, spent: { $sum: { $cond: [{ $eq: ['$type','debit'] }, '$amount', 0] } }, received: { $sum: { $cond: [{ $eq: ['$type','credit'] }, '$amount', 0] } }, count: { $sum: 1 } } },
+      { $group: { _id: { $dateToString: { format: bucketFmt, date: '$createdAt' } }, spent: { $sum: { $cond: [{ $and: [{ $eq: ['$type','debit'] }, { $eq: ['$status','completed'] }] }, '$amount', 0] } }, received: { $sum: { $cond: [{ $and: [{ $eq: ['$type','credit'] }, { $eq: ['$status','completed'] }] }, '$amount', 0] } }, count: { $sum: { $cond: [{ $ne: ['$status','cancelled'] }, 1, 0] } } } },
       { $sort: { _id: 1 } }
     ]);
     const series = { spent: seriesAgg.map(x=>({x:x._id,y:x.spent})), received: seriesAgg.map(x=>({x:x._id,y:x.received})), count: seriesAgg.map(x=>({x:x._id,y:x.count})) };
@@ -306,7 +306,7 @@ router.get('/transactions/stats', authenticate, async (req, res) => {
     if (prevStart) { prevMatch = { userId: userIdObj, createdAt: { $gte: prevStart, $lt: prevEnd } }; }
     let prev = { totalSpent:0,totalReceived:0,count:0 };
     if (prevMatch) {
-      const pagg = await Transaction.aggregate([{ $match: prevMatch },{ $group: { _id:null, totalSpent:{ $sum:{ $cond:[{ $eq:['$type','debit']},'$amount',0]} }, totalReceived:{ $sum:{ $cond:[{ $eq:['$type','credit']},'$amount',0]} }, count:{ $sum:1 } } }]);
+      const pagg = await Transaction.aggregate([{ $match: prevMatch },{ $group: { _id:null, totalSpent:{ $sum:{ $cond:[{ $and:[{ $eq:['$type','debit']},{ $eq:['$status','completed']}]},'$amount',0]} }, totalReceived:{ $sum:{ $cond:[{ $and:[{ $eq:['$type','credit']},{ $eq:['$status','completed']}]},'$amount',0]} }, count:{ $sum:{ $cond:[{ $ne:['$status','cancelled']},1,0]} } } }]);
       prev = pagg[0] || prev;
     }
     res.json({ success: true, data: { totalSpent: r.totalSpent, totalReceived: r.totalReceived, count: r.count, previous: prev, series } });
