@@ -176,14 +176,60 @@ router.post('/topup', authenticate, authorize(['admin']), async (req, res) => {
 router.get('/transactions', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { page = 1, limit = 20 } = req.query;
-    
-    const transactions = await Transaction.find({ userId })
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
-    
-    const total = await Transaction.countDocuments({ userId });
+    const mongoose = require('mongoose');
+    const userIdObj = new mongoose.Types.ObjectId(userId);
+    const {
+      page = 1, limit = 20, search = '', type = '', status = '',
+      range = '', start = '', end = '', sort = 'createdAt', order = 'desc'
+    } = req.query;
+
+    const lim = Math.min(parseInt(limit) || 20, 100);
+    const pg = Math.max(parseInt(page) || 1, 1);
+
+    const filter = { userId: userIdObj };
+    if (type) filter.type = type;
+    if (status) filter.status = status;
+    if (search) {
+      const esc = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [
+        { description: { $regex: esc, $options: 'i' } },
+        { reference: { $regex: esc, $options: 'i' } }
+      ];
+    }
+    // date range
+    let startDate, endDate;
+    const now = new Date();
+    if (range === 'today') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      endDate = new Date(startDate); endDate.setDate(endDate.getDate() + 1);
+    } else if (range === '7d') {
+      startDate = new Date(now); startDate.setDate(startDate.getDate() - 7);
+      endDate = new Date(now); endDate.setDate(endDate.getDate() + 1);
+    } else if (range === '30d') {
+      startDate = new Date(now); startDate.setDate(startDate.getDate() - 30);
+      endDate = new Date(now); endDate.setDate(endDate.getDate() + 1);
+    } else if (range === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    } else if (start || end) {
+      if (start) startDate = new Date(start);
+      if (end) { endDate = new Date(end); endDate.setDate(endDate.getDate() + 1); }
+    }
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = startDate;
+      if (endDate) filter.createdAt.$lt = endDate;
+    }
+
+    const sortWhitelist = { createdAt: 'createdAt', type: 'type', amount: 'amount', status: 'status' };
+    const sortField = sortWhitelist[sort] || 'createdAt';
+    const sortDir = order === 'asc' ? 1 : -1;
+
+    const total = await Transaction.countDocuments(filter);
+    const transactions = await Transaction.find(filter)
+      .sort({ [sortField]: sortDir })
+      .skip((pg - 1) * lim)
+      .limit(lim);
 
     res.json({
       success: true,
@@ -195,30 +241,82 @@ router.get('/transactions', authenticate, async (req, res) => {
           amount: tx.amount,
           description: tx.description,
           reference: tx.reference,
+const buckets = require('../utils/transaction-buckets');
+// inside transactions map:
+          status: buckets.normalizeStatus(tx.status),
           balanceBefore: tx.balanceBefore,
           balanceAfter: tx.balanceAfter,
           createdAt: tx.createdAt
         })),
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: pg,
+          limit: lim,
           total,
-          pages: Math.ceil(total / limit)
+          totalPages: Math.ceil(total / lim)
         }
       }
     });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve wallet balance',
-        error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          details: error.message
-        }
-      });
-    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve transactions', error: { code: 'INTERNAL_SERVER_ERROR', details: error.message } });
+  }
 });
+
+// Stats endpoint
+router.get('/transactions/stats', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const mongoose = require('mongoose');
+    const userIdObj = new mongoose.Types.ObjectId(userId);
+    const { range = '30d', start = '', end = '' } = req.query;
+    const now = new Date();
+    let startDate, endDate;
+    if (range === 'today') { startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); endDate = new Date(startDate); endDate.setDate(endDate.getDate()+1); }
+    else if (range === '7d') { startDate = new Date(now); startDate.setDate(startDate.getDate()-7); endDate = new Date(now); endDate.setDate(endDate.getDate()+1); }
+    else if (range === '30d') { startDate = new Date(now); startDate.setDate(startDate.getDate()-30); endDate = new Date(now); endDate.setDate(endDate.getDate()+1); }
+    else if (range === 'month') { startDate = new Date(now.getFullYear(), now.getMonth(), 1); endDate = new Date(now.getFullYear(), now.getMonth()+1, 1); }
+    else if (range === 'all') { startDate = null; endDate = null; }
+    else if (start || end) { if (start) startDate = new Date(start); if (end) { endDate = new Date(end); endDate.setDate(endDate.getDate()+1); } }
+
+    const match = { userId: userIdObj };
+    if (startDate || endDate) { match.createdAt = {}; if (startDate) match.createdAt.$gte = startDate; if (endDate) match.createdAt.$lt = endDate; }
+
+    const agg = await Transaction.aggregate([
+      { $match: match },
+      { $group: { _id: null, totalSpent: { $sum: { $cond: [{ $eq: ['$type','debit'] }, '$amount', 0] } }, totalReceived: { $sum: { $cond: [{ $eq: ['$type','credit'] }, '$amount', 0] } }, count: { $sum: 1 } } }
+    ]);
+    const r = agg[0] || { totalSpent: 0, totalReceived: 0, count: 0 };
+
+    // series per day
+    const bucketFmt = range === 'all' ? '%Y-%m' : '%Y-%m-%d';
+    const seriesAgg = await Transaction.aggregate([
+      { $match: match },
+      { $group: { _id: { $dateToString: { format: bucketFmt, date: '$createdAt' } }, spent: { $sum: { $cond: [{ $eq: ['$type','debit'] }, '$amount', 0] } }, received: { $sum: { $cond: [{ $eq: ['$type','credit'] }, '$amount', 0] } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+    const series = { spent: seriesAgg.map(x=>({x:x._id,y:x.spent})), received: seriesAgg.map(x=>({x:x._id,y:x.received})), count: seriesAgg.map(x=>({x:x._id,y:x.count})) };
+
+    // previous period
+    let prevStart, prevEnd;
+    if (range !== 'all' && startDate) {
+      const dur = (endDate || now) - startDate;
+      prevEnd = new Date(startDate);
+      prevStart = new Date(startDate.getTime() - dur);
+    }
+    let prevMatch = null;
+    if (prevStart) { prevMatch = { userId: userIdObj, createdAt: { $gte: prevStart, $lt: prevEnd } }; }
+    let prev = { totalSpent:0,totalReceived:0,count:0 };
+    if (prevMatch) {
+      const pagg = await Transaction.aggregate([{ $match: prevMatch },{ $group: { _id:null, totalSpent:{ $sum:{ $cond:[{ $eq:['$type','debit']},'$amount',0]} }, totalReceived:{ $sum:{ $cond:[{ $eq:['$type','credit']},'$amount',0]} }, count:{ $sum:1 } } }]);
+      prev = pagg[0] || prev;
+    }
+    res.json({ success: true, data: { totalSpent: r.totalSpent, totalReceived: r.totalReceived, count: r.count, previous: prev, series } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve stats' });
+  }
+});
+
 
 // Reconcile pending top-up payments for the calling user (last 24h, max 10)
 router.post('/reconcile', authenticate, async (req, res) => {
