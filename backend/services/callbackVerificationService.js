@@ -152,7 +152,8 @@ class CallbackVerificationService {
       description,
       reference,
       balanceBefore,
-      balanceAfter: balanceBefore + amount
+      balanceAfter: balanceBefore + amount,
+      status: 'pending'
     });
     try {
       await transaction.save();
@@ -166,6 +167,11 @@ class CallbackVerificationService {
     await this.Wallet.findOneAndUpdate(
       { userId },
       { $inc: { balance: amount, smsBalance: amount }, $set: { updatedAt: new Date() } }
+    );
+
+    await this.Transaction.updateOne(
+      { _id: transaction._id },
+      { $set: { status: 'completed' } }
     );
 
     this.logger.info('[CallbackVerification] Wallet credited', {

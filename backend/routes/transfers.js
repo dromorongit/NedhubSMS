@@ -79,23 +79,38 @@ router.post('/airtime', authenticate, async (req, res) => {
        });
      }
 
-     // Check wallet balance
-     const wallet = await Wallet.findOne({ userId });
-     if (!wallet || wallet.balance < amount) {
-       logger.warn('[AirtimeExecution] Wallet check failed', {
-         userId, phoneNumber, network, amount,
-         walletFound: !!wallet,
-         balance: wallet?.balance || 0,
-         phase: 'wallet_check_failed'
-       });
-       return res.status(400).json({
-         success: false,
-         message: 'Insufficient wallet balance',
-         error: { code: 'INSUFFICIENT_BALANCE' }
-       });
-     }
+    // Check wallet balance
+    const wallet = await Wallet.findOne({ userId });
+    if (!wallet || wallet.balance < amount) {
+      logger.warn('[AirtimeExecution] Wallet check failed', {
+        userId, phoneNumber, network, amount,
+        walletFound: !!wallet,
+        balance: wallet?.balance || 0,
+        phase: 'wallet_check_failed'
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient wallet balance',
+        error: { code: 'INSUFFICIENT_BALANCE' }
+      });
+    }
 
     const balanceBefore = wallet.balance;
+
+    // Atomically debit the wallet at purchase creation (prevents overspend)
+    const debitedWallet = await Wallet.findOneAndUpdate(
+      { userId, balance: { $gte: amount } },
+      { $inc: { balance: -amount }, $set: { updatedAt: new Date() } },
+      { new: true }
+    );
+    if (!debitedWallet) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient wallet balance',
+        error: { code: 'INSUFFICIENT_BALANCE' }
+      });
+    }
+
     const clientReference = HubtelTransferService.generateClientReference('AIRTIME');
 
     logger.info('[AirtimeExecution] Transaction record created', {
@@ -103,8 +118,7 @@ router.post('/airtime', authenticate, async (req, res) => {
       phase: 'transaction_created'
     });
 
-   // Create transaction record FIRST with 'pending_confirmation' status
-   // CRITICAL: Status must NOT be 'completed' until Hubtel confirms delivery via callback
+   // Create transaction record with pending_confirmation status
    const transaction = new Transaction({
      userId,
      type: 'debit',
@@ -154,45 +168,51 @@ router.post('/airtime', authenticate, async (req, res) => {
         response: hubtelError.response?.data
       });
 
-      // CRITICAL: Release wallet reservation on 4xx or 5xx responses
-      if (is4xx || is5xx) {
-        logger.warn(LogTags.PROVIDER_FAILURE + ' [AirtimeBuy] Releasing wallet due to provider error', {
-          clientReference, httpStatus, amount
-        });
+      // Idempotent failure handling: only transition from pending_confirmation
+      const failedTx = await Transaction.findOneAndUpdate(
+        { reference: clientReference, status: 'pending_confirmation' },
+        {
+          $set: {
+            status: 'failed',
+            description: transaction.description + ' - FAILED',
+            metadata: {
+              ...transaction.metadata,
+              failureReason: hubtelError.message,
+              failedAt: new Date(),
+              providerErrorCode: httpStatus,
+              fullErrorPayload: hubtelError.response?.data
+            }
+          }
+        },
+        { new: true }
+      );
+
+      if (failedTx) {
+        // Refund exactly once (wallet was debited at creation)
         try {
           await Wallet.findOneAndUpdate(
             { userId },
             { $inc: { balance: amount }, $set: { updatedAt: new Date() } }
           );
-          logger.info(LogTags.PROVIDER_FAILURE + ' [AirtimeBuy] Wallet balance restored after failure', {
-            clientReference, userId, amount
+          const refundTx = new Transaction({
+            userId,
+            type: 'credit',
+            amount,
+            description: `Refund for failed airtime purchase (${amount} GHS)`,
+            reference: `REFUND-${clientReference}`,
+            balanceBefore: balanceBefore - amount,
+            balanceAfter: balanceBefore,
+            status: 'completed'
           });
-        } catch (walletError) {
-          logger.error(LogTags.PROVIDER_FAILURE + ' [AirtimeBuy] Failed to restore wallet after provider error', {
-            clientReference, error: walletError.message
+          await refundTx.save().catch(() => {});
+          logger.info(LogTags.HUBTEL_VALIDATION + ' [AirtimeBuy] Transaction marked as failed and refunded', {
+            clientReference, phase: 'rollback_complete'
+          });
+        } catch (refundError) {
+          logger.error(LogTags.HUBTEL_AUTH + ' CRITICAL: Failed to refund after airtime failure', {
+            clientReference, error: refundError.message
           });
         }
-      }
-
-      // Rollback: mark transaction as failed
-      transaction.status = 'failed';
-      transaction.description += ' - FAILED';
-      transaction.metadata = {
-        ...transaction.metadata,
-        failureReason: hubtelError.message,
-        failedAt: new Date(),
-        providerErrorCode: httpStatus,
-        fullErrorPayload: hubtelError.response?.data
-      };
-      try {
-        await transaction.save();
-        logger.info(LogTags.HUBTEL_VALIDATION + ' [AirtimeBuy] Transaction marked as failed after provider error', {
-          clientReference, phase: 'rollback_complete'
-        });
-      } catch (saveError) {
-        logger.error(LogTags.HUBTEL_AUTH + ' CRITICAL: Failed to save failed transaction status', {
-          clientReference, error: saveError.message
-        });
       }
 
      // Return a more specific error message based on the error type
@@ -316,23 +336,38 @@ router.post('/data', authenticate, async (req, res) => {
        });
      }
 
-     // Check wallet balance
-     const wallet = await Wallet.findOne({ userId });
-     if (!wallet || wallet.balance < price) {
-       logger.warn('[DataExecution] Wallet check failed', {
-         userId, phoneNumber, network, bundleCode, price,
-         walletFound: !!wallet,
-         balance: wallet?.balance || 0,
-         phase: 'wallet_check_failed'
-       });
-       return res.status(400).json({
-         success: false,
-         message: 'Insufficient wallet balance',
-         error: { code: 'INSUFFICIENT_BALANCE' }
-       });
-     }
+    // Check wallet balance
+    const wallet = await Wallet.findOne({ userId });
+    if (!wallet || wallet.balance < price) {
+      logger.warn('[DataExecution] Wallet check failed', {
+        userId, phoneNumber, network, bundleCode, price,
+        walletFound: !!wallet,
+        balance: wallet?.balance || 0,
+        phase: 'wallet_check_failed'
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient wallet balance',
+        error: { code: 'INSUFFICIENT_BALANCE' }
+      });
+    }
 
     const balanceBefore = wallet.balance;
+
+    // Atomically debit the wallet at purchase creation (prevents overspend)
+    const debitedWallet = await Wallet.findOneAndUpdate(
+      { userId, balance: { $gte: price } },
+      { $inc: { balance: -price }, $set: { updatedAt: new Date() } },
+      { new: true }
+    );
+    if (!debitedWallet) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient wallet balance',
+        error: { code: 'INSUFFICIENT_BALANCE' }
+      });
+    }
+
     const clientReference = HubtelTransferService.generateClientReference('DATA');
 
     logger.info('[DataExecution] Transaction record created', {
@@ -340,8 +375,7 @@ router.post('/data', authenticate, async (req, res) => {
       phase: 'transaction_created'
     });
 
-   // Create transaction record FIRST with 'pending_confirmation' status
-   // CRITICAL: Status must NOT be 'completed' until Hubtel confirms delivery via callback
+   // Create transaction record with pending_confirmation status
    const transaction = new Transaction({
      userId,
      type: 'debit',
@@ -393,45 +427,50 @@ router.post('/data', authenticate, async (req, res) => {
         response: hubtelError.response?.data
       });
 
-      // CRITICAL: Release wallet reservation on 4xx or 5xx responses
-      if (is4xx || is5xx) {
-        logger.warn(LogTags.PROVIDER_FAILURE + ' [DataBuy] Releasing wallet due to provider error', {
-          clientReference, httpStatus, price
-        });
+      // Idempotent failure handling: only transition from pending_confirmation
+      const failedTx = await Transaction.findOneAndUpdate(
+        { reference: clientReference, status: 'pending_confirmation' },
+        {
+          $set: {
+            status: 'failed',
+            description: transaction.description + ' - FAILED',
+            metadata: {
+              ...transaction.metadata,
+              failureReason: hubtelError.message,
+              failedAt: new Date(),
+              providerErrorCode: httpStatus,
+              fullErrorPayload: hubtelError.response?.data
+            }
+          }
+        },
+        { new: true }
+      );
+
+      if (failedTx) {
         try {
           await Wallet.findOneAndUpdate(
             { userId },
             { $inc: { balance: price }, $set: { updatedAt: new Date() } }
           );
-          logger.info(LogTags.PROVIDER_FAILURE + ' [DataBuy] Wallet balance restored after failure', {
-            clientReference, userId, price
+          const refundTx = new Transaction({
+            userId,
+            type: 'credit',
+            amount: price,
+            description: `Refund for failed data bundle purchase (${price} GHS)`,
+            reference: `REFUND-${clientReference}`,
+            balanceBefore: balanceBefore - price,
+            balanceAfter: balanceBefore,
+            status: 'completed'
           });
-        } catch (walletError) {
-          logger.error(LogTags.PROVIDER_FAILURE + ' [DataBuy] Failed to restore wallet after provider error', {
-            clientReference, error: walletError.message
+          await refundTx.save().catch(() => {});
+          logger.info(LogTags.HUBTEL_VALIDATION + ' [DataBuy] Transaction marked as failed and refunded', {
+            clientReference, phase: 'rollback_complete'
+          });
+        } catch (refundError) {
+          logger.error(LogTags.HUBTEL_AUTH + ' CRITICAL: Failed to refund after data failure', {
+            clientReference, error: refundError.message
           });
         }
-      }
-
-      // Rollback: mark transaction as failed
-      transaction.status = 'failed';
-      transaction.description += ' - FAILED';
-      transaction.metadata = {
-        ...transaction.metadata,
-        failureReason: hubtelError.message,
-        failedAt: new Date(),
-        providerErrorCode: httpStatus,
-        fullErrorPayload: hubtelError.response?.data
-      };
-      try {
-        await transaction.save();
-        logger.info(LogTags.HUBTEL_VALIDATION + ' [DataBuy] Transaction marked as failed after provider error', {
-          clientReference, phase: 'rollback_complete'
-        });
-      } catch (saveError) {
-        logger.error(LogTags.HUBTEL_AUTH + ' CRITICAL: Failed to save failed transaction status (Data)', {
-          clientReference, error: saveError.message
-        });
       }
 
      // Return a more specific error message based on the error type
