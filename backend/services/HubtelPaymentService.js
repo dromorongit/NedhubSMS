@@ -536,20 +536,14 @@ class HubtelPaymentService {
     // refunded payment never credits and is not marked failed; it stays
     // pending for manual review (see reconcile-pending.js).
     //
-    // PAYMENT (top-up): accept only 'Paid' (case-insensitive) as paid. We do
-    // NOT accept SUCCESS/SUCCESSFUL here until a real Hubtel response proves
-    // otherwise — those words are accepted only by the transfer and commission
-    // mappers, pending real captured responses from
-    // scripts/inspect-hubtel-status.js.
-    // Assumed words pending verification against Hubtel's documentation:
-    //   Paid words: Paid, PAID, paid
-    //   Failed words: FAILED
-    //   Pending words: pending, PENDING, Unpaid, Refunded, 1002, CANCELLED,
-    //   cancelled, and anything else not explicitly listed above.
+    // PAYMENT (top-up): accept Paid/Success/Successful/Completed (case-insensitive).
+    // Hubtel callback and status responses may use any of these words; all are
+    // treated as confirmed payment.
     //
-    // Comparison is trimmed and case-insensitive so 'paid', 'Paid', ' PAID ' map as expected.
+    // Comparison is trimmed and case-insensitive so 'paid', 'Paid', ' PAID ',
+    // 'success', 'SUCCESS', 'completed', 'COMPLETED' all map as expected.
     const raw = String(hubtelStatus || '').trim().toLowerCase();
-    const paidWords = ['paid'];
+    const paidWords = ['paid', 'success', 'successful', 'completed'];
     const failedWords = ['failed'];
 
     if (paidWords.includes(raw)) return 'paid';

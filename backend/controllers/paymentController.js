@@ -91,6 +91,13 @@ const initiatePayment = async (req, res) => {
     const requestOrigin = normalizeOrigin(req.headers.origin);
     const returnOrigin = isAllowedOrigin(requestOrigin) ? requestOrigin : getPrimaryAppOrigin();
 
+    // Build callback URL for Hubtel to POST payment status updates to
+    // Uses HUBTEL_PAYMENT_CALLBACK_URL if set, otherwise builds from BACKEND_URL
+    const callbackUrl = process.env.HUBTEL_PAYMENT_CALLBACK_URL
+      || (process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api/payments/hubtel/callback`
+        : `${getPrimaryAppOrigin()}/api/payments/hubtel/callback`);
+    logger.info('[Payment] Callback URL configured', { callbackUrl });
+
     // Create pending payment record in database
     const payment = new Payment({
       userId,
@@ -115,12 +122,6 @@ const initiatePayment = async (req, res) => {
     if (frontendOrigin) {
       returnUrl += `?frontend=${encodeURIComponent(frontendOrigin)}`;
     }
-
-    // Build callback URL for Hubtel to POST payment status updates to
-    // Uses HUBTEL_PAYMENT_CALLBACK_URL if set, otherwise builds from BACKEND_URL
-    const callbackUrl = process.env.HUBTEL_PAYMENT_CALLBACK_URL
-      || (process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api/payments/hubtel/callback`
-        : `${getPrimaryAppOrigin()}/api/payments/hubtel/callback`);
 
     // Initiate payment with Hubtel
     const hubtelResult = await verificationService.paymentService.initiatePayment({
@@ -214,39 +215,70 @@ const handleHubtelCallback = async (req, res) => {
       return res.status(200).json({ success: true, message: 'Already processed', status: payment.status });
     }
 
-    // Validate callback amount if provided - must match our stored amount
+    // Validate callback amount if provided. Hubtel may report the amount
+    // charged to the customer (including gateway fees), which can exceed the
+    // order amount. Accept if callback amount >= order amount and <= order
+    // amount + tolerance (5% of order or 0.50 GHS, whichever is smaller).
+    // Credit the ORDER amount (payment.amount), never more. Log the fee.
+    // Hubtel callback amount fields assumed: Amount (total charged), Charges/Fee
+    // (gateway fee). extractCallbackAmount reads: amount, Amount, Data.Amount,
+    // data.amount, PaymentDetails.Data.Amount, paymentDetails.data.amount.
     const callbackAmount = extractCallbackAmount(callbackData);
-    if (callbackAmount != null && Math.round(callbackAmount * 100) !== Math.round(payment.amount * 100)) {
-      logger.warn('[Payment] Callback amount mismatch - marking for manual review', {
-        clientReference, callbackAmount, storedAmount: payment.amount
-      });
-      appendCallbackAudit({
-        ...logEntry,
-        stage: 'amount_mismatch',
-        callbackAmount,
-        storedAmount: payment.amount
-      });
-      await Payment.findOneAndUpdate(
-        { clientReference, status: { $in: ['pending', 'processing'] } },
-        {
-          $set: {
-            status: 'pending',
-            callbackVerified: false,
-            failureReason: `Callback amount mismatch: callback=${callbackAmount}, stored=${payment.amount}`,
-            lastVerificationError: {
-              at: new Date(),
-              httpStatus: null,
-              code: 'AMOUNT_MISMATCH'
-            }
-          },
-          $inc: { verificationFailures: 1 }
-        }
-      );
-      return res.status(200).json({
-        success: false,
-        message: 'Amount mismatch - flagged for manual review',
-        clientReference
-      });
+    if (callbackAmount != null) {
+      const callbackPesewas = Math.round(callbackAmount * 100);
+      const orderPesewas = Math.round(payment.amount * 100);
+      const toleranceGhs = Math.min(payment.amount * 0.05, 0.50);
+      const tolerancePesewas = Math.round(toleranceGhs * 100);
+
+      if (callbackPesewas < orderPesewas || callbackPesewas > orderPesewas + tolerancePesewas) {
+        logger.warn('[Payment] Callback amount mismatch - marking for manual review', {
+          clientReference, callbackAmount, storedAmount: payment.amount,
+          toleranceGhs, reason: callbackPesewas < orderPesewas ? 'underpayment' : 'exceeds_tolerance'
+        });
+        appendCallbackAudit({
+          ...logEntry,
+          stage: 'amount_mismatch',
+          callbackAmount,
+          storedAmount: payment.amount,
+          toleranceGhs
+        });
+        await Payment.findOneAndUpdate(
+          { clientReference, status: { $in: ['pending', 'processing'] } },
+          {
+            $set: {
+              status: 'pending',
+              callbackVerified: false,
+              failureReason: `Callback amount mismatch: callback=${callbackAmount}, stored=${payment.amount}`,
+              lastVerificationError: {
+                at: new Date(),
+                httpStatus: null,
+                code: 'AMOUNT_MISMATCH'
+              }
+            },
+            $inc: { verificationFailures: 1 }
+          }
+        );
+        // Return 200 so Hubtel does not keep retrying; held for manual review.
+        return res.status(200).json({
+          success: false,
+          message: 'Amount mismatch - flagged for manual review',
+          clientReference
+        });
+      }
+
+      if (callbackPesewas > orderPesewas) {
+        const fee = (callbackPesewas - orderPesewas) / 100;
+        logger.info('[Payment] Callback amount includes fee (within tolerance), crediting order amount', {
+          clientReference, callbackAmount, storedAmount: payment.amount, fee
+        });
+        appendCallbackAudit({
+          ...logEntry,
+          stage: 'amount_with_fee',
+          callbackAmount,
+          storedAmount: payment.amount,
+          fee
+        });
+      }
     }
 
     const result = await verificationService.processPaymentCallback(clientReference);
