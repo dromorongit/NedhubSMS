@@ -16,7 +16,7 @@
 .page-bg{position:fixed;inset:0;pointer-events:none;z-index:0;background:#F7F9FD}
 .page-header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}
 .tx-icon-circle{width:88px;height:88px;border-radius:50%;background:#EAF7EE;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.tx-icon-circle svg{width:40px;height:40px;color:#16A34A}
+.tx-icon-circle svg{width:44px;height:44px;color:#16A34A;stroke-width:2.2}
 .page-header h1{font-size:40px;font-weight:800;color:#0F1B3D;margin:0}
 .page-header p{color:#6B7280;margin:4px 0 0}
 .date-wrap{margin-left:auto;position:relative}
@@ -30,10 +30,10 @@
 @media(max-width:600px){.stat-grid{grid-template-columns:1fr}}
 .stat-card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(15,27,61,.07);position:relative;overflow:hidden;display:flex;gap:16px;align-items:flex-start;min-height:120px}
 .stat-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.stat-icon.green{background:#EAF7EE;color:#16A34A}
-.stat-icon.blue{background:#EAF1FB;color:#2563EB}
-.stat-icon.orange{background:#FFF3E8;color:#EA580C}
-.stat-icon svg{width:32px;height:32px}
+.stat-icon.green{background:#E3F6EA;color:#16A34A}
+.stat-icon.blue{background:#E6F0FF;color:#2563EB}
+.stat-icon.orange{background:#FDEBE3;color:#E5521D}
+.stat-icon svg{width:34px;height:34px}
 .stat-body{flex:1;min-width:0;z-index:1}
 .stat-label{font-size:16px;color:#6B7280;margin-bottom:4px}
 .stat-value{font-size:32px;font-weight:800;color:#0F1B3D}
@@ -45,26 +45,30 @@
 .search-pill input{border:none;background:transparent;flex:1;min-width:0;outline:none}
 .filter-btn{height:52px;border-radius:999px;border:1px solid #E5E7EB;background:#fff;padding:0 16px;display:flex;align-items:center;gap:6px;cursor:pointer}
 @media(max-width:900px){.search-pill{flex-basis:100%}}
-.card{background:#fff;border-radius:20px;padding:0;box-shadow:0 2px 12px rgba(15,27,61,.07);overflow:hidden}
+.card{background:#fff;border-radius:20px;padding:0;box-shadow:0 2px 12px rgba(15,27,61,.07);overflow:visible}
 table{width:100%;border-collapse:collapse}
 th{font-size:13px;font-weight:700;color:#0F1B3D;text-transform:uppercase;padding:14px 16px;background:#F1F5FB;text-align:left}
 td{padding:16px;border-bottom:1px solid #F1F5FB;font-size:14px;color:#0F1B3D}
 tr:hover td{background:#F7F9FD}
-.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700}
 .pill.debit{background:#FEE2E2;color:#DC2626}
 .pill.credit{background:#DCFCE7;color:#16A34A}
-.pill.completed{background:#DCFCE7;color:#16A34A}
-.pill.pending{background:#FEF3C7;color:#D97706}
-.pill.failed{background:#FEE2E2;color:#DC2626}
+.pill.completed{background:#E6F6EC;color:#15803D;text-transform:uppercase}
+.pill.pending{background:#FEF3C7;color:#B45309;text-transform:uppercase}
+.pill.failed{background:#FDE8E8;color:#B42318;text-transform:uppercase}
+.pill svg{width:14px;height:14px;flex-shrink:0}
 .amount-debit{font-weight:700;color:#DC2626}
 .amount-credit{font-weight:700;color:#16A34A}
 .desc-cell{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ref-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace}
-.dots-btn{background:none;border:none;cursor:pointer;padding:4px;position:relative}
-.menu{position:absolute;background:#fff;border:1px solid #E5E7EB;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.1);display:none;z-index:30;min-width:140px;right:0;top:100%}
+.dots-btn{width:36px;height:36px;border-radius:8px;border:1px solid #E5E7EB;background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;position:relative;color:#0F1B3D}
+.dots-btn:hover{background:#F7F9FD}
+.dots-btn svg{width:18px;height:18px}
+.menu{position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:1px solid #E5E7EB;border-radius:12px;box-shadow:0 8px 24px rgba(15,27,61,.12);display:none;z-index:1000;min-width:180px;padding:6px;overflow:visible}
 .menu.open{display:block}
-.menu button{display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:14px}
+.menu button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:8px 12px;border:none;background:none;cursor:pointer;font-size:14px;border-radius:8px;color:#0F1B3D}
 .menu button:hover{background:#F7F9FD}
+.menu button svg{width:16px;height:16px;flex-shrink:0}
 .footer{display:flex;justify-content:space-between;align-items:center;padding:16px;flex-wrap:wrap;gap:8px}
 .pagination{display:flex;gap:6px;align-items:center}
 .pagination button{border:1px solid #E5E7EB;background:#fff;padding:6px 10px;border-radius:8px;cursor:pointer}
@@ -74,9 +78,6 @@ tr:hover td{background:#F7F9FD}
 .empty-state .circle{width:80px;height:80px;border-radius:50%;background:#EAF7EE;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;color:#16A34A}
 .skeleton{background:linear-gradient(90deg,#eee,#f5f5f5,#eee);background-size:200% 100%;animation:shimmer 1.2s infinite;height:20px;border-radius:4px;margin:8px 0}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100}
-.modal-backdrop.open{display:flex}
-.modal{background:#fff;border-radius:16px;padding:24px;max-width:520px;width:90%;max-height:90vh;overflow:auto}
 .toast{position:fixed;bottom:20px;right:20px;background:#0F1B3D;color:#fff;padding:12px 18px;border-radius:10px;display:none;z-index:200}
 .error-card{background:#FEE2E2;color:#DC2626;padding:16px;border-radius:12px;margin:16px 0;text-align:center}
 .error-card button{margin-top:8px;background:#DC2626;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer}
@@ -91,7 +92,7 @@ tr:hover td{background:#F7F9FD}
 <script src="../../utils/shell.js?v=2"></script>
 <div class="dashboard-content" style="position:relative;z-index:1;padding:24px">
   <div class="page-header">
-    <div class="tx-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg></div>
+    <div class="tx-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d='m17 2 4 4-4 4'/><path d='M3 11v-1a4 4 0 0 1 4-4h14'/><path d='m7 22-4-4 4-4'/><path d='M21 13v1a4 4 0 0 1-4 4H3'/></svg></div>
     <div>
       <h1>Transactions</h1>
       <p>View all your wallet transactions</p>
@@ -110,9 +111,9 @@ tr:hover td{background:#F7F9FD}
   </div>
 
   <div class="stat-grid" id="statGrid">
-    <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/><path d="M3 10h18"/></svg></div><div class="stat-body"><div class="stat-label">Total Spent</div><div class="stat-value" id="totalSpent">GH¢0.00</div><div class="stat-trend" id="spentTrend"></div></div><svg class="stat-chart" id="spentChart"></svg></div>
-    <div class="stat-card"><div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><div class="stat-body"><div class="stat-label">Total Received</div><div class="stat-value" id="totalReceived">GH¢0.00</div><div class="stat-trend" id="recvTrend"></div></div><svg class="stat-chart" id="recvChart"></svg></div>
-    <div class="stat-card"><div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg></div><div class="stat-body"><div class="stat-label">Total Transactions</div><div class="stat-value" id="totalCount">0</div><div class="stat-trend" id="countTrend"></div></div><svg class="stat-chart" id="countChart"></svg></div>
+    <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d='M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1'/><path d='M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4'/></svg></div><div class="stat-body"><div class="stat-label">Total Spent</div><div class="stat-value" id="totalSpent">GH¢0.00</div><div class="stat-trend" id="spentTrend"></div></div><svg class="stat-chart" id="spentChart"></svg></div>
+    <div class="stat-card"><div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d='M12 15V3'/><path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/><path d='m7 10 5 5 5-5'/></svg></div><div class="stat-body"><div class="stat-label">Total Received</div><div class="stat-value" id="totalReceived">GH¢0.00</div><div class="stat-trend" id="recvTrend"></div></div><svg class="stat-chart" id="recvChart"></svg></div>
+    <div class="stat-card"><div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d='m17 2 4 4-4 4'/><path d='M3 11v-1a4 4 0 0 1 4-4h14'/><path d='m7 22-4-4 4-4'/><path d='M21 13v1a4 4 0 0 1-4 4H3'/></svg></div><div class="stat-body"><div class="stat-label">Total Transactions</div><div class="stat-value" id="totalCount">0</div><div class="stat-trend" id="countTrend"></div></div><svg class="stat-chart" id="countChart"></svg></div>
   </div>
 
   <div class="toolbar">
@@ -132,10 +133,10 @@ tr:hover td{background:#F7F9FD}
       <tbody id="tbody"><tr><td colspan="7"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></td></tr></tbody>
     </table>
     <div id="emptyState" style="display:none" class="empty-state">
-      <div class="circle"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg></div>
+      <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d='m17 2 4 4-4 4'/><path d='M3 11v-1a4 4 0 0 1 4-4h14'/><path d='m7 22-4-4 4-4'/><path d='M21 13v1a4 4 0 0 1-4 4H3'/></svg></div>
       <p style="font-weight:700;font-size:18px;color:#0F1B3D">No transactions found</p>
       <p style="color:#6B7280">Your wallet transactions will appear here.</p>
-      <button id="clearFilters" style="margin-top:12px;background:#0F1B3D;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer">Clear filters</button>
+      <button id="clearFilters" class="btn-secondary" style="margin-top:12px">Clear filters</button>
     </div>
     <div class="footer">
       <span id="showingText">Showing 0 - 0 of 0 transactions</span>
@@ -143,7 +144,23 @@ tr:hover td{background:#F7F9FD}
     </div>
   </div>
 </div>
-<div class="modal-backdrop" id="modal"><div class="modal" id="modalContent"></div></div>
+<div class="nh-modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="nh-backdrop" data-close="modal"></div>
+  <div class="nh-modal-panel">
+    <div class="nh-modal-header">
+      <div class="nh-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d='M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1'/><path d='M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4'/></svg></div>
+      <div class="nh-modal-header-text">
+        <h3 id="modalTitle">Transaction details</h3>
+        <p>Full transaction information</p>
+      </div>
+      <button class="nh-modal-close" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="nh-modal-body" id="modalContent"></div>
+    <div class="nh-modal-footer">
+      <button type="button" class="nh-btn-secondary" id="closeModalBtn">Close</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 <script src="../../utils/authStorage.js"></script>
 <script src="../../utils/api.js"></script>
@@ -154,10 +171,17 @@ const fmt = (n) => 'GH¢' + Number(n||0).toLocaleString('en-US',{minimumFraction
 let page=1, totalPages=1, range='30d', searchTimer=null, activeMenu=null;
 const state={type:'',status:'',search:'',start:'',end:''};
 const labels={today:'Today','7d':'Last 7 days','30d':'Last 30 days',month:'This month',all:'All time',custom:'Custom range'};
+function statusPill(status){
+  const s=String(status||'').toLowerCase();
+  const label=s.toUpperCase();
+  if(s==='completed') return `<span class="pill completed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>${label}</span>`;
+  if(s==='pending') return `<span class="pill pending"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${label}</span>`;
+  return `<span class="pill failed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>${label}</span>`;
+}
 
-function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2000);}
-function openModal(html){const m=document.getElementById('modal');document.getElementById('modalContent').innerHTML=html;m.classList.add('open');}
-function closeModal(){document.getElementById('modal').classList.remove('open');}
+function toast(m){const t=document.getElementById('toast');if(!t) return; t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2000);}
+function openModal(html){const m=document.getElementById('modal');const c=document.getElementById('modalContent');if(c) c.innerHTML=html;if(m) m.classList.add('active');}
+function closeModal(){const m=document.getElementById('modal');if(m) m.classList.remove('active');}
 
 async function load(){
   document.getElementById('errorArea').innerHTML='';
@@ -182,7 +206,7 @@ async function load(){
         const tr=document.createElement('tr');
         const d=new Date(tx.createdAt).toLocaleString();
         const isCredit=tx.type==='credit';
-        tr.innerHTML=`<td>${d}</td><td><span class="pill ${tx.type}">${String(tx.type).toUpperCase()}</span></td><td class="${isCredit?'amount-credit':'amount-debit'}">${isCredit?'+':''}${fmt(tx.amount)}</td><td class="desc-cell" title="${escapeAttr(tx.description||'')}">${escapeHtml(tx.description||'-')}</td><td><span class="pill ${tx.status}">${String(tx.status).toUpperCase()}</span></td><td class="ref-cell" title="${escapeAttr(tx.reference||'')}">${escapeHtml(tx.reference||'-')}</td><td><button class="dots-btn" data-id="${tx.id}" data-tx='${escapeAttr(JSON.stringify(tx))}'>⋯<div class="menu"><button class="viewBtn">View details</button><button class="copyBtn">Copy reference</button></div></button></td>`;
+        tr.innerHTML=`<td>${d}</td><td><span class="pill ${tx.type}">${String(tx.type).toUpperCase()}</span></td><td class="${isCredit?'amount-credit':'amount-debit'}">${isCredit?'+':''}${fmt(tx.amount)}</td><td class="desc-cell" title="${escapeAttr(tx.description||'')}">${escapeHtml(tx.description||'-')}</td><td>${statusPill(tx.status)}</td><td class="ref-cell" title="${escapeAttr(tx.reference||'')}">${escapeHtml(tx.reference||'-')}</td><td><button class="dots-btn" type="button" aria-label="Actions" aria-haspopup="true" data-id="${escapeAttr(tx.id)}" data-tx='${escapeAttr(JSON.stringify(tx))}'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><div class="menu" role="menu"><button class="menu-item viewBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>View details</button><button class="menu-item copyBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy reference</button></div></button></td>`;
         tbody.appendChild(tr);
       });
     }
@@ -193,7 +217,7 @@ async function load(){
     renderPagination();
     await loadStats();
   }catch(e){
-    document.getElementById('errorArea').innerHTML='<div class="error-card">Failed to load transactions<button onclick="load()">Retry</button></div>';
+    document.getElementById('errorArea').innerHTML='<div class="error-card">Failed to load transactions<button class="btn-primary" onclick="load()">Retry</button></div>';
   }
 }
 
@@ -281,8 +305,27 @@ document.addEventListener('click',e=>{
 });
 document.getElementById('tbody').addEventListener('click',e=>{
   const vb=e.target.closest('.viewBtn');const cb=e.target.closest('.copyBtn');
-  if(vb){const btn=vb.closest('.dots-btn');const tx=JSON.parse(btn.dataset.tx);openModal(`<h3>Transaction details</h3><p><b>Date:</b> ${new Date(tx.createdAt).toLocaleString()}</p><p><b>Type:</b> ${tx.type}</p><p><b>Amount:</b> ${fmt(tx.amount)}</p><p><b>Status:</b> ${tx.status}</p><p><b>Description:</b> ${escapeHtml(tx.description||'-')}</p><p><b>Reference:</b> ${escapeHtml(tx.reference||'-')} <button onclick="navigator.clipboard.writeText('${escapeAttr(tx.reference||'')}');toast('Copied')">Copy</button></p>${tx.balanceBefore!=null?`<p><b>Balance before:</b> ${fmt(tx.balanceBefore)}</p>`:''}${tx.balanceAfter!=null?`<p><b>Balance after:</b> ${fmt(tx.balanceAfter)}</p>`:''}<button onclick="closeModal()" style="margin-top:12px">Close</button>`);closeMenu();}
-  if(cb){const btn=cb.closest('.dots-btn');const tx=JSON.parse(btn.dataset.tx);navigator.clipboard.writeText(tx.reference||'');toast('Copied');closeMenu();}
+  if(vb){const btn=vb.closest('.dots-btn');let tx=null;try{tx=JSON.parse(btn.dataset.tx);}catch(e){tx=null;}if(tx){
+  const linked=[];
+  if(tx.linkedId) linked.push(`Linked ID: ${escapeHtml(tx.linkedId)}`);
+  if(tx.linkedIds && Array.isArray(tx.linkedIds)) tx.linkedIds.forEach(v=>linked.push(`Linked ID: ${escapeHtml(v)}`));
+  if(tx.campaignId) linked.push(`Campaign ID: ${escapeHtml(tx.campaignId)}`);
+  if(tx.messageId) linked.push(`Message ID: ${escapeHtml(tx.messageId)}`);
+  if(tx.recipientId) linked.push(`Recipient ID: ${escapeHtml(tx.recipientId)}`);
+  if(tx.paymentId) linked.push(`Payment ID: ${escapeHtml(tx.paymentId)}`);
+  openModal(`
+    <div class="nh-field"><label class="nh-field-label">Date & time</label><p class="nh-field-value">${escapeHtml(new Date(tx.createdAt).toLocaleString())}</p></div>
+    <div class="nh-field"><label class="nh-field-label">Type</label><p class="nh-field-value">${escapeHtml(String(tx.type||'-').toUpperCase())}</p></div>
+    <div class="nh-field"><label class="nh-field-label">Amount</label><p class="nh-field-value">${fmt(tx.amount)}</p></div>
+    <div class="nh-field"><label class="nh-field-label">Status</label><p class="nh-field-value">${statusPill(tx.status)}</p></div>
+    <div class="nh-field"><label class="nh-field-label">Description</label><p class="nh-field-value" style="white-space:pre-wrap;word-break:break-word;">${escapeHtml(tx.description||'-')}</p></div>
+    <div class="nh-field"><label class="nh-field-label">Reference</label><p class="nh-field-value">${escapeHtml(tx.reference||'-')} <button type="button" class="nh-btn-secondary" onclick="navigator.clipboard.writeText('${escapeAttr(tx.reference||'')}');toast('Copied')">Copy</button></p></div>
+    ${tx.balanceBefore!=null?`<div class="nh-field"><label class="nh-field-label">Balance before</label><p class="nh-field-value">${fmt(tx.balanceBefore)}</p></div>`:''}
+    ${tx.balanceAfter!=null?`<div class="nh-field"><label class="nh-field-label">Balance after</label><p class="nh-field-value">${fmt(tx.balanceAfter)}</p></div>`:''}
+    ${linked.length?`<div class="nh-field"><label class="nh-field-label">Linked IDs</label><p class="nh-field-value">${linked.join('<br>')}</p></div>`:''}
+  `);
+}closeMenu();}
+  if(cb){const btn=cb.closest('.dots-btn');let tx=null;try{tx=JSON.parse(btn.dataset.tx);}catch(err){tx=null;}if(tx&&tx.reference){navigator.clipboard.writeText(tx.reference);toast('Copied');}closeMenu();}
 });
 
 document.getElementById('typeFilter').addEventListener('change',e=>{state.type=e.target.value;page=1;load();});
@@ -290,7 +333,9 @@ document.getElementById('statusFilter').addEventListener('change',e=>{state.stat
 document.getElementById('searchInput').addEventListener('input',e=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{state.search=e.target.value;page=1;load();},300);});
 document.getElementById('filterBtn').addEventListener('click',()=>{state.type='';state.status='';state.search='';state.start='';state.end='';range='30d';document.getElementById('typeFilter').value='';document.getElementById('statusFilter').value='';document.getElementById('searchInput').value='';datePill.textContent='Last 30 days ▾';page=1;load();});
 document.getElementById('clearFilters').addEventListener('click',()=>document.getElementById('filterBtn').click());
-document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.classList.contains('nh-backdrop'))closeModal();});
+const closeModalBtn=document.getElementById('closeModalBtn');if(closeModalBtn)closeModalBtn.addEventListener('click',closeModal);
+const modalClose=document.querySelector('#modal .nh-modal-close');if(modalClose)modalClose.addEventListener('click',closeModal);
 
 document.addEventListener('DOMContentLoaded',async()=>{
   const token=window.getStorage?window.getStorage().getItem('authToken'):localStorage.getItem('authToken');
