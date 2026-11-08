@@ -8,6 +8,7 @@ const Transaction = require('../models/Transaction');
 const WalletService = require('../services/WalletService');
 const CallbackVerificationService = require('../services/callbackVerificationService');
 const logger = require('../utils/logger');
+const buckets = require('../utils/transaction-buckets');
 
 /**
  * Read the TOPUP_ENABLED kill switch. Defaults to enabled (true). The values
@@ -241,8 +242,6 @@ router.get('/transactions', authenticate, async (req, res) => {
           amount: tx.amount,
           description: tx.description,
           reference: tx.reference,
-const buckets = require('../utils/transaction-buckets');
-// inside transactions map:
           status: buckets.normalizeStatus(tx.status),
           balanceBefore: tx.balanceBefore,
           balanceAfter: tx.balanceAfter,

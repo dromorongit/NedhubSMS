@@ -22,9 +22,7 @@ const transactionSchema = new mongoose.Schema({
   },
   reference: {
     type: String,
-    required: true,
-    unique: true,
-    sparse: true
+    required: true
   },
   status: {
     type: String,
@@ -61,7 +59,7 @@ transactionSchema.index({ userId: 1, createdAt: -1 });
 // reference, while documents with null/missing reference are not indexed so the
 // unique constraint does not collapse them. Index creation is guarded in
 // backend/utils/database.js so a failed build never crashes the server.
-transactionSchema.index({ reference: 1 }, { sparse: true });
+transactionSchema.index({ reference: 1 }, { unique: true, sparse: true, background: true });
 
 // Update updatedAt before saving
 transactionSchema.pre('save', function(next) {

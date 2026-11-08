@@ -112,16 +112,7 @@ app.get('/healthz', (req, res) => {
 // Trust proxy - needed for express-rate-limit to work correctly with Railway's reverse proxy
 app.set('trust proxy', 1);
 
-// Connect to MongoDB in the background (non-blocking)
-try {
-  connectDB().catch(err => {
-    earlyLog('MongoDB connection failed: ' + err.message);
-    logger.warn('MongoDB connection failed, continuing without database', { error: err.message });
-  });
-  earlyLog('MongoDB connection initiated');
-} catch (e) {
-  earlyLog('MongoDB connection setup failed: ' + e.message);
-}
+// MongoDB connection is initiated after the server starts listening (see below).
 
 // CORS configuration - allow requests from frontend
 const corsOptions = {
@@ -444,7 +435,19 @@ try {
     earlyLog(`Server listening on 0.0.0.0:${PORT}`);
     logger.info('Server started', { port: PORT, address: server.address().address });
 
-    // Try to start SMS scheduler service, but don't fail if Redis is unavailable
+    // Connect to MongoDB AFTER the server is listening. Failures are logged and
+    // never block startup or the health check.
+    try {
+      connectDB().then((conn) => {
+        if (conn) earlyLog('MongoDB connection established');
+      }).catch((err) => {
+        earlyLog('MongoDB connection failed: ' + err.message);
+        logger.warn('MongoDB connection failed, continuing without database', { error: err.message });
+      });
+      earlyLog('MongoDB connection initiated');
+    } catch (e) {
+      earlyLog('MongoDB connection setup failed: ' + e.message);
+    }
     try {
       const started = await SmsSchedulerService.start();
       if (started) {
