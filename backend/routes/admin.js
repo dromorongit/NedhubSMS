@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const { authenticate, authorize } = require('../middleware/auth');
 const User = require('../models/User');
@@ -11,6 +12,7 @@ const SmsCampaign = require('../models/SmsCampaign');
 const Transaction = require('../models/Transaction');
 const SmsMessage = require('../models/SmsMessage');
 const Payment = require('../models/Payment');
+const AuditLog = require('../models/AuditLog');
 const Campaign = require('../models/Campaign');
 const FinancialSummary = require('../models/FinancialSummary');
 const CostCalculatorService = require('../services/CostCalculatorService');
@@ -1175,6 +1177,14 @@ function maskEmail(email) {
 // URL forms (form A: clientReference in path; form B: merchant account number
 // in path when configured) and returns a verdict. Never writes to the database,
 // never credits anything, never returns secrets.
+function hubtelDiagnosticConfig() {
+  const paymentCallbackUrl = process.env.HUBTEL_PAYMENT_CALLBACK_URL || '';
+  return {
+    statusUrlForm: String(process.env.HUBTEL_STATUS_URL_FORM || 'client_ref_in_path'),
+    callbackSecretConfigured: Boolean(process.env.HUBTEL_CALLBACK_SECRET),
+    paymentCallbackUrlHasSecret: /[?&]secret=/i.test(paymentCallbackUrl)
+  };
+}
 /**
  * Build the Hubtel status access diagnostic handler with injectable
  * dependencies so it can be tested with fakes (no real provider, no network).
@@ -1240,7 +1250,8 @@ function buildHubtelStatusAccessDiagnostic(opts = {}) {
         httpStatus,
         code,
         outboundIpv4,
-        checkedAt: new Date().toISOString()
+        checkedAt: new Date().toISOString(),
+        ...hubtelDiagnosticConfig()
       });
     } catch (error) {
       logger.error('[Payment] Hubtel status access diagnostic error', { error: error.message });
@@ -1250,6 +1261,299 @@ function buildHubtelStatusAccessDiagnostic(opts = {}) {
         error: { code: 'INTERNAL_SERVER_ERROR' }
       });
     }
+  };
+}
+
+/**
+ * Build the bulk pending top-up recovery handler.
+ *
+ * Dry run by default (apply=false). Credits ONLY payments that Hubtel's status
+ * API confirms as paid with amount >= the order amount, through the same
+ * provider-verified, idempotent path as a normal callback.
+ *
+ * opts are injected for testing (no network, no real DB).
+ */
+function buildRecoverPendingPayments(opts = {}) {
+  const {
+    PaymentModel = Payment,
+    AuditLogModel = AuditLog,
+    verificationService: injectedService,
+    log: log = logger
+  } = opts;
+
+  const service = injectedService || new CallbackVerificationService({
+    Payment: PaymentModel,
+    Transaction,
+    Wallet
+  });
+
+  let isRunning = false;
+
+  function maskUserId(userId) {
+    const s = String(userId || '');
+    if (s.length <= 4) return s;
+    return '****' + s.slice(-4);
+  }
+
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  return async (req, res) => {
+    if (isRunning) {
+      return res.status(409).json({
+        success: false,
+        message: 'A recovery run is already in progress.',
+        error: { code: 'RECOVERY_RUNNING' }
+      });
+    }
+
+    const actorId = req.user && req.user.userId ? String(req.user.userId) : null;
+    if (!actorId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required.',
+        error: { code: 'UNAUTHENTICATED' }
+      });
+    }
+
+    let body = {};
+    try {
+      body = req.body || {};
+    } catch {
+      body = {};
+    }
+
+    const apply = body.apply === true;
+    const confirm = body.confirm;
+    const olderThanMinutes = Math.max(
+      Number.isFinite(Number(body.olderThanMinutes)) ? Number(body.olderThanMinutes) : 10,
+      5
+    );
+    const limit = Math.min(
+      Math.max(Number.isFinite(Number(body.limit)) ? Number(body.limit) : 50, 1),
+      200
+    );
+    const references = Array.isArray(body.references)
+      ? body.references.filter((r) => typeof r === 'string' && r.length > 0)
+      : null;
+
+    if (apply && confirm !== 'CREDIT_VERIFIED_PAYMENTS') {
+      return res.status(400).json({
+        success: false,
+        message: "apply=true requires confirm: 'CREDIT_VERIFIED_PAYMENTS'.",
+        error: { code: 'MISSING_CONFIRM' }
+      });
+    }
+
+    const dryRun = !apply;
+    const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
+
+    const query = {
+      status: { $in: ['pending', 'processing'] },
+      createdAt: { $lt: cutoff }
+    };
+    if (references && references.length > 0) {
+      query.clientReference = { $in: references };
+    }
+
+    let pendingPayments;
+    try {
+      pendingPayments = await PaymentModel.find(query).sort({ createdAt: -1 }).limit(limit);
+    } catch (err) {
+      log.error('[Payment] recover-pending: failed to load pending payments', { error: err.message });
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to load pending payments.',
+        error: { code: 'DB_ERROR' }
+      });
+    }
+
+    const result = {
+      dryRun,
+      scanned: pendingPayments.length,
+      wouldCredit: 0,
+      credited: 0,
+      skipped: 0,
+      errors: 0,
+      hubtelUnreachable: false,
+      items: []
+    };
+
+    isRunning = true;
+    try {
+      let consecutiveUnreachable = 0;
+
+      for (const payment of pendingPayments) {
+        let providerStatus = null;
+        let providerAmount = null;
+        let outcome = 'skipped';
+        let reason = 'not_processed';
+
+        let assessment;
+        try {
+          assessment = await service.assessPayment(payment.clientReference);
+        } catch (err) {
+          result.errors++;
+          consecutiveUnreachable = 0;
+          result.items.push({
+            reference: payment.clientReference,
+            userIdMasked: maskUserId(payment.userId),
+            ourAmount: Number(payment.amount),
+            providerStatus: 'error',
+            providerAmount: null,
+            outcome: 'error',
+            reason: err.message || 'assessment_error'
+          });
+          await sleep(300);
+          continue;
+        }
+
+        providerStatus = assessment.providerStatus || null;
+        providerAmount = assessment.providerAmount != null ? Number(assessment.providerAmount) : null;
+
+        if (assessment.action === 'verification_unavailable') {
+          consecutiveUnreachable++;
+          outcome = 'skipped';
+          reason = assessment.reason || 'verification_unavailable';
+          result.skipped++;
+          result.items.push({
+            reference: payment.clientReference,
+            userIdMasked: maskUserId(payment.userId),
+            ourAmount: Number(payment.amount),
+            providerStatus,
+            providerAmount,
+            outcome,
+            reason
+          });
+          if (consecutiveUnreachable >= 3) {
+            result.hubtelUnreachable = true;
+            break;
+          }
+          await sleep(300);
+          continue;
+        }
+
+        // Any other non-credit action: leave the payment untouched, report reason.
+        if (assessment.action === 'credit') {
+          result.wouldCredit++;
+          providerStatus = 'paid';
+
+          if (apply) {
+            let applied;
+            try {
+              applied = await service.applyPaymentAssessment(assessment);
+            } catch (err) {
+              result.errors++;
+              consecutiveUnreachable = 0;
+              result.items.push({
+                reference: payment.clientReference,
+                userIdMasked: maskUserId(payment.userId),
+                ourAmount: Number(payment.amount),
+                providerStatus,
+                providerAmount,
+                outcome: 'error',
+                reason: err.message || 'apply_error'
+              });
+              await sleep(300);
+              continue;
+            }
+
+            if (applied && applied.applied) {
+              result.credited++;
+              outcome = 'credited';
+              reason = 'verified_paid';
+              try {
+                await AuditLogModel.create({
+                  adminId: actorId,
+                  action: 'bulk_recover_verified',
+                  targetType: 'wallet',
+                  targetId: payment._id,
+                  details: {
+                    reference: payment.clientReference,
+                    userId: payment.userId,
+                    amount: Number(payment.amount),
+                    method: 'bulk_recover_verified'
+                  },
+                  ipAddress: req.ip || null,
+                  userAgent: req.get('user-agent') || null
+                });
+              } catch (auditErr) {
+                log.error('[Payment] recover-pending: per-credit audit log write failed', {
+                  error: auditErr.message
+                });
+              }
+            } else {
+              result.skipped++;
+              outcome = 'skipped';
+              reason = applied && applied.reason ? applied.reason : 'already_credited_or_race';
+            }
+          } else {
+            outcome = 'would_credit';
+            reason = 'provider_confirmed_paid';
+          }
+        } else {
+          consecutiveUnreachable = 0;
+          outcome = 'skipped';
+          reason = assessment.reason || assessment.action || 'not_credit';
+          result.skipped++;
+        }
+
+        result.items.push({
+          reference: payment.clientReference,
+          userIdMasked: maskUserId(payment.userId),
+          ourAmount: Number(payment.amount),
+          providerStatus,
+          providerAmount,
+          outcome,
+          reason
+        });
+
+        await sleep(300);
+      }
+    } finally {
+      isRunning = false;
+    }
+
+    // Summary audit log for the run.
+    try {
+      await AuditLogModel.create({
+        adminId: actorId,
+        action: 'bulk_recover_summary',
+        targetType: 'system',
+        targetId: new mongoose.Types.ObjectId(),
+        details: {
+          dryRun,
+          scanned: result.scanned,
+          wouldCredit: result.wouldCredit,
+          credited: result.credited,
+          skipped: result.skipped,
+          errors: result.errors,
+          hubtelUnreachable: result.hubtelUnreachable,
+          olderThanMinutes,
+          limit,
+          references: references || null
+        },
+        ipAddress: req.ip || null,
+        userAgent: req.get('user-agent') || null
+      });
+    } catch (auditErr) {
+      log.error('[Payment] recover-pending: summary audit log write failed', {
+        error: auditErr.message
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      dryRun: result.dryRun,
+      scanned: result.scanned,
+      wouldCredit: result.wouldCredit,
+      credited: result.credited,
+      skipped: result.skipped,
+      errors: result.errors,
+      hubtelUnreachable: result.hubtelUnreachable,
+      items: result.items
+    });
   };
 }
 
@@ -1296,7 +1600,8 @@ async function handleReferenceDiagnostic(res, reference, checkStatusRaw, getOutb
     formB: formB ? { urlForm: 'merchant_in_path_with_query', ...formB } : null,
     verdict,
     outboundIpv4,
-    checkedAt: new Date().toISOString()
+    checkedAt: new Date().toISOString(),
+    ...hubtelDiagnosticConfig()
   });
 }
 
@@ -1373,6 +1678,14 @@ router.get(
   buildHubtelStatusAccessDiagnostic()
 );
 
+router.post(
+  '/payments/recover-pending',
+  authenticate,
+  authorize(['super_admin']),
+  buildRecoverPendingPayments()
+);
+
 module.exports = router;
 module.exports.buildHubtelStatusAccessDiagnostic = buildHubtelStatusAccessDiagnostic;
 module.exports.computeVerdict = computeVerdict;
+module.exports.buildRecoverPendingPayments = buildRecoverPendingPayments;

@@ -308,3 +308,49 @@ test('HubtelPaymentService.sanitizeShortMessage truncates and redacts tokens', (
   assert.ok(!/fake_token_12345678901234567890/.test(out));
   assert.ok(/<redacted>/.test(out) || out.includes('…'));
 });
+
+// ---------- Diagnostic config fields ----------
+
+test('weak diagnostic includes statusUrlForm, callbackSecretConfigured, paymentCallbackUrlHasSecret', async () => {
+  const res = await runHandler({
+    checkTransactionStatus: async () => ({ success: true, httpStatus: 200, rawStatus: 'Unpaid' }),
+    getOutboundIpv4: async () => '203.0.113.10'
+  });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.statusUrlForm, 'client_ref_in_path');
+  assert.equal(typeof res.body.callbackSecretConfigured, 'boolean');
+  assert.equal(typeof res.body.paymentCallbackUrlHasSecret, 'boolean');
+  assert.equal(res.body.callbackSecretConfigured, false);
+  assert.equal(res.body.paymentCallbackUrlHasSecret, false);
+});
+
+test('reference diagnostic includes statusUrlForm, callbackSecretConfigured, paymentCallbackUrlHasSecret', async () => {
+  const res = await runHandlerWithRef({
+    reference: 'NH-ABC12345',
+    checkStatusRaw: async () => okForm(),
+    getOutboundIpv4: async () => null
+  });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.statusUrlForm, 'client_ref_in_path');
+  assert.equal(typeof res.body.callbackSecretConfigured, 'boolean');
+  assert.equal(typeof res.body.paymentCallbackUrlHasSecret, 'boolean');
+  assert.equal(res.body.formA.urlForm, 'client_ref_in_path');
+});
+
+test('diagnostic never leaks the callback secret value', async () => {
+  process.env.HUBTEL_CALLBACK_SECRET = 'super-secret-value-12345';
+  process.env.HUBTEL_PAYMENT_CALLBACK_URL = 'https://example.com/api/payments/hubtel/callback?secret=super-secret-value-12345';
+  try {
+    const res = await runHandler({
+      checkTransactionStatus: async () => ({ success: true, httpStatus: 200, rawStatus: 'Unpaid' }),
+      getOutboundIpv4: async () => null
+    });
+    const text = JSON.stringify(res.body);
+    assert.equal(res.body.callbackSecretConfigured, true);
+    assert.equal(res.body.paymentCallbackUrlHasSecret, true);
+    assert.ok(!/super-secret-value-12345/.test(text), 'secret value must not appear in response');
+  } finally {
+    delete process.env.HUBTEL_CALLBACK_SECRET;
+    delete process.env.HUBTEL_PAYMENT_CALLBACK_URL;
+  }
+});

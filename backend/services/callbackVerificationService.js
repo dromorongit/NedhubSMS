@@ -239,19 +239,44 @@ class CallbackVerificationService {
     if (!provider.ok) {
       if (this.isVerificationUnavailable(provider)) {
         await this.recordVerificationFailure(clientReference, provider.status, provider.code);
-        this.logger.error('[Payment] Hubtel status check failed', {
+        // One clear structured line with the reason so operators can tell a
+        // blocked/401-403, provider 5xx, timeout, network or unparseable
+        // failure apart from a genuine provider 'pending'. Never logs secrets.
+        let reason;
+        if (provider.status === 401 || provider.status === 403) {
+          reason = 'blocked_401_403';
+        } else if (provider.status != null && provider.status >= 500) {
+          reason = 'provider_5xx';
+        } else if (provider.isTimeout) {
+          reason = 'timeout';
+        } else if (provider.isNetwork) {
+          reason = 'network_error';
+        } else if (provider.isUnparseable) {
+          reason = 'unparseable';
+        } else {
+          reason = 'verification_unavailable';
+        }
+        this.logger.error('[Payment] Hubtel status check failed - payment left pending', {
           clientReference,
+          reason,
           httpStatus: provider.status,
-          code: provider.code
+          code: provider.code,
+          isTimeout: provider.isTimeout,
+          isNetwork: provider.isNetwork,
+          isUnparseable: provider.isUnparseable
         });
         return {
           action: 'verification_unavailable',
           clientReference,
           error: provider.error,
           httpStatus: provider.status,
-          code: provider.code
+          code: provider.code,
+          reason
         };
       }
+      this.logger.warn('[Payment] Provider unavailable - payment left pending', {
+        clientReference, error: provider.error, httpStatus: provider.status, code: provider.code
+      });
       return { action: 'provider_unavailable', clientReference, error: provider.error };
     }
 
@@ -273,7 +298,21 @@ class CallbackVerificationService {
     if (status === 'failed') {
       return { action: 'mark_failed', clientReference, payment, reason: provider.message };
     }
-    return { action: 'leave_pending', clientReference, providerStatus: provider.status };
+    // leave_pending: log one clear structured line with the reason.
+    let pendingReason;
+    if (status !== 'paid') {
+      pendingReason = `status_not_paid:${provider.status || '<empty>'}`;
+    } else if (!currencyOk) {
+      pendingReason = 'currency_mismatch';
+    } else if (providerAmount == null || !Number.isFinite(providerAmount)) {
+      pendingReason = 'amount_unknown';
+    } else {
+      pendingReason = `amount_too_low:provider=${providerAmount},order=${payment.amount}`;
+    }
+    this.logger.warn('[Payment] Hubtel status not paid - payment left pending', {
+      clientReference, reason: pendingReason, providerStatus: provider.status, providerAmount, orderAmount: payment.amount
+    });
+    return { action: 'leave_pending', clientReference, providerStatus: provider.status, reason: pendingReason };
   }
 
   /**

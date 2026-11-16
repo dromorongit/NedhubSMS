@@ -294,6 +294,74 @@ test('nalo secret: three cases for naloWebhookSecret', async () => {
 
   delete process.env.NALO_WEBHOOK_SECRET;
 });
+test('assessPayment: provider 401 returns verification_unavailable with reason blocked_401_403', async () => {
+  const { store, svc } = makeService({
+    paymentService: {
+      checkTransactionStatus: async () => { const e = new Error('Unauthorized'); e.httpStatus = 401; e.code = '401'; throw e; }
+    }
+  });
+  new store.Payment({ clientReference: 'REF-BLOCKED', userId: 'u1', amount: 10, status: 'pending' });
+  const res = await svc.assessPayment('REF-BLOCKED');
+  assert.equal(res.action, 'verification_unavailable');
+  assert.equal(res.reason, 'blocked_401_403');
+  assert.equal(res.httpStatus, 401);
+});
+
+test('assessPayment: provider 500 returns verification_unavailable with reason provider_5xx', async () => {
+  const { store, svc } = makeService({
+    paymentService: {
+      checkTransactionStatus: async () => { const e = new Error('Server error'); e.httpStatus = 500; e.code = '500'; throw e; }
+    }
+  });
+  new store.Payment({ clientReference: 'REF-5XX', userId: 'u1', amount: 10, status: 'pending' });
+  const res = await svc.assessPayment('REF-5XX');
+  assert.equal(res.action, 'verification_unavailable');
+  assert.equal(res.reason, 'provider_5xx');
+  assert.equal(res.httpStatus, 500);
+});
+
+test('assessPayment: provider timeout returns verification_unavailable with reason timeout', async () => {
+  const { store, svc } = makeService({
+    paymentService: {
+      checkTransactionStatus: async () => { const e = new Error('timeout'); e.isTimeout = true; e.isNetwork = true; throw e; }
+    }
+  });
+  new store.Payment({ clientReference: 'REF-TIMEOUT', userId: 'u1', amount: 10, status: 'pending' });
+  const res = await svc.assessPayment('REF-TIMEOUT');
+  assert.equal(res.action, 'verification_unavailable');
+  assert.equal(res.reason, 'timeout');
+});
+
+test('assessPayment: provider pending status returns leave_pending with status_not_paid reason', async () => {
+  const { store, svc } = makeService({
+    paymentService: { checkTransactionStatus: async () => ({ status: 'pending', amount: 10 }) }
+  });
+  new store.Payment({ clientReference: 'REF-PENDING', userId: 'u1', amount: 10, status: 'pending' });
+  const res = await svc.assessPayment('REF-PENDING');
+  assert.equal(res.action, 'leave_pending');
+  assert.equal(res.reason, 'status_not_paid:pending');
+});
+
+test('assessPayment: provider paid but lower amount returns leave_pending with amount_too_low reason', async () => {
+  const { store, svc } = makeService({
+    paymentService: { checkTransactionStatus: async () => ({ status: 'paid', amount: 5 }) }
+  });
+  new store.Payment({ clientReference: 'REF-LOW', userId: 'u1', amount: 10, status: 'pending' });
+  const res = await svc.assessPayment('REF-LOW');
+  assert.equal(res.action, 'leave_pending');
+  assert.equal(res.reason, 'amount_too_low:provider=5,order=10');
+});
+
+test('assessPayment: provider paid with matching amount returns credit with no pending reason', async () => {
+  const { store, svc } = makeService({
+    paymentService: { checkTransactionStatus: async () => ({ status: 'paid', amount: 10, transactionId: 'HTX', paymentMethod: 'momo' }) }
+  });
+  new store.Payment({ clientReference: 'REF-OK', userId: 'u1', amount: 10, status: 'pending' });
+  const res = await svc.assessPayment('REF-OK');
+  assert.equal(res.action, 'credit');
+  assert.equal(res.reason, undefined);
+});
+
 const { reconcilePending } = require('../scripts/reconcile-pending');
 const { auditWalletCredits } = require('../scripts/audit-wallet-credits');
 

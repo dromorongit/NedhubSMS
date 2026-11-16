@@ -37,6 +37,12 @@ async function initializeAdminPanel() {
         // Update UI with user info
         document.getElementById('admin-name').textContent = currentUser.name;
 
+        // Recover pending payments panel is super_admin only
+        const recoverMenuItem = document.querySelector('[data-page="recover-payments"]');
+        if (recoverMenuItem) {
+            recoverMenuItem.style.display = currentUser.role === 'super_admin' ? 'list-item' : 'none';
+        }
+
         // Initialize sidebar navigation
         initializeNavigation();
 
@@ -109,7 +115,8 @@ function navigateToPage(page) {
         wallets: 'Wallet Management',
         'sender-ids': 'Sender ID Governance',
         campaigns: 'Campaign Monitoring',
-        system: 'System Controls'
+        system: 'System Controls',
+        'recover-payments': 'Recover Pending Payments'
     };
     document.getElementById('page-title').textContent = titles[page] || 'Admin Panel';
 
@@ -139,6 +146,9 @@ async function loadPageContent(page) {
                 break;
             case 'system':
                 await loadSystemContent();
+                break;
+            case 'recover-payments':
+                await loadRecoverPaymentsContent();
                 break;
         }
     } catch (error) {
@@ -769,6 +779,184 @@ async function refreshNaloBalance() {
         errorEl.style.display = 'block';
         meta.textContent = `Last attempt: ${new Date().toLocaleString()}`;
     }
+}
+
+let recoverDryRunResult = null;
+
+function setRecoverLoading(loading) {
+    const btnCheck = document.getElementById('btn-check-payments');
+    const btnCredit = document.getElementById('btn-credit-payments');
+    const loadingText = document.getElementById('recover-loading');
+    if (btnCheck) btnCheck.disabled = loading;
+    if (btnCredit) btnCredit.disabled = loading;
+    if (loadingText) loadingText.style.display = loading ? 'inline' : 'none';
+}
+
+function handleRecoverError(message, status) {
+    let friendly = 'Failed to process pending payments. Please try again.';
+    if (status === 403) {
+        friendly = 'Access denied. Super admin privileges are required to recover payments.';
+    } else if (status === 409) {
+        friendly = 'A recovery run is already in progress. Please wait and try again.';
+    } else if (status === 400) {
+        friendly = 'Invalid recovery request. Please try again.';
+    }
+    showToast(friendly, 'error');
+}
+
+function formatMoney(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? `₵${n.toFixed(2)}` : '₵0.00';
+}
+
+function loadRecoverPaymentsContent() {
+    const contentArea = document.getElementById('admin-content');
+    contentArea.innerHTML = `
+        <div class="page-header">
+            <h2>Recover Pending Payments</h2>
+            <p class="page-help">Super admin only. Scans pending and processing payments older than 10 minutes and credits provider-verified payments to user wallets.</p>
+        </div>
+        <div class="control-card">
+            <h3>Pending Payment Recovery</h3>
+            <div class="recover-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+                <button id="btn-check-payments" class="btn-primary">Check pending payments</button>
+                <button id="btn-credit-payments" class="btn-success" style="display:none;">Credit verified payments</button>
+                <span id="recover-loading" style="display:none; font-size:14px; color:var(--admin-text-secondary);">Checking…</span>
+            </div>
+            <div id="recover-warning" style="display:none; margin:12px 0; padding:12px; border-radius:6px; background:#fff4e5; color:#7a3e00; font-size:14px;">
+                <strong>Hubtel is unreachable.</strong> The payment provider could not be contacted, so results are incomplete. Credits are disabled until provider access is restored.
+            </div>
+            <div id="recover-summary" style="margin:16px 0; font-size:14px; color:var(--admin-text-secondary);"></div>
+            <table class="data-table" id="recover-table" style="display:none; margin-top:12px;">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>User (last 4)</th>
+                        <th>Our amount</th>
+                        <th>Hubtel status</th>
+                        <th>Hubtel amount</th>
+                        <th>Outcome / reason</th>
+                    </tr>
+                </thead>
+                <tbody id="recover-tbody"></tbody>
+            </table>
+            <p id="recover-empty" style="display:none; margin-top:12px; color:var(--admin-text-secondary);">No pending payments found in the last 10 minutes.</p>
+        </div>
+    `;
+
+    document.getElementById('btn-check-payments').addEventListener('click', checkPendingPayments);
+    document.getElementById('btn-credit-payments').addEventListener('click', creditVerifiedPayments);
+
+    recoverDryRunResult = null;
+}
+
+async function checkPendingPayments() {
+    setRecoverLoading(true);
+    try {
+        const response = await window.apiClient.recoverPendingPayments({
+            apply: false,
+            olderThanMinutes: 10,
+            limit: 50
+        });
+
+        if (response.error) {
+            handleRecoverError(response.error, response.status);
+            return;
+        }
+
+        const data = response.data || {};
+        recoverDryRunResult = data;
+        renderRecoverResults(data);
+    } catch (error) {
+        showToast('Failed to check pending payments', 'error');
+    } finally {
+        setRecoverLoading(false);
+    }
+}
+
+async function creditVerifiedPayments() {
+    if (!recoverDryRunResult || recoverDryRunResult.wouldCredit <= 0) {
+        showToast('No verified payments to credit.', 'info');
+        return;
+    }
+
+    const count = recoverDryRunResult.wouldCredit;
+    const total = (recoverDryRunResult.items || [])
+        .filter((item) => item.outcome === 'would_credit')
+        .reduce((sum, item) => sum + Number(item.ourAmount || 0), 0);
+
+    const confirmed = await confirmAction(
+        `Credit ${count} verified payment(s) totaling ${formatMoney(total)} to user wallets?`
+    );
+    if (!confirmed) return;
+
+    setRecoverLoading(true);
+    try {
+        const response = await window.apiClient.recoverPendingPayments({
+            apply: true,
+            confirm: 'CREDIT_VERIFIED_PAYMENTS'
+        });
+
+        if (response.error) {
+            handleRecoverError(response.error, response.status);
+            return;
+        }
+
+        const data = response.data || {};
+        recoverDryRunResult = data;
+        renderRecoverResults(data);
+        showToast(`Credited ${data.credited || 0} payment(s).`, 'success');
+    } catch (error) {
+        showToast('Failed to credit payments', 'error');
+    } finally {
+        setRecoverLoading(false);
+    }
+}
+
+function renderRecoverResults(data) {
+    const summary = document.getElementById('recover-summary');
+    const warning = document.getElementById('recover-warning');
+    const table = document.getElementById('recover-table');
+    const tbody = document.getElementById('recover-tbody');
+    const empty = document.getElementById('recover-empty');
+    const btnCredit = document.getElementById('btn-credit-payments');
+
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    const wouldCreditTotal = items
+        .filter((item) => item.outcome === 'would_credit')
+        .reduce((sum, item) => sum + Number(item.ourAmount || 0), 0);
+
+    summary.innerHTML = `
+        <strong>Scanned:</strong> ${escapeHtml(String(data.scanned))} &nbsp;
+        <strong>Would credit:</strong> ${escapeHtml(String(data.wouldCredit))} (${formatMoney(wouldCreditTotal)}) &nbsp;
+        <strong>Skipped:</strong> ${escapeHtml(String(data.skipped))} &nbsp;
+        <strong>Errors:</strong> ${escapeHtml(String(data.errors))}
+    `;
+    summary.style.display = 'block';
+
+    warning.style.display = data.hubtelUnreachable === true ? 'block' : 'none';
+
+    if (items.length === 0) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+    } else {
+        empty.style.display = 'none';
+        tbody.innerHTML = items.map((item) => `
+            <tr>
+                <td>${escapeHtml(String(item.reference || '-'))}</td>
+                <td>${escapeHtml(String(item.userIdMasked || '-'))}</td>
+                <td>${formatMoney(item.ourAmount)}</td>
+                <td>${escapeHtml(String(item.providerStatus || '-'))}</td>
+                <td>${item.providerAmount != null ? formatMoney(item.providerAmount) : '-'}</td>
+                <td>${escapeHtml(String(item.outcome || '-'))} – ${escapeHtml(String(item.reason || '-'))}</td>
+            </tr>
+        `).join('');
+        table.style.display = 'table';
+    }
+
+    const showCredit = Boolean(data.wouldCredit > 0) && data.hubtelUnreachable !== true;
+    btnCredit.style.display = showCredit ? 'inline-block' : 'none';
 }
 
 function renderPagination(data, containerId, loadFunction) {

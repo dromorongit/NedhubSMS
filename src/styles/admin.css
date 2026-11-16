@@ -718,6 +718,7 @@ body {
 .icon-bell::before { content: "🔔"; }
 .icon-user::before { content: "👤"; }
 .icon-sms::before { content: "💬"; }
+.icon-recover::before { content: "🔄"; }
 
 /* Responsive Design */
 @media (max-width: 768px) {

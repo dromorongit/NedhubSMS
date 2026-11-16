@@ -662,6 +662,15 @@ class ApiClient {
   }
 
   /**
+   * Dry-run or apply recovery of pending payments.
+   * POST /admin/payments/recover-pending  (super_admin only)
+   * @param {Object} params - { apply, confirm?, olderThanMinutes?, limit? }
+   */
+  async recoverPendingPayments(params = {}) {
+    return this.request('POST', '/admin/payments/recover-pending', params);
+  }
+
+  /**
    * Check a payment status with retries. Returns the first successful result or
    * the last result after maxRetries attempts. Each attempt is spaced
    * retryDelayMs apart (default 5 seconds). Used when the customer returns from
