@@ -2985,3 +2985,22 @@ body.page-send-sms .ss2-sender-id-row select {
 body.page-send-sms .ss2-sender-id-row .btn-create-senderid {
     width: auto;
 }
+
+/* ==========================================================================
+   Mobile overflow fix (appended)
+   ========================================================================== */
+@media (max-width: 767px) {
+    body.page-send-sms .ss2 .form-row { grid-template-columns: minmax(0, 1fr); }
+    body.page-send-sms .ss2 .form-group,
+    body.page-send-sms .ss2 .mode-recipients-container,
+    body.page-send-sms .ss2 .recipient-section { min-width: 0; max-width: 100%; }
+    body.page-send-sms .ss2-sender-id-row { flex-wrap: wrap; }
+    body.page-send-sms .ss2-sender-id-row select { flex: 1 1 180px; min-width: 0; }
+    body.page-send-sms .ss2-sender-id-row .btn-create-senderid { flex: 0 0 auto; justify-content: center; }
+    body.page-send-sms .messaging-mode-tabs,
+    body.page-send-sms .recipient-source-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    body.page-send-sms .messaging-mode-tabs .tab-btn,
+    body.page-send-sms .recipient-source-tabs .tab-btn { flex: 1 1 140px; min-width: 0; white-space: normal; padding: 0.7rem 0.75rem; }
+    body.page-send-sms .contacts-selector-wrapper { flex-wrap: wrap; }
+    body.page-send-sms .selector-hint { white-space: normal; }
+}
