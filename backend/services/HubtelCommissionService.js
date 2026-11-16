@@ -692,7 +692,6 @@ class HubtelCommissionService {
     if (!clientReference) throw new Error('Client reference is required');
     if (!this.basicAuthHeader) throw new Error('Hubtel credentials not configured');
 
-    // Verify against Hubtel's current Transaction Status documentation.
     try {
       const endpoint = `${this.baseURL}/api/merchants/${this.merchantAccountNumber}/transactions/${clientReference}/status`;
       
@@ -704,14 +703,10 @@ class HubtelCommissionService {
       });
 
       const responseData = response.data;
-      // Raw provider status: checked at the top level and one level down under
-      // 'data', under the field names 'status' and 'transactionStatus'
-      const rawStatus = this._extractStatus(responseData);
-
+      
       return {
         success: true,
-        status: this._mapTransactionStatus(rawStatus),
-        rawStatus,
+        status: this._mapTransactionStatus(responseData.status || responseData.responseCode),
         responseCode: responseData.responseCode,
         data: responseData.data
       };
@@ -732,68 +727,17 @@ class HubtelCommissionService {
    * Map Hubtel transaction status to internal status
    */
   _mapTransactionStatus(status) {
-    // Map the provider's inner transaction status only. The top-level
-    // responseCode must never by itself mark a transaction paid or failed.
-    // Anything unrecognised, missing or malformed stays pending.
-    //
-    // CONSERVATIVE MAPPING: only explicit success words map to success and
-    // only explicit failure words map to failed. 'Unpaid', 'Refunded' and
-    // every other value not explicitly listed below map to pending.
-    //
-    // SUCCESS and SUCCESSFUL are ASSUMED Hubtel inner-status words for
-    // transfer/commission only — they are NOT accepted by the payment mapper
-    // until a real Hubtel response proves otherwise (see
-    // scripts/inspect-hubtel-status.js).
-    //
-    // Success words: SUCCESS, SUCCESSFUL, Paid, PAID
-    // Failed words: FAILED
-    // Pending words: pending, PENDING, Unpaid, Refunded, CANCELLED,
-    // cancelled, and anything else not explicitly listed above.
-    //
-    // Comparison is trimmed and case-insensitive so 'paid', 'Paid', ' PAID ',
-    // 'failed', 'Failed', 'FAILED' all map as expected.
-    //
-    // NOTE: the status words above are ASSUMED Hubtel inner-status words. The
-    // owner must verify them against Hubtel's documentation (capture a real
-    // response with scripts/inspect-hubtel-status.js) before relying on them
-    // in production.
-    const raw = String(status || '').trim().toLowerCase();
-    const successWords = ['success', 'successful', 'paid'];
-    const failedWords = ['failed'];
-
-    return successWords.includes(raw) ? 'success'
-      : failedWords.includes(raw) ? 'failed'
-      : 'pending';
-  }
-
-  /**
-   * Extract the raw transaction status from a Hubtel provider response body.
-   * When the response has a `data` object, its `status`/`transactionStatus`
-   * fields are authoritative and any top-level status field is ignored.
-   * A top-level status field is used only when there is no `data` object.
-   * Looks under the field names 'status' and 'transactionStatus'.
-   * Returns the first non-empty value found, or undefined when none is present.
-   */
-  _extractStatus(body) {
-    const data = body && body.data;
-    if (data && data !== body) {
-      // data object present: only its status fields are authoritative
-      const found = this._extractStatusFromObject(data);
-      if (found) return found;
-    }
-    // No data object: fall back to top-level status fields
-    return this._extractStatusFromObject(body);
-  }
-
-  /**
-   * Extract status/transactionStatus from a single object (no recursion into
-   * nested objects beyond this level).
-   */
-  _extractStatusFromObject(obj) {
-    if (!obj || typeof obj !== 'object') return undefined;
-    if (typeof obj.status !== 'undefined' && String(obj.status).trim() !== '') return String(obj.status).trim();
-    if (typeof obj.transactionStatus !== 'undefined' && String(obj.transactionStatus).trim() !== '') return String(obj.transactionStatus).trim();
-    return undefined;
+    const statusMap = {
+      'SUCCESS': 'success',
+      'SUCCESSFUL': 'success',
+      'PENDING': 'pending',
+      'pending': 'pending',
+      'FAILED': 'failed',
+      'FAILED': 'failed',
+      'CANCELLED': 'cancelled',
+      'cancelled': 'cancelled'
+    };
+    return statusMap[status] || 'pending';
   }
 }
 

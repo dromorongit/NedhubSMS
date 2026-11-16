@@ -14,25 +14,20 @@ const logger = require('../utils/logger');
 class CostCalculatorService {
   constructor() {
     // Default pricing configuration (can be overridden by admin)
-    // Client-requested sell price. Nalo now charges a flat GHS 0.03/SMS at every
-    // volume tier, so this yields a GHS 0.02/segment margin regardless of volume.
-    this.defaultSellPricePerSms = 0.05; // GHS
-
-    // Provider (Nalo) cost per SMS. Nalo previously tiered pricing by monthly
-    // volume (0.082 / 0.072 / 0.062); they now charge a flat 0.03 regardless of
-    // volume. Kept as a single-entry array (rather than removed) so the existing
-    // tier-based API surface (getProviderCostTiers, getCurrentTierInfo,
-    // updateProviderCostTier, and the /api/admin/pricing/tiers route) keeps working
-    // unchanged - it just reports one tier now instead of three.
+    this.defaultSellPricePerSms = 0.086; // GHS
+    
+    // Tiered provider costs based on monthly volume
     this.providerCostTiers = [
-      { min: 1, max: Infinity, cost: 0.03 } // Flat rate: all volumes
+      { min: 1, max: 99999, cost: 0.082 },      // Tier 1: 1-99,999 SMS
+      { min: 100000, max: 199999, cost: 0.072 }, // Tier 2: 100,000-199,999 SMS
+      { min: 200000, max: Infinity, cost: 0.062 } // Tier 3: 200,000+ SMS
     ];
     
     // Currency
     this.currency = 'GHS';
 
     this.gsm7BasicChars = new Set([
-      '@', '£', '$', '¥', 'è', 'é', 'ù', 'ì', 'ò', 'Ç', '\n', 'Ø', 'ø', '\r', 'Å', 'å', 'Δ', '_', 'Φ', 'Γ', 'Λ', 'Ω', 'Π', 'Ψ', 'Σ', 'Θ', 'Ξ', 'Æ', 'æ', 'ß', 'É', ' ', '!', '"', '#', '¤', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '¡', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'Ä', 'Ö', 'Ñ', 'Ü', '§', '¿', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'ä', 'ö', 'ñ', 'ü', 'à'
+      '@', '£', '$', '¥', 'è', 'é', 'ù', 'ì', 'ò', 'Ç', 'Ø', 'ø', 'Å', 'å', 'Δ', '_', 'Φ', 'Γ', 'Λ', 'Ω', 'Π', 'Ψ', 'Σ', 'Θ', 'Ξ', 'Æ', 'æ', 'ß', 'É', ' ', '!', '"', '#', '¤', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '¡', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'Ä', 'Ö', 'Ñ', 'Ü', '§', '¿', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'ä', 'ö', 'ñ', 'ü', 'à'
     ]);
     this.gsm7ExtendedChars = new Set([
       '^', '{', '}', '\\', '[', '~', ']', '|', '€'

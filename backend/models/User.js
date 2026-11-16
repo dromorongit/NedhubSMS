@@ -15,11 +15,6 @@ const userSchema = new mongoose.Schema({
       'Please add a valid email'
     ]
   },
-  phone: {
-    type: String,
-    required: [true, 'Please add a mobile number'],
-    trim: true
-  },
   password: {
     type: String,
     required: [true, 'Please add a password'],
@@ -33,7 +28,7 @@ const userSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['active', 'suspended', 'pending'],
-    default: 'active'
+    default: 'pending'
   },
   isEmailVerified: {
     type: Boolean,
@@ -64,61 +59,13 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  },
-  passwordChangedAt: {
-    type: Date,
-    default: null
-  },
-  apiKeys: [{
-    keyId: {
-      type: String,
-      required: true
-    },
-    prefix: {
-      type: String,
-      required: true
-    },
-    keyHash: {
-      type: String,
-      required: true
-    },
-    name: {
-      type: String,
-      required: true
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now
-    },
-    lastUsedAt: {
-      type: Date,
-      default: null
-    },
-    revoked: {
-      type: Boolean,
-      default: false
-    },
-    revokedAt: {
-      type: Date,
-      default: null
-    },
-    expiresAt: {
-      type: Date,
-      default: null
-    }
-  }]
+  }
 });
-
-userSchema.index({ 'apiKeys.keyHash': 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
-    return next();
-  }
-
-  if (!this.isNew) {
-    this.passwordChangedAt = new Date();
+    next();
   }
 
   const salt = await bcrypt.genSalt(10);

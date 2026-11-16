@@ -3,7 +3,6 @@ const router = express.Router();
 const { MAX_SMS_RECIPIENTS, MAX_SMS_SEGMENTS } = require('../utils/constants');
 const { authenticate } = require('../middleware/auth');
 const { checkBalance } = require('../utils/nalo');
-const { naloWebhookSecret } = require('../utils/callbackAuth');
 const Message = require('../models/Message');
 const SmsMessage = require('../models/SmsMessage');
 const NaloSmsService = require('../services/NaloSmsService');
@@ -65,16 +64,9 @@ router.post('/send', authenticate, async (req, res) => {
     }
 
     // NaloSmsService handles wallet deduction internally, so we don't need to deduct here
-    // Check Nalo SMS balance (soft check — don't block the send if the check itself fails,
-    // only if it succeeds and confirms zero balance. The actual send via NaloSmsService
-    // will surface any real provider-side balance error per recipient.)
-    const naloResult = await checkBalance();
-    if (!naloResult.ok) {
-      logger.warn('[Send] Provider balance check failed, proceeding with send anyway', {
-        userId,
-        reason: naloResult.error
-      });
-    } else if (naloResult.balance <= 0) {
+    // Check Nalo SMS balance
+    const naloBalance = await checkBalance();
+    if (naloBalance <= 0) {
       return res.status(402).json({
         success: false,
         message: 'Insufficient SMS balance with provider',
@@ -163,18 +155,6 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
-
-    // Validate sender ID exists and is approved
-    const SenderId = require('../models/SenderId');
-    const sender = await SenderId.findOne({ senderId, userId, status: 'approved' });
-    if (!sender) {
-      logger.warn('[Send] Sender ID validation failed', { userId, senderId });
-      return res.status(400).json({
-        success: false,
-        message: 'Sender ID not found or not approved. Please use an approved Sender ID.',
-        error: { code: 'VALIDATION_ERROR' }
-      });
-    }
 
     // Send SMS to ALL recipients with bounded parallelism (CHUNK_SIZE = 10)
     const results = [];
@@ -498,16 +478,8 @@ router.post('/send', authenticate, async (req, res) => {
 
       // Check Nalo SMS balance
       const { checkBalance } = require('../utils/nalo');
-      const naloResult = await checkBalance();
-      if (!naloResult.ok) {
-        logger.warn('[Schedule] Unable to verify Nalo SMS balance', { userId });
-        return res.status(502).json({
-          success: false,
-          message: 'Unable to verify provider balance, please try again',
-          error: { code: 'PROVIDER_BALANCE_CHECK_FAILED', details: naloResult.error }
-        });
-      }
-      if (naloResult.balance <= 0) {
+      const naloBalance = await checkBalance();
+      if (naloBalance <= 0) {
         logger.warn('[Schedule] Insufficient Nalo SMS balance', { userId });
         return res.status(402).json({
           success: false,
@@ -740,110 +712,33 @@ router.post('/send', authenticate, async (req, res) => {
     }
   });
 
-// Get message history - server-side search, status filter, date range and sort
-// so results work across ALL messages, not just the fetched page.
-// Scope: logged-in user only. Data is read from Message, SmsMessage and
-// SmsRecipient, combined, sorted and paginated in memory because records live
-// across three collections.
-// Query params: page, limit, search, status, range (today|7d|30d|month) or
-// start/end, sort (createdAt|recipient|status), order (asc|desc).
+// Get message history - fetch from ALL three models: Message, SmsMessage, and SmsRecipient
 router.get('/logs', authenticate, async (req, res) => {
   const logger = require('../utils/logger');
-  const mongoose = require('mongoose');
   const startTime = Date.now();
-
-  const SORTABLE_FIELDS = ['createdAt', 'recipient', 'status'];
-  const statusBuckets = require('../utils/sms-status-buckets');
-  const QUEUED_STATUSES = statusBuckets.QUEUED_STATUSES;
-  const DEFAULT_LIMIT = 50;
-  const MAX_LIMIT = 100;
-
-  // Escapes regex special characters so user input is matched literally.
-  function escapeRegExp(value) {
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  // Date range bounds (same semantics as /api/sms/messages/stats).
-  function dateBounds(range, start, end) {
-    const now = new Date();
-    let s = null;
-    let e = now;
-    if (range === 'today') {
-      s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (range === '7d') {
-      s = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (range === '30d') {
-      s = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    } else if (range === 'month') {
-      s = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (range === 'all') {
-      s = null;
-      e = null;
-    } else if (range === 'custom' && start && end) {
-      s = new Date(start + 'T00:00:00');
-      e = new Date(end + 'T23:59:59.999');
-    } else {
-      s = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    }
-    return { start: s, end: e };
-  }
-
-  // Status filter mapping, shared with /api/sms/messages/stats via statusBuckets.
-  function statusMatchValue(status) {
-    return statusBuckets.statusesForFilter(status);
-  }
-
+  
   try {
     const userId = req.user.userId;
+    const mongoose = require('mongoose');
     const userIdObj = new mongoose.Types.ObjectId(userId);
-
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(req.query.limit) || DEFAULT_LIMIT));
-    const search = req.query.search ? String(req.query.search).trim() : '';
-    const status = req.query.status ? String(req.query.status).trim() : '';
-    const range = req.query.range || '30d';
-    const startParam = req.query.start;
-    const endParam = req.query.end;
-    const sortField = req.query.sort;
-    const sortOrder = req.query.order && String(req.query.order).toLowerCase() === 'asc' ? 1 : -1;
-    const sortKey = SORTABLE_FIELDS.includes(sortField) ? sortField : 'createdAt';
-
-    const { start: rangeStart, end: rangeEnd } = dateBounds(range, startParam, endParam);
-
-    const baseMatch = { userId: userIdObj };
-    if (rangeStart) {
-      baseMatch.createdAt = { $gte: rangeStart, $lte: rangeEnd };
-    }
-
-    const statusValue = statusMatchValue(status);
-    const searchRegex = search ? new RegExp(escapeRegExp(search), 'i') : null;
-
-    // Build the per-model match criteria. Search covers recipient + message text.
-    function modelMatch(modelName) {
-      const m = { ...baseMatch };
-      if (statusValue) {
-        m.status = Array.isArray(statusValue) ? { $in: statusValue } : statusValue;
-      }
-      if (searchRegex) {
-        const recipientField = modelName === 'Message' ? 'recipients' : 'phoneNumber';
-        const messageField = modelName === 'Message' ? 'messageBody' : (modelName === 'SmsMessage' ? 'message' : 'personalizedMessage');
-        m.$or = [
-          { [recipientField]: { $regex: searchRegex } },
-          { [messageField]: { $regex: searchRegex } }
-        ];
-      }
-      return m;
-    }
-
-    const SmsRecipient = require('../models/SmsRecipient');
-
+    
+    logger.info('[MessageHistory] Fetching message history', { userId });
+    
+    // Fetch from all three models
     const [legacyMessages, newMessages, recipients] = await Promise.all([
-      Message.find(modelMatch('Message')).sort({ createdAt: -1 }),
-      SmsMessage.find(modelMatch('SmsMessage')).sort({ createdAt: -1 }),
-      SmsRecipient.find(modelMatch('SmsRecipient')).sort({ createdAt: -1 })
+      Message.findByUserId(userId),
+      SmsMessage.find({ userId: userIdObj }).sort({ createdAt: -1 }),
+      require('../models/SmsRecipient').find({ userId: userIdObj }).sort({ createdAt: -1 })
     ]);
-
-    // Transform messages to a consistent format.
+    
+    logger.info('[MessageHistory] Data fetched', {
+      userId,
+      legacyCount: legacyMessages.length,
+      newCount: newMessages.length,
+      recipientCount: recipients.length
+    });
+    
+    // Transform messages to have consistent format
     const transformMessage = (msg, source) => {
       if (source === 'legacy') {
         return {
@@ -871,73 +766,56 @@ router.get('/logs', authenticate, async (req, res) => {
           totalChargedToUser: msg.totalChargedToUser,
           source: 'new'
         };
+      } else {
+        // SmsRecipient
+        return {
+          _id: msg._id,
+          senderId: msg.campaignId ? 'Campaign' : 'N/A',
+          recipient: msg.phoneNumber,
+          recipientName: msg.recipientName,
+          message: msg.personalizedMessage,
+          status: msg.status,
+          createdAt: msg.createdAt,
+          errorCode: msg.errorCode,
+          errorMessage: msg.errorMessage,
+          source: 'recipient'
+        };
       }
-      // SmsRecipient
-      return {
-        _id: msg._id,
-        senderId: msg.campaignId ? 'Campaign' : 'N/A',
-        recipient: msg.phoneNumber,
-        recipientName: msg.recipientName,
-        message: msg.personalizedMessage,
-        status: msg.status,
-        createdAt: msg.createdAt,
-        errorCode: msg.errorCode,
-        errorMessage: msg.errorMessage,
-        source: 'recipient'
-      };
     };
-
+    
+    // Combine all three sources and sort by date
     const allMessages = [
       ...legacyMessages.map(msg => transformMessage(msg, 'legacy')),
       ...newMessages.map(msg => transformMessage(msg, 'new')),
       ...recipients.map(msg => transformMessage(msg, 'recipient'))
-    ];
-
-    // Global sort across all sources (applied in memory since recipient is a
-    // different field per model).
-    allMessages.sort((a, b) => {
-      let av, bv;
-      if (sortKey === 'createdAt') {
-        av = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        bv = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      } else {
-        av = String(a[sortKey] || '').toLowerCase();
-        bv = String(b[sortKey] || '').toLowerCase();
-      }
-      if (av < bv) return sortOrder === 1 ? -1 : 1;
-      if (av > bv) return sortOrder === 1 ? 1 : -1;
-      return 0;
-    });
-
-    const total = allMessages.length;
-    const totalPages = Math.max(1, Math.ceil(total / limit));
-    const safePage = Math.min(Math.max(page, 1), totalPages);
-    const startIdx = (safePage - 1) * limit;
-    const paginatedMessages = allMessages.slice(startIdx, startIdx + limit);
-
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    // Calculate summary using canonical statuses
+    const summary = {
+      total: allMessages.length,
+      sent: allMessages.filter(m => m.status === 'sent').length,
+      delivered: allMessages.filter(m => m.status === 'delivered').length,
+      failed: allMessages.filter(m => m.status === 'failed').length,
+      scheduled: allMessages.filter(m => m.status === 'scheduled').length,
+      queued: allMessages.filter(m => m.status === 'queued').length
+    };
+    
     logger.info('[MessageHistory] History retrieved', {
       userId,
-      page: safePage,
-      limit,
-      total,
-      totalPages,
-      search: !!search,
-      status: statusValue,
-      range,
-      sortKey,
-      sortOrder,
+      total: summary.total,
+      sent: summary.sent,
+      delivered: summary.delivered,
+      failed: summary.failed,
+      scheduled: summary.scheduled,
       durationMs: Date.now() - startTime
     });
-
+    
     res.json({
       success: true,
       message: 'Messages fetched successfully',
-      data: paginatedMessages,
-      pagination: {
-        page: safePage,
-        limit,
-        total,
-        totalPages
+      data: {
+        messages: allMessages,
+        summary
       }
     });
   } catch (error) {
@@ -953,147 +831,6 @@ router.get('/logs', authenticate, async (req, res) => {
         code: 'INTERNAL_SERVER_ERROR',
         details: error.message
       }
-    });
-  }
-});
-
-// Get message stats scoped to the logged-in user, optional range filter
-router.get('/messages/stats', authenticate, async (req, res) => {
-  const mongoose = require('mongoose');
-  const userId = req.user.userId;
-  const userIdObj = new mongoose.Types.ObjectId(userId);
-
-  try {
-    const range = req.query.range || 'all';
-    const now = new Date();
-    let start = null;
-    let end = now;
-
-    if (range === 'today') {
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (range === '7d') {
-      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (range === '30d') {
-      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    } else if (range === 'month') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (range === 'all') {
-      start = null;
-      end = null;
-    } else if (range === 'custom' && req.query.start && req.query.end) {
-      start = new Date(req.query.start + 'T00:00:00');
-      end = new Date(req.query.end + 'T23:59:59.999');
-    } else {
-      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    }
-
-    const match = { userId: userIdObj };
-    if (start) {
-      match.createdAt = { $gte: start, $lte: end };
-    }
-
-    const [legacyCount, smsCount, recipCount] = await Promise.all([
-      Message.countDocuments(match),
-      SmsMessage.countDocuments(match),
-      require('../models/SmsRecipient').countDocuments(match)
-    ]);
-
-    const statusMatch = { ...match };
-    const [legacyByStatus, smsByStatus, recipByStatus] = await Promise.all([
-      Message.aggregate([{ $match: statusMatch }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
-      SmsMessage.aggregate([{ $match: statusMatch }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
-      require('../models/SmsRecipient').aggregate([{ $match: statusMatch }, { $group: { _id: '$status', count: { $sum: 1 } } }])
-    ]);
-
-    const statusBuckets = require('../utils/sms-status-buckets');
-
-    const totals = {};
-    for (const arr of [legacyByStatus, smsByStatus, recipByStatus]) {
-      for (const { _id, count } of arr) {
-        totals[_id] = (totals[_id] || 0) + count;
-      }
-    }
-
-    // Status bucket mapping (shared with /api/sms/logs list filter).
-    // Delivered = sent + delivered. Failed = failed. Queued = queued + processing + scheduled.
-    // Cancelled (and any other status) is not in a card bucket; it still counts in Total.
-    const delivered = (totals.delivered || 0) + (totals.sent || 0);
-    const failed = totals.failed || 0;
-    const queued = (totals.queued || 0) + (totals.processing || 0) + (totals.scheduled || 0);
-
-    // Mini area chart series: message counts per time bucket, per metric.
-    // Day buckets for ranged views; month buckets for All time; max ~14 points.
-    const MAX_SERIES_POINTS = 14;
-    const bucketSpec = range === 'all'
-      ? { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }
-      : { y: { $year: '$createdAt' }, m: { $month: '$createdAt' }, d: { $dayOfMonth: '$createdAt' } };
-    const seriesGroup = {
-      _id: bucketSpec,
-      total: { $sum: 1 },
-      delivered: { $sum: { $cond: [{ $in: ['$status', ['sent', 'delivered']] }, 1, 0] } },
-      failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
-      queued: { $sum: { $cond: [{ $in: ['$status', ['queued', 'processing', 'scheduled']] }, 1, 0] } }
-    };
-    const seriesMatch = { ...match };
-    const SmsRecipient = require('../models/SmsRecipient');
-    const [mRows, sRows, rRows] = await Promise.all([
-      Message.aggregate([{ $match: seriesMatch }, { $group: seriesGroup }]),
-      SmsMessage.aggregate([{ $match: seriesMatch }, { $group: seriesGroup }]),
-      SmsRecipient.aggregate([{ $match: seriesMatch }, { $group: seriesGroup }])
-    ]);
-    const merged = {};
-    function seriesKey(row) {
-      if (range === 'all') {
-        return String(row._id.y) + '-' + String(row._id.m).padStart(2, '0');
-      }
-      return String(row._id.y) + '-' + String(row._id.m).padStart(2, '0') + '-' + String(row._id.d).padStart(2, '0');
-    }
-    function addSeriesRows(rows) {
-      for (const row of rows || []) {
-        const key = seriesKey(row);
-        if (!merged[key]) {
-          merged[key] = { date: key + (range === 'all' ? '-01' : ''), total: 0, delivered: 0, failed: 0, queued: 0 };
-        }
-        merged[key].total += row.total;
-        merged[key].delivered += row.delivered;
-        merged[key].failed += row.failed;
-        merged[key].queued += row.queued;
-      }
-    }
-    addSeriesRows(mRows);
-    addSeriesRows(sRows);
-    addSeriesRows(rRows);
-    let points = Object.keys(merged).sort().map(d => merged[d]);
-    if (points.length > MAX_SERIES_POINTS) {
-      const step = (points.length - 1) / (MAX_SERIES_POINTS - 1);
-      points = Array.from({ length: MAX_SERIES_POINTS }, (_, i) => points[Math.round(i * step)]);
-    }
-    const series = {
-      total: points.map(p => ({ date: p.date, count: p.total })),
-      delivered: points.map(p => ({ date: p.date, count: p.delivered })),
-      failed: points.map(p => ({ date: p.date, count: p.failed })),
-      queued: points.map(p => ({ date: p.date, count: p.queued }))
-    };
-
-    res.json({
-      success: true,
-      range,
-      series,
-      total: legacyCount + smsCount + recipCount,
-      delivered,
-      failed,
-      queued,
-      sent: totals.sent || 0,
-      cancelled: totals.cancelled || 0,
-      processing: totals.processing || 0,
-      scheduled: totals.scheduled || 0
-    });
-  } catch (error) {
-    logger.error('[MessageStats] Error', { userId, error: error.message });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to compute message stats',
-      error: { code: 'INTERNAL_SERVER_ERROR', details: error.message }
     });
   }
 });
@@ -1155,11 +892,13 @@ router.get('/calculate-cost', authenticate, async (req, res) => {
   }
 });
 
-// Nalo callback endpoint for delivery reports.
-// Secret verification is enforced by naloWebhookSecret when
-// NALO_WEBHOOK_SECRET is configured (missing/wrong secret -> 200, not processed).
-router.post('/callback', naloWebhookSecret, async (req, res) => {
+// Nalo callback endpoint for delivery reports
+router.post('/callback', async (req, res) => {
   try {
+    if (req.headers['x-webhook-secret'] !== process.env.NALO_WEBHOOK_SECRET) {
+      return res.status(403).json({ success: false, message: 'Unauthorized', error: { code: 'FORBIDDEN' } });
+    }
+
     const { messageId, status, recipient } = req.body;
 
     // Update message status in database (legacy)
@@ -1176,9 +915,7 @@ router.post('/callback', naloWebhookSecret, async (req, res) => {
     res.json({ message: 'Callback processed successfully' });
   } catch (error) {
     console.error(error);
-    // Always answer 200 so the provider does not retry; the reconcile script
-    // picks up any affected transaction later.
-    res.status(200).json({ received: true });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

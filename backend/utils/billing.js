@@ -104,8 +104,7 @@ const deductCredits = async (userId, amount, description) => {
       description,
       reference: `SMS-${Date.now()}`,
       balanceBefore: balanceBefore,
-      balanceAfter: balanceBefore - amount,
-      status: 'completed'
+      balanceAfter: balanceBefore - amount
     });
     
     await transaction.save();

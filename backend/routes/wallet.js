@@ -2,29 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const Wallet = require('../models/Wallet');
-const Payment = require('../models/Payment');
 const SmsMessage = require('../models/SmsMessage');
 const Transaction = require('../models/Transaction');
 const WalletService = require('../services/WalletService');
-const CallbackVerificationService = require('../services/callbackVerificationService');
-const logger = require('../utils/logger');
-const buckets = require('../utils/transaction-buckets');
-
-/**
- * Read the TOPUP_ENABLED kill switch. Defaults to enabled (true). The values
- * false, 0 and off (case-insensitive) disable top-ups.
- */
-function isTopupEnabled() {
-  const raw = process.env.TOPUP_ENABLED;
-  if (raw === undefined || raw === null) return true;
-  const v = String(raw).trim().toLowerCase();
-  return v !== 'false' && v !== '0' && v !== 'off';
-}
-
-// Get wallet top-up status (kill switch) - authenticated
-router.get('/topup-status', authenticate, (req, res) => {
-  res.json({ enabled: isTopupEnabled() });
-});
 
 // Get wallet balance with SMS balance
 router.get('/', authenticate, async (req, res) => {
@@ -177,60 +157,14 @@ router.post('/topup', authenticate, authorize(['admin']), async (req, res) => {
 router.get('/transactions', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const mongoose = require('mongoose');
-    const userIdObj = new mongoose.Types.ObjectId(userId);
-    const {
-      page = 1, limit = 20, search = '', type = '', status = '',
-      range = '', start = '', end = '', sort = 'createdAt', order = 'desc'
-    } = req.query;
-
-    const lim = Math.min(parseInt(limit) || 20, 100);
-    const pg = Math.max(parseInt(page) || 1, 1);
-
-    const filter = { userId: userIdObj };
-    if (type) filter.type = type;
-    if (status) filter.status = status;
-    if (search) {
-      const esc = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      filter.$or = [
-        { description: { $regex: esc, $options: 'i' } },
-        { reference: { $regex: esc, $options: 'i' } }
-      ];
-    }
-    // date range
-    let startDate, endDate;
-    const now = new Date();
-    if (range === 'today') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      endDate = new Date(startDate); endDate.setDate(endDate.getDate() + 1);
-    } else if (range === '7d') {
-      startDate = new Date(now); startDate.setDate(startDate.getDate() - 7);
-      endDate = new Date(now); endDate.setDate(endDate.getDate() + 1);
-    } else if (range === '30d') {
-      startDate = new Date(now); startDate.setDate(startDate.getDate() - 30);
-      endDate = new Date(now); endDate.setDate(endDate.getDate() + 1);
-    } else if (range === 'month') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    } else if (start || end) {
-      if (start) startDate = new Date(start);
-      if (end) { endDate = new Date(end); endDate.setDate(endDate.getDate() + 1); }
-    }
-    if (startDate || endDate) {
-      filter.createdAt = {};
-      if (startDate) filter.createdAt.$gte = startDate;
-      if (endDate) filter.createdAt.$lt = endDate;
-    }
-
-    const sortWhitelist = { createdAt: 'createdAt', type: 'type', amount: 'amount', status: 'status' };
-    const sortField = sortWhitelist[sort] || 'createdAt';
-    const sortDir = order === 'asc' ? 1 : -1;
-
-    const total = await Transaction.countDocuments(filter);
-    const transactions = await Transaction.find(filter)
-      .sort({ [sortField]: sortDir })
-      .skip((pg - 1) * lim)
-      .limit(lim);
+    const { page = 1, limit = 20 } = req.query;
+    
+    const transactions = await Transaction.find({ userId })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+    
+    const total = await Transaction.countDocuments({ userId });
 
     res.json({
       success: true,
@@ -242,119 +176,29 @@ router.get('/transactions', authenticate, async (req, res) => {
           amount: tx.amount,
           description: tx.description,
           reference: tx.reference,
-          status: buckets.normalizeStatus(tx.status),
           balanceBefore: tx.balanceBefore,
           balanceAfter: tx.balanceAfter,
           createdAt: tx.createdAt
         })),
         pagination: {
-          page: pg,
-          limit: lim,
+          page: parseInt(page),
+          limit: parseInt(limit),
           total,
-          totalPages: Math.ceil(total / lim)
+          pages: Math.ceil(total / limit)
         }
       }
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve transactions', error: { code: 'INTERNAL_SERVER_ERROR', details: error.message } });
-  }
-});
-
-// Stats endpoint
-router.get('/transactions/stats', authenticate, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const mongoose = require('mongoose');
-    const userIdObj = new mongoose.Types.ObjectId(userId);
-    const { range = '30d', start = '', end = '' } = req.query;
-    const now = new Date();
-    let startDate, endDate;
-    if (range === 'today') { startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); endDate = new Date(startDate); endDate.setDate(endDate.getDate()+1); }
-    else if (range === '7d') { startDate = new Date(now); startDate.setDate(startDate.getDate()-7); endDate = new Date(now); endDate.setDate(endDate.getDate()+1); }
-    else if (range === '30d') { startDate = new Date(now); startDate.setDate(startDate.getDate()-30); endDate = new Date(now); endDate.setDate(endDate.getDate()+1); }
-    else if (range === 'month') { startDate = new Date(now.getFullYear(), now.getMonth(), 1); endDate = new Date(now.getFullYear(), now.getMonth()+1, 1); }
-    else if (range === 'all') { startDate = null; endDate = null; }
-    else if (start || end) { if (start) startDate = new Date(start); if (end) { endDate = new Date(end); endDate.setDate(endDate.getDate()+1); } }
-
-    const match = { userId: userIdObj };
-    if (startDate || endDate) { match.createdAt = {}; if (startDate) match.createdAt.$gte = startDate; if (endDate) match.createdAt.$lt = endDate; }
-
-const agg = await Transaction.aggregate([
-      { $match: match },
-      { $group: { _id: null, totalSpent: { $sum: { $cond: [{ $and: [{ $eq: ['$type','debit'] }, { $eq: ['$status','completed'] }] }, '$amount', 0] } }, totalReceived: { $sum: { $cond: [{ $and: [{ $eq: ['$type','credit'] }, { $eq: ['$status','completed'] }] }, '$amount', 0] } }, count: { $sum: { $cond: [{ $ne: ['$status','cancelled'] }, 1, 0] } } } }
-    ]);
-    const r = agg[0] || { totalSpent: 0, totalReceived: 0, count: 0 };
-
-    // series per day
-    const bucketFmt = range === 'all' ? '%Y-%m' : '%Y-%m-%d';
-const seriesAgg = await Transaction.aggregate([
-      { $match: match },
-      { $group: { _id: { $dateToString: { format: bucketFmt, date: '$createdAt' } }, spent: { $sum: { $cond: [{ $and: [{ $eq: ['$type','debit'] }, { $eq: ['$status','completed'] }] }, '$amount', 0] } }, received: { $sum: { $cond: [{ $and: [{ $eq: ['$type','credit'] }, { $eq: ['$status','completed'] }] }, '$amount', 0] } }, count: { $sum: { $cond: [{ $ne: ['$status','cancelled'] }, 1, 0] } } } },
-      { $sort: { _id: 1 } }
-    ]);
-    const series = { spent: seriesAgg.map(x=>({x:x._id,y:x.spent})), received: seriesAgg.map(x=>({x:x._id,y:x.received})), count: seriesAgg.map(x=>({x:x._id,y:x.count})) };
-
-    // previous period
-    let prevStart, prevEnd;
-    if (range !== 'all' && startDate) {
-      const dur = (endDate || now) - startDate;
-      prevEnd = new Date(startDate);
-      prevStart = new Date(startDate.getTime() - dur);
-    }
-    let prevMatch = null;
-    if (prevStart) { prevMatch = { userId: userIdObj, createdAt: { $gte: prevStart, $lt: prevEnd } }; }
-    let prev = { totalSpent:0,totalReceived:0,count:0 };
-    if (prevMatch) {
-      const pagg = await Transaction.aggregate([{ $match: prevMatch },{ $group: { _id:null, totalSpent:{ $sum:{ $cond:[{ $and:[{ $eq:['$type','debit']},{ $eq:['$status','completed']}]},'$amount',0]} }, totalReceived:{ $sum:{ $cond:[{ $and:[{ $eq:['$type','credit']},{ $eq:['$status','completed']}]},'$amount',0]} }, count:{ $sum:{ $cond:[{ $ne:['$status','cancelled']},1,0]} } } }]);
-      prev = pagg[0] || prev;
-    }
-    res.json({ success: true, data: { totalSpent: r.totalSpent, totalReceived: r.totalReceived, count: r.count, previous: prev, series } });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve stats' });
-  }
-});
-
-
-// Reconcile pending top-up payments for the calling user (last 24h, max 10)
-router.post('/reconcile', authenticate, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const verificationService = new CallbackVerificationService();
-
-    const pendingPayments = await Payment.find({
-      userId,
-      status: { $in: ['pending', 'processing'] },
-      createdAt: { $gte: cutoff }
-    })
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    let credited = 0;
-    for (const payment of pendingPayments) {
-      try {
-        const result = await verificationService.processPaymentCallback(payment.clientReference);
-        if (result && result.action === 'credit' && result.applied) {
-          credited += 1;
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve wallet balance',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message
         }
-      } catch (err) {
-        logger.warn('[Wallet] Reconcile payment failed', { clientReference: payment.clientReference, error: err.message });
-      }
+      });
     }
-
-    res.json({
-      success: true,
-      data: {
-        checked: pendingPayments.length,
-        credited
-      }
-    });
-  } catch (error) {
-    logger.error('[Wallet] Reconcile error', { error: error.message });
-    res.status(500).json({ success: false, message: 'Failed to reconcile payments' });
-  }
 });
 
 module.exports = router;

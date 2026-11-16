@@ -57,12 +57,12 @@ const smsMessageSchema = new mongoose.Schema({
   // Financial tracking fields
   sellPricePerSms: {
     type: Number,
-    default: 0.05,
+    default: 0.082,
     min: 0
   },
   providerCostPerSms: {
     type: Number,
-    default: 0.03,
+    default: 0.082,
     min: 0
   },
   segments: {
@@ -102,11 +102,6 @@ const smsMessageSchema = new mongoose.Schema({
     type: Date
   }
 });
-
-// Compound indexes to support user-scoped message history queries
-// (userId + createdAt for date-range/sort, userId + status for status filter)
-smsMessageSchema.index({ userId: 1, createdAt: -1 });
-smsMessageSchema.index({ userId: 1, status: 1 });
 
 // Auto-normalize phone number and update updatedAt before save
 smsMessageSchema.pre('save', function(next) {

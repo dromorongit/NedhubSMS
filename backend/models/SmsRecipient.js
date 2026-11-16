@@ -92,10 +92,6 @@ const smsRecipientSchema = new mongoose.Schema({
     type: String,
     index: true
   },
-  jobId: {
-    type: String,
-    index: true
-  },
   errorMessage: {
     type: String,
     maxlength: 500
@@ -132,7 +128,6 @@ smsRecipientSchema.index({ campaignId: 1, status: 1 });
 smsRecipientSchema.index({ userId: 1, status: 1 });
 smsRecipientSchema.index({ userId: 1, normalizedPhoneNumber: 1 });
 smsRecipientSchema.index({ createdAt: 1 });
-smsRecipientSchema.index({ userId: 1, createdAt: -1 });
 
 // Update updatedAt before saving
 smsRecipientSchema.pre('save', function(next) {
@@ -207,12 +202,11 @@ smsRecipientSchema.statics.updateStatus = async function(id, status, providerMes
 };
 
 // Method to mark as sent
-smsRecipientSchema.methods.markAsSent = function(providerMessageId = null, jobId = null) {
+smsRecipientSchema.methods.markAsSent = function(providerMessageId = null) {
   const oldStatus = this.status;
   this.status = 'sent';
   this.sentAt = new Date();
   if (providerMessageId) this.providerMessageId = providerMessageId;
-  if (jobId) this.jobId = jobId;
   this.updatedAt = new Date();
    const savePromise = this.save();
    // Log recipient status change with [MessageStatus] tag
@@ -221,8 +215,7 @@ smsRecipientSchema.methods.markAsSent = function(providerMessageId = null, jobId
      campaignId: this.campaignId,
      oldStatus,
      newStatus: 'sent',
-     providerMessageId,
-     jobId
+     providerMessageId
    });
    return savePromise;
  };

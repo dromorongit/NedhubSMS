@@ -13,7 +13,6 @@ const SmsRecipientService = require('../services/SmsRecipientService');
 const SmsSchedulerService = require('../services/SmsSchedulerService');
 const SmsCampaignRetryService = require('../services/SmsCampaignRetryService');
 const { MAX_SMS_RECIPIENTS, MAX_SMS_SEGMENTS } = require('../utils/constants');
-const { checkBalance } = require('../utils/nalo');
 const logger = require('../utils/logger');
 
 // Preview personalized messages
@@ -268,21 +267,6 @@ router.post('/send', authenticate, async (req, res) => {
       });
     }
 
-    // Check Nalo SMS balance (soft check — see routes/sms.js for rationale)
-    const naloResult = await checkBalance();
-    if (!naloResult.ok) {
-      logger.warn('[Campaign] Provider balance check failed, proceeding with send anyway', {
-        userId,
-        reason: naloResult.error
-      });
-    } else if (naloResult.balance <= 0) {
-      return res.status(402).json({
-        success: false,
-        message: 'Insufficient SMS balance with provider',
-        error: { code: 'INSUFFICIENT_PROVIDER_BALANCE' }
-      });
-    }
-
     // Process recipients for deduplication and validation
     console.log('[Campaign] Processing recipients...');
     const processedRecipients = await SmsRecipientService.processRecipientsForCampaign(
@@ -353,22 +337,56 @@ router.post('/send', authenticate, async (req, res) => {
       estimatedCost: costEstimation.estimatedCost
     });
 
-    // Validate sender ID exists and is approved
-    const SenderId = require('../models/SenderId');
-    const sender = await SenderId.findOne({ senderId, userId, status: 'approved' });
-    if (!sender) {
-      logger.warn('[SendCampaign] Sender ID validation failed', { userId, senderId });
-      await SmsRecipient.deleteMany({ campaignId: campaign._id });
-      campaign.status = 'failed';
-      campaign.failedCount = processedRecipients.finalCount;
-      campaign.sentCount = 0;
-      campaign.queuedCount = 0;
-      await campaign.save();
-      return res.status(400).json({
-        success: false,
-        message: 'Sender ID not found or not approved. Please use an approved Sender ID.',
-        error: { code: 'VALIDATION_ERROR' }
-      });
+    // Provider preflight: validate Sender ID with Nalo before wallet reservation and sending
+    const firstRecipient = processedRecipients.validRecipients[0];
+    if (firstRecipient) {
+      const senderIdPreflight = await NaloSmsService.validateSenderIdWithProvider(senderId);
+      if (!senderIdPreflight.valid) {
+        await SmsRecipient.deleteMany({ campaignId: campaign._id });
+        campaign.status = 'failed';
+        campaign.failedCount = processedRecipients.finalCount;
+        campaign.sentCount = 0;
+        campaign.queuedCount = 0;
+        await campaign.save();
+
+        const classification = senderIdPreflight.classification || 'temporary_provider_error';
+        let userMessage = senderIdPreflight.errorMessage || 'The selected Sender ID is not approved by the SMS provider. Please select an approved Sender ID.';
+        let errorCode = 'SENDER_ID_PROVIDER_REJECTED';
+
+        if (classification === 'temporary_provider_error') {
+          errorCode = 'PROVIDER_TEMPORARY_ERROR';
+          userMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
+        } else if (classification === 'auth_configuration_error') {
+          errorCode = 'PROVIDER_AUTH_ERROR';
+          userMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
+        }
+
+        console.log('[SendCampaign] Sender ID provider preflight failed:', {
+          campaignId: campaign._id,
+          senderId,
+          errorCode: senderIdPreflight.errorCode,
+          classification,
+          errorMessage: senderIdPreflight.errorMessage
+        });
+
+        return res.status(400).json({
+          success: false,
+          message: userMessage,
+          error: {
+            code: errorCode,
+            providerErrorCode: senderIdPreflight.errorCode,
+            classification: classification,
+            providerMessage: senderIdPreflight.errorMessage
+          },
+          data: {
+            campaignId: campaign._id,
+            totalRecipients: processedRecipients.finalCount,
+            successfulRecipients: 0,
+            failedRecipients: processedRecipients.finalCount,
+            status: 'failed'
+          }
+        });
+      }
     }
 
     const reservation = await WalletService.reserveFunds(userId, costEstimation.estimatedCost, campaign._id);
@@ -450,7 +468,7 @@ router.post('/send', authenticate, async (req, res) => {
             });
 
             if (smsResult.success) {
-              await smsRecipient.markAsSent(smsResult.jobId, smsResult.jobId);
+              await smsRecipient.markAsSent(smsResult.jobId);
               successCount++;
               totalCost += smsResult.financial?.charged || 0;
 
@@ -708,6 +726,33 @@ router.post('/schedule', authenticate, async (req, res) => {
       });
     }
 
+    // Provider preflight: validate Sender ID with Nalo before wallet reservation and scheduling
+    const senderIdPreflight = await NaloSmsService.validateSenderIdWithProvider(senderId);
+    if (!senderIdPreflight.valid) {
+      const classification = senderIdPreflight.classification || 'temporary_provider_error';
+      let userMessage = senderIdPreflight.errorMessage || 'The selected Sender ID is not approved by the SMS provider. Please select an approved Sender ID.';
+      let errorCode = 'SENDER_ID_PROVIDER_REJECTED';
+
+      if (classification === 'temporary_provider_error') {
+        errorCode = 'PROVIDER_TEMPORARY_ERROR';
+        userMessage = 'SMS provider is temporarily unavailable. Please wait a moment and try again. If this persists, contact support.';
+      } else if (classification === 'auth_configuration_error') {
+        errorCode = 'PROVIDER_AUTH_ERROR';
+        userMessage = 'SMS provider authentication failed. Please contact admin to verify the Nalo configuration.';
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: userMessage,
+        error: {
+          code: errorCode,
+          providerErrorCode: senderIdPreflight.errorCode,
+          classification: classification,
+          providerMessage: senderIdPreflight.errorMessage
+        }
+      });
+    }
+
     // Validate message segments (multipart SMS supported)
     const campaignSegmentResult = CostCalculatorService.calculateSegments(trimmedMessageBody);
     if (campaignSegmentResult.segments > MAX_SMS_SEGMENTS) {
@@ -752,22 +797,6 @@ router.post('/schedule', authenticate, async (req, res) => {
           code: 'VALIDATION_ERROR',
           details: validation.errors
         }
-      });
-    }
-
-    // Check Nalo SMS balance (soft check — see routes/sms.js for rationale)
-    const naloResult = await checkBalance();
-    if (!naloResult.ok) {
-      logger.warn('[Schedule] Provider balance check failed, proceeding with schedule anyway', {
-        userId,
-        reason: naloResult.error
-      });
-    } else if (naloResult.balance <= 0) {
-      logger.warn('[Schedule] Insufficient Nalo SMS balance', { userId });
-      return res.status(402).json({
-        success: false,
-        message: 'Insufficient SMS balance with provider',
-        error: { code: 'INSUFFICIENT_PROVIDER_BALANCE' }
       });
     }
 

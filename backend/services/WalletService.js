@@ -170,8 +170,7 @@ class WalletService {
         description,
         reference,
         balanceBefore,
-        balanceAfter: balanceBefore - totalChargedToUser,
-        status: 'completed'
+        balanceAfter: balanceBefore - totalChargedToUser
       });
 
       await transaction.save();

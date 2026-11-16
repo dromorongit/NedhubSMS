@@ -122,12 +122,12 @@ router.post('/', authenticate, async (req, res) => {
         const providerCostPerSms = costEstimation.providerCostPerSms;
         const segmentResult = costEstimation.segments.segments || costEstimation.avgSegments || 1;
 
-        const messageDocs = recipients.map((recipient) => {
+        for (const recipient of recipients) {
           const totalChargedToUser = sellPricePerSms * segmentResult;
           const totalCostToProvider = providerCostPerSms * segmentResult;
           const profitAmount = totalChargedToUser - totalCostToProvider;
-
-          return {
+        
+          const smsMessage = new SmsMessage({
             userId,
             phoneNumber: recipient,
             normalizedPhoneNumber: SmsRecipientService.normalizePhoneNumber(recipient),
@@ -141,14 +141,8 @@ router.post('/', authenticate, async (req, res) => {
             totalChargedToUser,
             totalCostToProvider,
             profitAmount
-          };
-        });
-
-        // Bulk insert in batches so a very large recipient list (unlimited cap)
-        // doesn't send one enormous insertMany payload or block the event loop.
-        const INSERT_BATCH_SIZE = 1000;
-        for (let i = 0; i < messageDocs.length; i += INSERT_BATCH_SIZE) {
-          await SmsMessage.insertMany(messageDocs.slice(i, i + INSERT_BATCH_SIZE), { ordered: false });
+          });
+          await smsMessage.save();
         }
 
         res.json({

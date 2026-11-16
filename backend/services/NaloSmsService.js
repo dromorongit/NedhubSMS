@@ -5,7 +5,6 @@ const CostCalculatorService = require('./CostCalculatorService');
 const FinancialSummary = require('../models/FinancialSummary');
 const SenderId = require('../models/SenderId');
 const Wallet = require('../models/Wallet');
-const logger = require('../utils/logger');
 
 class NaloSmsService {
   constructor() {
@@ -14,7 +13,7 @@ class NaloSmsService {
     this.endpoint = '/smsbackend/Resl_Nalo/send-message/';
 
     if (!this.apiKey || this.apiKey === 'dummy_nalo_key_for_testing') {
-      logger.warn('[NaloSmsService] Using dummy API key - SMS sending will be simulated');
+      console.warn('[NaloSmsService] Using dummy API key - SMS sending will be simulated');
       this.isDummyMode = true;
     }
 
@@ -145,7 +144,7 @@ class NaloSmsService {
     );
 
     // Log the parsed provider response with [ProviderResponse] tag
-    logger.debug('[ProviderResponse]', {
+    console.log('[ProviderResponse]', {
       rawStatus: responseData,
       parsedStatus: parsed.status,
       hasMessageId: !!parsed.message_id,
@@ -158,7 +157,7 @@ class NaloSmsService {
 
     // Telecel/Vodafone specific audit logging
     if (isTelecel) {
-      logger.debug('[TelecelAudit]', {
+      console.log('[TelecelAudit]', {
         originalNumber: phoneNumber || 'N/A',
         normalizedNumber: formattedPhoneNumber,
         providerResponse: parsed.status,
@@ -178,13 +177,8 @@ class NaloSmsService {
   /**
    * Refund wallet after failed SMS
    */
-  async refundWallet(userId, amount, description, originalTransaction = null) {
-    const logger = require('../utils/logger');
-    const Transaction = require('../models/Transaction');
-    const Wallet = require('../models/Wallet');
+  async refundWallet(userId, amount, description) {
     try {
-      const wallet = await Wallet.findOne({ userId });
-      const balanceBefore = wallet ? wallet.balance : 0;
       await Wallet.findOneAndUpdate(
         { userId },
         { 
@@ -192,23 +186,9 @@ class NaloSmsService {
           $set: { updatedAt: new Date() }
         }
       );
-      const refundTx = new Transaction({
-        userId,
-        type: 'credit',
-        amount,
-        description: `${description} (refund)`,
-        reference: `REFUND-SMS-${Date.now()}`,
-        balanceBefore,
-        balanceAfter: balanceBefore + amount,
-        status: 'completed'
-      });
-      await refundTx.save();
-      if (originalTransaction && originalTransaction._id) {
-        await Transaction.updateOne({ _id: originalTransaction._id }, { $set: { status: 'failed' } });
-      }
-      logger.debug('[NaloSmsService] Wallet refunded', { amount, userId });
+      console.log(`[NaloSmsService] Wallet refunded: ${amount} GHS for user ${userId}`);
     } catch (error) {
-      logger.error('[NaloSmsService] Wallet refund failed', { error: error.message });
+      console.error('[NaloSmsService] Wallet refund failed:', error.message);
     }
   }
 
@@ -223,7 +203,7 @@ class NaloSmsService {
     if (!apiError?.response?.data) return null;
     const data = apiError.response.data;
     if (typeof data === 'object' && data !== null) {
-      return String(data.status || data.error_code || data.code || '');
+      return String(data.status || data.error_code || '');
     }
     if (typeof data === 'string') {
       if (data.includes('|')) {
@@ -377,7 +357,7 @@ class NaloSmsService {
       // Detect network type from normalized phone number
       const networkType = SmsRecipient.detectNetwork(formattedPhoneNumber);
 
-      logger.debug('[PhoneNormalization]', {
+      console.log('[PhoneNormalization]', {
           originalNumber: phoneNumber,
           normalizedNumber: formattedPhoneNumber,
           networkType,
@@ -386,7 +366,7 @@ class NaloSmsService {
       });
       
       // Log send initiation with [SmsSend] tag
-      logger.debug('[SmsSend]', {
+      console.log('[SmsSend]', {
           userId,
           phoneNumber,
           senderId,
@@ -395,23 +375,22 @@ class NaloSmsService {
           skipDeduction
       });
       
-// Log provider payload with [ProviderPayload] tag
-       const providerPayload = {
-           key: this.apiKey ? '***HIDDEN***' : null, // Hide API key
-           msisdn: formattedPhoneNumber,
-           sender_id: senderId,
-           message: message.trim()
-       };
-       logger.debug('[ProviderPayload]', {
-           ...providerPayload,
-           userId,
-           campaignId,
-           recipientId,
-           timestamp: new Date().toISOString()
-       });
+      // Log provider payload with [ProviderPayload] tag
+      const providerPayload = {
+          key: this.apiKey ? '***HIDDEN***' : null, // Hide API key
+          msisdn: formattedPhoneNumber,
+          sender_id: senderId,
+          message: message.trim()
+      };
+      console.log('[ProviderPayload]', {
+          ...providerPayload,
+          userId,
+          campaignId,
+          recipientId,
+          timestamp: new Date().toISOString()
+      });
 
-     let deductionResult = null;
-     try {
+    try {
       // Validate phone number
       const formattedPhoneNumber = this.formatPhoneNumber(phoneNumber);
       if (!this.validatePhoneNumber(phoneNumber)) {
@@ -471,8 +450,8 @@ class NaloSmsService {
       });
 
       // Check wallet balance and deduct (skip for reservation-based campaigns)
-deductionResult = null;
-       if (!skipDeduction) {
+      let deductionResult = null;
+      if (!skipDeduction) {
         const hasSufficientBalance = await WalletService.hasSufficientBalance(
           userId,
           financialBreakdown.totalChargedToUser
@@ -494,7 +473,7 @@ deductionResult = null;
           `SMS to ${recipientsCount} recipient(s), ${financialBreakdown.avgSegments} segment(s)`
         );
 
-        logger.debug('[NaloSmsService] Wallet deducted', { amountDeducted: deductionResult.amountDeducted });
+        console.log('[NaloSmsService] Wallet deducted:', deductionResult.amountDeducted);
       } else {
         // For skip deduction, create a mock result
         const wallet = await Wallet.findOne({ userId });
@@ -527,7 +506,7 @@ deductionResult = null;
       if (preCheckStatus.state === 'OPEN') {
         const waitMs = preCheckStatus.nextAttemptTime ? Math.max(0, preCheckStatus.nextAttemptTime - Date.now()) : 0;
         const waitSec = Math.ceil(waitMs / 1000);
-        logger.debug('[NaloSmsService] Circuit breaker is OPEN, rejecting send before provider call', {
+        console.log('[NaloSmsService] Circuit breaker is OPEN, rejecting send before provider call', {
           userId,
           phoneNumber: formattedPhoneNumber,
           campaignId: campaignId || 'N/A',
@@ -579,7 +558,7 @@ deductionResult = null;
             validateStatus: (status) => status === 200
           });
           
-      const rawResponseData = response.data && typeof response.data === 'object' ? JSON.stringify(response.data) : String(response.data);
+          const rawResponseData = String(response.data);
           naloResponse = this.parseNaloResponse(response.data, {
             phoneNumber,
             formattedPhoneNumber,
@@ -588,7 +567,7 @@ deductionResult = null;
             recipientId
           });
           
-          logger.debug('[NaloForensic]', {
+          console.log('[NaloForensic]', {
             timestamp: new Date().toISOString(),
             userId,
             campaignId: campaignId || 'N/A',
@@ -619,7 +598,7 @@ deductionResult = null;
               segments: segmentResult.segments
             });
             
-            logger.debug('[NaloSmsService] SMS sent successfully', {
+            console.log('[NaloSmsService] SMS sent successfully', {
               status: naloResponse.status,
               messageId: naloResponse.message_id,
               segments: segmentResult.segments
@@ -672,7 +651,7 @@ deductionResult = null;
             
             // Telecel-specific failure logging
             if (networkType === 'Telecel') {
-              logger.debug('[TelecelAudit]', {
+              console.log('[TelecelAudit]', {
                 event: 'SMS_FAILED',
                 originalNumber: phoneNumber,
                 normalizedNumber: formattedPhoneNumber,
@@ -688,7 +667,7 @@ deductionResult = null;
             
             // Refund wallet on failure
             if (!skipDeduction) {
-              await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund', deductionResult?.transaction);
+              await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS failed - refund');
             }
           }
         } catch (apiError) {
@@ -722,7 +701,7 @@ deductionResult = null;
               errorMessage = apiError.message;
             }
 
-            logger.debug('[NaloForensic]', {
+            console.log('[NaloForensic]', {
               timestamp: new Date().toISOString(),
               userId,
               campaignId: campaignId || 'N/A',
@@ -750,7 +729,7 @@ deductionResult = null;
 
            // Refund wallet on API error
            if (!skipDeduction) {
-             await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund', deductionResult?.transaction);
+             await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS API error - refund');
            }
          }
       }
@@ -797,7 +776,7 @@ deductionResult = null;
             financialBreakdown.avgSegments
           );
         } catch (summaryError) {
-          logger.error('[NaloSmsService] Error updating financial summary', { error: summaryError.message });
+          console.error('[NaloSmsService] Error updating financial summary:', summaryError.message);
         }
 
         logger.smsSend.info('SMS sent successfully', {
@@ -809,7 +788,7 @@ deductionResult = null;
         });
         
         // Log send result with [SendResult] tag
-        logger.debug('[SendResult]', {
+        console.log('[SendResult]', {
           userId,
           phoneNumber: formattedPhoneNumber,
           success: true,
@@ -839,7 +818,7 @@ deductionResult = null;
         });
         
         // Log send result with [SendResult] tag
-        logger.debug('[SendResult]', {
+        console.log('[SendResult]', {
           userId,
           phoneNumber: formattedPhoneNumber,
           success: false,
@@ -862,7 +841,7 @@ deductionResult = null;
       }
 
     } catch (error) {
-      logger.error('[NaloSmsService] Error', { error: error.message });
+      console.error('[NaloSmsService] Error:', error.message);
 
       let failedMessageId = null;
       let errorCode = 'INTERNAL_ERROR';
@@ -878,7 +857,7 @@ deductionResult = null;
           : 0;
         const waitSec = Math.ceil(waitMs / 1000);
         errorMessage = `Provider is temporarily unavailable. Please try again in ${waitSec} seconds.`;
-        logger.debug('[NaloSmsService] Circuit breaker rejection in outer catch', {
+        console.log('[NaloSmsService] Circuit breaker rejection in outer catch', {
           userId,
           phoneNumber,
           campaignId: campaignId || 'N/A',
@@ -910,20 +889,20 @@ deductionResult = null;
         });
         failedMessageId = failedMessage._id.toString();
       } catch (dbError) {
-        logger.error('[NaloSmsService] Failed to create error SmsMessage record', { error: dbError.message });
+        console.error('[NaloSmsService] Failed to create error SmsMessage record:', dbError.message);
       }
 
       // Only refund if this was NOT a circuit breaker rejection (breaker means provider unreachable,
       // but wallet was already deducted. Refund to prevent leak.)
       if (!skipDeduction && typeof financialBreakdown !== 'undefined' && financialBreakdown) {
         try {
-          await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS internal error - refund', deductionResult?.transaction);
+          await this.refundWallet(userId, financialBreakdown.totalChargedToUser, 'SMS internal error - refund');
         } catch (refundErr) {
-          logger.error('[NaloSmsService] Refund failed in outer catch', { error: refundErr.message });
+          console.error('[NaloSmsService] Refund failed in outer catch:', refundErr.message);
         }
       }
 
-      logger.debug('[SendResult]', {
+      console.log('[SendResult]', {
         userId,
         phoneNumber: phoneNumber,
         success: false,
@@ -950,7 +929,6 @@ deductionResult = null;
    * Handle delivery report callback from Nalo
    */
   async handleDeliveryReport(payload) {
-    const logger = require('../utils/logger');
     try {
       const { job_id, status, recipient, timestamp } = payload;
 
@@ -976,20 +954,10 @@ deductionResult = null;
 
       await SmsMessage.findByIdAndUpdate(smsMessage._id, updateData);
 
-      const SmsRecipient = require('../models/SmsRecipient');
-      await SmsRecipient.findOneAndUpdate(
-        { jobId: job_id },
-        {
-          status: updateData.status,
-          ...(updateData.deliveredAt && { deliveredAt: updateData.deliveredAt }),
-          updatedAt: new Date()
-        }
-      );
-
       return { success: true };
 
     } catch (error) {
-      logger.error('Delivery report processing error', { error: error.message });
+      console.error('Delivery report processing error:', error.message);
       return { success: false, error: error.message };
     }
   }
@@ -1097,7 +1065,6 @@ deductionResult = null;
    * @param {string} statusCode - Nalo status code
    */
   reportNaloFailureToBreaker(statusCode) {
-    const logger = require('../utils/logger');
     if (!this.httpClient || typeof this.httpClient.reportExternalFailure !== 'function') {
       return;
     }
@@ -1107,9 +1074,9 @@ deductionResult = null;
     
     if (shouldTrip) {
       this.httpClient.reportExternalFailure(category);
-      logger.debug('[NaloSmsService] Reported Nalo error to circuit breaker', { statusCode, category });
+      console.log(`[NaloSmsService] Reported Nalo error ${statusCode} (category=${category}) to circuit breaker`);
     } else {
-      logger.debug('[NaloSmsService] Nalo error does not trip circuit breaker', { statusCode, category });
+      console.log(`[NaloSmsService] Nalo error ${statusCode} (category=${category}) does not trip circuit breaker`);
     }
   }
 
@@ -1138,10 +1105,9 @@ deductionResult = null;
    * It is NOT called automatically before campaigns (that would defeat the protection).
    */
   resetCircuitBreaker() {
-    const logger = require('../utils/logger');
     if (this.httpClient && typeof this.httpClient.resetCircuitBreaker === 'function') {
       this.httpClient.resetCircuitBreaker();
-      logger.debug('[NaloSmsService] Circuit breaker manually reset to CLOSED');
+      console.log('[NaloSmsService] Circuit breaker manually reset to CLOSED');
     }
   }
 
