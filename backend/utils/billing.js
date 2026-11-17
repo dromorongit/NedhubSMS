@@ -2,52 +2,28 @@ const Transaction = require('../models/Transaction');
 const Wallet = require('../models/Wallet');
 const CostCalculatorService = require('../services/CostCalculatorService');
 
-// SMS cost per segment (in GHS) - authoritative source
-const COST_PER_SMS_SEGMENT = 0.07;
-
 // Calculate SMS segments based on encoding - delegates to authoritative CostCalculatorService
-const calculateSMSSegments = async (message) => {
+const calculateSMSSegments = (message) => {
   const result = CostCalculatorService.calculateSegments(message);
   return result.segments;
 };
 
 // Calculate SMS segments synchronously using the same logic as CostCalculatorService
 const calculateSMSSegmentsSync = (message) => {
-  if (!message || message.length === 0) {
-    return 1;
-  }
-
-  const encoding = CostCalculatorService.determineEncoding(message);
-  const charCount = message.length;
-
-  if (encoding === 'gsm7') {
-    const byteLength = CostCalculatorService.calculateByteLength(message);
-    const singleSegmentLimit = 160;
-    const multiSegmentLimit = 153;
-    if (byteLength <= singleSegmentLimit) {
-      return 1;
-    }
-    return Math.ceil(byteLength / multiSegmentLimit);
-  } else {
-    const singleSegmentLimit = 70;
-    const multiSegmentLimit = 67;
-    if (charCount <= singleSegmentLimit) {
-      return 1;
-    }
-    return Math.ceil(charCount / multiSegmentLimit);
-  }
+  return calculateSMSSegments(message);
 };
 
 // Calculate total cost for SMS send
 const calculateSMSCost = async (message, recipientCount) => {
-  const segments = await calculateSMSSegments(message);
-  return segments * recipientCount * COST_PER_SMS_SEGMENT;
+  const segments = calculateSMSSegments(message);
+  const sellPricePerSms = await CostCalculatorService.getSellPricePerSms();
+  return segments * recipientCount * sellPricePerSms;
 };
 
-// Calculate total cost for SMS send (synchronous)
+// Calculate total cost for SMS send (synchronous, uses current in-memory sell price)
 const calculateSMSCostSync = (message, recipientCount) => {
   const segments = calculateSMSSegmentsSync(message);
-  return segments * recipientCount * COST_PER_SMS_SEGMENT;
+  return segments * recipientCount * CostCalculatorService.defaultSellPricePerSms;
 };
 
 // Deduct credits from wallet atomically (without MongoDB transactions)

@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400,500,700,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../styles/nedhub-app.css">
     <link rel="stylesheet" href="../../styles/shell.css?v=2">
+    <script src="../../utils/messageUtils.js" defer></script>
 </head>
 <body class="nhs-has-shell">
     <div class="dashboard-layout">
@@ -95,18 +96,24 @@
         
         let currentTemplateId = null;
         
-        // Character counter and encoding detection
-        templateContent.addEventListener('input', () => {
-            const content = templateContent.value;
+        function updateTemplateMessageStats(content) {
             const chars = content.length;
             charCount.textContent = chars;
-            
-            // Calculate segments and detect encoding
-            const isGSM = /^[\u0000-\u007F]*$/.test(content);
-            const segmentSize = isGSM ? 160 : 70;
-            const segments = Math.ceil(chars / segmentSize);
-            segmentCount.textContent = segments;
-            encodingType.textContent = isGSM ? 'GSM' : 'Unicode';
+
+            if (typeof window.calculateSmsSegments === 'function') {
+                const result = window.calculateSmsSegments(content);
+                segmentCount.textContent = result.segments || 1;
+                encodingType.textContent = result.encoding === 'unicode' ? 'Unicode' : 'GSM';
+            } else {
+                const isGSM = /^[\u0000-\u007F]*$/.test(content);
+                segmentCount.textContent = chars === 0 ? 0 : (chars <= (isGSM ? 160 : 70) ? 1 : Math.ceil(chars / (isGSM ? 153 : 67)));
+                encodingType.textContent = isGSM ? 'GSM' : 'Unicode';
+            }
+        }
+
+        // Character counter and encoding detection
+        templateContent.addEventListener('input', () => {
+            updateTemplateMessageStats(templateContent.value);
         });
         
         // Open create template modal
